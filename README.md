@@ -41,7 +41,9 @@ repository.
 
 ## If you are here to copy it
 
-You are welcome to read it and to take the ideas. Note that the seeded `LICENSE` is
-all-rights-reserved — the repository is published rather than licensed, and if you want a grant,
-open an issue and ask; it is a decision that has not been made rather than one that went against
-you.
+Please do. It is [MIT licensed](LICENSE) — take the contract, rename the folders, keep the parts
+that work for your degree and drop the rest. No attribution required and none expected.
+
+The licence covers what is in this repository and nothing else. The coursework a module folder
+holds is not here and is not the Owner's to grant — see
+[`docs/adr/0003`](docs/adr/0003-the-system-is-mit-licensed.md) for where that line falls.

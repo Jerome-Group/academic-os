@@ -9,6 +9,13 @@ system. The coursework it organises lives elsewhere and never enters this reposi
 A [Jerome-Group](https://github.com/Jerome-Group) repository. See [`MAP.md`](MAP.md) to find your
 way around and [`AGENTS.md`](AGENTS.md) for how work is done here.
 
+## Status
+
+🌱 Early. One real piece of content — the module folder contract — and nothing to run yet. The
+contract is in use: the Y1S1 and Y1S2 module folders already follow it, and the
+[`ntulearn`](https://github.com/Jerome-Group/ntulearn) importer writes into the structure it
+names.
+
 ## What is here now
 
 [`docs/module-folder-contract.md`](docs/module-folder-contract.md) — the folder and naming

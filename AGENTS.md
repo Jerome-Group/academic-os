@@ -1,21 +1,31 @@
-# AGENTS.md — <repository>
+# AGENTS.md — academic-os
 
 > Canonical instruction file for AI agents (Claude Code and others) working in this repo.
 > `CLAUDE.md` is a symlink to this file, so the two can never drift.
 
 ## What this repo is
 
-*(One paragraph: what this repository is for, and what it is not for. Replace this and the
-heading above before the first pull request.)*
+The system one student runs a degree on: the folder and naming contract every module folder
+follows, the teaching workspace that contract reserves room for, the tasks and the calendar of a
+semester, and the data the `homepage` repository reads. Undergraduate now, shaped so postgraduate
+work lands in the same place.
 
-- **Visibility:** *(private | public)*
+It holds the system and **not** the coursework the system organises. The module folders live on
+the RAID0 and in Drive; this repository describes them and must never contain one — that is
+`docs/adr/0002`, and it is the rule that has to hold on every commit rather than once.
+
+- **Visibility:** public
 - **Organisation:** [Jerome-Group](https://github.com/Jerome-Group)
 
 ## Getting it running
 
-*(The commands an agent could not have guessed — install, run, test, lint — and any constraint
-on where they may be run. Fill this in with the first real code; until then it is honestly
-empty.)*
+There is nothing to install or run yet — the repository is documents so far, and this section is
+honestly empty rather than aspirational. Fill it in with the first real automation.
+
+What you could not have guessed: `docs/module-folder-contract.md` is **normative**. A module
+folder that disagrees with it is wrong, and a rule that is not in it is not a rule — so a change
+to how folders are laid out is a change to that file, in the same pull request, and never a
+convention that only lives in a session.
 
 ## Conventions
 
@@ -24,6 +34,10 @@ empty.)*
 - Keep secrets out of the repo. **Never commit a token.** The conformance check scans every pull
   request for one, and it fires after the push — so a caught credential is burned: rotate it
   first, then clean up. The full response is in `CONTRIBUTING.md`.
+- **Nothing academic is committed.** Lecture material, tutorials, notes, submissions and graded
+  work stay in the module folders. The ignore rules in `.gitignore` refuse the file types that
+  carry them; a file they refuse that genuinely belongs here is added with `git add -f`, and the
+  pull request says why.
 
 ## Code standards
 
@@ -54,9 +68,9 @@ contiguous** lines. Wrote it yourself? Then it is `Assisted-by: none`, never no 
 The commits GitHub writes are not yours either: the squash on `main` and the merge the **Update
 branch** button makes are the platform's text, so the check skips a merge commit and is never run
 over `main`. Both are argued in ADR-0040 and ADR-0041 **in the management hub**, whose numbering is
-not this repository's. The full rule and the verified allowlist are in
-`CONTRIBUTING.md`; an effort suffix is recorded only when one is explicitly set, and a mode
-(Ultracode) is never recorded as one.
+not this repository's. The full rule and the verified allowlist are in `CONTRIBUTING.md`; an
+effort suffix is recorded only when one is explicitly set, and a mode (Ultracode) is never
+recorded as one.
 
 ## Agent skills
 
@@ -69,6 +83,11 @@ Where a piece of work starts, what hands on to what, and where research and prot
 
 GitHub Issues on this repository, via the `gh` CLI. `docs/agents/issue-tracker.md` carries the
 operations, including wayfinding (`/wayfinder` falls back to local markdown without it).
+
+This tracker is also the semester's task list, which is the one way it differs from the rest of
+the Organisation's: an issue here may be a piece of academic work rather than a change to the
+repository. Both kinds carry the same closed label set, and the difference shows in the body
+rather than in a fourteenth label.
 
 ### Labels
 
@@ -89,8 +108,14 @@ Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/do
 
 Surfaced at both ends of any session that touches a pull request — `docs/agents/dependencies.md`.
 Note its **first** merge condition: this repository auto-merges nothing until it opts in, and a
-skeleton CI has not earned that.
+repository with no build has not earned that.
 
 ## Repository notes
 
-*(Anything with no natural home above. May be empty.)*
+**The contract is an interface, not a description.** `ntulearn` writes into the folders
+`docs/module-folder-contract.md` names, so renaming one there changes where an importer puts
+files. Read that repository's destination handling before touching the universal structure.
+
+**Module folder paths are configuration.** Nothing here hardcodes a path into the Owner's
+coursework — that path is precisely the thing being kept out of a public repository, so an
+automation that needs one reads it from a file the ignore rules cover.

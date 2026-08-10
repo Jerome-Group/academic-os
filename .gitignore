@@ -10,3 +10,20 @@
 .env
 .env.*
 *.local
+
+# Academic contents — this repository holds the system and never the coursework the system
+# organises (docs/adr/0002). Blunt on purpose: the failure it exists to prevent is one `git add -A`
+# away, and it is not recallable from a public repository. A file that genuinely belongs here and
+# is refused by these rules is added with `git add -f`, and the pull request says why.
+/modules/
+.scratch/
+*.pdf
+*.doc
+*.docx
+*.ppt
+*.pptx
+*.xls
+*.xlsx
+*.pages
+*.key
+*.numbers

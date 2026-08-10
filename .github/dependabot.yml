@@ -4,7 +4,15 @@
 #
 # Only `github-actions` is here because it is the only ecosystem a newly generated repository
 # certainly has — the workflows in `.github/workflows/`. Add an ecosystem when this repository
-# gains one, and mind what a missing `cooldown` means: **omitting it is not zero**. The option's
+# gains one, and mind two things about the entry you write.
+#
+# **`labels: []` is not optional.** Dependabot applies `dependencies` and a per-ecosystem label
+# unless told not to, and the Organisation's label set is closed (ADR-0028) — the next apply
+# deletes both, stripping them off the pull requests carrying them, and the next bump puts them
+# back. An ecosystem added without it puts this repository into that loop, which is why
+# `bin/audit` in the hub asks every repository for its label set rather than trusting this file.
+#
+# And mind what a missing `cooldown` means: **omitting it is not zero**. The option's
 # `default-days` has a minimum of 1, and an unconfigured ecosystem still takes Dependabot's own
 # 3-day default for version updates. ADR-0010 wants no wait on `terraform`; three days is what
 # the platform actually offers, and it costs nothing on bumps a human reads anyway.
@@ -26,6 +34,11 @@ updates:
     directory: /
     schedule:
       interval: daily
+    # Labelling off, on every ecosystem, for the reason the header gives: the Organisation's
+    # label set is closed (ADR-0028), so a label Dependabot applies is one the next apply deletes
+    # and the next bump recreates. Empty is how the option is switched off — omitting it is not
+    # the same thing, it is Dependabot's two defaults.
+    labels: []
     # Already the default, stated because the auto-merge path depends on it: GitHub will not
     # update a pull request that has fallen behind `main`, even with auto-merge queued and
     # `allow_update_branch` on — measured, see ADR-0010. Dependabot rebasing its own pull

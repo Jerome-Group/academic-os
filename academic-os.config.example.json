@@ -1,0 +1,9 @@
+{
+  "driveMount": "/path/to/google-drive",
+  "stateRoot": "/path/to/private-academic-os-state",
+  "semester": "Y2S1",
+  "module": "MH2100",
+  "semesterRoots": {
+    "Y2S1": "Modules/Y2S1"
+  }
+}

@@ -17,15 +17,59 @@ permissions:
   contents: read
 
 jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
   checks:
+    if: always()
+    needs: [format, lint, typecheck, test]
     runs-on: ubuntu-latest
     steps:
       # Actions are pinned to a commit, not a tag, so a moved tag cannot change what runs here.
       # Dependabot is what moves these pins forward (.github/dependabot.yml).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # The two things true of every repository in the Organisation, so that a green tick means
-      # something from the first commit rather than only once real checks exist.
       - name: CLAUDE.md is still a symlink to AGENTS.md
         run: |
           mode=$(git ls-files -s CLAUDE.md | cut -d' ' -f1)
@@ -38,7 +82,19 @@ jobs:
       - name: MAP.md exists
         run: test -f MAP.md
 
-      # This repository's real checks go below, as further jobs in this file. What they owe —
+      - name: Every code check passed
+        env:
+          FORMAT_RESULT: ${{ needs.format.result }}
+          LINT_RESULT: ${{ needs.lint.result }}
+          TYPECHECK_RESULT: ${{ needs.typecheck.result }}
+          TEST_RESULT: ${{ needs.test.result }}
+        run: |
+          test "$FORMAT_RESULT" = success
+          test "$LINT_RESULT" = success
+          test "$TYPECHECK_RESULT" = success
+          test "$TEST_RESULT" = success
+
+      # This repository's checks are above. What they owe —
       # what CI must prove, how the checks grow, and why none of them gets a path filter — is
       # `CODING_STANDARDS.md` §5, which is the text rather than a summary of it.
       #

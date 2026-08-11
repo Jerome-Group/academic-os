@@ -10,6 +10,11 @@
 .env
 .env.*
 *.local
+academic-os.config.json
+
+# Node / TypeScript
+node_modules/
+dist/
 
 # Academic contents — this repository holds the system and never the coursework the system
 # organises (docs/adr/0002). Blunt on purpose: the failure it exists to prevent is one `git add -A`

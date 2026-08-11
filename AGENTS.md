@@ -19,8 +19,10 @@ the RAID0 and in Drive; this repository describes them and must never contain on
 
 ## Getting it running
 
-There is nothing to install or run yet — the repository is documents so far, and this section is
-honestly empty rather than aspirational. Fill it in with the first real automation.
+Install the pinned development dependencies with `npm ci`. Use `npm run check` for the complete
+local check, or run `npm run format`, `npm run lint`, `npm run typecheck` and `npm test`
+individually. Build the CLI with `npm run build`; then run
+`node dist/src/cli.js audit --config academic-os.config.json`.
 
 What you could not have guessed: `docs/module-folder-contract.md` is **normative**. A module
 folder that disagrees with it is wrong, and a rule that is not in it is not a rule — so a change

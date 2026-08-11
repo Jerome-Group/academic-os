@@ -84,6 +84,7 @@ async function conformantModule(): Promise<{
       );
     }
   }
+  await mkdir(join(moduleRoot, "30 Assessments", "10 Quizzes"));
   const configPath = join(root, "academic-os.config.json");
   await writeFile(
     configPath,
@@ -144,8 +145,8 @@ describe("academic-os audit", () => {
     await writeFile(
       definitionPath,
       (validModuleControls().definition ?? "").replace(
-        "schema_version: 1",
         "schema_version: 2",
+        "schema_version: 3",
       ),
     );
     const futureControl = await runCli(
@@ -155,7 +156,7 @@ describe("academic-os audit", () => {
       "--json",
     );
     assert.equal(futureControl.exitCode, 1);
-    assert.match(futureControl.stdout, /Unsupported schema_version 2/u);
+    assert.match(futureControl.stdout, /Unsupported schema_version 3/u);
     await writeFile(definitionPath, validModuleControls().definition ?? "");
 
     await rm(join(moduleRoot, "30 Assessments", "40 Finals"), {

@@ -36,8 +36,8 @@ Multivariable calculus.
 | --- | --- | --- |
 | None | None | None |
 `,
-    definition: `schema_version: 1
-contract_version: 1
+    definition: `schema_version: 2
+contract_version: 2
 module: {code: MH2100, title: Calculus III}
 offering: {academic_year: 2026-2027, semester: 1, status: active}
 structure:
@@ -89,4 +89,42 @@ Purpose: organise learning and work for MH2100.
 **Module**: MH2100 Calculus III.
 `,
   };
+}
+
+export function contextualModuleDefinition(
+  source = validModuleControls().definition ?? "",
+): string {
+  return source
+    .replace(
+      "tutorials: {layout: flat}",
+      "tutorials: {layout: grouped, groups: [CC0001, CC0002], evidence: [course-site]}",
+    )
+    .replace(
+      /quizzes: \{enabled: (?:false|true, evidence: \[assessment-profile\])\}/u,
+      "quizzes: {enabled: true, evidence: [assessment-profile]}",
+    )
+    .replace(
+      "tests: {enabled: false}",
+      "tests: {enabled: true, evidence: [assessment-profile]}",
+    )
+    .replace(
+      "assignments: {enabled: false}",
+      "assignments: {enabled: true, evidence: [assessment-profile]}",
+    )
+    .replace(
+      "projects: {enabled: false}",
+      "projects: {enabled: true, evidence: [course-site]}",
+    )
+    .replace(
+      "labs: {enabled: false}",
+      "labs: {enabled: true, evidence: [course-site]}",
+    )
+    .replace(
+      "resource_categories: []",
+      "resource_categories: [{name: 10 Formula Sheets, evidence: [course-site]}]",
+    )
+    .replace(
+      "- {role: primary, destination: NTULearn, evidence: [course-site]}",
+      "- {role: primary, destination: NTULearn, evidence: [course-site]}\n    - {role: tutorials, destination: NTULearn_Tutorial, evidence: [course-site]}",
+    );
 }

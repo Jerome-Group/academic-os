@@ -1,4 +1,4 @@
-export { createVanillaSeedPlan } from "./create-vanilla-seed-plan.js";
+export { createModuleSeedPlan } from "./create-module-seed-plan.js";
 export type {
   SeedOperation,
   SeedMode,

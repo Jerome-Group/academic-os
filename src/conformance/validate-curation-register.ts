@@ -1,11 +1,7 @@
-import {
-  controlFinding,
-  failedControl,
-  isRecord,
-  nonEmptyString,
-} from "./control-finding.js";
+import { controlFinding, failedControl } from "./control-finding.js";
 import { moduleControlPaths } from "./control-paths.js";
 import type { Finding } from "./types.js";
+import { isRecord, nonEmptyString } from "./value-shape.js";
 
 const registerPath = moduleControlPaths.curationRegister;
 const decisions = new Set(["curated", "source-only", "requires-decision"]);

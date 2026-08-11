@@ -3,7 +3,7 @@
 The normative folder and naming contract every module folder follows. A folder that disagrees
 with an applicable rule here is wrong, and a rule that is not here is not a rule.
 
-**Contract version: 1.** Increase it when a normative requirement, applicability rule or allowed
+**Contract version: 2.** Increase it when a normative requirement, applicability rule or allowed
 structure changes. Editorial clarification and repaired citations do not change it. Definition
 schema versions advance independently.
 
@@ -107,27 +107,31 @@ schema and contract versions, module identity, offering, applicable context-deri
 declared importer roots and their evidence. It contains module-relative paths only: no absolute
 Drive paths, credentials, deadlines, prose workflows, inventories or learner progress.
 
-The version 1 shape is:
+The version 2 shape is:
 
 ```yaml
-schema_version: 1
-contract_version: 1
+schema_version: 2
+contract_version: 2
 module: {code: MH2100, title: Calculus III}
 offering: {academic_year: 2026-2027, semester: 1, status: active}
 structure:
-  tutorials: {layout: flat}
+  tutorials: {layout: grouped, groups: [CC0001, CC0002], evidence: [course-site]}
   assessments:
     quizzes: {enabled: true, evidence: [assessment-profile]}
     tests: {enabled: false}
     assignments: {enabled: true, evidence: [assessment-profile]}
   projects: {enabled: false}
   labs: {enabled: false}
-  resource_categories: []
+  resource_categories:
+    - {name: 10 Formula Sheets, evidence: [course-site]}
 sources:
   ntulearn:
-    - {role: primary, destination: NTULearn}
+    - {role: primary, destination: NTULearn, evidence: [course-site]}
 evidence:
   assessment-profile:
+    source: <official URL or NTULearn reference>
+    checked_at: 2026-08-11
+  course-site:
     source: <official URL or NTULearn reference>
     checked_at: 2026-08-11
 exceptions: []
@@ -185,8 +189,9 @@ destination.
 
 **MF-TUTORIALS-001 (deterministic).** Definition declares `flat` or `grouped`. Flat Tutorials have
 files directly inside `20 Tutorials`; grouped Tutorials may use source-derived subdirectory names
-that are not forced into `Tutorial NN` or Title Case. Curated files in either layout still follow
-the file-naming rules.
+that are not forced into `Tutorial NN` or Title Case. A grouped declaration records the exact,
+unique names in `groups` and cites evidence for them; a flat declaration has no `groups`. Curated
+files in either layout still follow the file-naming rules.
 
 ### Assessments
 
@@ -229,7 +234,8 @@ uses its exact five children; contents beneath them may nest:
 
 **MF-OPEN-001 (deterministic).** Learning Materials requires its three universal children and
 allows nesting beneath them. Resources requires `00 Unclassified` and allows Definition-declared
-additional categories. Projects/Labs workspace children allow nesting. The interiors of
+additional categories, each declared by exact `name` with evidence. Projects/Labs workspace
+children allow nesting. The interiors of
 `70 Learning`, `docs`, `.scratch` and every declared importer root are outside structural
 enforcement, except that `.scratch` may not contain a LaTeX `build/`.
 

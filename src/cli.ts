@@ -14,7 +14,7 @@ import {
   exitCodeFor,
   renderHumanAuditReport,
 } from "./report/index.js";
-import { createVanillaSeedPlan, type SeedReport } from "./seed/index.js";
+import { createModuleSeedPlan, type SeedReport } from "./seed/index.js";
 
 await main(process.argv.slice(2));
 
@@ -28,7 +28,7 @@ async function main(arguments_: string[]): Promise<void> {
         readApprovedControl(seedArguments.profilePath),
         readApprovedControl(seedArguments.definitionPath),
       ]);
-      const plan = createVanillaSeedPlan({
+      const plan = createModuleSeedPlan({
         module: config.module,
         semester: config.semester,
         profile,

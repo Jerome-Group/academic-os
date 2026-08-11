@@ -1,4 +1,5 @@
-import { isRecord, nonEmptyString } from "./control-finding.js";
+import { isDirectoryName, isRecord, nonEmptyString } from "./value-shape.js";
+import { universalStructurePaths } from "../contract/universal-structure.js";
 
 export const contextualAssessments = [
   "quizzes",
@@ -6,6 +7,11 @@ export const contextualAssessments = [
   "assignments",
 ] as const;
 export const contextualWorkspaces = ["projects", "labs"] as const;
+const universalRootPaths = new Set<string>(
+  universalStructurePaths
+    .filter(([path]) => !path.includes("/"))
+    .map(([path]) => path),
+);
 
 export interface ValidatedDefinition {
   code: string;
@@ -92,6 +98,20 @@ function validateStructure(value: unknown): string[] {
     !["flat", "grouped"].includes(String(tutorials.layout))
   ) {
     problems.push("structure.tutorials.layout must be flat or grouped.");
+  } else if (tutorials.layout === "grouped") {
+    if (
+      !Array.isArray(tutorials.groups) ||
+      tutorials.groups.length === 0 ||
+      !tutorials.groups.every(isDirectoryName) ||
+      new Set(tutorials.groups).size !== tutorials.groups.length
+    ) {
+      problems.push(
+        "grouped structure.tutorials requires a non-empty list of unique directory names in groups.",
+      );
+    }
+    validateEvidenceList(tutorials, "structure.tutorials", problems);
+  } else if ("groups" in tutorials) {
+    problems.push("flat structure.tutorials must not declare groups.");
   }
   const assessments = value.assessments;
   if (!isRecord(assessments)) {
@@ -112,13 +132,48 @@ function validateStructure(value: unknown): string[] {
       problems,
     );
   }
-  if (
-    !Array.isArray(value.resource_categories) ||
-    !value.resource_categories.every(nonEmptyString)
-  ) {
-    problems.push("structure.resource_categories must be a string list.");
+  if (!Array.isArray(value.resource_categories)) {
+    problems.push("structure.resource_categories must be a list.");
+  } else {
+    const names: string[] = [];
+    for (const [index, category] of value.resource_categories.entries()) {
+      if (!isRecord(category) || !isDirectoryName(category.name)) {
+        problems.push(
+          `structure.resource_categories[${index}] requires one directory name.`,
+        );
+        continue;
+      }
+      if (category.name === "00 Unclassified") {
+        problems.push(
+          "structure.resource_categories must not redeclare 00 Unclassified.",
+        );
+      }
+      names.push(category.name);
+      validateEvidenceList(
+        category,
+        `structure.resource_categories[${index}]`,
+        problems,
+      );
+    }
+    if (new Set(names).size !== names.length) {
+      problems.push("structure.resource_categories contains duplicate names.");
+    }
   }
   return problems;
+}
+
+function validateEvidenceList(
+  value: Record<string, unknown>,
+  field: string,
+  problems: string[],
+): void {
+  if (
+    !Array.isArray(value.evidence) ||
+    value.evidence.length === 0 ||
+    !value.evidence.every(nonEmptyString)
+  ) {
+    problems.push(`${field} requires a non-empty evidence reference list.`);
+  }
 }
 
 function validateSources(value: unknown): string[] {
@@ -154,6 +209,13 @@ function validateSources(value: unknown): string[] {
   }
   if (new Set(destinations).size !== destinations.length) {
     problems.push("sources.ntulearn contains duplicate destination roots.");
+  }
+  for (const destination of destinations) {
+    if (destination !== "NTULearn" && universalRootPaths.has(destination)) {
+      problems.push(
+        `sources.ntulearn destination ${destination} conflicts with universal structure.`,
+      );
+    }
   }
   return problems;
 }
@@ -211,12 +273,4 @@ function validateEnabledDeclaration(
   }
 }
 
-function isModuleRoot(value: unknown): value is string {
-  return (
-    nonEmptyString(value) &&
-    !value.startsWith("/") &&
-    !value.includes("/") &&
-    value !== "." &&
-    value !== ".."
-  );
-}
+const isModuleRoot = isDirectoryName;

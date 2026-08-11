@@ -1,15 +1,18 @@
 import { parseDocument } from "yaml";
 
+import { validateDefinition } from "../conformance/validate-definition.js";
+import { deriveContextualStructure } from "../conformance/contextual-structure.js";
 import { universalStructurePaths } from "../contract/universal-structure.js";
 import type { SeedPlan } from "./types.js";
 
-export function createVanillaSeedPlan(input: {
+export function createModuleSeedPlan(input: {
   module: string;
   semester: string;
   profile: string;
   definition: string;
 }): SeedPlan {
-  const definition = readVanillaDefinition(input.definition);
+  const definition = readSeedDefinition(input);
+  const contextualStructure = deriveContextualStructure(input.definition);
   const agents = agentsControl(input.module);
   const claude =
     "# Claude Code\n\nRead `AGENTS.md` completely before working in this module folder.\n";
@@ -26,19 +29,31 @@ export function createVanillaSeedPlan(input: {
     module: input.module,
     semester: input.semester,
     blockers: definition.blockers,
-    operations: universalStructurePaths.map(([path, kind]) => ({
-      kind,
-      path,
-      ...(kind === "file" ? { contents: contentsByPath.get(path) ?? "" } : {}),
-    })),
+    operations: [
+      ...universalStructurePaths.map(([path, kind]) => ({
+        kind,
+        path,
+        ...(kind === "file"
+          ? { contents: contentsByPath.get(path) ?? "" }
+          : {}),
+      })),
+      ...contextualStructure.paths.map((path) => ({
+        kind: "directory" as const,
+        path,
+      })),
+    ],
   };
 }
 
-function readVanillaDefinition(source: string): {
+function readSeedDefinition(input: {
+  module: string;
+  semester: string;
+  definition: string;
+}): {
   title: string;
   blockers: string[];
 } {
-  const document = parseDocument(source, {
+  const document = parseDocument(input.definition, {
     prettyErrors: false,
     uniqueKeys: true,
   });
@@ -54,51 +69,27 @@ function readVanillaDefinition(source: string): {
     typeof value.module.title !== "string" ||
     value.module.title.length === 0
   ) {
-    return { title: "Unresolved Module Title", blockers: [] };
+    return {
+      title: "Unresolved Module Title",
+      blockers: [
+        "Definition is malformed or lacks a module title; requires a human decision before seeding.",
+      ],
+    };
   }
-  const root = record(value);
-  const blockers: string[] = [];
-  const structure = record(root.structure);
-  const assessments = record(structure.assessments);
-  for (const category of ["quizzes", "tests", "assignments"]) {
-    if (record(assessments[category]).enabled !== false) {
-      blockers.push(
-        `Vanilla seed requires structure.assessments.${category}.enabled to be false; context-derived seeding is issue #13.`,
-      );
-    }
-  }
-  for (const workspace of ["projects", "labs"]) {
-    if (record(structure[workspace]).enabled !== false) {
-      blockers.push(
-        `Vanilla seed requires structure.${workspace}.enabled to be false; context-derived seeding is issue #13.`,
-      );
-    }
-  }
-  if (
-    !Array.isArray(structure.resource_categories) ||
-    structure.resource_categories.length > 0
-  ) {
-    blockers.push(
-      "Vanilla seed requires structure.resource_categories to be empty; context-derived seeding is issue #13.",
-    );
-  }
-  const ntulearn = record(root.sources).ntulearn;
-  if (
-    !Array.isArray(ntulearn) ||
-    ntulearn.length !== 1 ||
-    record(ntulearn[0]).destination !== "NTULearn"
-  ) {
-    blockers.push(
-      "Vanilla seed supports only the universal NTULearn importer root; context-derived seeding is issue #13.",
-    );
-  }
-  return { title: value.module.title, blockers };
-}
-
-function record(value: unknown): Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
+  const validation = validateDefinition(
+    input.definition,
+    input.module,
+    input.semester,
+  );
+  return {
+    title: value.module.title,
+    blockers: validation.findings
+      .filter(({ status }) => status !== "pass")
+      .map(
+        ({ status, evidence }) =>
+          `Definition ${status}; requires a human decision before seeding: ${evidence}`,
+      ),
+  };
 }
 
 function agentsControl(module: string): string {

@@ -3,10 +3,14 @@
 import { readFile } from "node:fs/promises";
 
 import { loadLocalConfig } from "./config/index.js";
-import { auditModule } from "./conformance/index.js";
+import {
+  auditModule,
+  readDefinitionContractVersion,
+} from "./conformance/index.js";
 import {
   inspectMountedModule,
   OperationalError,
+  recordMountedAuditObservation,
   seedMountedModule,
 } from "./mounted/index.js";
 import {
@@ -52,12 +56,22 @@ async function main(arguments_: string[]): Promise<void> {
       inventory,
       controls,
     });
+    const recorded = await recordMountedAuditObservation({
+      target,
+      inventory,
+      controls,
+      result,
+      observedAt: new Date().toISOString(),
+      contractVersion: readDefinitionContractVersion(controls.definition),
+    });
     if (json) {
       process.stdout.write(
-        `${JSON.stringify(createJsonAuditReport(target, result), null, 2)}\n`,
+        `${JSON.stringify(createJsonAuditReport(target, result, recorded), null, 2)}\n`,
       );
     } else {
-      process.stdout.write(`${renderHumanAuditReport(target, result)}\n`);
+      process.stdout.write(
+        `${renderHumanAuditReport(target, result, recorded)}\n`,
+      );
     }
     process.exitCode = exitCodeFor(result);
   } catch (error) {

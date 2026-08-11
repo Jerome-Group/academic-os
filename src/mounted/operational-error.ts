@@ -9,6 +9,7 @@ export type OperationalErrorCode =
   | "operational-failure"
   | "out-of-root"
   | "symlink-target"
+  | "unsafe-state-root"
   | "unresolved-placeholder"
   | "unsafe-inventory";
 

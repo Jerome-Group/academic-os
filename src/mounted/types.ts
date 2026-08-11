@@ -1,4 +1,12 @@
-import type { Inventory, ModuleControls } from "../conformance/index.js";
+import type {
+  AuditResult,
+  Inventory,
+  ModuleControls,
+} from "../conformance/index.js";
+import type {
+  AuditObservation,
+  ObservationComparison,
+} from "../observation/index.js";
 
 export interface LocalConfig {
   driveMount: string;
@@ -24,4 +32,34 @@ export interface MountedInventoryResult {
 
 export interface MountedAuditInputResult extends MountedInventoryResult {
   controls: ModuleControls;
+}
+
+export interface RecordMountedAuditObservationInput
+  extends MountedAuditInputResult {
+  result: AuditResult;
+  observedAt: string;
+  contractVersion: number | "unavailable";
+}
+
+export interface ObservationPublisher {
+  publish(temporary: string, destination: string): Promise<void>;
+}
+
+export type HistoryDiagnosticKind =
+  | "missing-history"
+  | "corrupt-history"
+  | "incompatible-history"
+  | "interrupted-write";
+
+export interface HistoryDiagnostic {
+  kind: HistoryDiagnosticKind;
+  path: string;
+  message: string;
+}
+
+export interface RecordedAuditObservation {
+  observation: AuditObservation;
+  observationPath: string;
+  comparison: ObservationComparison;
+  historyDiagnostics: HistoryDiagnostic[];
 }

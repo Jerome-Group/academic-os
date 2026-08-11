@@ -192,4 +192,19 @@ describe("inventoryMountedModule", () => {
       "out-of-root",
     );
   });
+
+  it("rejects private state inside the Drive mount or tracked repository", async () => {
+    const { config, moduleRoot } = await configuredTree();
+    config.stateRoot = moduleRoot;
+    await expectOperationalError(
+      () => inventoryMountedModule(config),
+      "unsafe-state-root",
+    );
+
+    config.stateRoot = await realpath(".");
+    await expectOperationalError(
+      () => inventoryMountedModule(config),
+      "unsafe-state-root",
+    );
+  });
 });

@@ -12,8 +12,9 @@ way around and [`AGENTS.md`](AGENTS.md) for how work is done here.
 ## Status
 
 🌱 Early. A CLI previews and explicitly publishes vanilla module seeds, then audits configured
-modules' universal structure and controls. Observations and semester cohorts remain future work. Y1S1 and Y1S2 are
-audited historical inputs awaiting explicitly approved migration;
+modules' universal structure and controls with append-only private observations. Semester cohorts
+remain future work. Y1S1 and Y1S2 are audited historical inputs awaiting explicitly approved
+migration;
 [`ntulearn`](https://github.com/Jerome-Group/ntulearn) already writes current module material into
 contract-declared importer roots.
 
@@ -35,7 +36,10 @@ npm run build
 node dist/src/cli.js audit --config academic-os.config.json
 ```
 
-Add `--json` for the versioned machine-readable report. Audit is read-only.
+Add `--json` for the versioned machine-readable report. Audit never changes the module. Each run
+atomically appends a complete observation beneath the configured private `stateRoot`, then reports
+new, unchanged, resolved, incompatible, or contract-version-changed history explicitly. Keep that
+root outside the Drive mount and this repository; configuration rejects either unsafe location.
 
 ## Seed one vanilla module
 

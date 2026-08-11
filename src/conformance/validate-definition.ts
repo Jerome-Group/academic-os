@@ -13,11 +13,27 @@ import { isRecord, nonEmptyString } from "./value-shape.js";
 import type { Finding } from "./types.js";
 
 const definitionPath = moduleControlPaths.definition;
+export const supportedContractVersion = 2 as const;
 export type { ValidatedDefinition } from "./definition-shape.js";
 
 export interface DefinitionValidation {
   findings: Finding[];
   definition?: ValidatedDefinition;
+}
+
+export function readDefinitionContractVersion(
+  source: string | undefined,
+): number | "unavailable" {
+  if (source === undefined) return "unavailable";
+  const parsed = parseDefinitionSource(source);
+  if (parsed.errors.length > 0) return "unavailable";
+  const value = parsed.value;
+  if (!isRecord(value) || typeof value.contract_version !== "number") {
+    return "unavailable";
+  }
+  return Number.isInteger(value.contract_version) && value.contract_version > 0
+    ? value.contract_version
+    : "unavailable";
 }
 
 export function validateDefinition(
@@ -35,25 +51,16 @@ export function validateDefinition(
     };
   }
 
-  const document = parseDocument(source, {
-    prettyErrors: false,
-    uniqueKeys: true,
-  });
-  if (document.errors.length > 0) {
+  const parsed = parseDefinitionSource(source);
+  if (parsed.errors.length > 0) {
     return {
       findings: [
-        failedControl(
-          "MF-DEFINITION-001",
-          definitionPath,
-          document.errors.map(
-            ({ message }) => `YAML parser reported: ${oneLine(message)}`,
-          ),
-        ),
+        failedControl("MF-DEFINITION-001", definitionPath, parsed.errors),
       ],
     };
   }
 
-  const value: unknown = document.toJS();
+  const value = parsed.value;
   if (!isRecord(value)) {
     return {
       findings: [
@@ -160,14 +167,31 @@ function validateVersions(value: Record<string, unknown>): string[] {
       `Unsupported schema_version ${renderValue(value.schema_version)}; supported version is 2.`,
     );
   }
-  if (value.contract_version !== 2) {
+  if (value.contract_version !== supportedContractVersion) {
     problems.push(
-      typeof value.contract_version === "number" && value.contract_version < 2
-        ? `contract_version ${value.contract_version} requires upgrade to supported version 2.`
-        : `Unsupported contract_version ${renderValue(value.contract_version)}; supported version is 2.`,
+      typeof value.contract_version === "number" &&
+        value.contract_version < supportedContractVersion
+        ? `contract_version ${value.contract_version} requires upgrade to supported version ${supportedContractVersion}.`
+        : `Unsupported contract_version ${renderValue(value.contract_version)}; supported version is ${supportedContractVersion}.`,
     );
   }
   return problems;
+}
+
+function parseDefinitionSource(source: string): {
+  value: unknown;
+  errors: string[];
+} {
+  const document = parseDocument(source, {
+    prettyErrors: false,
+    uniqueKeys: true,
+  });
+  return {
+    value: document.errors.length === 0 ? document.toJS() : undefined,
+    errors: document.errors.map(
+      ({ message }) => `YAML parser reported: ${oneLine(message)}`,
+    ),
+  };
 }
 
 function validateContextEvidence(value: Record<string, unknown>): string[] {

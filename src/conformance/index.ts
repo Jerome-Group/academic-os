@@ -2,6 +2,10 @@ export { auditModule } from "./audit-module.js";
 export { auditContextualStructure } from "./audit-contextual-structure.js";
 export { auditModuleControls } from "./audit-module-controls.js";
 export { auditUniversalStructure } from "./audit-universal-structure.js";
+export {
+  readDefinitionContractVersion,
+  supportedContractVersion,
+} from "./validate-definition.js";
 export type {
   AuditResult,
   ContractRuleId,

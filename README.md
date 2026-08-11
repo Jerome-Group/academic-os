@@ -11,8 +11,8 @@ way around and [`AGENTS.md`](AGENTS.md) for how work is done here.
 
 ## Status
 
-🌱 Early. A read-only CLI audits one configured module's universal structure. Context-sensitive
-controls, seeding, observations and semester cohorts remain future work. Y1S1 and Y1S2 are
+🌱 Early. A CLI previews and explicitly publishes vanilla module seeds, then audits configured
+modules' universal structure and controls. Observations and semester cohorts remain future work. Y1S1 and Y1S2 are
 audited historical inputs awaiting explicitly approved migration;
 [`ntulearn`](https://github.com/Jerome-Group/ntulearn) already writes current module material into
 contract-declared importer roots.
@@ -36,6 +36,21 @@ node dist/src/cli.js audit --config academic-os.config.json
 ```
 
 Add `--json` for the versioned machine-readable report. Audit is read-only.
+
+## Seed one vanilla module
+
+Prepare an approved Module Profile and Module Definition, then preview every proposed creation:
+
+```sh
+node dist/src/cli.js seed --config academic-os.config.json \
+  --profile /path/to/approved-profile.md \
+  --definition /path/to/approved-definition.yaml
+```
+
+Add `--apply` only after reviewing the preview. The command builds a unique staging tree, audits
+it, and publishes only a conformant module. On macOS, publication requires the system Ruby runtime
+to invoke the filesystem's atomic no-clobber rename. Unsupported volumes fail closed; existing
+content is never overwritten or removed.
 
 ## What it is for
 

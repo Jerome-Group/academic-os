@@ -5,6 +5,7 @@ export {
   type OperationalErrorCode,
 } from "./operational-error.js";
 export { resolveTarget } from "./resolve-target.js";
+export { seedMountedModule } from "./seed-mounted-module.js";
 export type {
   LocalConfig,
   MountedAuditInputResult,

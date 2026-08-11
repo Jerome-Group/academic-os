@@ -4,35 +4,12 @@ import type {
   Inventory,
   InventoryEntryKind,
 } from "./types.js";
-import { moduleControlPaths } from "./control-paths.js";
-
-const requiredPaths = [
-  ["00 Module Admin", "directory"],
-  [moduleControlPaths.profile, "file"],
-  [moduleControlPaths.definition, "file"],
-  [moduleControlPaths.curationRegister, "file"],
-  ["10 Learning Materials", "directory"],
-  ["10 Learning Materials/10 Lecture Materials", "directory"],
-  ["10 Learning Materials/20 Textbook Chapters", "directory"],
-  ["10 Learning Materials/30 Personal Notes", "directory"],
-  ["20 Tutorials", "directory"],
-  ["30 Assessments", "directory"],
-  ["30 Assessments/30 Midterms", "directory"],
-  ["30 Assessments/40 Finals", "directory"],
-  ["40 Projects and Labs", "directory"],
-  ["70 Learning", "directory"],
-  ["90 Resources", "directory"],
-  ["90 Resources/00 Unclassified", "directory"],
-  [".scratch", "directory"],
-  ["NTULearn", "directory"],
-  [moduleControlPaths.agents, "file"],
-  [moduleControlPaths.claude, "file"],
-  [moduleControlPaths.context, "file"],
-  ["docs", "directory"],
-] as const satisfies ReadonlyArray<readonly [string, InventoryEntryKind]>;
+import { universalStructurePaths } from "../contract/universal-structure.js";
 
 const expectedRootPaths = new Set<string>(
-  requiredPaths.filter(([path]) => !path.includes("/")).map(([path]) => path),
+  universalStructurePaths
+    .filter(([path]) => !path.includes("/"))
+    .map(([path]) => path),
 );
 const academicDocumentExtensions = new Set([
   ".doc",
@@ -51,7 +28,7 @@ export function auditUniversalStructure(inventory: Inventory): AuditResult {
   const entriesByPath = new Map(
     inventory.entries.map((entry) => [entry.path, entry]),
   );
-  const findings = requiredPaths.map(([path, expectedKind]) => {
+  const findings = universalStructurePaths.map(([path, expectedKind]) => {
     const entry = entriesByPath.get(path);
     if (entry === undefined) {
       return missingRequiredPath(path, expectedKind);

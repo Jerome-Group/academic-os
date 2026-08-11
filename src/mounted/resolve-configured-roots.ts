@@ -1,5 +1,6 @@
 import { lstat, realpath } from "node:fs/promises";
 import { isAbsolute, join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { OperationalError } from "./operational-error.js";
 import type { LocalConfig } from "./types.js";
@@ -16,6 +17,18 @@ export async function resolveConfiguredRoots(
   validateConfigValues(config);
   const driveMount = await existingDirectory(config.driveMount, "drive-mount");
   const stateRoot = await existingDirectory(config.stateRoot, "state-root");
+  const repositoryRoot = await realpath(
+    fileURLToPath(new URL("../../../", import.meta.url)),
+  );
+  if (
+    isContainedBy(driveMount, stateRoot) ||
+    isContainedBy(repositoryRoot, stateRoot)
+  ) {
+    throw new OperationalError(
+      "unsafe-state-root",
+      "Private state must be outside the Drive mount and tracked repository.",
+    );
+  }
   const configuredSemesterRoot = config.semesterRoots[config.semester];
   if (configuredSemesterRoot === undefined) {
     throw new OperationalError(

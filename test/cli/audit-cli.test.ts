@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { spawn } from "node:child_process";
@@ -7,6 +7,8 @@ import { afterEach, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import type { Finding } from "../../src/conformance/index.js";
+import type { ObservationComparison } from "../../src/observation/index.js";
+import type { HistoryDiagnostic } from "../../src/mounted/types.js";
 import { validModuleControls } from "../fixtures/module-controls.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 
@@ -29,6 +31,19 @@ interface JsonReport {
   module: { code: string; semester: string };
   outcome: "conformant" | "deviation" | "requires-decision";
   findings: Finding[];
+  comparison: ObservationComparison;
+  historyDiagnostics: HistoryDiagnostic[];
+  observation: {
+    schemaVersion: 1;
+    ruleSetVersion: 1;
+    contractVersion: number | "unavailable";
+    reportProvenance: {
+      producer: "@jerome-group/academic-os";
+      producerVersion: "0.1.0";
+      reportSchemaVersion: 1;
+      command: "audit";
+    };
+  };
 }
 
 async function runCli(...arguments_: string[]): Promise<CliRun> {
@@ -52,6 +67,7 @@ async function runCli(...arguments_: string[]): Promise<CliRun> {
 async function conformantModule(): Promise<{
   configPath: string;
   moduleRoot: string;
+  stateRoot: string;
 }> {
   const root = await mkdtemp(join(tmpdir(), "academic-os-cli-"));
   temporaryRoots.push(root);
@@ -100,7 +116,7 @@ async function conformantModule(): Promise<{
       2,
     )}\n`,
   );
-  return { configPath, moduleRoot };
+  return { configPath, moduleRoot, stateRoot };
 }
 
 describe("academic-os audit", () => {
@@ -214,5 +230,88 @@ describe("academic-os audit", () => {
         message: `Configuration cannot be read: ${missingConfig}.`,
       },
     });
+  });
+
+  it("records and reports new, unchanged, resolved, and contract-version drift", async () => {
+    const { configPath, moduleRoot, stateRoot } = await conformantModule();
+
+    const first = await runCli("audit", "--config", configPath, "--json");
+    const firstReport = JSON.parse(first.stdout) as JsonReport;
+    assert.equal(firstReport.comparison.basis, "no-prior-observation");
+    assert.deepEqual(
+      firstReport.historyDiagnostics.map(({ kind }) => kind),
+      ["missing-history"],
+    );
+    assert.deepEqual(firstReport.observation, {
+      schemaVersion: 1,
+      ruleSetVersion: 1,
+      contractVersion: 2,
+      reportProvenance: {
+        producer: "@jerome-group/academic-os",
+        producerVersion: "0.1.0",
+        reportSchemaVersion: 1,
+        command: "audit",
+      },
+    });
+
+    const historyDirectories = await readdir(join(stateRoot, "observations"));
+    assert.equal(historyDirectories.length, 1);
+    const historyDirectory = join(
+      stateRoot,
+      "observations",
+      historyDirectories[0] ?? "missing",
+    );
+    await writeFile(join(historyDirectory, "corrupt.json"), "{not json");
+
+    const invalidPath = join(
+      moduleRoot,
+      "10 Learning Materials",
+      "10 Lecture Materials",
+      "lecture_1.PDF",
+    );
+    await writeFile(invalidPath, "synthetic fixture\n");
+    const introduced = await runCli("audit", "--config", configPath);
+    assert.match(introduced.stdout, /Comparison: compatible-observation/u);
+    assert.match(introduced.stdout, /New findings: 1/u);
+    assert.match(
+      introduced.stdout,
+      /History \[corrupt-history\] corrupt\.json:/u,
+    );
+
+    await rm(invalidPath);
+    const resolved = await runCli("audit", "--config", configPath, "--json");
+    const resolvedReport = JSON.parse(resolved.stdout) as JsonReport;
+    assert.equal(resolvedReport.comparison.resolved.length, 1);
+    assert.equal(
+      resolvedReport.comparison.resolved[0]?.path,
+      "10 Learning Materials/10 Lecture Materials/lecture_1.PDF",
+    );
+
+    const definitionPath = join(
+      moduleRoot,
+      "00 Module Admin",
+      "10 Module Definition.yaml",
+    );
+    await writeFile(
+      definitionPath,
+      (validModuleControls().definition ?? "").replace(
+        "contract_version: 2",
+        "contract_version: 3",
+      ),
+    );
+    const changedContract = await runCli(
+      "audit",
+      "--config",
+      configPath,
+      "--json",
+    );
+    const changedReport = JSON.parse(changedContract.stdout) as JsonReport;
+    assert.equal(changedReport.comparison.basis, "contract-version-changed");
+    assert.deepEqual(changedReport.comparison.contractChange, {
+      from: 2,
+      to: 3,
+    });
+    assert.deepEqual(changedReport.comparison.new, []);
+    assert.deepEqual(changedReport.comparison.resolved, []);
   });
 });

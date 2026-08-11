@@ -11,6 +11,14 @@
 .env.*
 *.local
 academic-os.config.json
+credentials.json
+*.credentials.json
+
+# Private runtime state
+observations/
+journals/
+reports/
+academic-os-state/
 
 # Node / TypeScript
 node_modules/

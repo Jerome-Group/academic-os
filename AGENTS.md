@@ -110,6 +110,12 @@ Surfaced at both ends of any session that touches a pull request — `docs/agent
 Note its **first** merge condition: this repository auto-merges nothing until it opts in, and a
 repository with no build has not earned that.
 
+### Drive safety
+
+**Drive writes and integration tests** — before work can create, move, rename, overwrite, trash or
+delete anything in Drive, read `docs/agents/safe-drive-testing.md`. It owns test isolation,
+exact-ID cleanup, interrupted-run reconciliation and the recovery boundary for real modules.
+
 ## Repository notes
 
 **The contract is an interface, not a description.** `ntulearn` writes into the folders

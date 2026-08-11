@@ -11,10 +11,10 @@ way around and [`AGENTS.md`](AGENTS.md) for how work is done here.
 
 ## Status
 
-🌱 Early. One real piece of content — the module folder contract — and nothing to run yet. The
-contract is in use: the Y1S1 and Y1S2 module folders already follow it, and the
-[`ntulearn`](https://github.com/Jerome-Group/ntulearn) importer writes into the structure it
-names.
+🌱 Early. The module folder contract and safe Drive-testing policy are defined, but their
+automation is not built yet. Y1S1 and Y1S2 are audited historical inputs awaiting explicitly
+approved migration; [`ntulearn`](https://github.com/Jerome-Group/ntulearn) already writes current
+module material into contract-declared importer roots.
 
 ## What is here now
 

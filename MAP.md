@@ -15,6 +15,7 @@ Start here: `README.md`, then `AGENTS.md`.
 | Domain language | The glossary — this repository's ubiquitous language | `CONTEXT.md` |
 | Decisions | Architecture decision records | `docs/adr/` |
 | Agent skills | The routines an agent follows here, one file per skill | `docs/agents/` |
+| Research | Primary-source evidence that informs contracts, decisions and agent procedures | `docs/research/` |
 | Automation | The workflows that run on a pull request or on a new issue, and dependency updates | `.github/` |
 
 The teaching workspace, the calendar and the data `homepage` reads are named in `README.md` as

@@ -1,9 +1,26 @@
 {
   "driveMount": "/path/to/google-drive",
   "stateRoot": "/path/to/private-academic-os-state",
-  "semester": "Y2S1",
-  "module": "MH2100",
-  "semesterRoots": {
-    "Y2S1": "Modules/Y2S1"
+  "activeSemester": "Y2S1",
+  "semesters": {
+    "Y1S2": {
+      "root": "Modules/Y1S2",
+      "status": "past",
+      "modules": ["MH1100"]
+    },
+    "Y2S1": {
+      "root": "Modules/Y2S1",
+      "status": "active",
+      "modules": ["MH2100", "MH2101"]
+    },
+    "Y2S2": {
+      "root": "Modules/Y2S2",
+      "status": "future",
+      "modules": ["MH2200"]
+    }
+  },
+  "seedTarget": {
+    "semester": "Y2S1",
+    "module": "MH2100"
   }
 }

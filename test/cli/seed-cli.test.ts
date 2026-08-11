@@ -12,17 +12,15 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawn } from "node:child_process";
 import { afterEach, describe, it } from "node:test";
-import { fileURLToPath } from "node:url";
 
 import {
   contextualModuleDefinition,
   validModuleControls,
 } from "../fixtures/module-controls.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
+import { runCli } from "../support/run-cli.js";
 
-const cliPath = fileURLToPath(new URL("../../src/cli.js", import.meta.url));
 const temporaryRoots: string[] = [];
 
 afterEach(async () => {
@@ -30,30 +28,6 @@ afterEach(async () => {
     temporaryRoots.splice(0).map((root) => rm(root, { recursive: true })),
   );
 });
-
-interface CliRun {
-  exitCode: number;
-  stdout: string;
-  stderr: string;
-}
-
-async function runCli(...arguments_: string[]): Promise<CliRun> {
-  return await new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [cliPath, ...arguments_]);
-    let stdout = "";
-    let stderr = "";
-    child.stdout.setEncoding("utf8").on("data", (chunk: string) => {
-      stdout += chunk;
-    });
-    child.stderr.setEncoding("utf8").on("data", (chunk: string) => {
-      stderr += chunk;
-    });
-    child.on("error", reject);
-    child.on("close", (exitCode) => {
-      resolve({ exitCode: exitCode ?? -1, stdout, stderr });
-    });
-  });
-}
 
 async function seedFixture(): Promise<{
   configPath: string;
@@ -76,9 +50,15 @@ async function seedFixture(): Promise<{
     `${JSON.stringify({
       driveMount,
       stateRoot,
-      semester: "Y2S1",
-      module: "MH2100",
-      semesterRoots: { Y2S1: "Modules/Y2S1" },
+      activeSemester: "Y2S1",
+      semesters: {
+        Y2S1: {
+          root: "Modules/Y2S1",
+          status: "active",
+          modules: ["MH2100"],
+        },
+      },
+      seedTarget: { semester: "Y2S1", module: "MH2100" },
     })}\n`,
   );
   const controls = validModuleControls();

@@ -2,29 +2,21 @@ import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { spawn } from "node:child_process";
 import { afterEach, describe, it } from "node:test";
-import { fileURLToPath } from "node:url";
 
 import type { Finding } from "../../src/conformance/index.js";
 import type { ObservationComparison } from "../../src/observation/index.js";
 import type { HistoryDiagnostic } from "../../src/mounted/types.js";
 import { validModuleControls } from "../fixtures/module-controls.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
+import { runCli } from "../support/run-cli.js";
 
-const cliPath = fileURLToPath(new URL("../../src/cli.js", import.meta.url));
 const temporaryRoots: string[] = [];
 afterEach(async () => {
   await Promise.all(
     temporaryRoots.splice(0).map((root) => rm(root, { recursive: true })),
   );
 });
-
-interface CliRun {
-  exitCode: number;
-  stdout: string;
-  stderr: string;
-}
 
 interface JsonReport {
   schemaVersion: 1;
@@ -44,24 +36,6 @@ interface JsonReport {
       command: "audit";
     };
   };
-}
-
-async function runCli(...arguments_: string[]): Promise<CliRun> {
-  return await new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [cliPath, ...arguments_]);
-    let stdout = "";
-    let stderr = "";
-    child.stdout.setEncoding("utf8").on("data", (chunk: string) => {
-      stdout += chunk;
-    });
-    child.stderr.setEncoding("utf8").on("data", (chunk: string) => {
-      stderr += chunk;
-    });
-    child.on("error", reject);
-    child.on("close", (exitCode) => {
-      resolve({ exitCode: exitCode ?? -1, stdout, stderr });
-    });
-  });
 }
 
 async function conformantModule(): Promise<{

@@ -1,8 +1,11 @@
 import { readFile } from "node:fs/promises";
 
 import { OperationalError, type LocalConfig } from "../mounted/index.js";
+import type { AcademicConfig } from "./types.js";
 
-export async function loadLocalConfig(path: string): Promise<LocalConfig> {
+export async function loadLocalConfig(
+  path: string,
+): Promise<LocalConfig | AcademicConfig> {
   let contents: string;
   try {
     contents = await readFile(path, "utf8");
@@ -29,5 +32,5 @@ export async function loadLocalConfig(path: string): Promise<LocalConfig> {
     );
   }
 
-  return value as LocalConfig;
+  return value as LocalConfig | AcademicConfig;
 }

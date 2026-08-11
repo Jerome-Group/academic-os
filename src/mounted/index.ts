@@ -6,6 +6,10 @@ export {
 } from "./operational-error.js";
 export { resolveTarget } from "./resolve-target.js";
 export { recordMountedAuditObservation } from "./record-mounted-audit-observation.js";
+export {
+  resolveConfiguredRoots,
+  resolveConfiguredSemesterRoots,
+} from "./resolve-configured-roots.js";
 export { seedMountedModule } from "./seed-mounted-module.js";
 export type {
   LocalConfig,

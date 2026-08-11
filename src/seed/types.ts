@@ -1,4 +1,10 @@
-export type SeedOutcome = "preview" | "blocked" | "staged" | "published";
+export type SeedOutcome =
+  | "preview"
+  | "blocked"
+  | "safely-resumable"
+  | "partially-completed"
+  | "completed"
+  | "abandoned-staging";
 export type SeedMode = "preview" | "apply";
 
 export interface SeedOperation {

@@ -20,4 +20,7 @@ export type {
   RecordedAuditObservation,
   RecordMountedAuditObservationInput,
   ResolvedTarget,
+  SeedExecutionCheckpoint,
+  SeedExecutionCheckpointEvent,
+  SeedExecutionOptions,
 } from "./types.js";

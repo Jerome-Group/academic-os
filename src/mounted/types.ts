@@ -45,6 +45,23 @@ export interface ObservationPublisher {
   publish(temporary: string, destination: string): Promise<void>;
 }
 
+export type SeedExecutionCheckpoint =
+  | "before-staging"
+  | "during-staging"
+  | "before-publication"
+  | "during-publication"
+  | "after-publication";
+
+export interface SeedExecutionCheckpointEvent {
+  checkpoint: SeedExecutionCheckpoint;
+  operation?: { kind: "directory" | "file"; path: string };
+}
+
+export interface SeedExecutionOptions {
+  resume?: boolean;
+  checkpoint?: (event: SeedExecutionCheckpointEvent) => Promise<void>;
+}
+
 export type HistoryDiagnosticKind =
   | "missing-history"
   | "corrupt-history"

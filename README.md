@@ -64,9 +64,15 @@ node dist/src/cli.js seed --config academic-os.config.json \
 ```
 
 Add `--apply` only after reviewing the preview. The command builds a unique staging tree, audits
-it, and publishes only a conformant module. On macOS, publication requires the system Ruby runtime
-to invoke the filesystem's atomic no-clobber rename. Unsupported volumes fail closed; existing
-content is never overwritten or removed.
+it, then publishes only missing operations. Every apply is recorded in an append-only journal
+beneath the private `stateRoot`; existing matching operations are skipped and content is never
+overwritten, moved, renamed, or removed.
+
+After an interrupted apply, rerun the same command first without `--resume`. It recomputes target
+preconditions and reports completed and remaining operations without changing Drive. If the report
+is `safely-resumable`, rerun with both `--apply --resume`. Changed controls, contract version,
+target identity, conflicts, or ambiguous journal state block continuation with evidence. Staging
+artifacts are removed after completion or a safely handled failure; the private journal remains.
 
 ## What it is for
 

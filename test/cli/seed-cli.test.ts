@@ -126,7 +126,7 @@ describe("academic-os seed", () => {
     );
 
     assert.equal(result.exitCode, 0);
-    assert.equal(JSON.parse(result.stdout).outcome, "published");
+    assert.equal(JSON.parse(result.stdout).outcome, "completed");
     for (const [relativePath, kind] of universalPaths) {
       const metadata = await lstat(join(fixture.moduleRoot, relativePath));
       assert.equal(
@@ -252,11 +252,9 @@ describe("academic-os seed", () => {
 
     assert.equal(result.exitCode, 1);
     const report = JSON.parse(result.stdout);
-    assert.equal(report.outcome, "staged");
+    assert.equal(report.outcome, "blocked");
     assert.match(report.evidence.join("\n"), /MF-PROFILE-003/u);
-    const stagedEntries = await readdir(fixture.semesterRoot);
-    assert.equal(stagedEntries.length, 1);
-    assert.match(stagedEntries[0] ?? "", /^\.academic-os-stage-MH2100-/u);
+    assert.deepEqual(await readdir(fixture.semesterRoot), []);
     await assert.rejects(access(fixture.moduleRoot));
   });
 
@@ -279,7 +277,7 @@ describe("academic-os seed", () => {
 
     assert.equal(rerun.exitCode, 0);
     const report = JSON.parse(rerun.stdout);
-    assert.equal(report.outcome, "published");
+    assert.equal(report.outcome, "completed");
     assert.deepEqual(report.operations, []);
     assert.match(report.evidence.join("\n"), /no changes proposed/u);
     assert.deepEqual(await readdir(fixture.semesterRoot), ["MH2100"]);
@@ -308,7 +306,7 @@ describe("academic-os seed", () => {
     );
     const changedResult = await runCli(...arguments_);
     assert.equal(changedResult.exitCode, 1);
-    assert.match(changedResult.stdout, /approved control differs/u);
+    assert.match(changedResult.stdout, /approved plan changed/u);
 
     const nestedSymlink = await seedFixture();
     const nestedArguments = arguments_.map((argument) =>
@@ -372,7 +370,7 @@ describe("academic-os seed", () => {
 
     const applied = await runCli(...arguments_, "--apply");
     assert.equal(applied.exitCode, 0);
-    assert.equal(JSON.parse(applied.stdout).outcome, "published");
+    assert.equal(JSON.parse(applied.stdout).outcome, "completed");
     const audit = await runCli(
       "audit",
       "--config",

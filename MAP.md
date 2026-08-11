@@ -7,7 +7,7 @@ Start here: `README.md`, then `AGENTS.md`.
 | Area | What lives there | Entry point |
 |------|------------------|-------------|
 | The contract | How every module folder is laid out and named. Normative — a folder that disagrees with it is wrong | `docs/module-folder-contract.md` |
-| Module CLI | Previewed staged seeding, active-cohort and migration audit, append-only private observations, pure conformance, and reports | `src/cli.ts` |
+| Module CLI | Previewed journalled/resumable seeding, active-cohort and migration audit, append-only private observations, pure conformance, and reports | `src/cli.ts` |
 | Tests | Public-seam tests using synthetic temporary module trees | `test/` |
 | The boundary | Why the folders it describes are not in this repository, and what keeps them out | `docs/adr/0002-…`, `.gitignore` |
 | Tasks | The semester's work and this repository's own — GitHub Issues, not a file | the issue tracker |

@@ -50,9 +50,17 @@ async function main(arguments_: string[]): Promise<void> {
         config,
         plan,
         seedArguments.apply ? "apply" : "preview",
+        { resume: seedArguments.resume },
       );
       writeSeedReport(report, json);
-      process.exitCode = ["blocked", "staged"].includes(report.outcome) ? 1 : 0;
+      process.exitCode = [
+        "blocked",
+        "safely-resumable",
+        "partially-completed",
+        "abandoned-staging",
+      ].includes(report.outcome)
+        ? 1
+        : 0;
       return;
     }
     const auditArguments = parseAuditArguments(arguments_);
@@ -260,12 +268,19 @@ function parseSeedArguments(arguments_: string[]): {
   profilePath: string;
   definitionPath: string;
   apply: boolean;
+  resume: boolean;
 } {
   const usage =
-    "Usage: academic-os seed --config <path> --profile <path> --definition <path> [--apply] [--json]";
+    "Usage: academic-os seed --config <path> --profile <path> --definition <path> [--apply [--resume]] [--json]";
   const values = new Map<string, string>();
   const valueFlags = new Set(["--config", "--profile", "--definition"]);
-  const supported = new Set(["seed", ...valueFlags, "--apply", "--json"]);
+  const supported = new Set([
+    "seed",
+    ...valueFlags,
+    "--apply",
+    "--resume",
+    "--json",
+  ]);
   for (let index = 1; index < arguments_.length; index += 1) {
     const argument = arguments_[index];
     if (argument === undefined || !supported.has(argument)) {
@@ -289,7 +304,8 @@ function parseSeedArguments(arguments_: string[]): {
   if (
     configPath === undefined ||
     profilePath === undefined ||
-    definitionPath === undefined
+    definitionPath === undefined ||
+    (arguments_.includes("--resume") && !arguments_.includes("--apply"))
   ) {
     throw new OperationalError("invalid-arguments", usage);
   }
@@ -298,5 +314,6 @@ function parseSeedArguments(arguments_: string[]): {
     profilePath,
     definitionPath,
     apply: arguments_.includes("--apply"),
+    resume: arguments_.includes("--resume"),
   };
 }

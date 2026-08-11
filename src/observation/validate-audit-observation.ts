@@ -1,10 +1,12 @@
 import { contractRuleEnforcement } from "../conformance/rule-enforcement.js";
-import type { Finding, InventoryEntry } from "../conformance/types.js";
+import type { Finding } from "../conformance/types.js";
 import {
   type AuditObservation,
   observationSchemaVersion,
   ruleSetVersion,
 } from "./types.js";
+import { isInventory } from "./validate-inventory.js";
+import { isIsoTimestamp, isRecord } from "./validation-primitives.js";
 
 export interface ObservationEnvelope {
   schemaVersion: number;
@@ -30,7 +32,6 @@ const findingSeverities = new Set([
   "error",
   "decision",
 ]);
-const inventoryEntryKinds = new Set(["directory", "file", "symlink", "other"]);
 
 export function readObservationEnvelope(
   value: unknown,
@@ -66,7 +67,9 @@ export function isAuditObservation(value: unknown): value is AuditObservation {
     isIsoTimestamp(value.observedAt) &&
     isInventory(value.inventory, envelope.target.moduleCode) &&
     isRecord(value.metadataAvailability) &&
-    value.metadataAvailability.contentChecksums === "unavailable" &&
+    ["unavailable", "entry-specific"].includes(
+      String(value.metadataAvailability.contentChecksums),
+    ) &&
     typeof value.metadataAvailability.reason === "string" &&
     Array.isArray(value.findings) &&
     value.findings.every(isFinding) &&
@@ -82,28 +85,6 @@ function validContractVersion(value: unknown): boolean {
   return (
     value === "unavailable" ||
     (typeof value === "number" && Number.isInteger(value) && value > 0)
-  );
-}
-
-function isInventory(value: unknown, moduleCode: string): boolean {
-  return (
-    isRecord(value) &&
-    value.moduleCode === moduleCode &&
-    Array.isArray(value.entries) &&
-    value.entries.every(isInventoryEntry)
-  );
-}
-
-function isInventoryEntry(value: unknown): value is InventoryEntry {
-  if (!isRecord(value)) return false;
-  return (
-    typeof value.path === "string" &&
-    inventoryEntryKinds.has(String(value.kind)) &&
-    (value.size === undefined ||
-      (typeof value.size === "number" &&
-        Number.isInteger(value.size) &&
-        value.size >= 0)) &&
-    isIsoTimestamp(value.modifiedAt)
   );
 }
 
@@ -127,16 +108,4 @@ function isFinding(value: unknown): value is Finding {
     typeof value.explanation === "string" &&
     typeof value.applicability === "string"
   );
-}
-
-function isIsoTimestamp(value: unknown): value is string {
-  if (typeof value !== "string") return false;
-  const timestamp = Date.parse(value);
-  return (
-    Number.isFinite(timestamp) && new Date(timestamp).toISOString() === value
-  );
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

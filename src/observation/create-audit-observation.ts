@@ -18,11 +18,28 @@ export function createAuditObservation(
     inventory: {
       moduleCode: input.inventory.moduleCode,
       entries: [...input.inventory.entries].sort(compareInventoryEntries),
+      ...(input.inventory.excludedEntries === undefined
+        ? {}
+        : {
+            excludedEntries: [...input.inventory.excludedEntries].sort(
+              compareInventoryEntries,
+            ),
+          }),
+      ...(input.inventory.provenance === undefined
+        ? {}
+        : { provenance: input.inventory.provenance }),
     },
-    metadataAvailability: {
-      contentChecksums: "unavailable",
-      reason: "Mounted audits do not read academic file contents.",
-    },
+    metadataAvailability:
+      input.inventory.provenance?.source === "drive-api"
+        ? {
+            contentChecksums: "entry-specific",
+            reason:
+              "Each Drive inventory entry records whether a provider checksum was observed.",
+          }
+        : {
+            contentChecksums: "unavailable",
+            reason: "Mounted audits do not read academic file contents.",
+          },
     findings: [...input.findings].sort(compareFindings),
     reportProvenance: {
       producer: "@jerome-group/academic-os",

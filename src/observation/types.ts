@@ -17,7 +17,7 @@ export interface AuditObservation {
   observedAt: string;
   inventory: Inventory;
   metadataAvailability: {
-    contentChecksums: "unavailable";
+    contentChecksums: "unavailable" | "entry-specific";
     reason: string;
   };
   findings: Finding[];

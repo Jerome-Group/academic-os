@@ -12,6 +12,10 @@ import {
   readDefinitionContractVersion,
 } from "./conformance/index.js";
 import {
+  createGoogleDriveFilesClient,
+  inventoryDriveModule,
+} from "./drive/index.js";
+import {
   inspectMountedModule,
   type LocalConfig,
   OperationalError,
@@ -70,6 +74,12 @@ async function main(arguments_: string[]): Promise<void> {
       auditArguments.semester === undefined &&
       auditArguments.module === undefined
     ) {
+      if (auditArguments.inventory === "drive-api") {
+        throw new OperationalError(
+          "invalid-arguments",
+          "Drive API inventory requires an explicit semester and module target.",
+        );
+      }
       const report = await runCohortAudit(config as AcademicConfig);
       if (json) {
         process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
@@ -97,8 +107,12 @@ async function main(arguments_: string[]): Promise<void> {
         "Migration mode requires an explicitly configured past-semester target.",
       );
     }
-    const { target, inventory, controls } =
-      await inspectMountedModule(targetConfig);
+    const mounted = await inspectMountedModule(targetConfig);
+    const inventory =
+      auditArguments.inventory === "drive-api"
+        ? await readDriveInventory(targetConfig)
+        : mounted.inventory;
+    const { target, controls } = mounted;
     const result = auditModule({
       moduleCode: target.module,
       semester: target.semester,
@@ -154,6 +168,7 @@ async function main(arguments_: string[]): Promise<void> {
             error: {
               code: operationalError.code,
               message: operationalError.message,
+              ...operationalError.details,
             },
           },
           null,
@@ -219,14 +234,20 @@ function parseAuditArguments(arguments_: string[]): {
   semester?: string;
   module?: string;
   migration: boolean;
+  inventory: "mounted" | "drive-api";
 } {
   const usage =
-    "Usage: academic-os audit --config <path> [--semester <semester> --module <module> [--migration]] [--json]";
+    "Usage: academic-os audit --config <path> [--semester <semester> --module <module> [--migration]] [--inventory mounted|drive-api] [--json]";
   if (arguments_[0] !== "audit") {
     throw new OperationalError("invalid-arguments", usage);
   }
   const values = new Map<string, string>();
-  const valueFlags = new Set(["--config", "--semester", "--module"]);
+  const valueFlags = new Set([
+    "--config",
+    "--semester",
+    "--module",
+    "--inventory",
+  ]);
   const supported = new Set(["audit", ...valueFlags, "--migration", "--json"]);
   for (let index = 1; index < arguments_.length; index += 1) {
     const argument = arguments_[index];
@@ -248,10 +269,12 @@ function parseAuditArguments(arguments_: string[]): {
   const configPath = values.get("--config");
   const semester = values.get("--semester");
   const module = values.get("--module");
+  const inventory = values.get("--inventory") ?? "mounted";
   if (
     configPath === undefined ||
     (semester === undefined) !== (module === undefined) ||
-    (arguments_.includes("--migration") && semester === undefined)
+    (arguments_.includes("--migration") && semester === undefined) ||
+    !["mounted", "drive-api"].includes(inventory)
   ) {
     throw new OperationalError("invalid-arguments", usage);
   }
@@ -260,7 +283,33 @@ function parseAuditArguments(arguments_: string[]): {
     ...(semester === undefined ? {} : { semester }),
     ...(module === undefined ? {} : { module }),
     migration: arguments_.includes("--migration"),
+    inventory: inventory as "mounted" | "drive-api",
   };
+}
+
+async function readDriveInventory(config: LocalConfig) {
+  const moduleFolderId = config.driveApi?.moduleFolderId;
+  if (typeof moduleFolderId !== "string" || moduleFolderId.length === 0) {
+    throw new OperationalError(
+      "invalid-config",
+      `Drive API inventory requires driveApi.moduleFolderId for ${config.module}.`,
+    );
+  }
+  const inventory = await inventoryDriveModule(
+    { moduleCode: config.module, moduleFolderId },
+    createGoogleDriveFilesClient(),
+  );
+  if (inventory.provenance.completeness === "partial") {
+    const evidence = inventory.provenance.diagnostics
+      .map(({ kind, evidence: detail }) => `${kind}: ${detail}`)
+      .join(" ");
+    throw new OperationalError(
+      "unsafe-inventory",
+      `Drive API inventory is incomplete. ${evidence}`,
+      { inventoryProvenance: inventory.provenance },
+    );
+  }
+  return inventory;
 }
 
 function parseSeedArguments(arguments_: string[]): {

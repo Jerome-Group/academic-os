@@ -10,8 +10,17 @@ export interface CliRun {
 }
 
 export async function runCli(...arguments_: string[]): Promise<CliRun> {
+  return runCliWithEnvironment({}, ...arguments_);
+}
+
+export async function runCliWithEnvironment(
+  environment: NodeJS.ProcessEnv,
+  ...arguments_: string[]
+): Promise<CliRun> {
   return await new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [cliPath, ...arguments_]);
+    const child = spawn(process.execPath, [cliPath, ...arguments_], {
+      env: { ...process.env, ...environment },
+    });
     let stdout = "";
     let stderr = "";
     child.stdout.setEncoding("utf8").on("data", (chunk: string) => {

@@ -16,6 +16,13 @@ export async function inventoryMountedModule(
     inventory: {
       moduleCode: target.module,
       entries: await inventoryDirectory(target.moduleRoot),
+      provenance: {
+        source: "mounted",
+        target: target.moduleRoot,
+        completeness: "complete",
+        diagnostics: [],
+        excludedTrashedItems: 0,
+      },
     },
   };
 }
@@ -46,6 +53,41 @@ export async function inventoryDirectory(
       kind,
       ...(kind === "file" ? { size: metadata.size } : {}),
       modifiedAt: metadata.mtime.toISOString(),
+      providerMetadata: {
+        itemId: {
+          availability: "unavailable",
+          reason:
+            "Mounted inventory does not expose a stable provider item ID.",
+        },
+        parentIds: {
+          availability: "unavailable",
+          reason:
+            "Mounted inventory exposes parent paths, not provider parent IDs.",
+        },
+        checksum: {
+          availability: "unavailable",
+          reason: "Mounted audits do not read academic file contents.",
+        },
+        shortcutTarget:
+          kind === "symlink"
+            ? {
+                availability: "unavailable",
+                reason: "Mounted inventory does not follow symbolic links.",
+              }
+            : { availability: "not-applicable" },
+        trashed: {
+          availability: "unavailable",
+          reason: "Mounted inventory does not expose Drive trash state.",
+        },
+        modifiedAt: {
+          availability: "observed",
+          value: metadata.mtime.toISOString(),
+        },
+        size:
+          kind === "file"
+            ? { availability: "observed", value: metadata.size }
+            : { availability: "not-applicable" },
+      },
     });
     if (kind === "directory") {
       inventory.push(...(await inventoryDirectory(root, relativePath)));

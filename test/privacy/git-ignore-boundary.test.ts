@@ -13,6 +13,10 @@ describe("version-control privacy boundary", () => {
       "tmp/journals/seed.jsonl",
       "credentials.json",
       "nested/credentials.json",
+      "client_secret_google.json",
+      "application_default_credentials.json",
+      "drive-api-responses/page-1.json",
+      "nested/audit.drive-api-response.json",
       "modules/MH2100/lecture.pdf",
     ];
 

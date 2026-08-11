@@ -17,4 +17,7 @@ export interface AcademicConfig {
   activeSemester: string;
   semesters: Record<string, SemesterConfig>;
   seedTarget?: ConfiguredModule;
+  driveApi?: {
+    moduleFolderIds: Record<string, Record<string, string>>;
+  };
 }

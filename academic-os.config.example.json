@@ -22,5 +22,12 @@
   "seedTarget": {
     "semester": "Y2S1",
     "module": "MH2100"
+  },
+  "driveApi": {
+    "moduleFolderIds": {
+      "Y2S1": {
+        "MH2100": "replace-with-drive-folder-id"
+      }
+    }
   }
 }

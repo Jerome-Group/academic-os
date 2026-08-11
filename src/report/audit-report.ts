@@ -2,6 +2,7 @@ import {
   supportedContractVersion,
   type AuditResult,
   type Finding,
+  type InventoryProvenance,
 } from "../conformance/index.js";
 import type {
   HistoryDiagnostic,
@@ -21,6 +22,7 @@ export interface JsonAuditReport {
   findings: Finding[];
   comparison: ObservationComparison;
   historyDiagnostics: HistoryDiagnostic[];
+  inventoryProvenance: InventoryProvenance;
   observation: {
     schemaVersion: 1;
     ruleSetVersion: 1;
@@ -55,6 +57,8 @@ export function createJsonAuditReport(
     findings: result.findings,
     comparison: recorded.comparison,
     historyDiagnostics: recorded.historyDiagnostics,
+    inventoryProvenance:
+      recorded.observation.inventory.provenance ?? syntheticProvenance(target),
     observation: {
       schemaVersion: recorded.observation.schemaVersion,
       ruleSetVersion: recorded.observation.ruleSetVersion,
@@ -91,6 +95,13 @@ export function renderHumanJsonAuditReport(report: JsonAuditReport): string {
     `Audit ${report.module.code} (${report.module.semester})`,
     `Mode: ${report.mode}`,
     `Outcome: ${report.outcome}`,
+    `Inventory: ${report.inventoryProvenance.source} (${report.inventoryProvenance.completeness})`,
+    `Inventory target: ${report.inventoryProvenance.target}`,
+    `Excluded trashed items: ${report.inventoryProvenance.excludedTrashedItems}`,
+    ...report.inventoryProvenance.diagnostics.map(
+      ({ kind, severity, evidence }) =>
+        `Inventory [${severity}] ${kind}: ${evidence}`,
+    ),
     `Contract relationship: ${report.lifecycle.contractRelationship}`,
     `Comparison: ${report.comparison.basis}`,
     `New findings: ${report.comparison.new.length}`,
@@ -103,6 +114,16 @@ export function renderHumanJsonAuditReport(report: JsonAuditReport): string {
     ),
     ...findings,
   ].join("\n");
+}
+
+function syntheticProvenance(target: ResolvedTarget): InventoryProvenance {
+  return {
+    source: "synthetic",
+    target: target.moduleRoot,
+    completeness: "complete",
+    diagnostics: [],
+    excludedTrashedItems: 0,
+  };
 }
 
 function contractRelationship(

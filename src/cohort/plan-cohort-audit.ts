@@ -39,6 +39,7 @@ export function resolveConfiguredAuditTarget(
     semester,
     module,
     semesterRoots: { [semester]: semesterConfig.root },
+    ...driveApiTarget(config, semester, module),
   };
 }
 
@@ -80,6 +81,7 @@ export function planCohortAudit(config: AcademicConfig): CohortAuditPlan {
           semester,
           module,
           semesterRoots: { [semester]: semesterConfig.root },
+          ...driveApiTarget(config, semester, module),
         });
       } else {
         excluded.push({
@@ -95,6 +97,33 @@ export function planCohortAudit(config: AcademicConfig): CohortAuditPlan {
     selection: { included, excluded, unresolved },
     targets,
   };
+}
+
+function driveApiTarget(
+  config: AcademicConfig,
+  semester: string,
+  module: string,
+): Pick<LocalConfig, "driveApi"> | Record<string, never> {
+  const moduleFolderIds = config.driveApi?.moduleFolderIds;
+  if (
+    typeof moduleFolderIds !== "object" ||
+    moduleFolderIds === null ||
+    Array.isArray(moduleFolderIds)
+  ) {
+    return {};
+  }
+  const semesterFolderIds = moduleFolderIds[semester];
+  if (
+    typeof semesterFolderIds !== "object" ||
+    semesterFolderIds === null ||
+    Array.isArray(semesterFolderIds)
+  ) {
+    return {};
+  }
+  const moduleFolderId = semesterFolderIds[module];
+  return typeof moduleFolderId !== "string" || moduleFolderId.length === 0
+    ? {}
+    : { driveApi: { moduleFolderId } };
 }
 
 function validateCohortConfig(config: AcademicConfig): void {

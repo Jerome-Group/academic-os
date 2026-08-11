@@ -14,6 +14,9 @@ export interface LocalConfig {
   semester: string;
   module: string;
   semesterRoots: Record<string, string>;
+  driveApi?: {
+    moduleFolderId: string;
+  };
 }
 
 export interface ResolvedTarget {

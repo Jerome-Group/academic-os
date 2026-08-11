@@ -52,6 +52,12 @@ node dist/src/cli.js audit --config academic-os.config.json \
 Add `--migration` only for a configured past-semester target. It evaluates that historical module
 against the current contract without changing it or adding it to the active cohort.
 
+For one explicit module, add its folder ID under `driveApi.moduleFolderIds` and pass
+`--inventory drive-api`. This optional route uses Application Default Credentials with only
+`drive.metadata.readonly`; it enriches the same audit with provider IDs and available metadata.
+Without that flag, credentials and the Drive API are never consulted. Keep credentials, raw API
+responses, observations, and reports outside tracked content.
+
 ## Seed one vanilla module
 
 Set `seedTarget` in the same local configuration, prepare an approved Module Profile and Module

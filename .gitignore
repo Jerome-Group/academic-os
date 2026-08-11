@@ -13,12 +13,16 @@
 academic-os.config.json
 credentials.json
 *.credentials.json
+client_secret*.json
+application_default_credentials.json
 
 # Private runtime state
 observations/
 journals/
 reports/
 academic-os-state/
+drive-api-responses/
+*.drive-api-response.json
 
 # Node / TypeScript
 node_modules/

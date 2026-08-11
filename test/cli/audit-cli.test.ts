@@ -1,15 +1,25 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 
-import type { Finding } from "../../src/conformance/index.js";
+import type {
+  Finding,
+  InventoryProvenance,
+} from "../../src/conformance/index.js";
 import type { ObservationComparison } from "../../src/observation/index.js";
 import type { HistoryDiagnostic } from "../../src/mounted/types.js";
 import { validModuleControls } from "../fixtures/module-controls.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
-import { runCli } from "../support/run-cli.js";
+import { runCli, runCliWithEnvironment } from "../support/run-cli.js";
 
 const temporaryRoots: string[] = [];
 afterEach(async () => {
@@ -36,6 +46,7 @@ interface JsonReport {
       command: "audit";
     };
   };
+  inventoryProvenance: InventoryProvenance;
 }
 
 async function conformantModule(): Promise<{
@@ -105,6 +116,8 @@ describe("academic-os audit", () => {
     assert.equal(report.schemaVersion, 1);
     assert.deepEqual(report.module, { code: "MH2100", semester: "Y2S1" });
     assert.equal(report.outcome, "conformant");
+    assert.equal(report.inventoryProvenance.source, "mounted");
+    assert.equal(report.inventoryProvenance.completeness, "complete");
     const humanLines = human.stdout.split("\n");
     const humanFindingLines = humanLines.filter((line) => line.startsWith("["));
     assert.deepEqual(
@@ -204,6 +217,67 @@ describe("academic-os audit", () => {
         message: `Configuration cannot be read: ${missingConfig}.`,
       },
     });
+
+    const driveApiWithoutTarget = await runCli(
+      "audit",
+      "--config",
+      configPath,
+      "--inventory",
+      "drive-api",
+      "--json",
+    );
+    assert.equal(driveApiWithoutTarget.exitCode, 2);
+    assert.deepEqual(JSON.parse(driveApiWithoutTarget.stdout), {
+      schemaVersion: 1,
+      outcome: "operational-failure",
+      error: {
+        code: "invalid-config",
+        message:
+          "Drive API inventory requires driveApi.moduleFolderId for MH2100.",
+      },
+    });
+
+    const config = JSON.parse(await readFile(configPath, "utf8")) as Record<
+      string,
+      unknown
+    >;
+    config.driveApi = { moduleFolderId: "synthetic-folder-id" };
+    await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`);
+    const driveApiWithoutCredentials = await runCliWithEnvironment(
+      {
+        GOOGLE_APPLICATION_CREDENTIALS: join(
+          dirname(configPath),
+          "missing-credentials.json",
+        ),
+      },
+      "audit",
+      "--config",
+      configPath,
+      "--inventory",
+      "drive-api",
+      "--json",
+    );
+    assert.equal(driveApiWithoutCredentials.exitCode, 2);
+    const credentialFailure = JSON.parse(driveApiWithoutCredentials.stdout) as {
+      error: {
+        code: string;
+        message: string;
+        inventoryProvenance: InventoryProvenance;
+      };
+    };
+    assert.equal(credentialFailure.error.code, "unsafe-inventory");
+    assert.match(
+      credentialFailure.error.message,
+      /^Drive API inventory is incomplete\./u,
+    );
+    assert.equal(
+      credentialFailure.error.inventoryProvenance.source,
+      "drive-api",
+    );
+    assert.equal(
+      credentialFailure.error.inventoryProvenance.completeness,
+      "partial",
+    );
   });
 
   it("records and reports new, unchanged, resolved, and contract-version drift", async () => {

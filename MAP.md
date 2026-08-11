@@ -7,6 +7,8 @@ Start here: `README.md`, then `AGENTS.md`.
 | Area | What lives there | Entry point |
 |------|------------------|-------------|
 | The contract | How every module folder is laid out and named. Normative — a folder that disagrees with it is wrong | `docs/module-folder-contract.md` |
+| Audit CLI | Read-only mounted inventory, pure universal conformance, and reports | `src/cli.ts` |
+| Tests | Public-seam tests using synthetic temporary module trees | `test/` |
 | The boundary | Why the folders it describes are not in this repository, and what keeps them out | `docs/adr/0002-…`, `.gitignore` |
 | Tasks | The semester's work and this repository's own — GitHub Issues, not a file | the issue tracker |
 | Working here | Agent + contributor conventions, commit/attribution rules | `AGENTS.md` (= `CLAUDE.md`) |
@@ -15,6 +17,7 @@ Start here: `README.md`, then `AGENTS.md`.
 | Domain language | The glossary — this repository's ubiquitous language | `CONTEXT.md` |
 | Decisions | Architecture decision records | `docs/adr/` |
 | Agent skills | The routines an agent follows here, one file per skill | `docs/agents/` |
+| Research | Primary-source evidence that informs contracts, decisions and agent procedures | `docs/research/` |
 | Automation | The workflows that run on a pull request or on a new issue, and dependency updates | `.github/` |
 
 The teaching workspace, the calendar and the data `homepage` reads are named in `README.md` as

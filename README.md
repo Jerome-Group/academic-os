@@ -11,10 +11,11 @@ way around and [`AGENTS.md`](AGENTS.md) for how work is done here.
 
 ## Status
 
-🌱 Early. One real piece of content — the module folder contract — and nothing to run yet. The
-contract is in use: the Y1S1 and Y1S2 module folders already follow it, and the
-[`ntulearn`](https://github.com/Jerome-Group/ntulearn) importer writes into the structure it
-names.
+🌱 Early. A read-only CLI audits one configured module's universal structure. Context-sensitive
+controls, seeding, observations and semester cohorts remain future work. Y1S1 and Y1S2 are
+audited historical inputs awaiting explicitly approved migration;
+[`ntulearn`](https://github.com/Jerome-Group/ntulearn) already writes current module material into
+contract-declared importer roots.
 
 ## What is here now
 
@@ -22,6 +23,19 @@ names.
 contract every module folder follows: the universal structure, the parts that appear only when the
 module has them, the naming rules, and where LaTeX builds go. It is the interface the
 [`ntulearn`](https://github.com/Jerome-Group/ntulearn) importer writes into.
+
+## Audit one module
+
+Copy `academic-os.config.example.json` to the gitignored `academic-os.config.json`, replace its
+placeholder roots, and select one semester and uppercase module code. Then:
+
+```sh
+npm ci
+npm run build
+node dist/src/cli.js audit --config academic-os.config.json
+```
+
+Add `--json` for the versioned machine-readable report. Audit is read-only.
 
 ## What it is for
 

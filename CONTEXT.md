@@ -20,9 +20,14 @@ quoting it; *class* is a timetabled session.
 
 **Module folder**:
 The directory holding one module's material, laid out to `docs/module-folder-contract.md` and
-named for the module code alone. It lives on the RAID0 and in Drive, never in this repository.
+named for the module code alone. It lives inside the Drive mount, never in this repository.
 _Avoid_: module repo — a module folder is not a git repository, and the contract's own deferred
 work is what would change that.
+
+**Drive mount**:
+The folder on the RAID0 that is synchronised with Google Drive. It is one local view of Drive,
+not a second copy to reconcile with the cloud.
+_Avoid_: RAID0 copy, local replica
 
 **The contract**:
 `docs/module-folder-contract.md`, normative. A module folder that disagrees with it is wrong, and
@@ -34,6 +39,34 @@ which is the opposite of what it is.
 Creating a module folder from the contract, at the start of a semester, after researching what
 that module actually has. Additive and one-way: seeding never removes or renames anything.
 _Avoid_: scaffold, generate, init
+
+**Conformance**:
+The state in which a module folder satisfies every universal and applicable context-derived rule
+in the contract.
+_Avoid_: exact match, synchronisation
+
+**Deviation**:
+A current, observable disagreement between a module folder and an applicable contract rule.
+_Avoid_: drift — drift means a change between observations, not merely a present mismatch
+
+**Drift**:
+A change in a module folder's conformance between two observations.
+_Avoid_: deviation, mismatch
+
+**Repair**:
+An approved change to an existing module folder that resolves a deviation without changing the
+contract. Unlike a seed, a repair may rename, move, or remove structure.
+_Avoid_: seed, migration
+
+**Contract version**:
+The increasing identifier for a distinct set of normative folder requirements. It identifies
+which contract a module folder was prepared to follow.
+_Avoid_: repository version, commit
+
+**Audit observation**:
+A complete record of a module folder's paths, available metadata and conformance results at one
+audit time. Comparing audit observations reveals drift without recording file contents.
+_Avoid_: backup, snapshot
 
 **Universal structure**:
 The directories every module folder has, whatever the module is. Distinguished from the
@@ -51,6 +84,47 @@ The material a module folder holds — lecture material, tutorials, notes, submi
 Some of it is NTU's and some is a personal record; none of it is committable here
 (`docs/adr/0002`).
 _Avoid_: files, data. Both are too broad to carry the rule.
+
+**NTULearn mirror**:
+The importer-owned copy of NTULearn material inside a module folder's declared importer roots. It
+tracks the source and is never reorganised or renamed by curation.
+_Avoid_: curated materials, source folder
+
+**Importer root**:
+A Definition-declared, automation-owned module directory such as `NTULearn` or
+`NTULearn_Tutorial`. Its descendants preserve importer names and sit outside curation rules.
+_Avoid_: curated folder, learning materials
+
+**Curation**:
+Classifying an item from the NTULearn mirror, copying it into its canonical home, and giving the
+copy its curated name. Curation preserves the source item and asks for a decision when placement
+is ambiguous.
+_Avoid_: move, sync, import
+
+**Curation decision**:
+The recorded classification of one NTULearn item as curated, source-only, or requiring a human
+decision. A curated decision also identifies the canonical destination and its provenance.
+_Avoid_: guess, placement note
+
+**Module profile**:
+The human-facing description of one module, kept at `00 Module Admin/00 Module Profile.md` inside
+its module folder. It does not define what the auditor enforces.
+_Avoid_: module definition, manifest
+
+**Module definition**:
+The machine-readable declaration of one module's identity, contract version, and applicable
+context-derived structure, kept at `00 Module Admin/10 Module Definition.yaml`.
+_Avoid_: module profile, manifest
+
+**Curation register**:
+The append-only history of decisions that connect importer items to curated copies, kept at
+`00 Module Admin/20 Curation Register.jsonl`.
+_Avoid_: NTULearn state, file inventory
+
+**Monitoring cohort**:
+The modules in the active semester, which are checked continuously. Past and future modules sit
+outside the cohort and change only after a user request or an agent proposal the user accepts.
+_Avoid_: all modules, managed modules
 
 **Teaching workspace**:
 The `70 Learning` half of the contract: teaching a subject as the way of learning it. Its internal

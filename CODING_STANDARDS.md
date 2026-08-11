@@ -103,10 +103,12 @@ Two shapes are settled, so no repository re-argues them:
 where tests are written, naming or layout rules particular to this codebase, and anything the
 core leaves open. Add them here; they evolve through this repository's normal pull-request flow.
 
-This section is empty because this repository is newly generated. Fill it in with the first
-change that has an opinion worth holding the next one to — the formatter and linter that run in
-CI, where the tests live, and the one or two layout rules a newcomer would otherwise guess
-wrong.
+TypeScript targets Node 24 or later. Biome owns formatting and linting; `tsc` owns type checking.
+Production code lives in `src/`, and tests mirror its public seams in `test/`.
+
+Tests use the Node test runner at three public seams: in-memory conformance, mounted inventory
+against operating-system temporary roots, and the compiled CLI end to end. Conformance stays
+pure; filesystem access belongs behind the mounted adapter.
 
 ## 7. Evolution — what is rigid, what moves
 

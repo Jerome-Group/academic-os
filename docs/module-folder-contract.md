@@ -130,7 +130,13 @@ evidence:
   assessment-profile:
     source: <official URL or NTULearn reference>
     checked_at: 2026-08-11
+exceptions: []
 ```
+
+Every evidence entry has a non-empty `source` and a `checked_at` date in `YYYY-MM-DD` form.
+`exceptions` is present even when empty. Each exception records `rule`, `reason` and a non-empty
+list of evidence keys. Importer-root declarations likewise carry a non-empty list of evidence
+keys.
 
 **MF-DEFINITION-002 (deterministic).** Enabled contextual structure has evidence. Explicit
 `unknown` is valid; invented certainty is not. Contract-version lag is an upgrade-required error,
@@ -167,6 +173,11 @@ is one append-only curation-decision event recording schema version, stable sour
 integration and role, source-relative path and checksum when available, decision, destination when
 curated, evidence, timestamp and any superseded event. Its decisions are curated, source-only or
 requires-decision.
+
+Version 1 uses `schema_version`, `source_id`, `integration`, `role`, `source_path`, optional
+`checksum`, `decision`, conditional `destination`, `evidence`, `timestamp` and optional
+`supersedes`. Paths are relative, the timestamp is ISO-compatible, and a curated event requires a
+destination.
 
 ## Context-derived structure
 

@@ -4,12 +4,13 @@ import type {
   Inventory,
   InventoryEntryKind,
 } from "./types.js";
+import { moduleControlPaths } from "./control-paths.js";
 
 const requiredPaths = [
   ["00 Module Admin", "directory"],
-  ["00 Module Admin/00 Module Profile.md", "file"],
-  ["00 Module Admin/10 Module Definition.yaml", "file"],
-  ["00 Module Admin/20 Curation Register.jsonl", "file"],
+  [moduleControlPaths.profile, "file"],
+  [moduleControlPaths.definition, "file"],
+  [moduleControlPaths.curationRegister, "file"],
   ["10 Learning Materials", "directory"],
   ["10 Learning Materials/10 Lecture Materials", "directory"],
   ["10 Learning Materials/20 Textbook Chapters", "directory"],
@@ -24,9 +25,9 @@ const requiredPaths = [
   ["90 Resources/00 Unclassified", "directory"],
   [".scratch", "directory"],
   ["NTULearn", "directory"],
-  ["AGENTS.md", "file"],
-  ["CLAUDE.md", "file"],
-  ["CONTEXT.md", "file"],
+  [moduleControlPaths.agents, "file"],
+  [moduleControlPaths.claude, "file"],
+  [moduleControlPaths.context, "file"],
   ["docs", "directory"],
 ] as const satisfies ReadonlyArray<readonly [string, InventoryEntryKind]>;
 
@@ -183,7 +184,7 @@ function isAcademicDocument(path: string): boolean {
   );
 }
 
-function outcomeFor(findings: Finding[]): AuditResult["outcome"] {
+export function outcomeFor(findings: Finding[]): AuditResult["outcome"] {
   if (findings.some(({ status }) => status === "requires-decision")) {
     return "requires-decision";
   }

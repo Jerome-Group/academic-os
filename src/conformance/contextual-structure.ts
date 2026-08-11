@@ -5,6 +5,7 @@ import { isDirectoryName, isRecord, nonEmptyString } from "./value-shape.js";
 export interface ContextualStructure {
   paths: string[];
   rootPaths: Set<string>;
+  importerRoots: Set<string>;
   tutorialLayout?: "flat" | "grouped";
 }
 
@@ -29,18 +30,27 @@ export function deriveContextualStructure(
   definitionSource: string | undefined,
 ): ContextualStructure {
   if (definitionSource === undefined)
-    return { paths: [], rootPaths: new Set() };
+    return {
+      paths: [],
+      rootPaths: new Set(),
+      importerRoots: new Set(["NTULearn"]),
+    };
   const document = parseDocument(definitionSource, {
     prettyErrors: false,
     uniqueKeys: true,
   });
   const value: unknown = document.toJS();
   if (document.errors.length > 0 || !isRecord(value)) {
-    return { paths: [], rootPaths: new Set() };
+    return {
+      paths: [],
+      rootPaths: new Set(),
+      importerRoots: new Set(["NTULearn"]),
+    };
   }
   const structure = isRecord(value.structure) ? value.structure : {};
   const evidence = isRecord(value.evidence) ? value.evidence : {};
   const paths: string[] = [];
+  const importerRoots = new Set(["NTULearn"]);
   const tutorials = isRecord(structure.tutorials) ? structure.tutorials : {};
   if (
     tutorials.layout === "grouped" &&
@@ -92,7 +102,10 @@ export function deriveContextualStructure(
         hasApprovedEvidence(importer, evidence) &&
         importer.destination !== "NTULearn"
       ) {
-        paths.push(importer.destination);
+        importerRoots.add(importer.destination);
+        if (importer.destination !== "NTULearn") {
+          paths.push(importer.destination);
+        }
       }
     }
   }
@@ -100,6 +113,7 @@ export function deriveContextualStructure(
   return {
     paths: orderedPaths,
     rootPaths: new Set(orderedPaths.filter((path) => !path.includes("/"))),
+    importerRoots,
     ...(["flat", "grouped"].includes(String(tutorials.layout))
       ? { tutorialLayout: tutorials.layout as "flat" | "grouped" }
       : {}),

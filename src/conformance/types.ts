@@ -39,10 +39,15 @@ export type FindingStatus =
   | "requires-decision"
   | "not-applicable";
 
+import type { ContractRuleId, FindingEnforcement } from "./rule-enforcement.js";
+
+export type { ContractRuleId, FindingEnforcement } from "./rule-enforcement.js";
+
 export type FindingSeverity = "information" | "warning" | "error" | "decision";
 
 export interface Finding {
-  ruleId: string;
+  ruleId: ContractRuleId;
+  enforcement: FindingEnforcement;
   status: FindingStatus;
   severity: FindingSeverity;
   path: string;

@@ -5,6 +5,7 @@ import type {
   InventoryEntryKind,
 } from "./types.js";
 import { universalStructurePaths } from "../contract/universal-structure.js";
+import { enforcementForRule } from "./rule-enforcement.js";
 
 const expectedRootPaths = new Set<string>(
   universalStructurePaths
@@ -48,6 +49,7 @@ export function auditUniversalStructure(
         !entry.path.includes("/") &&
         !expectedRootPaths.has(entry.path) &&
         !declaredContextualRoots.has(entry.path) &&
+        entry.path !== "build" &&
         !(entry.kind === "directory" && entry.path.startsWith("NTULearn_")),
     )
     .sort((left, right) => left.path.localeCompare(right.path));
@@ -73,6 +75,7 @@ function presentRequiredPath(
 ): Finding {
   return {
     ruleId: "MF-UNIVERSAL-001",
+    enforcement: enforcementForRule("MF-UNIVERSAL-001"),
     status: "pass",
     severity: "information",
     path,
@@ -89,6 +92,7 @@ function missingRequiredPath(
 ): Finding {
   return {
     ruleId: "MF-UNIVERSAL-001",
+    enforcement: enforcementForRule("MF-UNIVERSAL-001"),
     status: "fail",
     severity: "error",
     path,
@@ -105,6 +109,7 @@ function wrongRequiredPathKind(
 ): Finding {
   return {
     ruleId: "MF-UNIVERSAL-001",
+    enforcement: enforcementForRule("MF-UNIVERSAL-001"),
     status: "fail",
     severity: "error",
     path,
@@ -121,11 +126,13 @@ function unexpectedRootFinding({
   if (kind === "directory") {
     return {
       ruleId: "MF-ROOT-002",
+      enforcement: enforcementForRule("MF-ROOT-002"),
       status: "requires-decision",
       severity: "decision",
       path,
       evidence: `Inventory contains the unclassified root ${kind} ${path}.`,
-      explanation: "An unknown root entry requires classification.",
+      explanation:
+        "An unknown root entry requires classification and a human decision.",
       applicability:
         "Root-entry classification applies to every module folder.",
     };
@@ -137,6 +144,7 @@ function unexpectedRootFinding({
 
   return {
     ruleId: "MF-ROOT-002",
+    enforcement: enforcementForRule("MF-ROOT-002"),
     status: "fail",
     severity: "error",
     path,
@@ -149,6 +157,7 @@ function unexpectedRootFinding({
 function conformantRootFinding(): Finding {
   return {
     ruleId: "MF-ROOT-002",
+    enforcement: enforcementForRule("MF-ROOT-002"),
     status: "pass",
     severity: "information",
     path: ".",

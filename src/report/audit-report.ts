@@ -32,6 +32,7 @@ export function renderHumanAuditReport(
 ): string {
   const findings = result.findings.flatMap((finding) => [
     `[${finding.status}] ${finding.ruleId} ${finding.path}`,
+    `  Enforcement: ${finding.enforcement}`,
     `  Severity: ${finding.severity}`,
     `  Evidence: ${finding.evidence}`,
     `  Explanation: ${finding.explanation}`,

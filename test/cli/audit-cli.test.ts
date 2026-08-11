@@ -127,6 +127,10 @@ describe("academic-os audit", () => {
       humanLines.filter((line) => line.startsWith("  Severity:")),
       report.findings.map(({ severity }) => `  Severity: ${severity}`),
     );
+    assert.deepEqual(
+      humanLines.filter((line) => line.startsWith("  Enforcement:")),
+      report.findings.map(({ enforcement }) => `  Enforcement: ${enforcement}`),
+    );
     for (const field of ["Evidence", "Explanation", "Applicability"] as const) {
       assert.deepEqual(
         humanLines.filter((line) => line.startsWith(`  ${field}:`)),
@@ -136,6 +140,26 @@ describe("academic-os audit", () => {
         ),
       );
     }
+
+    const invalidCuratedPath = join(
+      moduleRoot,
+      "10 Learning Materials",
+      "10 Lecture Materials",
+      "lecture_1.PDF",
+    );
+    await writeFile(invalidCuratedPath, "synthetic fixture\n");
+    const invalidName = await runCli("audit", "--config", configPath, "--json");
+    assert.equal(invalidName.exitCode, 1);
+    assert.equal(
+      (JSON.parse(invalidName.stdout) as JsonReport).findings.some(
+        ({ ruleId, path, enforcement }) =>
+          ruleId === "MF-NAMING-002" &&
+          path.endsWith("lecture_1.PDF") &&
+          enforcement === "deterministic",
+      ),
+      true,
+    );
+    await rm(invalidCuratedPath);
 
     const definitionPath = join(
       moduleRoot,

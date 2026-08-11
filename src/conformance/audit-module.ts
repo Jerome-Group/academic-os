@@ -1,4 +1,5 @@
 import { auditModuleControls } from "./audit-module-controls.js";
+import { auditGovernedContent } from "./audit-governed-content.js";
 import {
   auditUniversalStructure,
   outcomeFor,
@@ -18,10 +19,15 @@ export function auditModule(input: ModuleAuditInput): AuditResult {
     input.controls.definition,
   );
   const controls = auditModuleControls(input);
+  const governed = auditGovernedContent(
+    input.inventory,
+    input.controls.definition,
+  );
   const findings = [
     ...structure.findings,
     ...contextual.findings,
     ...controls.findings,
+    ...governed.findings,
   ];
   return { outcome: outcomeFor(findings), findings };
 }

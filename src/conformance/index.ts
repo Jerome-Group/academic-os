@@ -4,7 +4,9 @@ export { auditModuleControls } from "./audit-module-controls.js";
 export { auditUniversalStructure } from "./audit-universal-structure.js";
 export type {
   AuditResult,
+  ContractRuleId,
   Finding,
+  FindingEnforcement,
   FindingSeverity,
   FindingStatus,
   Inventory,

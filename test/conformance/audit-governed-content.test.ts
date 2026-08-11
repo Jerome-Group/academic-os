@@ -51,7 +51,7 @@ function audit(target: Inventory, definition = vanillaDefinition) {
 }
 
 describe("auditModule governed content", () => {
-  it("rejects wrong fixed-path case, misplaced controls, and nesting in closed homes", () => {
+  it("rejects wrong fixed-path case, misplaced controls, and nesting in closed homes [MF-ADMIN-001] [MF-NAMING-001]", () => {
     const target = inventory();
     add(target, "10 Learning Materials/10 lecture materials");
     add(target, "00 Module Admin/Archive");
@@ -73,7 +73,7 @@ describe("auditModule governed content", () => {
     );
   });
 
-  it("permits declared tutorial groups and nesting in every open interior", () => {
+  it("permits declared tutorial groups and nesting in every open interior [MF-OPEN-001]", () => {
     const target = inventory();
     const definition = contextualModuleDefinition();
     for (const path of [
@@ -139,7 +139,7 @@ describe("auditModule governed content", () => {
     );
   });
 
-  it("checks curated filenames only in governed academic homes", () => {
+  it("checks curated filenames only in governed academic homes [MF-NAMING-002] [MF-NAMING-003]", () => {
     const target = inventory();
     for (const path of [
       "10 Learning Materials/10 Lecture Materials/MH2100_Lecture_03_Graph_Theory.pdf",
@@ -174,7 +174,7 @@ describe("auditModule governed content", () => {
     );
   });
 
-  it("preserves declared importer descendants and classifies undeclared roots", () => {
+  it("preserves declared importer descendants and classifies undeclared roots [MF-CURATION-002] [MF-IMPORTER-001]", () => {
     const target = inventory();
     const definition = vanillaDefinition.replace(
       "- {role: primary, destination: NTULearn, evidence: [course-site]}",
@@ -196,7 +196,7 @@ describe("auditModule governed content", () => {
     assert.match(findings[0]?.explanation ?? "", /human decision/u);
   });
 
-  it("accepts workspace build layouts and rejects root and scratch builds", () => {
+  it("accepts workspace build layouts and rejects root and scratch builds [MF-LATEX-001]", () => {
     const target = inventory();
     for (const path of [
       "40 Projects and Labs/Poster",

@@ -7,7 +7,7 @@ Start here: `README.md`, then `AGENTS.md`.
 | Area | What lives there | Entry point |
 |------|------------------|-------------|
 | The contract | How every module folder is laid out and named. Normative — a folder that disagrees with it is wrong | `docs/module-folder-contract.md` |
-| Module CLI | Previewed journalled/resumable seeding, mounted or optional read-only Drive API inventory, active-cohort and migration audit, append-only private observations, pure conformance, and reports | `src/cli.ts` |
+| Module CLI | Proved previewed journalled/resumable seeding, mounted or optional read-only Drive API inventory, active-cohort and migration audit, append-only private observations, pure conformance, and reports | `src/cli.ts`, `docs/operator-guide.md`, `docs/v1-acceptance.md` |
 | Tests | Public-seam tests using synthetic temporary module trees | `test/` |
 | The boundary | Why the folders it describes are not in this repository, and what keeps them out | `docs/adr/0002-…`, `.gitignore` |
 | Tasks | The semester's work and this repository's own — GitHub Issues, not a file | the issue tracker |
@@ -19,6 +19,7 @@ Start here: `README.md`, then `AGENTS.md`.
 | Agent skills | The routines an agent follows here, one file per skill | `docs/agents/` |
 | Research | Primary-source evidence that informs contracts, decisions and agent procedures | `docs/research/` |
 | Automation | The workflows that run on a pull request or on a new issue, and dependency updates | `.github/` |
+| Quality gates | Cross-file rule coverage and publication checks invoked by package scripts and CI | `scripts/check-contract-rule-coverage.mjs`, `src/privacy/` |
 
 The teaching workspace, the calendar and the data `homepage` reads are named in `README.md` as
 what this repository is for. They have no entry here because they have no files yet; each earns a

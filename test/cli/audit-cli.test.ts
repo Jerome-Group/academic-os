@@ -49,6 +49,23 @@ interface JsonReport {
   inventoryProvenance: InventoryProvenance;
 }
 
+function assertHumanEvidenceMatchesJson(
+  human: string,
+  report: JsonReport,
+): void {
+  for (const finding of report.findings) {
+    assert.match(
+      human,
+      new RegExp(`\\[${finding.status}\\] ${finding.ruleId} `, "u"),
+    );
+    assert.equal(human.includes(`Evidence: ${finding.evidence}`), true);
+    assert.equal(
+      human.includes(`Applicability: ${finding.applicability}`),
+      true,
+    );
+  }
+}
+
 async function conformantModule(): Promise<{
   configPath: string;
   moduleRoot: string;
@@ -105,7 +122,7 @@ async function conformantModule(): Promise<{
 }
 
 describe("academic-os audit", () => {
-  it("keeps human and JSON findings equivalent and assigns exit codes 0–3", async () => {
+  it("keeps human and JSON findings equivalent and assigns exit codes 0–3 [MF-AUDIT-001]", async () => {
     const { configPath, moduleRoot } = await conformantModule();
 
     const human = await runCli("audit", "--config", configPath);
@@ -182,7 +199,24 @@ describe("academic-os audit", () => {
       configPath,
       "--json",
     );
+    const repeatedFutureControl = await runCli(
+      "audit",
+      "--config",
+      configPath,
+      "--json",
+    );
+    const futureHuman = await runCli("audit", "--config", configPath);
+    const repeatedFutureHuman = await runCli("audit", "--config", configPath);
     assert.equal(futureControl.exitCode, 1);
+    assert.deepEqual(
+      JSON.parse(repeatedFutureControl.stdout).findings,
+      JSON.parse(futureControl.stdout).findings,
+    );
+    assert.equal(repeatedFutureHuman.stdout, futureHuman.stdout);
+    assertHumanEvidenceMatchesJson(
+      futureHuman.stdout,
+      JSON.parse(futureControl.stdout),
+    );
     assert.match(futureControl.stdout, /Unsupported schema_version 3/u);
     await writeFile(definitionPath, validModuleControls().definition ?? "");
 
@@ -195,7 +229,24 @@ describe("academic-os audit", () => {
 
     await mkdir(join(moduleRoot, "50 Field Work"));
     const decision = await runCli("audit", "--config", configPath, "--json");
+    const repeatedDecision = await runCli(
+      "audit",
+      "--config",
+      configPath,
+      "--json",
+    );
+    const decisionHuman = await runCli("audit", "--config", configPath);
+    const repeatedDecisionHuman = await runCli("audit", "--config", configPath);
     assert.equal(decision.exitCode, 3);
+    assert.deepEqual(
+      JSON.parse(repeatedDecision.stdout).findings,
+      JSON.parse(decision.stdout).findings,
+    );
+    assert.equal(repeatedDecisionHuman.stdout, decisionHuman.stdout);
+    assertHumanEvidenceMatchesJson(
+      decisionHuman.stdout,
+      JSON.parse(decision.stdout),
+    );
     assert.equal(
       (JSON.parse(decision.stdout) as JsonReport).outcome,
       "requires-decision",
@@ -280,7 +331,7 @@ describe("academic-os audit", () => {
     );
   });
 
-  it("records and reports new, unchanged, resolved, and contract-version drift", async () => {
+  it("records and reports new, unchanged, resolved, and contract-version drift [MF-AUDIT-002]", async () => {
     const { configPath, moduleRoot, stateRoot } = await conformantModule();
 
     const first = await runCli("audit", "--config", configPath, "--json");
@@ -325,6 +376,30 @@ describe("academic-os audit", () => {
       introduced.stdout,
       /History \[corrupt-history\] corrupt\.json:/u,
     );
+    const introducedJson = await runCli(
+      "audit",
+      "--config",
+      configPath,
+      "--json",
+    );
+    const repeatedIntroducedJson = await runCli(
+      "audit",
+      "--config",
+      configPath,
+      "--json",
+    );
+    const unchangedHuman = await runCli("audit", "--config", configPath);
+    const repeatedUnchangedHuman = await runCli(
+      "audit",
+      "--config",
+      configPath,
+    );
+    assert.equal(repeatedIntroducedJson.stdout, introducedJson.stdout);
+    assert.equal(repeatedUnchangedHuman.stdout, unchangedHuman.stdout);
+    assertHumanEvidenceMatchesJson(
+      unchangedHuman.stdout,
+      JSON.parse(introducedJson.stdout),
+    );
 
     await rm(invalidPath);
     const resolved = await runCli("audit", "--config", configPath, "--json");
@@ -334,6 +409,17 @@ describe("academic-os audit", () => {
       resolvedReport.comparison.resolved[0]?.path,
       "10 Learning Materials/10 Lecture Materials/lecture_1.PDF",
     );
+    const settledJson = await runCli("audit", "--config", configPath, "--json");
+    const repeatedSettledJson = await runCli(
+      "audit",
+      "--config",
+      configPath,
+      "--json",
+    );
+    const settledHuman = await runCli("audit", "--config", configPath);
+    const repeatedSettledHuman = await runCli("audit", "--config", configPath);
+    assert.equal(repeatedSettledJson.stdout, settledJson.stdout);
+    assert.equal(repeatedSettledHuman.stdout, settledHuman.stdout);
 
     const definitionPath = join(
       moduleRoot,
@@ -361,5 +447,76 @@ describe("academic-os audit", () => {
     });
     assert.deepEqual(changedReport.comparison.new, []);
     assert.deepEqual(changedReport.comparison.resolved, []);
+  });
+
+  it("keeps new and resolved drift-transition evidence equivalent across human and JSON reports", async () => {
+    const prepare = async () => {
+      const fixture = await conformantModule();
+      await runCli("audit", "--config", fixture.configPath, "--json");
+      const invalidPath = join(
+        fixture.moduleRoot,
+        "10 Learning Materials",
+        "10 Lecture Materials",
+        "lecture_1.PDF",
+      );
+      await writeFile(invalidPath, "synthetic fixture\n");
+      return { ...fixture, invalidPath };
+    };
+    const humanFixture = await prepare();
+    const jsonFixture = await prepare();
+
+    const introducedHuman = await runCli(
+      "audit",
+      "--config",
+      humanFixture.configPath,
+    );
+    const introducedJson = await runCli(
+      "audit",
+      "--config",
+      jsonFixture.configPath,
+      "--json",
+    );
+    assert.equal(introducedHuman.exitCode, 1);
+    assert.equal(introducedJson.exitCode, 1);
+    assertHumanEvidenceMatchesJson(
+      introducedHuman.stdout,
+      JSON.parse(introducedJson.stdout),
+    );
+
+    await Promise.all([
+      rm(humanFixture.invalidPath),
+      rm(jsonFixture.invalidPath),
+    ]);
+    const resolvedHuman = await runCli(
+      "audit",
+      "--config",
+      humanFixture.configPath,
+    );
+    const resolvedJson = await runCli(
+      "audit",
+      "--config",
+      jsonFixture.configPath,
+      "--json",
+    );
+    assert.equal(resolvedHuman.exitCode, 0);
+    assert.equal(resolvedJson.exitCode, 0);
+    assert.match(resolvedHuman.stdout, /Resolved findings: 1/u);
+    const resolvedFinding = JSON.parse(resolvedJson.stdout).comparison
+      .resolved[0];
+    assert.equal(resolvedFinding !== undefined, true);
+    for (const field of [
+      "enforcement",
+      "severity",
+      "evidence",
+      "explanation",
+      "applicability",
+    ]) {
+      assert.equal(
+        resolvedHuman.stdout.includes(
+          `  Comparison ${field}: ${resolvedFinding[field]}`,
+        ),
+        true,
+      );
+    }
   });
 });

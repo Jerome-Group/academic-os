@@ -167,7 +167,7 @@ describe("inventoryMountedModule", () => {
     );
   });
 
-  it("rejects symlink targets that escape the configured semester root", async () => {
+  it("rejects symlink targets that escape the configured semester root [MF-ROOT-001]", async () => {
     const { config, moduleRoot } = await configuredTree();
     const outside = join(moduleRoot, "..", "..", "..", "Outside");
     await mkdir(outside);

@@ -1,4 +1,4 @@
-import type { Inventory } from "../conformance/index.js";
+import type { Inventory, ModuleControls } from "../conformance/index.js";
 
 export interface LocalConfig {
   driveMount: string;
@@ -20,4 +20,8 @@ export interface ResolvedTarget {
 export interface MountedInventoryResult {
   target: ResolvedTarget;
   inventory: Inventory;
+}
+
+export interface MountedAuditInputResult extends MountedInventoryResult {
+  controls: ModuleControls;
 }

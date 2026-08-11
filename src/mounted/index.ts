@@ -1,3 +1,4 @@
+export { inspectMountedModule } from "./inspect-mounted-module.js";
 export { inventoryMountedModule } from "./inventory-mounted-module.js";
 export {
   OperationalError,
@@ -6,6 +7,7 @@ export {
 export { resolveTarget } from "./resolve-target.js";
 export type {
   LocalConfig,
+  MountedAuditInputResult,
   MountedInventoryResult,
   ResolvedTarget,
 } from "./types.js";

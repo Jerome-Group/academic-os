@@ -7,6 +7,7 @@ import { afterEach, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import type { Finding } from "../../src/conformance/index.js";
+import { validModuleControls } from "../fixtures/module-controls.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 
 const cliPath = fileURLToPath(new URL("../../src/cli.js", import.meta.url));
@@ -59,13 +60,28 @@ async function conformantModule(): Promise<{
   const moduleRoot = join(driveMount, "Modules", "Y2S1", "MH2100");
   await mkdir(stateRoot, { recursive: true });
   await mkdir(moduleRoot, { recursive: true });
+  const controls = validModuleControls();
+  const controlContents = new Map<string, string>([
+    ["00 Module Admin/00 Module Profile.md", controls.profile ?? ""],
+    ["00 Module Admin/10 Module Definition.yaml", controls.definition ?? ""],
+    [
+      "00 Module Admin/20 Curation Register.jsonl",
+      controls.curationRegister ?? "",
+    ],
+    ["AGENTS.md", controls.agents ?? ""],
+    ["CLAUDE.md", controls.claude ?? ""],
+    ["CONTEXT.md", controls.context ?? ""],
+  ]);
   for (const [relativePath, kind] of universalPaths) {
     const path = join(moduleRoot, relativePath);
     if (kind === "directory") {
       await mkdir(path, { recursive: true });
     } else {
       await mkdir(dirname(path), { recursive: true });
-      await writeFile(path, "synthetic fixture\n");
+      await writeFile(
+        path,
+        controlContents.get(relativePath) ?? "synthetic fixture\n",
+      );
     }
   }
   const configPath = join(root, "academic-os.config.json");
@@ -110,6 +126,37 @@ describe("academic-os audit", () => {
       humanLines.filter((line) => line.startsWith("  Severity:")),
       report.findings.map(({ severity }) => `  Severity: ${severity}`),
     );
+    for (const field of ["Evidence", "Explanation", "Applicability"] as const) {
+      assert.deepEqual(
+        humanLines.filter((line) => line.startsWith(`  ${field}:`)),
+        report.findings.map(
+          (finding) =>
+            `  ${field}: ${finding[field.toLowerCase() as "evidence" | "explanation" | "applicability"]}`,
+        ),
+      );
+    }
+
+    const definitionPath = join(
+      moduleRoot,
+      "00 Module Admin",
+      "10 Module Definition.yaml",
+    );
+    await writeFile(
+      definitionPath,
+      (validModuleControls().definition ?? "").replace(
+        "schema_version: 1",
+        "schema_version: 2",
+      ),
+    );
+    const futureControl = await runCli(
+      "audit",
+      "--config",
+      configPath,
+      "--json",
+    );
+    assert.equal(futureControl.exitCode, 1);
+    assert.match(futureControl.stdout, /Unsupported schema_version 2/u);
+    await writeFile(definitionPath, validModuleControls().definition ?? "");
 
     await rm(join(moduleRoot, "30 Assessments", "40 Finals"), {
       recursive: true,

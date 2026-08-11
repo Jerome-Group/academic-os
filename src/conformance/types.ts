@@ -12,6 +12,25 @@ export interface Inventory {
   entries: InventoryEntry[];
 }
 
+export interface ModuleControls {
+  profile?: string;
+  definition?: string;
+  curationRegister?: string;
+  agents?: string;
+  claude?: string;
+  context?: string;
+}
+
+export interface ModuleControlAuditInput {
+  moduleCode: string;
+  semester: string;
+  controls: ModuleControls;
+}
+
+export interface ModuleAuditInput extends ModuleControlAuditInput {
+  inventory: Inventory;
+}
+
 export type FindingStatus =
   | "pass"
   | "fail"

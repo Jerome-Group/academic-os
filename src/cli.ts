@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import { loadLocalConfig } from "./config/index.js";
-import { auditUniversalStructure } from "./conformance/index.js";
-import { inventoryMountedModule, OperationalError } from "./mounted/index.js";
+import { auditModule } from "./conformance/index.js";
+import { inspectMountedModule, OperationalError } from "./mounted/index.js";
 import {
   createJsonAuditReport,
   exitCodeFor,
@@ -16,8 +16,13 @@ async function main(arguments_: string[]): Promise<void> {
   try {
     const configPath = parseAuditArguments(arguments_);
     const config = await loadLocalConfig(configPath);
-    const { target, inventory } = await inventoryMountedModule(config);
-    const result = auditUniversalStructure(inventory);
+    const { target, inventory, controls } = await inspectMountedModule(config);
+    const result = auditModule({
+      moduleCode: target.module,
+      semester: target.semester,
+      inventory,
+      controls,
+    });
     if (json) {
       process.stdout.write(
         `${JSON.stringify(createJsonAuditReport(target, result), null, 2)}\n`,

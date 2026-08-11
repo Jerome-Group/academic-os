@@ -20,7 +20,7 @@ export async function inventoryMountedModule(
   };
 }
 
-async function inventoryDirectory(
+export async function inventoryDirectory(
   root: string,
   relativeRoot = "",
 ): Promise<InventoryEntry[]> {

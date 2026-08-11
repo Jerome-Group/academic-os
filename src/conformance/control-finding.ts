@@ -1,7 +1,8 @@
-import type { Finding, FindingStatus } from "./types.js";
+import type { ContractRuleId, Finding, FindingStatus } from "./types.js";
+import { enforcementForRule } from "./rule-enforcement.js";
 
 export function controlFinding(
-  ruleId: string,
+  ruleId: ContractRuleId,
   path: string,
   status: FindingStatus,
   evidence: string,
@@ -9,6 +10,7 @@ export function controlFinding(
 ): Finding {
   return {
     ruleId,
+    enforcement: enforcementForRule(ruleId),
     status,
     severity:
       status === "requires-decision"
@@ -24,7 +26,7 @@ export function controlFinding(
 }
 
 export function failedControl(
-  ruleId: string,
+  ruleId: ContractRuleId,
   path: string,
   problems: string[],
 ): Finding {

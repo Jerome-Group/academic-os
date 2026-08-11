@@ -1,6 +1,13 @@
-import type { AuditResult, Finding, Inventory } from "./types.js";
+import type {
+  AuditResult,
+  ContractRuleId,
+  Finding,
+  Inventory,
+} from "./types.js";
+import { directChildDirectories, directChildren } from "./inventory-paths.js";
 import { deriveContextualStructure } from "./contextual-structure.js";
 import { outcomeFor } from "./audit-universal-structure.js";
+import { enforcementForRule } from "./rule-enforcement.js";
 
 export function auditContextualStructure(
   inventory: Inventory,
@@ -16,6 +23,7 @@ export function auditContextualStructure(
     if (entry?.kind === "directory") {
       return {
         ruleId,
+        enforcement: enforcementForRule(ruleId),
         status: "pass",
         severity: "information",
         path,
@@ -26,6 +34,7 @@ export function auditContextualStructure(
     }
     return {
       ruleId,
+      enforcement: enforcementForRule(ruleId),
       status: "fail",
       severity: "error",
       path,
@@ -107,40 +116,14 @@ function unexpectedControlledStructure(
   return findings;
 }
 
-function directChildDirectories(
-  inventory: Inventory,
-  parent: string,
-): string[] {
-  const prefix = `${parent}/`;
-  return inventory.entries
-    .filter(
-      ({ path, kind }) =>
-        kind === "directory" &&
-        path.startsWith(prefix) &&
-        !path.slice(prefix.length).includes("/"),
-    )
-    .map(({ path }) => path)
-    .sort();
-}
-
-function directChildren(inventory: Inventory, parent: string): string[] {
-  const prefix = `${parent}/`;
-  return inventory.entries
-    .filter(
-      ({ path }) =>
-        path.startsWith(prefix) && !path.slice(prefix.length).includes("/"),
-    )
-    .map(({ path }) => path)
-    .sort();
-}
-
 function unapprovedFinding(
   path: string,
-  ruleId: string,
+  ruleId: ContractRuleId,
   status: "fail" | "requires-decision",
 ): Finding {
   return {
     ruleId,
+    enforcement: enforcementForRule(ruleId),
     status,
     severity: status === "fail" ? "error" : "decision",
     path,
@@ -148,13 +131,13 @@ function unapprovedFinding(
     explanation:
       status === "fail"
         ? "The Module Definition excludes this controlled structure."
-        : "The entry needs evidence-backed classification.",
+        : "The entry needs evidence-backed classification and a human decision.",
     applicability:
       "Context-derived structure is controlled by the Module Definition.",
   };
 }
 
-function ruleFor(path: string): string {
+function ruleFor(path: string): ContractRuleId {
   if (path.startsWith("20 Tutorials/")) return "MF-TUTORIALS-001";
   if (path.startsWith("30 Assessments/")) return "MF-ASSESSMENTS-001";
   if (path.startsWith("40 Projects and Labs/")) return "MF-WORKSPACES-001";

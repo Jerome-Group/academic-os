@@ -163,8 +163,8 @@ describe("auditModuleControls", () => {
     const controls = validModuleControls();
     controls.definition =
       controls.definition
-        ?.replace("schema_version: 1", "schema_version: 2")
-        .replace("contract_version: 1", "contract_version: 3") ?? "";
+        ?.replace("schema_version: 2", "schema_version: 3")
+        .replace("contract_version: 2", "contract_version: 3") ?? "";
 
     const result = auditModuleControls({
       moduleCode: "MH2100",
@@ -177,7 +177,7 @@ describe("auditModuleControls", () => {
     assert.equal(versionFinding?.status, "fail");
     assert.match(
       versionFinding?.evidence ?? "",
-      /Unsupported schema_version 2/u,
+      /Unsupported schema_version 3/u,
     );
     assert.match(
       versionFinding?.evidence ?? "",
@@ -233,6 +233,55 @@ describe("auditModuleControls", () => {
     assert.match(
       shapeFinding?.evidence ?? "",
       /non-empty evidence reference list/u,
+    );
+  });
+
+  it("requires evidence-backed exact names for grouped tutorials and resources", () => {
+    const controls = validModuleControls();
+    controls.definition = (controls.definition ?? "")
+      .replace(
+        "tutorials: {layout: flat}",
+        "tutorials: {layout: grouped, groups: [CC0001, CC0001]}",
+      )
+      .replace(
+        "resource_categories: []",
+        "resource_categories: [{name: 10 Formula Sheets, evidence: []}]",
+      );
+
+    const result = auditModuleControls({
+      moduleCode: "MH2100",
+      semester: "Y2S1",
+      controls,
+    });
+
+    assert.equal(result.outcome, "requires-decision");
+    const evidence = result.findings
+      .filter(({ status }) => status !== "pass")
+      .map((finding) => finding.evidence)
+      .join(" ");
+    assert.match(evidence, /unique directory names/u);
+    assert.match(evidence, /resource_categories\[0\].*evidence/u);
+  });
+
+  it("rejects contextual destinations that collide with universal paths", () => {
+    const controls = validModuleControls();
+    controls.definition = (controls.definition ?? "").replace(
+      "- {role: primary, destination: NTULearn, evidence: [course-site]}",
+      "- {role: primary, destination: NTULearn, evidence: [course-site]}\n    - {role: tutorials, destination: AGENTS.md, evidence: [course-site]}",
+    );
+
+    const result = auditModuleControls({
+      moduleCode: "MH2100",
+      semester: "Y2S1",
+      controls,
+    });
+
+    assert.match(
+      result.findings
+        .filter(({ status }) => status !== "pass")
+        .map(({ evidence }) => evidence)
+        .join(" "),
+      /destination AGENTS\.md conflicts with universal structure/u,
     );
   });
 

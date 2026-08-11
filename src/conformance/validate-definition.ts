@@ -1,11 +1,6 @@
 import { parseDocument } from "yaml";
 
-import {
-  controlFinding,
-  failedControl,
-  isRecord,
-  nonEmptyString,
-} from "./control-finding.js";
+import { controlFinding, failedControl } from "./control-finding.js";
 import { moduleControlPaths } from "./control-paths.js";
 import {
   contextualAssessments,
@@ -14,6 +9,7 @@ import {
   type ValidatedDefinition,
   validateDefinitionShape,
 } from "./definition-shape.js";
+import { isRecord, nonEmptyString } from "./value-shape.js";
 import type { Finding } from "./types.js";
 
 const definitionPath = moduleControlPaths.definition;
@@ -76,7 +72,7 @@ export function validateDefinition(
           "MF-DEFINITION-001",
           definitionPath,
           "pass",
-          "schema_version and contract_version are supported at version 1.",
+          "schema_version and contract_version are supported at version 2.",
           "The Definition uses supported schema and contract versions.",
         )
       : failedControl("MF-DEFINITION-001", definitionPath, versionProblems),
@@ -93,7 +89,7 @@ export function validateDefinition(
           "MF-DEFINITION-001",
           definitionPath,
           "pass",
-          "Identity, offering, structure, importer roots, evidence, and exceptions match schema version 1.",
+          "Identity, offering, structure, importer roots, evidence, and exceptions match schema version 2.",
           "The Definition contains the required machine-readable fields.",
         )
       : failedControl("MF-DEFINITION-001", definitionPath, shapeProblems),
@@ -159,16 +155,16 @@ export function validateDefinition(
 
 function validateVersions(value: Record<string, unknown>): string[] {
   const problems: string[] = [];
-  if (value.schema_version !== 1) {
+  if (value.schema_version !== 2) {
     problems.push(
-      `Unsupported schema_version ${renderValue(value.schema_version)}; supported version is 1.`,
+      `Unsupported schema_version ${renderValue(value.schema_version)}; supported version is 2.`,
     );
   }
-  if (value.contract_version !== 1) {
+  if (value.contract_version !== 2) {
     problems.push(
-      typeof value.contract_version === "number" && value.contract_version < 1
-        ? `contract_version ${value.contract_version} requires upgrade to supported version 1.`
-        : `Unsupported contract_version ${renderValue(value.contract_version)}; supported version is 1.`,
+      typeof value.contract_version === "number" && value.contract_version < 2
+        ? `contract_version ${value.contract_version} requires upgrade to supported version 2.`
+        : `Unsupported contract_version ${renderValue(value.contract_version)}; supported version is 2.`,
     );
   }
   return problems;
@@ -178,6 +174,12 @@ function validateContextEvidence(value: Record<string, unknown>): string[] {
   const evidence = isRecord(value.evidence) ? value.evidence : {};
   const problems: string[] = [];
   const structure = isRecord(value.structure) ? value.structure : {};
+  const tutorials = isRecord(structure.tutorials)
+    ? structure.tutorials
+    : undefined;
+  if (tutorials?.layout === "grouped") {
+    validateReferenceList(tutorials, "structure.tutorials", evidence, problems);
+  }
   const assessments = isRecord(structure.assessments)
     ? structure.assessments
     : {};
@@ -196,6 +198,16 @@ function validateContextEvidence(value: Record<string, unknown>): string[] {
       evidence,
       problems,
     );
+  }
+  if (Array.isArray(structure.resource_categories)) {
+    for (const [index, category] of structure.resource_categories.entries()) {
+      validateReferenceList(
+        category,
+        `structure.resource_categories[${index}]`,
+        evidence,
+        problems,
+      );
+    }
   }
   const sources = isRecord(value.sources) ? value.sources : {};
   if (Array.isArray(sources.ntulearn)) {

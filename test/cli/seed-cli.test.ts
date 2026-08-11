@@ -16,7 +16,10 @@ import { spawn } from "node:child_process";
 import { afterEach, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { validModuleControls } from "../fixtures/module-controls.js";
+import {
+  contextualModuleDefinition,
+  validModuleControls,
+} from "../fixtures/module-controls.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 
 const cliPath = fileURLToPath(new URL("../../src/cli.js", import.meta.url));
@@ -346,14 +349,74 @@ describe("academic-os seed", () => {
     assert.match(symlinkResult.stdout, /contains symbolic links/u);
   });
 
-  it("blocks context-derived controls until issue #13", async () => {
+  it("previews, publishes, audits, and idempotently reruns a context-derived plan", async () => {
     const fixture = await seedFixture();
     await writeFile(
       fixture.definitionPath,
-      (await readFile(fixture.definitionPath, "utf8")).replace(
-        "quizzes: {enabled: false}",
-        "quizzes: {enabled: true, evidence: [assessment-profile]}",
+      contextualModuleDefinition(
+        await readFile(fixture.definitionPath, "utf8"),
       ),
+    );
+    const arguments_ = [
+      "seed",
+      "--config",
+      fixture.configPath,
+      "--profile",
+      fixture.profilePath,
+      "--definition",
+      fixture.definitionPath,
+      "--json",
+    ];
+
+    const preview = await runCli(...arguments_);
+
+    assert.equal(preview.exitCode, 0);
+    const previewReport = JSON.parse(preview.stdout);
+    assert.equal(previewReport.outcome, "preview");
+    const paths = previewReport.operations.map(
+      ({ path }: { path: string }) => path,
+    );
+    for (const path of [
+      "20 Tutorials/CC0001",
+      "20 Tutorials/CC0002",
+      "30 Assessments/10 Quizzes",
+      "30 Assessments/20 Tests",
+      "40 Projects and Labs/10 Projects/50 Submissions",
+      "40 Projects and Labs/20 Labs/50 Submissions",
+      "90 Resources/10 Formula Sheets",
+      "NTULearn_Tutorial",
+    ]) {
+      assert.equal(paths.includes(path), true, path);
+    }
+    assert.deepEqual(await readdir(fixture.semesterRoot), []);
+
+    const applied = await runCli(...arguments_, "--apply");
+    assert.equal(applied.exitCode, 0);
+    assert.equal(JSON.parse(applied.stdout).outcome, "published");
+    const audit = await runCli(
+      "audit",
+      "--config",
+      fixture.configPath,
+      "--json",
+    );
+    assert.equal(audit.exitCode, 0);
+    assert.equal(JSON.parse(audit.stdout).outcome, "conformant");
+
+    const rerun = await runCli(...arguments_, "--apply");
+    assert.equal(rerun.exitCode, 0);
+    assert.deepEqual(JSON.parse(rerun.stdout).operations, []);
+  });
+
+  it("blocks unclear or unsupported context evidence without creating optional structure", async () => {
+    const fixture = await seedFixture();
+    await writeFile(
+      fixture.definitionPath,
+      (await readFile(fixture.definitionPath, "utf8"))
+        .replace(
+          "tutorials: {layout: flat}",
+          "tutorials: {layout: grouped, groups: [CC0001]}",
+        )
+        .replace("quizzes: {enabled: false}", "quizzes: {enabled: unknown}"),
     );
 
     const result = await runCli(
@@ -368,7 +431,7 @@ describe("academic-os seed", () => {
     );
 
     assert.equal(result.exitCode, 1);
-    assert.match(result.stdout, /context-derived seeding is issue #13/u);
+    assert.match(result.stdout, /requires a human decision|requires-decision/u);
     assert.deepEqual(await readdir(fixture.semesterRoot), []);
   });
 

@@ -24,7 +24,10 @@ const academicDocumentExtensions = new Set([
   ".xlsx",
 ]);
 
-export function auditUniversalStructure(inventory: Inventory): AuditResult {
+export function auditUniversalStructure(
+  inventory: Inventory,
+  declaredContextualRoots: ReadonlySet<string> = new Set(),
+): AuditResult {
   const entriesByPath = new Map(
     inventory.entries.map((entry) => [entry.path, entry]),
   );
@@ -42,7 +45,10 @@ export function auditUniversalStructure(inventory: Inventory): AuditResult {
   const unexpectedRootEntries = inventory.entries
     .filter(
       (entry) =>
-        !entry.path.includes("/") && !expectedRootPaths.has(entry.path),
+        !entry.path.includes("/") &&
+        !expectedRootPaths.has(entry.path) &&
+        !declaredContextualRoots.has(entry.path) &&
+        !(entry.kind === "directory" && entry.path.startsWith("NTULearn_")),
     )
     .sort((left, right) => left.path.localeCompare(right.path));
   const unexpectedRootFindings = unexpectedRootEntries.flatMap((entry) => {

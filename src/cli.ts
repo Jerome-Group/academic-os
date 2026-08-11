@@ -2,21 +2,27 @@
 
 import { readFile } from "node:fs/promises";
 
-import { loadLocalConfig } from "./config/index.js";
+import { type AcademicConfig, loadLocalConfig } from "./config/index.js";
+import {
+  resolveConfiguredAuditTarget,
+  runCohortAudit,
+} from "./cohort/index.js";
 import {
   auditModule,
   readDefinitionContractVersion,
 } from "./conformance/index.js";
 import {
   inspectMountedModule,
+  type LocalConfig,
   OperationalError,
   recordMountedAuditObservation,
   seedMountedModule,
 } from "./mounted/index.js";
 import {
   createJsonAuditReport,
-  exitCodeFor,
+  exitCodeForOutcome,
   renderHumanAuditReport,
+  renderHumanCohortReport,
 } from "./report/index.js";
 import { createModuleSeedPlan, type SeedReport } from "./seed/index.js";
 
@@ -27,7 +33,9 @@ async function main(arguments_: string[]): Promise<void> {
   try {
     if (arguments_[0] === "seed") {
       const seedArguments = parseSeedArguments(arguments_);
-      const config = await loadLocalConfig(seedArguments.configPath);
+      const config = requireTargetConfig(
+        await loadLocalConfig(seedArguments.configPath),
+      );
       const [profile, definition] = await Promise.all([
         readApprovedControl(seedArguments.profilePath),
         readApprovedControl(seedArguments.definitionPath),
@@ -47,9 +55,42 @@ async function main(arguments_: string[]): Promise<void> {
       process.exitCode = ["blocked", "staged"].includes(report.outcome) ? 1 : 0;
       return;
     }
-    const configPath = parseAuditArguments(arguments_);
-    const config = await loadLocalConfig(configPath);
-    const { target, inventory, controls } = await inspectMountedModule(config);
+    const auditArguments = parseAuditArguments(arguments_);
+    const config = await loadLocalConfig(auditArguments.configPath);
+    if (
+      "activeSemester" in config &&
+      auditArguments.semester === undefined &&
+      auditArguments.module === undefined
+    ) {
+      const report = await runCohortAudit(config as AcademicConfig);
+      if (json) {
+        process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+      } else {
+        process.stdout.write(`${renderHumanCohortReport(report)}\n`);
+      }
+      process.exitCode = exitCodeForOutcome(report.outcome);
+      return;
+    }
+    const targetConfig =
+      "activeSemester" in config
+        ? resolveConfiguredAuditTarget(
+            config,
+            auditArguments.semester ?? "",
+            auditArguments.module ?? "",
+          )
+        : config;
+    if (
+      auditArguments.migration &&
+      (!("activeSemester" in config) ||
+        config.semesters[auditArguments.semester ?? ""]?.status !== "past")
+    ) {
+      throw new OperationalError(
+        "invalid-arguments",
+        "Migration mode requires an explicitly configured past-semester target.",
+      );
+    }
+    const { target, inventory, controls } =
+      await inspectMountedModule(targetConfig);
     const result = auditModule({
       moduleCode: target.module,
       semester: target.semester,
@@ -66,14 +107,28 @@ async function main(arguments_: string[]): Promise<void> {
     });
     if (json) {
       process.stdout.write(
-        `${JSON.stringify(createJsonAuditReport(target, result, recorded), null, 2)}\n`,
+        `${JSON.stringify(
+          createJsonAuditReport(
+            target,
+            result,
+            recorded,
+            auditArguments.migration ? "migration" : "target",
+          ),
+          null,
+          2,
+        )}\n`,
       );
     } else {
       process.stdout.write(
-        `${renderHumanAuditReport(target, result, recorded)}\n`,
+        `${renderHumanAuditReport(
+          target,
+          result,
+          recorded,
+          auditArguments.migration ? "migration" : "target",
+        )}\n`,
       );
     }
-    process.exitCode = exitCodeFor(result);
+    process.exitCode = exitCodeForOutcome(result.outcome);
   } catch (error) {
     const operationalError =
       error instanceof OperationalError
@@ -106,6 +161,25 @@ async function main(arguments_: string[]): Promise<void> {
   }
 }
 
+function requireTargetConfig(
+  config: LocalConfig | AcademicConfig,
+): LocalConfig {
+  if ("activeSemester" in config) {
+    if (config.seedTarget === undefined) {
+      throw new OperationalError(
+        "invalid-config",
+        "Seed requires a configured seedTarget.",
+      );
+    }
+    return resolveConfiguredAuditTarget(
+      config,
+      config.seedTarget.semester,
+      config.seedTarget.module,
+    );
+  }
+  return config;
+}
+
 async function readApprovedControl(path: string): Promise<string> {
   try {
     return await readFile(path, "utf8");
@@ -132,37 +206,53 @@ function writeSeedReport(report: SeedReport, json: boolean): void {
   );
 }
 
-function parseAuditArguments(arguments_: string[]): string {
+function parseAuditArguments(arguments_: string[]): {
+  configPath: string;
+  semester?: string;
+  module?: string;
+  migration: boolean;
+} {
+  const usage =
+    "Usage: academic-os audit --config <path> [--semester <semester> --module <module> [--migration]] [--json]";
   if (arguments_[0] !== "audit") {
-    throw new OperationalError(
-      "invalid-arguments",
-      "Usage: academic-os audit --config <path> [--json]",
-    );
+    throw new OperationalError("invalid-arguments", usage);
   }
-  const supportedArguments = new Set(["audit", "--config", "--json"]);
-  const configFlag = arguments_.indexOf("--config");
-  const configPath = arguments_[configFlag + 1];
+  const values = new Map<string, string>();
+  const valueFlags = new Set(["--config", "--semester", "--module"]);
+  const supported = new Set(["audit", ...valueFlags, "--migration", "--json"]);
+  for (let index = 1; index < arguments_.length; index += 1) {
+    const argument = arguments_[index];
+    if (argument === undefined || !supported.has(argument)) {
+      throw new OperationalError(
+        "invalid-arguments",
+        argument === undefined ? usage : `Unexpected argument: ${argument}.`,
+      );
+    }
+    if (valueFlags.has(argument)) {
+      const value = arguments_[index + 1];
+      if (value === undefined || value.startsWith("--")) {
+        throw new OperationalError("invalid-arguments", usage);
+      }
+      values.set(argument, value);
+      index += 1;
+    }
+  }
+  const configPath = values.get("--config");
+  const semester = values.get("--semester");
+  const module = values.get("--module");
   if (
-    configFlag === -1 ||
     configPath === undefined ||
-    configPath.startsWith("--")
+    (semester === undefined) !== (module === undefined) ||
+    (arguments_.includes("--migration") && semester === undefined)
   ) {
-    throw new OperationalError(
-      "invalid-arguments",
-      "Usage: academic-os audit --config <path> [--json]",
-    );
+    throw new OperationalError("invalid-arguments", usage);
   }
-  const unexpected = arguments_.filter(
-    (argument, index) =>
-      index !== configFlag + 1 && !supportedArguments.has(argument),
-  );
-  if (unexpected.length > 0) {
-    throw new OperationalError(
-      "invalid-arguments",
-      `Unexpected argument: ${unexpected[0]}.`,
-    );
-  }
-  return configPath;
+  return {
+    configPath,
+    ...(semester === undefined ? {} : { semester }),
+    ...(module === undefined ? {} : { module }),
+    migration: arguments_.includes("--migration"),
+  };
 }
 
 function parseSeedArguments(arguments_: string[]): {

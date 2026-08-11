@@ -11,10 +11,10 @@ way around and [`AGENTS.md`](AGENTS.md) for how work is done here.
 
 ## Status
 
-🌱 Early. A CLI previews and explicitly publishes vanilla module seeds, then audits configured
-modules' universal structure and controls with append-only private observations. Semester cohorts
-remain future work. Y1S1 and Y1S2 are audited historical inputs awaiting explicitly approved
-migration;
+🌱 Early. A CLI previews and explicitly publishes module seeds, audits the configured active
+semester as a monitoring cohort, and records append-only private observations. Past and future
+modules remain explicit targets; historical differences are assessed in read-only migration mode.
+Y1S1 and Y1S2 remain historical inputs awaiting separately approved repair;
 [`ntulearn`](https://github.com/Jerome-Group/ntulearn) already writes current module material into
 contract-declared importer roots.
 
@@ -25,10 +25,11 @@ contract every module folder follows: the universal structure, the parts that ap
 module has them, the naming rules, and where LaTeX builds go. It is the interface the
 [`ntulearn`](https://github.com/Jerome-Group/ntulearn) importer writes into.
 
-## Audit one module
+## Audit the active semester
 
 Copy `academic-os.config.example.json` to the gitignored `academic-os.config.json`, replace its
-placeholder roots, and select one semester and uppercase module code. Then:
+placeholder roots, and declare each semester's status, relative root, and module codes. Exactly one
+semester is active. Then:
 
 ```sh
 npm ci
@@ -41,9 +42,20 @@ atomically appends a complete observation beneath the configured private `stateR
 new, unchanged, resolved, incompatible, or contract-version-changed history explicitly. Keep that
 root outside the Drive mount and this repository; configuration rejects either unsafe location.
 
+Name both fields to audit one configured module outside routine monitoring:
+
+```sh
+node dist/src/cli.js audit --config academic-os.config.json \
+  --semester Y2S2 --module MH2200
+```
+
+Add `--migration` only for a configured past-semester target. It evaluates that historical module
+against the current contract without changing it or adding it to the active cohort.
+
 ## Seed one vanilla module
 
-Prepare an approved Module Profile and Module Definition, then preview every proposed creation:
+Set `seedTarget` in the same local configuration, prepare an approved Module Profile and Module
+Definition, then preview every proposed creation:
 
 ```sh
 node dist/src/cli.js seed --config academic-os.config.json \

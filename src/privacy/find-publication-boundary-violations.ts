@@ -43,6 +43,7 @@ const academicTextExtensions = new Set([
 const allowedSyntheticOrNormativeText = new Set([
   "CONTEXT.md",
   "docs/module-folder-contract.md",
+  "docs/operator-guide.md",
   "test/fixtures/module-controls.ts",
 ]);
 const privateStatePath =

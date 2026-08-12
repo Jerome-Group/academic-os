@@ -20,4 +20,8 @@ export interface AcademicConfig {
   driveApi?: {
     moduleFolderIds: Record<string, Record<string, string>>;
   };
+  repair?: {
+    driveRecoveryRootId: string;
+    snapshotRoot: string;
+  };
 }

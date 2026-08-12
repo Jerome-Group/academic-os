@@ -48,10 +48,11 @@ the run-marker lookup return zero items.
 
 ## Protect real modules
 
-An audit has no write-capable dependency. A future repair executor accepts only a versioned,
-approved plan whose IDs and preconditions still match a fresh observation. Before any real repair,
-create and verify recovery copies of every affected item. Module contents move to the recovery
-vault rather than being permanently deleted; Drive Trash is not a recovery design.
+An audit has no write-capable dependency. The repair executor accepts only a versioned, approved
+plan whose IDs and preconditions still match a fresh observation. Before any real repair, create
+and verify both an ID-mapped Drive copy and a byte snapshot on separate storage. Module contents
+move to the recovery vault rather than being permanently deleted; Drive Trash is not a recovery
+design.
 
 Paths are human evidence, not mutation identity. Inventory and mutation use Drive IDs, request
 every page, reject incomplete results, and treat absent checksums or revisions as unavailable

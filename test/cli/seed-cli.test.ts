@@ -181,7 +181,7 @@ describe("academic-os seed", () => {
     assert.equal(JSON.parse(audit.stdout).outcome, "conformant");
     recordBehaviorEvidence("MF-DOCS-001", () => {
       assert.equal(
-        universalPaths.some(([path]) => path === "docs"),
+        universalPaths.some(([path]) => path === "docs/adr"),
         true,
       );
     });
@@ -197,6 +197,10 @@ describe("academic-os seed", () => {
         true,
       );
     });
+    assert.match(
+      agents,
+      /## Domain language\nThe glossary is `CONTEXT\.md` and decisions are `docs\/adr\/`\./u,
+    );
   });
 
   it("refuses an incompatible existing target without changing its content [MF-SEED-002]", async () => {

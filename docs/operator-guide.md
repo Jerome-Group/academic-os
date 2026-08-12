@@ -33,6 +33,10 @@ recheck the target and show completed/remaining operations; continue only when i
 `safely-resumable`, using `--apply --resume`. Keep that journal as recovery evidence until the
 result is settled.
 
+Every seed includes `CONTEXT.md` as the module glossary and an initially empty `docs/adr/` for
+decisions. Generated `AGENTS.md` routes classification, naming and organisation through both; an
+empty ADR directory means no qualifying decision has yet been recorded.
+
 ## Audit
 
 `audit --config academic-os.config.json` selects only the configured active cohort. Name both

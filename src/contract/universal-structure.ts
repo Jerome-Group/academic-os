@@ -21,4 +21,5 @@ export const universalStructurePaths = [
   ["CLAUDE.md", "file"],
   ["CONTEXT.md", "file"],
   ["docs", "directory"],
+  ["docs/adr", "directory"],
 ] as const satisfies ReadonlyArray<readonly [string, "directory" | "file"]>;

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { test } from "node:test";
 
 import {
@@ -100,7 +101,7 @@ test("rejects stale approval, path-only identity, unavailable capability, and co
 
   const wrongContract = repairPlanDraft();
   wrongContract.contractVersion = 999;
-  assert.throws(() => createRepairPlan(wrongContract), /must be 2/u);
+  assert.throws(() => createRepairPlan(wrongContract), /must be 3/u);
 });
 
 test("requires file-level curation before retiring an empty scratch tree", () => {
@@ -189,6 +190,72 @@ test("requires file-level curation before retiring an empty scratch tree", () =>
   unsafe.approval.decisionDigest = repairDecisionDigest(unsafe.decisions);
   unsafe.approval.approvedPlanDigest = repairApprovalDigest(unsafe);
   assert.throws(() => createRepairPlan(unsafe), /implicitly migrate a file/u);
+});
+
+test("replaces an exact retired control while preserving prior curation bytes", () => {
+  const draft = repairPlanDraft();
+  const contents =
+    '{"schema_version":1,"source_id":"old","integration":"historical-migration","role":"historical-source","source_path":"old","decision":"source-only","evidence":"old","timestamp":"2026-08-12T00:00:00.000Z"}\n';
+  draft.inventory.items.push({
+    id: "register-id",
+    name: "20 Curation Register.jsonl",
+    mimeType: "application/jsonl",
+    parentIds: ["module-id"],
+    modifiedTime: "2026-08-12T11:00:00.000Z",
+    version: "8",
+    size: String(Buffer.byteLength(contents)),
+    md5Checksum: createHash("md5").update(contents).digest("hex"),
+    capabilities: {
+      canCopy: true,
+      canDownload: true,
+      canEdit: true,
+      canMoveItemWithinDrive: true,
+    },
+  });
+  draft.decisions.push({
+    sourceId: "register-id",
+    decision: "recovery-only",
+    evidence: ["Owner-approved exact control replacement."],
+  });
+  draft.operations.push({
+    operationId: "retire-register",
+    kind: "retire-item",
+    sourceId: "register-id",
+  });
+  draft.curationRegisterParent = { kind: "existing", id: "module-id" };
+  draft.curationRegisterPrior = { sourceId: "register-id", contents };
+  draft.approval.decisionDigest = repairDecisionDigest(draft.decisions);
+  draft.approval.approvedPlanDigest = repairApprovalDigest(draft);
+
+  const plan = createRepairPlan(draft);
+  const replacement = plan.operations.at(-1);
+  assert.equal(replacement?.kind, "create-file");
+  assert.equal(replacement?.name, "20 Curation Register.jsonl");
+  assert.equal(
+    replacement?.kind === "create-file" &&
+      replacement.contents.startsWith(contents),
+    true,
+  );
+
+  const changed = repairPlanDraft();
+  changed.inventory.items.push(...draft.inventory.items.slice(3));
+  changed.decisions.push(
+    draft.decisions.at(-1) as (typeof draft.decisions)[number],
+  );
+  changed.operations.push(
+    draft.operations.at(-1) as (typeof draft.operations)[number],
+  );
+  changed.curationRegisterParent = draft.curationRegisterParent;
+  changed.curationRegisterPrior = {
+    sourceId: "register-id",
+    contents: `${contents}changed`,
+  };
+  changed.approval.decisionDigest = repairDecisionDigest(changed.decisions);
+  changed.approval.approvedPlanDigest = repairApprovalDigest(changed);
+  assert.throws(
+    () => createRepairPlan(changed),
+    /must match the exact inventoried register bytes/u,
+  );
 });
 
 test("keeps an approved canonical copy while retiring only its excess duplicate", () => {

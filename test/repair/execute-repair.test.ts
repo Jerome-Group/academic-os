@@ -133,6 +133,114 @@ test("previews without recovery or mutation, then recovers before ID-bound apply
   );
 });
 
+test("accepts only an equivalent regenerated Finder icon after completion", async () => {
+  const emptySha256 =
+    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+  const approvedIcon = {
+    relativePath: "docs/Icon\r",
+    device: "10",
+    inode: "20",
+    size: "0",
+    modifiedTime: "123456789",
+    sha256: emptySha256,
+  };
+  const draft = repairPlanDraft();
+  draft.inventory.localArtifacts.push(approvedIcon);
+  draft.decisions.push({
+    sourceId: "local:10:20",
+    decision: "retained",
+    evidence: ["Generated Finder icon remains outside the Drive inventory."],
+  });
+  draft.approval.decisionDigest = repairDecisionDigest(draft.decisions);
+  draft.approval.approvedPlanDigest = repairApprovalDigest(draft);
+  const plan = createRepairPlan(draft);
+  const events: RepairJournalEvent[] = [];
+  let currentIcons = [approvedIcon];
+  const recoveryResult = {
+    drive: {
+      changeSetId: plan.changeSetId,
+      planDigest: plan.planDigest,
+      recoveryRootId: "recovery-root",
+      retirementRootId: "retired-root",
+      items: [],
+      verified: true as const,
+    },
+    bytes: {
+      changeSetId: plan.changeSetId,
+      planDigest: plan.planDigest,
+      path: "/separate/snapshot",
+      items: [],
+      localArtifacts: [approvedIcon],
+      protection: "read-only-and-user-immutable" as const,
+      verified: true as const,
+    },
+  };
+  const drive: RepairExecutionDrive = {
+    inventory: async () => ({
+      ...plan.inventory,
+      localArtifacts: currentIcons,
+    }),
+    createFolder: async ({ operationId, parentId, name }) => ({
+      itemId: operationId,
+      parentId,
+      name,
+      mimeType: "application/vnd.google-apps.folder",
+    }),
+    createFile: async ({ parentId, name }) => ({
+      itemId: "register-id",
+      parentId,
+      name,
+      mimeType: "application/jsonl",
+    }),
+    relocateItem: async ({ sourceId, parentId, name }) => ({
+      itemId: sourceId,
+      parentId,
+      name,
+      mimeType: "application/pdf",
+    }),
+    verifyContinuation: async () => ({ blockers: [], recovered: [] }),
+    verifyPostcondition: async () => [],
+  };
+  const input = {
+    plan,
+    mode: "apply" as const,
+    resume: false,
+    drive,
+    recovery: {
+      recover: async () => recoveryResult,
+      verify: async () => undefined,
+    },
+    journal: {
+      read: async () => [...events],
+      append: async (event: RepairJournalEvent) => {
+        events.push(event);
+      },
+    },
+  };
+
+  assert.equal((await executeRepairPlan(input)).outcome, "completed");
+  const regeneratedIcon = {
+    ...approvedIcon,
+    inode: "21",
+    modifiedTime: "123456999",
+  };
+  const generatedRootIcon = {
+    ...regeneratedIcon,
+    relativePath: "Icon\r",
+    inode: "22",
+  };
+  currentIcons = [regeneratedIcon, generatedRootIcon];
+  assert.equal((await executeRepairPlan(input)).outcome, "completed");
+
+  currentIcons = [
+    regeneratedIcon,
+    { ...generatedRootIcon, size: "1", sha256: "a".repeat(64) },
+  ];
+  const changed = await executeRepairPlan(input);
+  assert.equal(changed.outcome, "blocked");
+  assert.match(changed.evidence.join(" "), /local-only artifact/u);
+});
+
 test("fails closed when the target changes during recovery", async () => {
   const plan = createRepairPlan(repairPlanDraft());
   const events: RepairJournalEvent[] = [];

@@ -1,5 +1,6 @@
 import { controlFinding, failedControl } from "./control-finding.js";
 import { moduleControlPaths } from "./control-paths.js";
+import { moduleDomainLanguageInstructions } from "../contract/module-domain-language.js";
 import { escapeRegex, sectionBody } from "./markdown-control-helpers.js";
 import type { Finding } from "./types.js";
 
@@ -8,6 +9,7 @@ const agentSections = [
   "What this folder is",
   "Start here",
   "Routes",
+  "Domain language",
   "Safety",
   "Updating these instructions",
 ];
@@ -49,6 +51,12 @@ export function validateAgents(source: string | undefined): Finding {
       problems.push(`${route} route has no backticked context pointer.`);
     }
   }
+  const domainLanguage = sectionBody(source, "Domain language");
+  if (domainLanguage.trim() !== moduleDomainLanguageInstructions) {
+    problems.push(
+      "Domain language does not exactly match the canonical module-domain routing instruction.",
+    );
+  }
   for (const term of ["git", "github", "pull request", "coding standard"]) {
     if (source.toLowerCase().includes(term)) {
       problems.push(
@@ -61,7 +69,7 @@ export function validateAgents(source: string | undefined): Finding {
         "MF-AGENTS-001",
         agentsPath,
         "pass",
-        "AGENTS.md has the five local sections and all six route pointers.",
+        "AGENTS.md has the six local sections, all six route pointers, and both domain-documentation pointers.",
         "Module instructions are a concise local router.",
       )
     : failedControl("MF-AGENTS-001", agentsPath, problems);

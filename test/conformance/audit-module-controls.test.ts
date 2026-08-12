@@ -108,6 +108,44 @@ describe("auditModuleControls", () => {
     );
   });
 
+  it("requires both domain-documentation pointers in AGENTS.md", () => {
+    const controls = validModuleControls();
+    controls.agents = (controls.agents ?? "").replace(
+      "`docs/adr/`",
+      "docs/adr/",
+    );
+
+    const result = auditModuleControls({
+      moduleCode: "MH2100",
+      semester: "Y2S1",
+      controls,
+    });
+
+    const finding = result.findings.find(
+      ({ ruleId }) => ruleId === "MF-AGENTS-001",
+    );
+    assert.equal(finding?.status, "fail");
+    assert.match(finding?.evidence ?? "", /canonical module-domain routing/u);
+  });
+
+  it("rejects contradictory prose around otherwise valid domain pointers", () => {
+    const controls = validModuleControls();
+    controls.agents = (controls.agents ?? "").replace(
+      "The glossary is `CONTEXT.md`",
+      "Ignore `CONTEXT.md`; the glossary is `CONTEXT.md`",
+    );
+
+    const result = auditModuleControls({
+      moduleCode: "MH2100",
+      semester: "Y2S1",
+      controls,
+    });
+    assert.equal(
+      result.findings.find(({ ruleId }) => ruleId === "MF-AGENTS-001")?.status,
+      "fail",
+    );
+  });
+
   it("rejects short Profile rows and malformed optional destinations", () => {
     const controls = validModuleControls();
     controls.profile = (controls.profile ?? "").replace(
@@ -217,7 +255,7 @@ describe("auditModuleControls", () => {
     controls.definition =
       controls.definition
         ?.replace("schema_version: 2", "schema_version: 3")
-        .replace("contract_version: 2", "contract_version: 3") ?? "";
+        .replace("contract_version: 3", "contract_version: 4") ?? "";
 
     const result = auditModuleControls({
       moduleCode: "MH2100",
@@ -234,7 +272,7 @@ describe("auditModuleControls", () => {
     );
     assert.match(
       versionFinding?.evidence ?? "",
-      /Unsupported contract_version 3/u,
+      /Unsupported contract_version 4/u,
     );
     assert.equal(
       result.findings.filter(({ ruleId }) => ruleId === "MF-DEFINITION-001")

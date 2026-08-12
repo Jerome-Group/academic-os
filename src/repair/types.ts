@@ -113,6 +113,10 @@ export interface RepairPlanDraft {
   decisions: RepairDecision[];
   operations: RepairOperation[];
   curationRegisterParent: RepairParentReference;
+  curationRegisterPrior?: {
+    sourceId: string;
+    contents: string;
+  };
   approval: RepairApproval;
 }
 

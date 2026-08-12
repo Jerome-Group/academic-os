@@ -37,7 +37,7 @@ Multivariable calculus.
 | None | None | None |
 `,
     definition: `schema_version: 2
-contract_version: 2
+contract_version: 3
 module: {code: MH2100, title: Calculus III}
 offering: {academic_year: 2026-2027, semester: 1, status: active}
 structure:
@@ -71,6 +71,9 @@ Read \`CONTEXT.md\` and \`00 Module Admin/00 Module Profile.md\`.
 - Assessments: \`30 Assessments/\`
 - Projects/Labs: \`40 Projects and Labs/\`
 - Maintenance: \`00 Module Admin/10 Module Definition.yaml\`
+
+## Domain language
+The glossary is \`CONTEXT.md\` and decisions are \`docs/adr/\`. Read both before classifying, naming or organising module content. Use the glossary's terms; resolve ambiguity before adding language or decisions.
 
 ## Safety
 Preserve importer sources and request decisions for ambiguity.

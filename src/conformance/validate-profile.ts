@@ -46,7 +46,7 @@ export function validateProfile(
           "MF-PROFILE-001",
           profilePath,
           "pass",
-          "Profile title, headings, and required tables match contract version 2.",
+          "Profile title, headings, and required tables match the current contract version.",
           "The Profile has the locked structure and allows prose in its prose sections.",
         )
       : failedControl("MF-PROFILE-001", profilePath, problems),

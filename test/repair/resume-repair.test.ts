@@ -453,3 +453,186 @@ test("reconciles unlink completed before local retirement journal publication", 
   const resumed = await executeRepairPlan({ ...input, resume: true });
   assert.equal(resumed.outcome, "completed");
 });
+
+test("reconciles local artifacts carried by a retired parent and ignores generated Finder icons", async () => {
+  const draft = repairPlanDraft();
+  const legacyFolder = draft.inventory.items.find(
+    ({ id }) => id === "legacy-materials-id",
+  );
+  assert.ok(legacyFolder);
+  legacyFolder.capabilities.canEdit = true;
+  const icon = {
+    relativePath: "001 Source Material/Icon\r",
+    device: "10",
+    inode: "20",
+    size: "0",
+    modifiedTime: "123456789",
+    sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  };
+  const finderState = {
+    relativePath: "001 Source Material/.DS_Store",
+    device: "10",
+    inode: "21",
+    size: "8",
+    modifiedTime: "123456790",
+    sha256: "a".repeat(64),
+  };
+  const generatedIcon = {
+    relativePath: "10 Learning Materials/Icon\r",
+    device: "10",
+    inode: "30",
+    size: "0",
+    modifiedTime: "123456791",
+    sha256: icon.sha256,
+  };
+  const rootArtifact = {
+    relativePath: ".DS_Store",
+    device: "10",
+    inode: "22",
+    size: "8",
+    modifiedTime: "123456792",
+    sha256: "b".repeat(64),
+  };
+  draft.inventory.localArtifacts.push(icon, finderState, rootArtifact);
+  draft.decisions.push(
+    {
+      sourceId: "legacy-materials-id",
+      decision: "recovery-only",
+      evidence: ["Legacy parent retires after its academic file moves."],
+    },
+    ...[icon, finderState, rootArtifact].map((artifact) => ({
+      sourceId: `local:${artifact.device}:${artifact.inode}`,
+      decision: "recovery-only" as const,
+      evidence: ["Approved Finder metadata retirement."],
+    })),
+  );
+  draft.operations.push(
+    {
+      operationId: "retire-legacy-materials",
+      kind: "retire-item",
+      sourceId: "legacy-materials-id",
+    },
+    ...[icon, finderState, rootArtifact].map((artifact, index) => ({
+      operationId: `retire-finder-${index + 1}`,
+      kind: "retire-local-artifact" as const,
+      sourceId: `local:${artifact.device}:${artifact.inode}`,
+      relativePath: artifact.relativePath,
+    })),
+  );
+  const { repairApprovalDigest, repairDecisionDigest } = await import(
+    "../../src/repair/index.js"
+  );
+  draft.approval.decisionDigest = repairDecisionDigest(draft.decisions);
+  draft.approval.approvedPlanDigest = repairApprovalDigest(draft);
+  const plan = createRepairPlan(draft);
+  const events: RepairJournalEvent[] = [];
+  let parentRetired = false;
+  let currentArtifacts = [generatedIcon, rootArtifact];
+  const recoveryResult = {
+    drive: {
+      changeSetId: plan.changeSetId,
+      planDigest: plan.planDigest,
+      recoveryRootId: "recovery-root",
+      retirementRootId: "retired-root",
+      items: [],
+      verified: true as const,
+    },
+    bytes: {
+      changeSetId: plan.changeSetId,
+      planDigest: plan.planDigest,
+      path: "/snapshot",
+      items: [],
+      localArtifacts: [icon, finderState, rootArtifact],
+      protection: "read-only-and-user-immutable" as const,
+      verified: true as const,
+    },
+  };
+  const input = {
+    plan,
+    mode: "apply" as const,
+    drive: {
+      inventory: async () => ({
+        ...plan.inventory,
+        localArtifacts: parentRetired
+          ? currentArtifacts
+          : plan.inventory.localArtifacts,
+      }),
+      createFolder: async ({ operationId, parentId, name }) => ({
+        itemId: operationId,
+        parentId,
+        name,
+        mimeType: "application/vnd.google-apps.folder",
+      }),
+      createFile: async ({ parentId, name }) => ({
+        itemId: "register-id",
+        parentId,
+        name,
+        mimeType: "application/jsonl",
+      }),
+      relocateItem: async ({ sourceId, parentId, name }) => {
+        if (sourceId === "legacy-materials-id") parentRetired = true;
+        return {
+          itemId: sourceId,
+          parentId,
+          name,
+          mimeType:
+            sourceId === "legacy-materials-id"
+              ? "application/vnd.google-apps.folder"
+              : "application/pdf",
+        };
+      },
+      verifyContinuation: async () => ({ blockers: [], recovered: [] }),
+      verifyPostcondition: async () => [],
+    } satisfies RepairExecutionDrive,
+    recovery: {
+      recover: async () => recoveryResult,
+      verify: async () => undefined,
+    },
+    local: {
+      retireArtifact: async () => {
+        throw new Error("ENOENT after parent folder retirement");
+      },
+      verifyRetired: async () => parentRetired,
+    },
+    journal: {
+      read: async () => [...events],
+      append: async (event: RepairJournalEvent) => {
+        events.push(event);
+      },
+    },
+  };
+
+  const interrupted = await executeRepairPlan({ ...input, resume: false });
+  assert.equal(interrupted.outcome, "partially-completed");
+
+  const inspected = await executeRepairPlan({ ...input, resume: false });
+  assert.equal(inspected.outcome, "safely-resumable");
+  assert.ok(inspected.completedOperations.includes("retire-finder-1"));
+  assert.ok(inspected.completedOperations.includes("retire-finder-2"));
+
+  currentArtifacts = [
+    generatedIcon,
+    rootArtifact,
+    {
+      ...generatedIcon,
+      relativePath: "10 Learning Materials/.DS_Store",
+      inode: "31",
+      size: "1",
+      sha256: "c".repeat(64),
+    },
+  ];
+  const unexplainedAppearance = await executeRepairPlan({
+    ...input,
+    resume: false,
+  });
+  assert.equal(unexplainedAppearance.outcome, "blocked");
+  assert.match(unexplainedAppearance.evidence.join(" "), /appeared/u);
+
+  currentArtifacts = [generatedIcon];
+  const unexplainedDisappearance = await executeRepairPlan({
+    ...input,
+    resume: false,
+  });
+  assert.equal(unexplainedDisappearance.outcome, "blocked");
+  assert.match(unexplainedDisappearance.evidence.join(" "), /disappeared/u);
+});

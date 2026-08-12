@@ -102,6 +102,8 @@ describe("inventoryMountedModule", () => {
     await mkdir(notes, { recursive: true });
     const protectedFile = join(notes, "MH2100_Example.txt");
     await writeFile(protectedFile, "private synthetic contents");
+    await writeFile(join(moduleRoot, "Icon\r"), "");
+    await writeFile(join(notes, "Icon\r"), "academic contents");
     await chmod(protectedFile, 0o000);
     const metadataBefore = await metadataSnapshot(moduleRoot);
 
@@ -121,6 +123,11 @@ describe("inventoryMountedModule", () => {
           path: "10 Learning Materials/30 Personal Notes",
           kind: "directory",
           size: undefined,
+        },
+        {
+          path: "10 Learning Materials/30 Personal Notes/Icon\r",
+          kind: "file",
+          size: 17,
         },
         {
           path: "10 Learning Materials/30 Personal Notes/MH2100_Example.txt",

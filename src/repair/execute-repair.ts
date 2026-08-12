@@ -1,10 +1,8 @@
 import { createHash } from "node:crypto";
 
-import {
-  RepairPlanError,
-  repairInventoryDigest,
-  verifyRepairPlan,
-} from "./plan-repair.js";
+import { repairInventoryPaths } from "./repair-inventory-paths.js";
+import { RepairPlanError } from "./repair-plan-error.js";
+import { repairInventoryDigest, verifyRepairPlan } from "./plan-repair.js";
 import type { RepairRecovery } from "./recover-repair.js";
 import type {
   CompleteRepairInventory,
@@ -196,11 +194,13 @@ export async function executeRepairPlan(
         if (
           operation.kind !== "retire-local-artifact" ||
           completed.has(operation.operationId) ||
-          !events.some(
-            (event) =>
-              event.type === "operation-started" &&
-              event.operation.operationId === operation.operationId,
-          )
+          (!operationWasStarted(events, operation.operationId) &&
+            !artifactWasCarriedByCompletedParent(
+              input.plan,
+              operation.sourceId,
+              completed,
+              recovery,
+            ))
         ) {
           continue;
         }
@@ -427,9 +427,11 @@ function inspectLocalArtifactState(
   for (const [id, artifact] of currentById) {
     const approved = expected.get(id);
     if (approved === undefined) {
-      blockers.push(
-        `Unapproved local-only artifact appeared: ${artifact.relativePath}.`,
-      );
+      if (!isGeneratedFinderIcon(plan, completed, artifact)) {
+        blockers.push(
+          `Unapproved local-only artifact appeared: ${artifact.relativePath}.`,
+        );
+      }
     } else if (JSON.stringify(approved) !== JSON.stringify(artifact)) {
       blockers.push(`Local-only artifact changed: ${artifact.relativePath}.`);
     } else if (retiredIds.has(id)) {
@@ -446,6 +448,101 @@ function inspectLocalArtifactState(
     }
   }
   return blockers;
+}
+
+function operationWasStarted(
+  events: RepairJournalEvent[],
+  operationId: string,
+): boolean {
+  return events.some(
+    (event) =>
+      event.type === "operation-started" &&
+      event.operation.operationId === operationId,
+  );
+}
+
+function artifactWasCarriedByCompletedParent(
+  plan: RepairPlan,
+  sourceId: string,
+  completed: Set<string>,
+  recovery: RepairRecovery | undefined,
+): boolean {
+  const artifact = plan.inventory.localArtifacts.find(
+    (candidate) => `local:${candidate.device}:${candidate.inode}` === sourceId,
+  );
+  if (
+    artifact === undefined ||
+    recovery === undefined ||
+    !recovery.bytes.localArtifacts.some(
+      (recovered) =>
+        recovered.device === artifact.device &&
+        recovered.inode === artifact.inode,
+    )
+  ) {
+    return false;
+  }
+  const inventoryPaths = repairInventoryPaths(plan.inventory);
+  return plan.operations.some((operation) => {
+    if (
+      operation.kind !== "retire-item" ||
+      !completed.has(operation.operationId)
+    ) {
+      return false;
+    }
+    const item = plan.inventory.items.find(
+      (candidate) => candidate.id === operation.sourceId,
+    );
+    const parentPath = inventoryPaths.get(operation.sourceId);
+    return (
+      item?.mimeType === "application/vnd.google-apps.folder" &&
+      parentPath !== undefined &&
+      artifact.relativePath.startsWith(`${parentPath}/`)
+    );
+  });
+}
+
+function isGeneratedFinderIcon(
+  plan: RepairPlan,
+  completed: Set<string>,
+  artifact: LocalRepairArtifact,
+): boolean {
+  if (
+    artifact.size !== "0" ||
+    artifact.sha256 !==
+      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" ||
+    !artifact.relativePath.endsWith("/Icon\r")
+  ) {
+    return false;
+  }
+  const expectedPath = artifact.relativePath.slice(0, -"/Icon\r".length);
+  return plannedFolderPaths(plan, completed).has(expectedPath);
+}
+
+function plannedFolderPaths(
+  plan: RepairPlan,
+  completed: Set<string>,
+): Set<string> {
+  const inventoryPaths = repairInventoryPaths(plan.inventory);
+  const paths = new Map<string, string>();
+  const resolveParent = (parent: RepairParentReference): string | undefined =>
+    parent.kind === "existing"
+      ? inventoryPaths.get(parent.id)
+      : paths.get(parent.operationId);
+  for (const operation of plan.operations) {
+    if (
+      operation.kind !== "create-folder" ||
+      !completed.has(operation.operationId)
+    ) {
+      continue;
+    }
+    const parentPath = resolveParent(operation.parent);
+    if (parentPath === undefined) continue;
+    paths.set(
+      operation.operationId,
+      parentPath === "" ? operation.name : `${parentPath}/${operation.name}`,
+    );
+  }
+  return new Set(paths.values());
 }
 
 async function executeOperation(

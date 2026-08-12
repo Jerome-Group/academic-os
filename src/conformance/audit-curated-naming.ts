@@ -81,13 +81,18 @@ function isCuratedFileName(name: string, moduleCode: string): boolean {
   if (!stem.startsWith(`${moduleCode}_`)) return false;
   const tokens = stem.slice(moduleCode.length + 1).split("_");
   const titleCase = (token: string) => /^[A-Z][a-z0-9]*$/u.test(token);
+  const romanNumeral = (token: string) =>
+    /^(?:I|II|III|IV|V|VI|VII|VIII|IX|X)$/u.test(token);
   const numericQualifier = (token: string) =>
     /^\d{2}$/u.test(token) ||
     /^\d{4}$/u.test(token) ||
     /^\d{4}-\d{2}-\d{2}$/u.test(token);
   return (
     tokens.some(titleCase) &&
-    tokens.every((token) => titleCase(token) || numericQualifier(token))
+    tokens.every(
+      (token) =>
+        titleCase(token) || romanNumeral(token) || numericQualifier(token),
+    )
   );
 }
 

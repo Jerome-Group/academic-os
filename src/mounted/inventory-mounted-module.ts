@@ -41,6 +41,9 @@ export async function inventoryDirectory(
     const relativePath =
       relativeRoot === "" ? child.name : `${relativeRoot}/${child.name}`;
     const metadata = await lstat(join(root, relativePath));
+    if (child.name === "Icon\r" && metadata.isFile() && metadata.size === 0) {
+      continue;
+    }
     const kind = metadata.isSymbolicLink()
       ? "symlink"
       : metadata.isDirectory()

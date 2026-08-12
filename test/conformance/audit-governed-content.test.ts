@@ -158,10 +158,12 @@ describe("auditModule governed content", () => {
       "30 Assessments/30 Midterms/MH2100_Midterm_2025_Graded.pdf",
       "40 Projects and Labs/MH2100_Project_01_Outline.pdf",
       "90 Resources/00 Unclassified/MH2100_Formula_Sheet.pdf",
+      "10 Learning Materials/30 Personal Notes/MH2100_Note_08_Derivatives_III_And_IV.pdf",
       "10 Learning Materials/10 Lecture Materials/lecture_1.PDF",
       "20 Tutorials/MH2100_tutorial_1.pdf",
       "30 Assessments/40 Finals/MH2100_Final_2026.PDF",
       "90 Resources/00 Unclassified/MH2100_01.pdf",
+      "10 Learning Materials/30 Personal Notes/MH2100_Note_ABC.pdf",
       "NTULearn/lecture_1.PDF",
       ".scratch/notes.tmp",
       "docs/reference.pdf",
@@ -181,6 +183,7 @@ describe("auditModule governed content", () => {
         "20 Tutorials/MH2100_tutorial_1.pdf",
         "30 Assessments/40 Finals/MH2100_Final_2026.PDF",
         "90 Resources/00 Unclassified/MH2100_01.pdf",
+        "10 Learning Materials/30 Personal Notes/MH2100_Note_ABC.pdf",
       ],
     );
     recordFindingEvidence(findings, "MF-NAMING-002");

@@ -5,7 +5,7 @@ import { auditModuleControls } from "../../src/conformance/index.js";
 import { validModuleControls } from "../fixtures/module-controls.js";
 
 describe("auditModuleControls", () => {
-  it("accepts valid module controls, including an empty curation register", () => {
+  it("accepts valid controls [MF-AGENTS-001] [MF-AGENTS-002] [MF-CONTEXT-001] [MF-CURATION-001] [MF-DEFINITION-001] [MF-DEFINITION-002] [MF-PROFILE-001] [MF-PROFILE-003]", () => {
     const result = auditModuleControls({
       moduleCode: "MH2100",
       semester: "Y2S1",
@@ -131,7 +131,7 @@ describe("auditModuleControls", () => {
     );
   });
 
-  it("requires a human decision for contradictory or insufficient evidence", () => {
+  it("requires a human decision for contradictory or insufficient evidence [MF-PROFILE-002]", () => {
     const controls = validModuleControls();
     controls.profile =
       controls.profile?.replace(

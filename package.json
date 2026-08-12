@@ -13,7 +13,9 @@
     "lint": "biome lint .",
     "typecheck": "tsc --noEmit",
     "test": "npm run build && node --test dist/test/**/*.test.js",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm test"
+    "rule-coverage:check": "npm run build && node scripts/check-contract-rule-coverage.mjs",
+    "privacy:check": "npm run build && node --test dist/test/privacy/*.test.js",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run rule-coverage:check && npm run privacy:check"
   },
   "engines": {
     "node": ">=24"

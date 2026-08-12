@@ -85,11 +85,7 @@ export function renderHumanAuditReport(
 export function renderHumanJsonAuditReport(report: JsonAuditReport): string {
   const findings = report.findings.flatMap((finding) => [
     `[${finding.status}] ${finding.ruleId} ${finding.path}`,
-    `  Enforcement: ${finding.enforcement}`,
-    `  Severity: ${finding.severity}`,
-    `  Evidence: ${finding.evidence}`,
-    `  Explanation: ${finding.explanation}`,
-    `  Applicability: ${finding.applicability}`,
+    ...findingDetailLines(finding),
   ]);
   return [
     `Audit ${report.module.code} (${report.module.semester})`,
@@ -175,10 +171,22 @@ function classificationLines(
   classification: "new" | "unchanged" | "resolved",
   findings: Finding[],
 ): string[] {
-  return findings.map(
-    ({ ruleId, path, status }) =>
-      `Comparison [${classification}] ${ruleId} ${path} (${status})`,
-  );
+  return findings.flatMap((finding) => [
+    `Comparison [${classification}] ${finding.ruleId} ${finding.path} (${finding.status})`,
+    ...findingDetailLines(finding, "Comparison"),
+  ]);
+}
+
+function findingDetailLines(finding: Finding, scope?: "Comparison"): string[] {
+  const label = (name: string): string =>
+    scope === undefined ? name : `${scope} ${name.toLowerCase()}`;
+  return [
+    `  ${label("Enforcement")}: ${finding.enforcement}`,
+    `  ${label("Severity")}: ${finding.severity}`,
+    `  ${label("Evidence")}: ${finding.evidence}`,
+    `  ${label("Explanation")}: ${finding.explanation}`,
+    `  ${label("Applicability")}: ${finding.applicability}`,
+  ];
 }
 
 export function exitCodeForOutcome(

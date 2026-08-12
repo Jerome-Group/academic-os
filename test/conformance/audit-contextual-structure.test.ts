@@ -54,7 +54,7 @@ function universalInventory(): Inventory {
 }
 
 describe("auditModule context-derived structure", () => {
-  it("derives grouped tutorials and every approved optional directory", () => {
+  it("derives grouped tutorials and every approved optional directory [MF-ASSESSMENTS-001] [MF-TUTORIALS-001] [MF-WORKSPACES-001]", () => {
     const controls = validModuleControls();
     controls.definition = contextualModuleDefinition();
     const entries: Inventory["entries"] = universalInventory().entries;

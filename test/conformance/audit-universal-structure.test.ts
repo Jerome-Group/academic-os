@@ -20,7 +20,7 @@ function conformantInventory(): Inventory {
 }
 
 describe("auditUniversalStructure", () => {
-  it("reports the universal structure as conformant", () => {
+  it("reports the universal structure as conformant [MF-UNIVERSAL-001]", () => {
     const result = auditUniversalStructure(conformantInventory());
 
     assert.equal(result.outcome, "conformant");
@@ -31,7 +31,7 @@ describe("auditUniversalStructure", () => {
     );
   });
 
-  it("reports missing paths, wrong kinds, loose root files, and unknown root directories", () => {
+  it("reports missing paths, wrong kinds, loose root files, and unknown root directories [MF-ROOT-002]", () => {
     const inventory = conformantInventory();
     inventory.entries = inventory.entries.filter(
       (entry) => entry.path !== "30 Assessments/40 Finals",

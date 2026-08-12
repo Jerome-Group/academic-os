@@ -11,10 +11,12 @@ way around and [`AGENTS.md`](AGENTS.md) for how work is done here.
 
 ## Status
 
-🌱 Early. A CLI previews and explicitly publishes module seeds, audits the configured active
-semester as a monitoring cohort, and records append-only private observations. Past and future
-modules remain explicit targets; historical differences are assessed in read-only migration mode.
-Y1S1 and Y1S2 remain historical inputs awaiting separately approved repair;
+✅ V1 proved. The CLI previews and explicitly publishes additive module seeds, audits the
+configured active semester as a monitoring cohort, and records append-only private observations.
+Past and future modules remain explicit targets; historical differences are assessed in read-only
+migration mode. The [operator guide](docs/operator-guide.md) and
+[acceptance evidence](docs/v1-acceptance.md) cover operation and boundaries. Y1S1 and Y1S2 remain
+historical inputs awaiting separately approved repair;
 [`ntulearn`](https://github.com/Jerome-Group/ntulearn) already writes current module material into
 contract-declared importer roots.
 

@@ -18,6 +18,11 @@ import {
   contextualModuleDefinition,
   validModuleControls,
 } from "../fixtures/module-controls.js";
+import {
+  seedMountedModule,
+  type LocalConfig,
+} from "../../src/mounted/index.js";
+import { createModuleSeedPlan } from "../../src/seed/index.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 import { runCli } from "../support/run-cli.js";
 
@@ -35,6 +40,7 @@ async function seedFixture(): Promise<{
   moduleRoot: string;
   profilePath: string;
   semesterRoot: string;
+  localConfig: LocalConfig;
 }> {
   const root = await mkdtemp(join(tmpdir(), "academic-os-seed-cli-"));
   temporaryRoots.push(root);
@@ -45,22 +51,14 @@ async function seedFixture(): Promise<{
   await mkdir(semesterRoot, { recursive: true });
   await mkdir(stateRoot, { recursive: true });
   const configPath = join(root, "academic-os.config.json");
-  await writeFile(
-    configPath,
-    `${JSON.stringify({
-      driveMount,
-      stateRoot,
-      activeSemester: "Y2S1",
-      semesters: {
-        Y2S1: {
-          root: "Modules/Y2S1",
-          status: "active",
-          modules: ["MH2100"],
-        },
-      },
-      seedTarget: { semester: "Y2S1", module: "MH2100" },
-    })}\n`,
-  );
+  const localConfig: LocalConfig = {
+    driveMount,
+    stateRoot,
+    semester: "Y2S1",
+    module: "MH2100",
+    semesterRoots: { Y2S1: "Modules/Y2S1" },
+  };
+  await writeFile(configPath, `${JSON.stringify(localConfig)}\n`);
   const controls = validModuleControls();
   const profilePath = join(root, "approved-profile.md");
   const definitionPath = join(root, "approved-definition.yaml");
@@ -78,11 +76,12 @@ async function seedFixture(): Promise<{
     moduleRoot,
     profilePath,
     semesterRoot,
+    localConfig,
   };
 }
 
 describe("academic-os seed", () => {
-  it("previews every vanilla creation without changing the semester root", async () => {
+  it("previews every vanilla creation without changing the semester root [MF-SEED-001]", async () => {
     const fixture = await seedFixture();
 
     const result = await runCli(
@@ -95,13 +94,44 @@ describe("academic-os seed", () => {
       fixture.definitionPath,
       "--json",
     );
+    const repeated = await runCli(
+      "seed",
+      "--config",
+      fixture.configPath,
+      "--profile",
+      fixture.profilePath,
+      "--definition",
+      fixture.definitionPath,
+      "--json",
+    );
+    const human = await runCli(
+      "seed",
+      "--config",
+      fixture.configPath,
+      "--profile",
+      fixture.profilePath,
+      "--definition",
+      fixture.definitionPath,
+    );
+    const repeatedHuman = await runCli(
+      "seed",
+      "--config",
+      fixture.configPath,
+      "--profile",
+      fixture.profilePath,
+      "--definition",
+      fixture.definitionPath,
+    );
 
     assert.equal(result.exitCode, 0);
+    assert.equal(repeated.stdout, result.stdout);
+    assert.equal(repeatedHuman.stdout, human.stdout);
     const report = JSON.parse(result.stdout) as {
       outcome: string;
       operations: Array<{ kind: string; path: string }>;
     };
     assert.equal(report.outcome, "preview");
+    assert.match(human.stdout, /Outcome: preview/u);
     assert.deepEqual(
       report.operations.map(({ kind, path }) => [path, kind]),
       universalPaths,
@@ -110,10 +140,10 @@ describe("academic-os seed", () => {
     assert.deepEqual(await readdir(fixture.semesterRoot), []);
   });
 
-  it("stages, audits, and publishes a conformant module only with --apply", async () => {
+  it("stages, audits, and publishes a conformant module only with --apply [MF-DOCS-001] [MF-AGENTS-003]", async () => {
     const fixture = await seedFixture();
 
-    const result = await runCli(
+    const arguments_ = [
       "seed",
       "--config",
       fixture.configPath,
@@ -123,7 +153,8 @@ describe("academic-os seed", () => {
       fixture.definitionPath,
       "--apply",
       "--json",
-    );
+    ];
+    const result = await runCli(...arguments_);
 
     assert.equal(result.exitCode, 0);
     assert.equal(JSON.parse(result.stdout).outcome, "completed");
@@ -146,13 +177,13 @@ describe("academic-os seed", () => {
     assert.equal(JSON.parse(audit.stdout).outcome, "conformant");
   });
 
-  it("refuses an incompatible existing target without changing its content", async () => {
+  it("refuses an incompatible existing target without changing its content [MF-SEED-002]", async () => {
     const fixture = await seedFixture();
     await mkdir(fixture.moduleRoot);
     const existingPath = join(fixture.moduleRoot, "existing.txt");
     await writeFile(existingPath, "preserve me\n");
 
-    const result = await runCli(
+    const arguments_ = [
       "seed",
       "--config",
       fixture.configPath,
@@ -162,12 +193,23 @@ describe("academic-os seed", () => {
       fixture.definitionPath,
       "--apply",
       "--json",
-    );
+    ];
+    const result = await runCli(...arguments_);
+    const repeated = await runCli(...arguments_);
+    const humanArguments = arguments_.slice(0, -1);
+    const human = await runCli(...humanArguments);
+    const repeatedHuman = await runCli(...humanArguments);
 
     assert.equal(result.exitCode, 1);
+    assert.equal(repeated.stdout, result.stdout);
+    assert.equal(repeatedHuman.stdout, human.stdout);
     const report = JSON.parse(result.stdout);
     assert.equal(report.outcome, "blocked");
     assert.match(report.evidence.join("\n"), /MF-UNIVERSAL-001/u);
+    assert.match(human.stdout, /Outcome: blocked/u);
+    for (const evidence of report.evidence) {
+      assert.equal(human.stdout.includes(`Evidence: ${evidence}`), true);
+    }
     assert.equal(await readFile(existingPath, "utf8"), "preserve me\n");
     assert.deepEqual(await readdir(fixture.moduleRoot), ["existing.txt"]);
   });
@@ -327,7 +369,7 @@ describe("academic-os seed", () => {
     assert.match(symlinkResult.stdout, /contains symbolic links/u);
   });
 
-  it("previews, publishes, audits, and idempotently reruns a context-derived plan", async () => {
+  it("proves deterministic CC-style grouped tutorials, projects, labs, optional assessments, and importer roots", async () => {
     const fixture = await seedFixture();
     await writeFile(
       fixture.definitionPath,
@@ -347,10 +389,22 @@ describe("academic-os seed", () => {
     ];
 
     const preview = await runCli(...arguments_);
+    const repeatedPreview = await runCli(...arguments_);
+    const humanPreview = await runCli(...arguments_.slice(0, -1));
+    const repeatedHumanPreview = await runCli(...arguments_.slice(0, -1));
 
     assert.equal(preview.exitCode, 0);
+    assert.equal(repeatedPreview.stdout, preview.stdout);
+    assert.equal(repeatedHumanPreview.stdout, humanPreview.stdout);
     const previewReport = JSON.parse(preview.stdout);
     assert.equal(previewReport.outcome, "preview");
+    assert.match(humanPreview.stdout, /Outcome: preview/u);
+    for (const { kind, path } of previewReport.operations) {
+      assert.equal(
+        humanPreview.stdout.includes(`Create ${kind}: ${path}`),
+        true,
+      );
+    }
     const paths = previewReport.operations.map(
       ({ path }: { path: string }) => path,
     );
@@ -379,13 +433,23 @@ describe("academic-os seed", () => {
     );
     assert.equal(audit.exitCode, 0);
     assert.equal(JSON.parse(audit.stdout).outcome, "conformant");
+    const repeatedAudit = await runCli(
+      "audit",
+      "--config",
+      fixture.configPath,
+      "--json",
+    );
+    assert.deepEqual(
+      JSON.parse(repeatedAudit.stdout).findings,
+      JSON.parse(audit.stdout).findings,
+    );
 
     const rerun = await runCli(...arguments_, "--apply");
     assert.equal(rerun.exitCode, 0);
     assert.deepEqual(JSON.parse(rerun.stdout).operations, []);
   });
 
-  it("blocks unclear or unsupported context evidence without creating optional structure", async () => {
+  it("blocks unclear or unsupported context evidence without creating optional structure [MF-SEED-003]", async () => {
     const fixture = await seedFixture();
     await writeFile(
       fixture.definitionPath,
@@ -434,5 +498,66 @@ describe("academic-os seed", () => {
     assert.equal(report.outcome, "operational-failure");
     assert.equal(report.error.code, "invalid-config");
     assert.match(report.error.message, /semester-root cannot be resolved/u);
+  });
+
+  it("exposes no deferred repair, recovery, scheduling, or instruction-edit command", async () => {
+    for (const deferredCommand of [
+      "repair",
+      "recover",
+      "schedule",
+      "edit-instructions",
+    ]) {
+      const result = await runCli(deferredCommand, "--json");
+      assert.equal(result.exitCode, 2, deferredCommand);
+      assert.equal(JSON.parse(result.stdout).outcome, "operational-failure");
+    }
+  });
+
+  it("reports an interrupted seed deterministically through the compiled CLI before resume", async () => {
+    const fixture = await seedFixture();
+    const plan = createModuleSeedPlan({
+      module: "MH2100",
+      semester: "Y2S1",
+      profile: await readFile(fixture.profilePath, "utf8"),
+      definition: await readFile(fixture.definitionPath, "utf8"),
+    });
+    let interrupted = false;
+    await assert.rejects(
+      seedMountedModule(fixture.localConfig, plan, "apply", {
+        checkpoint: async ({ checkpoint }) => {
+          if (!interrupted && checkpoint === "during-publication") {
+            interrupted = true;
+            throw new Error("synthetic CLI interruption");
+          }
+        },
+      }),
+      /synthetic CLI interruption/u,
+    );
+    const arguments_ = [
+      "seed",
+      "--config",
+      fixture.configPath,
+      "--profile",
+      fixture.profilePath,
+      "--definition",
+      fixture.definitionPath,
+      "--apply",
+    ];
+    const json = await runCli(...arguments_, "--json");
+    const repeatedJson = await runCli(...arguments_, "--json");
+    const human = await runCli(...arguments_);
+    const repeatedHuman = await runCli(...arguments_);
+    assert.equal(json.exitCode, 1);
+    assert.equal(repeatedJson.stdout, json.stdout);
+    assert.equal(repeatedHuman.stdout, human.stdout);
+    assert.equal(JSON.parse(json.stdout).outcome, "safely-resumable");
+    assert.match(human.stdout, /Outcome: safely-resumable/u);
+    for (const evidence of JSON.parse(json.stdout).evidence) {
+      assert.equal(human.stdout.includes(`Evidence: ${evidence}`), true);
+    }
+
+    const resumed = await runCli(...arguments_, "--resume", "--json");
+    assert.equal(resumed.exitCode, 0);
+    assert.equal(JSON.parse(resumed.stdout).outcome, "completed");
   });
 });

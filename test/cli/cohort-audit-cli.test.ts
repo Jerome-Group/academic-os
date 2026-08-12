@@ -143,7 +143,7 @@ async function moduleMetadata(
   return metadata;
 }
 
-it("audits only active-semester modules and reports past and future exclusions", async () => {
+it("audits only active-semester modules and reports past and future exclusions [MF-AUDIT-003]", async () => {
   const { configPath } = await cohortFixture();
 
   const result = await runCli("audit", "--config", configPath, "--json");

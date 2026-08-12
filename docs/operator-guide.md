@@ -1,7 +1,7 @@
-# V1 operator guide
+# Operator guide
 
-V1 has two user commands: `seed` and `audit`. It does not execute repairs, manage a recovery
-vault, schedule weekly LLM work or edit module instructions autonomously.
+The CLI has `seed`, `audit` and separately gated `repair` commands. It does not schedule weekly
+LLM work or edit module instructions autonomously.
 
 ## Configure
 
@@ -10,6 +10,10 @@ mount, a private state root outside both Drive and this repository, exactly one 
 and explicit semester/module mappings. Add `seedTarget` only for the approved module to seed.
 Optional Drive API inventory needs an exact module-folder ID and read-only application-default
 credentials; mounted inventory remains the baseline.
+
+Repair additionally needs the exact module folder ID, a dedicated unmonitored Drive recovery-root
+ID, and an existing `snapshotRoot` on a physically separate volume. Its full-Drive OAuth scope is
+used only when `repair` is invoked; audit retains metadata-read-only authorization.
 
 ## Seed
 
@@ -51,11 +55,53 @@ contain metadata and filenames, so do not commit them. Current mismatch is a **d
 change between compatible observations is **drift**. A historical contract gap or contract-version
 upgrade is migration evidence, not permission to repair or change the contract.
 
+## Repair one historical module
+
+Repair accepts a private, versioned plan whose digest binds the approved decisions, complete Drive
+inventory, item IDs, capabilities, preconditions, ordered destinations and curation events. Keep
+plans outside git. Preview re-inventories Drive and changes nothing:
+
+```sh
+node dist/src/cli.js repair --config academic-os.config.json \
+  --plan /private/path/approved.repair-plan.json
+```
+
+Apply only after reviewing that exact plan. Before the first live operation, repair recursively
+creates and verifies an ID-mapped Drive copy and a SHA-256 byte snapshot on the configured separate
+volume. The byte snapshot is made read-only and user-immutable on macOS. This is strong operational
+protection, not regulatory WORM: an administrator can remove the immutable flag.
+
+```sh
+node dist/src/cli.js repair --config academic-os.config.json \
+  --plan /private/path/approved.repair-plan.json --apply
+```
+
+Every operation is journalled before and after its Drive call. If interrupted, rerun without
+`--resume`; the command reconciles operation tags and stable IDs, then reports whether continuation
+is safe. Continue only from `safely-resumable`:
+
+```sh
+node dist/src/cli.js repair --config academic-os.config.json \
+  --plan /private/path/approved.repair-plan.json --apply --resume
+```
+
+Repair creates folders/files, relocates existing IDs, or moves recovery-only originals into the
+verified retirement root. It never calls permanent delete, moves content to Trash, overwrites a
+destination, or uses a path as Drive mutation identity. Approved local-only Finder artifacts are
+removed from the mount only after their device, inode, timestamp, size and SHA-256 match the plan
+and their byte recovery verifies. A complete repair writes its curation events, re-inventories the
+module and reruns contract conformance.
+
+For the historical rollout, operate MH1100 first and CC0015 second. Do not begin the other fourteen
+Y1S1/Y1S2 modules until both pilots have completed and passed a fresh migration audit. Google-native
+files are recovered as recorded exports subject to Drive export limits; the additional Drive copy
+is mutable and therefore is not itself immutable or WORM storage.
+
 ## Operate safely
 
 - Preview is non-mutating; apply requires the explicit flag.
 - Audit has no repair path and no write-capable Drive API dependency.
-- A contract change edits `docs/module-folder-contract.md`; a repair changes a real module only
-  through a separately approved future workflow.
+- A contract change edits `docs/module-folder-contract.md`; repair resolves only an approved
+  deviation and cannot change the contract.
 - Run `npm run check`, `npm run rule-coverage:check` and `npm run privacy:check` before publication.
 - Follow `docs/agents/safe-drive-testing.md` before any Drive write or integration test.

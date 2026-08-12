@@ -29,5 +29,9 @@
         "MH2100": "replace-with-drive-folder-id"
       }
     }
+  },
+  "repair": {
+    "driveRecoveryRootId": "replace-with-dedicated-recovery-root-id",
+    "snapshotRoot": "/path/on/separate-volume/to/academic-os-recovery"
   }
 }

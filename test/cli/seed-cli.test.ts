@@ -528,9 +528,28 @@ describe("academic-os seed", () => {
     assert.match(report.error.message, /semester-root cannot be resolved/u);
   });
 
-  it("exposes no deferred repair, recovery, scheduling, or instruction-edit command", async () => {
-    for (const deferredCommand of [
+  it("exposes repair but no raw recovery, scheduling, or instruction-edit command", async () => {
+    const repair = await runCli("repair", "--json");
+    assert.equal(repair.exitCode, 2);
+    assert.match(
+      JSON.parse(repair.stdout).error.message,
+      /academic-os repair --config/u,
+    );
+    const unsafeResume = await runCli(
       "repair",
+      "--config",
+      "missing.json",
+      "--plan",
+      "missing-plan.json",
+      "--resume",
+      "--json",
+    );
+    assert.equal(unsafeResume.exitCode, 2);
+    assert.match(
+      JSON.parse(unsafeResume.stdout).error.message,
+      /academic-os repair --config/u,
+    );
+    for (const deferredCommand of [
       "recover",
       "schedule",
       "edit-instructions",

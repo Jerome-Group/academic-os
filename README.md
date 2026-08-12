@@ -20,6 +20,10 @@ historical inputs awaiting separately approved repair;
 [`ntulearn`](https://github.com/Jerome-Group/ntulearn) already writes current module material into
 contract-declared importer roots.
 
+The separately gated `repair` command now executes only an approved, Drive-ID-bound historical
+migration plan after fresh inventory and dual recovery verify. It previews by default and has no
+permanent-delete or Trash operation.
+
 ## What is here now
 
 [`docs/module-folder-contract.md`](docs/module-folder-contract.md) — the folder and naming

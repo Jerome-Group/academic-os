@@ -58,6 +58,17 @@ An approved change to an existing module folder that resolves a deviation withou
 contract. Unlike a seed, a repair may rename, move, or remove structure.
 _Avoid_: seed, migration
 
+**Repair plan**:
+The private, versioned and explicitly approved description of one module repair. It binds a
+complete Drive-ID inventory, decisions, preconditions, ordered operations, curation events and a
+digest; changing any of them invalidates approval.
+_Avoid_: shell script, path list
+
+**Recovery snapshot**:
+The verified pre-repair evidence needed to restore a module: an ID-mapped Drive copy plus a
+SHA-256 byte snapshot on separate storage. Read-only and user-immutable is not regulatory WORM.
+_Avoid_: audit observation, Drive Trash
+
 **Contract version**:
 The increasing identifier for a distinct set of normative folder requirements. It identifies
 which contract a module folder was prepared to follow.

@@ -301,7 +301,6 @@ their target.
 
 ## Deferred work
 
-Automation implementation, teaching-workspace internals, automated curation, repair execution,
-recovery-vault operations, weekly LLM orchestration and autonomous module-specific instruction
-evolution remain future work. The contract defines the interfaces they must respect; it does not
-claim they exist.
+Teaching-workspace internals, automated curation, weekly LLM orchestration and autonomous
+module-specific instruction evolution remain future work. The contract defines the interfaces
+they must respect; it does not claim they exist.

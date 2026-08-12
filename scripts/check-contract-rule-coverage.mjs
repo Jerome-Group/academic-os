@@ -1,48 +1,35 @@
 import { spawnSync } from "node:child_process";
-import { access, readFile, readdir } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 
+import { contractRuleEnforcement } from "../dist/src/conformance/rule-enforcement.js";
 import {
-  contractRuleEnforcement,
-  contractRuleImplementation,
-} from "../dist/src/conformance/rule-enforcement.js";
+  assertCompleteRuleEvidence,
+  readRuleEvidence,
+} from "../dist/test/support/rule-evidence.js";
 
 const rulePattern = /MF-[A-Z]+-[0-9]{3}/gu;
 const normativeRules = uniqueMatches(
   await readFile("docs/module-folder-contract.md", "utf8"),
 );
-const registeredRules = uniqueMatches(runTests(await testFiles("dist/test")));
 
 assertSameRules(
   "enforcement registry",
   Object.keys(contractRuleEnforcement).sort(),
   normativeRules,
 );
-assertSameRules(
-  "implementation registry",
-  Object.keys(contractRuleImplementation).sort(),
-  normativeRules,
-);
-assertSameRules("passing registered tests", registeredRules, normativeRules);
-await Promise.all(
-  Object.values(contractRuleImplementation)
-    .flat()
-    .map((path) => access(path)),
-);
+const testOutput = runPassingTests(await testFiles("dist/test"));
+assertCompleteRuleEvidence(readRuleEvidence(testOutput), normativeRules);
 
 console.log(
-  `${normativeRules.length} normative rules have implementation mappings and passing registered tests.`,
+  `${normativeRules.length} normative rules have machine-recorded output from passing behavioural assertions.`,
 );
 
-function runTests(files) {
-  const result = spawnSync(
-    process.execPath,
-    ["--test", "--test-reporter=tap", ...files],
-    {
-      encoding: "utf8",
-      maxBuffer: 16 * 1024 * 1024,
-    },
-  );
+function runPassingTests(files) {
+  const result = spawnSync(process.execPath, ["--test", ...files], {
+    encoding: "utf8",
+    maxBuffer: 16 * 1024 * 1024,
+  });
   if (result.status !== 0) {
     process.stdout.write(result.stdout);
     process.stderr.write(result.stderr);

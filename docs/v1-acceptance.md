@@ -8,19 +8,24 @@ Direct compiled-CLI tests exercise vanilla and conventional modules; CC-style gr
 tutorials; projects, labs, optional assessments and importer roots; malformed controls, drift,
 ambiguity and conflicts. Deterministic crash-injection tests use the mounted executor seam for
 every interruption phase. The suite also proves preview and audit do not mutate module trees,
-apply is additive, conflicts block, and the Drive client exposes metadata reads only.
+apply is additive, a new final module tree appears only through atomic publication, conflicts
+block, and the Drive client exposes metadata reads only.
 
-The rule-coverage gate compares normative Markdown IDs with the implementation registry, runs the
-compiled suite, and extracts IDs from passing registered test names. A deleted, renamed or failing
-rule test fails coverage. `test/privacy/` checks both ignore rules and the tracked tree for
-credentials, academic contents and private runtime state. CI runs format, lint, typecheck, tests,
-rule coverage and privacy as parallel jobs bounded to nine minutes; the one-minute fan-in keeps
-the workflow critical path within ten minutes.
+The rule-coverage gate compares normative Markdown IDs with machine-recorded evidence emitted
+only after rule-specific behavioural assertions pass. Test names and function-entry coverage do
+not provide evidence. The gate has a regression proving one omitted rule fails the comparison.
+A missing, unobserved or failing rule behaviour fails the gate. `test/privacy/`
+checks both ignore rules and the tracked tree for credentials, academic contents and private
+runtime state. CI runs format, lint, typecheck, tests, rule coverage and privacy as parallel jobs
+bounded to nine minutes; the one-minute fan-in keeps the workflow critical path within ten
+minutes.
 
 ## Read-only real-module acceptance
 
-Two active and two historical module folders were audited: conventional and CC-style archetypes
-in each lifecycle. Before/after recursive metadata digests matched for all four targets.
+Two active and two historical module folders were explicitly audited read-only: conventional and
+CC-style archetypes in each lifecycle. Historical acceptance targets remain outside continuous
+monitoring; migration mode supplies their historical interpretation. Before/after recursive
+metadata digests matched for all four targets.
 
 | Archetype | Exit/outcome | Decisions | Before/after metadata digest |
 |---|---|---:|---|

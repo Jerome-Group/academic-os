@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import type { Dirent } from "node:fs";
 import { link, mkdir, open, readdir, unlink } from "node:fs/promises";
 import { basename, join } from "node:path";
 
@@ -13,7 +14,9 @@ import {
 } from "../observation/index.js";
 import { OperationalError } from "./operational-error.js";
 import type {
+  AppendMountedAuditObservationInput,
   HistoryDiagnostic,
+  MountedAuditHistory,
   ObservationPublisher,
   RecordedAuditObservation,
   RecordMountedAuditObservationInput,
@@ -23,9 +26,7 @@ export async function recordMountedAuditObservation(
   input: RecordMountedAuditObservationInput,
   publisher: ObservationPublisher = atomicObservationPublisher,
 ): Promise<RecordedAuditObservation> {
-  const historyDirectory = observationDirectory(input);
-  await mkdir(historyDirectory, { recursive: true, mode: 0o700 });
-  const history = await readHistory(historyDirectory, input);
+  const history = await readMountedAuditHistory(input.target);
   const observation = createAuditObservation({
     target: {
       moduleCode: input.target.module,
@@ -38,36 +39,76 @@ export async function recordMountedAuditObservation(
     contractVersion: input.contractVersion,
   });
   const comparison = compareAuditObservations(observation, history.previous);
+  return await appendMountedAuditObservation(
+    {
+      target: input.target,
+      observation,
+      comparison,
+      historyDiagnostics: history.diagnostics,
+    },
+    publisher,
+  );
+}
+
+export async function readMountedAuditHistory(
+  target: RecordMountedAuditObservationInput["target"],
+): Promise<MountedAuditHistory> {
+  const historyDirectory = observationDirectory(target);
+  return await readHistory(historyDirectory, target);
+}
+
+export async function appendMountedAuditObservation(
+  input: AppendMountedAuditObservationInput,
+  publisher: ObservationPublisher = atomicObservationPublisher,
+): Promise<RecordedAuditObservation> {
+  const historyDirectory = observationDirectory(input.target);
+  await mkdir(historyDirectory, { recursive: true, mode: 0o700 });
   const observationPath = await appendObservation(
     historyDirectory,
-    observation,
+    input.observation,
     publisher,
   );
   return {
-    observation,
+    observation: input.observation,
     observationPath,
-    comparison,
-    historyDiagnostics: history.diagnostics,
+    comparison: input.comparison,
+    historyDiagnostics: input.historyDiagnostics,
   };
 }
 
 function observationDirectory(
-  input: RecordMountedAuditObservationInput,
+  target: RecordMountedAuditObservationInput["target"],
 ): string {
   const targetKey = createHash("sha256")
-    .update(input.target.moduleRoot)
+    .update(target.moduleRoot)
     .digest("hex");
-  return join(input.target.stateRoot, "observations", targetKey);
+  return join(target.stateRoot, "observations", targetKey);
 }
 
 async function readHistory(
   directory: string,
-  input: RecordMountedAuditObservationInput,
+  target: RecordMountedAuditObservationInput["target"],
 ): Promise<{
   previous?: AuditObservation;
   diagnostics: HistoryDiagnostic[];
 }> {
-  const entries = await readdir(directory, { withFileTypes: true });
+  let entries: Dirent[];
+  try {
+    entries = await readdir(directory, { withFileTypes: true });
+  } catch (error) {
+    if (isMissingPath(error)) {
+      return {
+        diagnostics: [
+          {
+            kind: "missing-history",
+            path: basename(directory),
+            message: "No prior observation exists for this target.",
+          },
+        ],
+      };
+    }
+    throw error;
+  }
   const diagnostics: HistoryDiagnostic[] = entries
     .filter((entry) => entry.isFile() && isTemporaryObservation(entry.name))
     .map(({ name }) => ({
@@ -110,9 +151,9 @@ async function readHistory(
     if (
       envelope.schemaVersion !== observationSchemaVersion ||
       envelope.ruleSetVersion !== ruleSetVersion ||
-      envelope.target.identity !== input.target.moduleRoot ||
-      envelope.target.moduleCode !== input.target.module ||
-      envelope.target.semester !== input.target.semester
+      envelope.target.identity !== target.moduleRoot ||
+      envelope.target.moduleCode !== target.module ||
+      envelope.target.semester !== target.semester
     ) {
       diagnostics.push({
         kind: "incompatible-history",
@@ -150,6 +191,14 @@ async function readHistory(
     ),
   );
   return { ...(previous === undefined ? {} : { previous }), diagnostics };
+}
+
+function isMissingPath(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    "code" in error &&
+    (error as NodeJS.ErrnoException).code === "ENOENT"
+  );
 }
 
 async function appendObservation(

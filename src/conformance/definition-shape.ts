@@ -1,3 +1,5 @@
+import { isAbsolute, win32 } from "node:path";
+
 import { isDirectoryName, isRecord, nonEmptyString } from "./value-shape.js";
 import { universalStructurePaths } from "../contract/universal-structure.js";
 
@@ -48,12 +50,187 @@ export function validateDefinitionShape(
   identity: ValidatedDefinition | undefined,
 ): string[] {
   return [
+    ...validateDeclaredFields(value),
+    ...validatePortableValues(value),
     ...validateIdentityAndOffering(value, identity),
     ...validateStructure(value.structure),
     ...validateSources(value.sources),
     ...validateEvidence(value.evidence),
     ...validateExceptions(value.exceptions),
   ];
+}
+
+function validateDeclaredFields(value: Record<string, unknown>): string[] {
+  const problems = undeclaredFields(value, "Definition", [
+    "schema_version",
+    "contract_version",
+    "module",
+    "offering",
+    "structure",
+    "sources",
+    "evidence",
+    "exceptions",
+  ]);
+  if (isRecord(value.module)) {
+    problems.push(
+      ...undeclaredFields(value.module, "module", ["code", "title"]),
+    );
+  }
+  if (isRecord(value.offering)) {
+    problems.push(
+      ...undeclaredFields(value.offering, "offering", [
+        "academic_year",
+        "semester",
+        "status",
+      ]),
+    );
+  }
+  if (isRecord(value.structure)) {
+    problems.push(
+      ...undeclaredFields(value.structure, "structure", [
+        "tutorials",
+        "assessments",
+        "projects",
+        "labs",
+        "resource_categories",
+      ]),
+    );
+    if (isRecord(value.structure.tutorials)) {
+      problems.push(
+        ...undeclaredFields(value.structure.tutorials, "structure.tutorials", [
+          "layout",
+          "groups",
+          "evidence",
+        ]),
+      );
+    }
+    if (isRecord(value.structure.assessments)) {
+      problems.push(
+        ...undeclaredFields(
+          value.structure.assessments,
+          "structure.assessments",
+          [...contextualAssessments],
+        ),
+      );
+      for (const category of contextualAssessments) {
+        const declaration = value.structure.assessments[category];
+        if (isRecord(declaration)) {
+          problems.push(
+            ...undeclaredFields(
+              declaration,
+              `structure.assessments.${category}`,
+              ["enabled", "evidence"],
+            ),
+          );
+        }
+      }
+    }
+    for (const workspace of contextualWorkspaces) {
+      const declaration = value.structure[workspace];
+      if (isRecord(declaration)) {
+        problems.push(
+          ...undeclaredFields(declaration, `structure.${workspace}`, [
+            "enabled",
+            "evidence",
+          ]),
+        );
+      }
+    }
+    if (Array.isArray(value.structure.resource_categories)) {
+      for (const [
+        index,
+        category,
+      ] of value.structure.resource_categories.entries()) {
+        if (isRecord(category)) {
+          problems.push(
+            ...undeclaredFields(
+              category,
+              `structure.resource_categories[${index}]`,
+              ["name", "evidence"],
+            ),
+          );
+        }
+      }
+    }
+  }
+  if (isRecord(value.sources)) {
+    problems.push(...undeclaredFields(value.sources, "sources", ["ntulearn"]));
+    if (Array.isArray(value.sources.ntulearn)) {
+      for (const [index, root] of value.sources.ntulearn.entries()) {
+        if (isRecord(root)) {
+          problems.push(
+            ...undeclaredFields(root, `sources.ntulearn[${index}]`, [
+              "role",
+              "destination",
+              "evidence",
+            ]),
+          );
+        }
+      }
+    }
+  }
+  if (isRecord(value.evidence)) {
+    for (const [name, item] of Object.entries(value.evidence)) {
+      if (isRecord(item)) {
+        problems.push(
+          ...undeclaredFields(item, `evidence.${name}`, [
+            "source",
+            "checked_at",
+          ]),
+        );
+      }
+    }
+  }
+  if (Array.isArray(value.exceptions)) {
+    for (const [index, exception] of value.exceptions.entries()) {
+      if (isRecord(exception)) {
+        problems.push(
+          ...undeclaredFields(exception, `exceptions[${index}]`, [
+            "rule",
+            "reason",
+            "evidence",
+          ]),
+        );
+      }
+    }
+  }
+  return problems;
+}
+
+function undeclaredFields(
+  value: Record<string, unknown>,
+  location: string,
+  allowed: readonly string[],
+): string[] {
+  const allowedFields = new Set(allowed);
+  return Object.keys(value)
+    .filter((field) => !allowedFields.has(field))
+    .sort()
+    .map((field) => `${location} has undeclared field ${field}.`);
+}
+
+function validatePortableValues(
+  value: unknown,
+  location = "Definition",
+): string[] {
+  if (typeof value === "string") {
+    return isAbsolute(value) ||
+      win32.isAbsolute(value) ||
+      value.startsWith("~/")
+      ? [
+          `${location} contains absolute personal path ${JSON.stringify(value)}.`,
+        ]
+      : [];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap((item, index) =>
+      validatePortableValues(item, `${location}[${index}]`),
+    );
+  }
+  if (!isRecord(value)) return [];
+  return Object.entries(value).flatMap(([field, item]) =>
+    validatePortableValues(item, `${location}.${field}`),
+  );
 }
 
 function validateIdentityAndOffering(

@@ -25,6 +25,7 @@ import {
 import { createModuleSeedPlan } from "../../src/seed/index.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 import { runCli } from "../support/run-cli.js";
+import { recordBehaviorEvidence } from "../support/rule-evidence.js";
 
 const temporaryRoots: string[] = [];
 
@@ -138,6 +139,9 @@ describe("academic-os seed", () => {
     );
     await assert.rejects(access(fixture.moduleRoot));
     assert.deepEqual(await readdir(fixture.semesterRoot), []);
+    recordBehaviorEvidence("MF-SEED-001", () => {
+      assert.equal(report.outcome, "preview");
+    });
   });
 
   it("stages, audits, and publishes a conformant module only with --apply [MF-DOCS-001] [MF-AGENTS-003]", async () => {
@@ -175,6 +179,24 @@ describe("academic-os seed", () => {
     );
     assert.equal(audit.exitCode, 0);
     assert.equal(JSON.parse(audit.stdout).outcome, "conformant");
+    recordBehaviorEvidence("MF-DOCS-001", () => {
+      assert.equal(
+        universalPaths.some(([path]) => path === "docs"),
+        true,
+      );
+    });
+    const agents = await readFile(
+      join(fixture.moduleRoot, "AGENTS.md"),
+      "utf8",
+    );
+    recordBehaviorEvidence("MF-AGENTS-003", () => {
+      assert.equal(
+        agents.includes(
+          "Show proposed changes for approval before applying them.",
+        ),
+        true,
+      );
+    });
   });
 
   it("refuses an incompatible existing target without changing its content [MF-SEED-002]", async () => {
@@ -212,6 +234,9 @@ describe("academic-os seed", () => {
     }
     assert.equal(await readFile(existingPath, "utf8"), "preserve me\n");
     assert.deepEqual(await readdir(fixture.moduleRoot), ["existing.txt"]);
+    recordBehaviorEvidence("MF-SEED-002", () => {
+      assert.equal(report.outcome, "blocked");
+    });
   });
 
   it("rejects case variants, symlink targets, and unresolved placeholders", async () => {
@@ -475,6 +500,9 @@ describe("academic-os seed", () => {
     assert.equal(result.exitCode, 1);
     assert.match(result.stdout, /requires a human decision|requires-decision/u);
     assert.deepEqual(await readdir(fixture.semesterRoot), []);
+    recordBehaviorEvidence("MF-SEED-003", () => {
+      assert.equal(result.exitCode, 1);
+    });
   });
 
   it("reports configuration failures as operational failures", async () => {

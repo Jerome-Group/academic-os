@@ -7,6 +7,10 @@ import {
   validModuleControls,
 } from "../fixtures/module-controls.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
+import {
+  recordBehaviorEvidence,
+  recordFindingEvidence,
+} from "../support/rule-evidence.js";
 
 const modifiedAt = "2026-08-11T00:00:00.000Z";
 const vanillaDefinition = (validModuleControls().definition ?? "").replace(
@@ -71,6 +75,12 @@ describe("auditModule governed content", () => {
         ["MF-NAMING-001", "70 Learning/00 Module Profile.md"],
       ],
     );
+    recordFindingEvidence(
+      findings,
+      "MF-ADMIN-001",
+      "MF-NAMING-001",
+      "MF-ASSESSMENTS-001",
+    );
   });
 
   it("permits declared tutorial groups and nesting in every open interior [MF-OPEN-001]", () => {
@@ -118,6 +128,7 @@ describe("auditModule governed content", () => {
 
     assert.equal(result.outcome, "conformant");
     assert.ok(result.findings.every(({ status }) => status === "pass"));
+    recordFindingEvidence(result.findings, "MF-OPEN-001");
   });
 
   it("uses declared module-specific tutorial groups without opening deeper structure", () => {
@@ -172,6 +183,7 @@ describe("auditModule governed content", () => {
         "90 Resources/00 Unclassified/MH2100_01.pdf",
       ],
     );
+    recordFindingEvidence(findings, "MF-NAMING-002");
   });
 
   it("preserves declared importer descendants and classifies undeclared roots [MF-CURATION-002] [MF-IMPORTER-001]", () => {
@@ -194,6 +206,13 @@ describe("auditModule governed content", () => {
     );
     assert.match(findings[0]?.evidence ?? "", /NTULearn_Assessments/u);
     assert.match(findings[0]?.explanation ?? "", /human decision/u);
+    recordFindingEvidence(findings, "MF-IMPORTER-001");
+    recordBehaviorEvidence("MF-CURATION-002", () => {
+      assert.equal(
+        findings.some(({ path }) => path.includes("(raw)")),
+        false,
+      );
+    });
   });
 
   it("accepts workspace build layouts and rejects root and scratch builds [MF-LATEX-001]", () => {
@@ -215,12 +234,13 @@ describe("auditModule governed content", () => {
 
     assert.deepEqual(
       findings.map(({ path }) => path),
-      [".scratch/draft/build", "build"],
+      [".scratch/draft/build", "40 Projects and Labs/Orphan/build", "build"],
     );
     assert.equal(
       findings.some(({ path }) => path === "40 Projects and Labs/Poster/build"),
       false,
     );
+    recordFindingEvidence(findings, "MF-LATEX-001");
   });
 
   it("classifies every finding and makes judgment findings request a decision", () => {
@@ -245,6 +265,7 @@ describe("auditModule governed content", () => {
           enforcement === "deterministic" || enforcement === "judgment",
       ),
     );
+    recordFindingEvidence(judgments, "MF-NAMING-003");
     assert.deepEqual(
       judgments.map(({ path }) => path),
       [

@@ -53,6 +53,19 @@ describe("seedMountedModule", () => {
         new RegExp(`synthetic interruption ${interruptionPoint}`, "u"),
       );
 
+      if (interruptionPoint !== "after-publication") {
+        await assert.rejects(
+          access(join(fixture.semesterRoot, "MH2100")),
+          /ENOENT/u,
+        );
+        assert.equal(
+          (await readdir(fixture.semesterRoot)).filter((name) =>
+            name.startsWith(".academic-os-stage-"),
+          ).length,
+          interruptionPoint === "before-staging" ? 0 : 1,
+        );
+      }
+
       const inspected = await seedMountedModule(
         fixture.config,
         fixture.plan,
@@ -121,6 +134,10 @@ describe("seedMountedModule", () => {
     );
 
     const changedControl = await interruptedPublicationFixture();
+    await mkdir(
+      join(changedControl.semesterRoot, "MH2100", "00 Module Admin"),
+      { recursive: true },
+    );
     await writeFile(
       join(
         changedControl.semesterRoot,
@@ -282,6 +299,14 @@ describe("seedMountedModule", () => {
 
   it("journals a publication conflict, reports progress, and removes staging", async () => {
     const fixture = await mountedSeedFixture();
+    const moduleAdmin = join(fixture.semesterRoot, "MH2100", "00 Module Admin");
+    await mkdir(moduleAdmin, { recursive: true });
+    await writeFile(
+      join(moduleAdmin, "00 Module Profile.md"),
+      fixture.plan.operations.find(
+        ({ path }) => path === "00 Module Admin/00 Module Profile.md",
+      )?.contents ?? "",
+    );
     let injected = false;
     const report = await seedMountedModule(
       fixture.config,
@@ -292,12 +317,7 @@ describe("seedMountedModule", () => {
           if (!injected && checkpoint === "during-publication") {
             injected = true;
             await writeFile(
-              join(
-                fixture.semesterRoot,
-                "MH2100",
-                "00 Module Admin",
-                "00 Module Profile.md",
-              ),
+              join(moduleAdmin, "10 Module Definition.yaml"),
               "conflict\n",
             );
           }
@@ -321,14 +341,7 @@ describe("seedMountedModule", () => {
       true,
     );
 
-    await rm(
-      join(
-        fixture.semesterRoot,
-        "MH2100",
-        "00 Module Admin",
-        "00 Module Profile.md",
-      ),
-    );
+    await rm(join(moduleAdmin, "10 Module Definition.yaml"));
     const inspected = await seedMountedModule(
       fixture.config,
       fixture.plan,

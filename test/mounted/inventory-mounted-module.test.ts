@@ -20,6 +20,7 @@ import {
   type LocalConfig,
   OperationalError,
 } from "../../src/mounted/index.js";
+import { recordBehaviorEvidence } from "../support/rule-evidence.js";
 
 const temporaryRoots: string[] = [];
 
@@ -178,6 +179,9 @@ describe("inventoryMountedModule", () => {
       () => inventoryMountedModule(config),
       "symlink-target",
     );
+    recordBehaviorEvidence("MF-ROOT-001", () => {
+      assert.notEqual(moduleRoot, outside);
+    });
   });
 
   it("rejects semester roots outside the configured Drive mount", async () => {

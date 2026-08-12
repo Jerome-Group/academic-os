@@ -126,6 +126,20 @@ export async function seedMountedModule(
       "Target preconditions and the approved plan match; pass resume explicitly to continue additively.",
     ]);
   }
+  if (
+    journal !== undefined &&
+    journal.started.preconditions.targetState === "absent" &&
+    current.remaining.length === 0
+  ) {
+    const recovered = await reportCompletedTarget(target, plan);
+    if (recovered.outcome !== "completed") return recovered;
+    await removeValidatedStagingRoot(journal);
+    await appendSeedJournalEvent(journal, {
+      type: "outcome",
+      outcome: "completed",
+    });
+    return recovered;
+  }
   if (journal === undefined && current.remaining.length === 0) {
     return await reportCompletedTarget(target, plan);
   }

@@ -1,4 +1,4 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, rename } from "node:fs/promises";
 
 import type { SeedOperation, SeedPlan } from "../seed/index.js";
 import { ensureMaterialized } from "./ensure-materialized.js";
@@ -56,6 +56,29 @@ export async function publishSeedPlan(
   options: SeedExecutionOptions,
 ): Promise<SeedExecutionFailure | undefined> {
   const targetMetadata = await optionalLstat(target.moduleRoot);
+  if (journal.started.preconditions.targetState === "absent") {
+    if (targetMetadata !== undefined) {
+      return {
+        outcome: "blocked",
+        phase: "publication",
+        evidence: `Publication target ${plan.module} appeared after approval.`,
+      };
+    }
+    await options.checkpoint?.({ checkpoint: "during-publication" });
+    try {
+      await rename(journal.started.stagingRoot, target.moduleRoot);
+      return undefined;
+    } catch (error) {
+      return {
+        outcome: "partially-completed",
+        phase: "publication",
+        evidence: errorMessage(
+          error,
+          `Could not publish the complete staged module ${plan.module}.`,
+        ),
+      };
+    }
+  }
   if (
     targetMetadata !== undefined &&
     (targetMetadata.isSymbolicLink() || !targetMetadata.isDirectory())
@@ -66,7 +89,13 @@ export async function publishSeedPlan(
       evidence: `Publication target ${plan.module} is not an ordinary directory.`,
     };
   }
-  if (targetMetadata === undefined) await mkdir(target.moduleRoot);
+  if (targetMetadata === undefined) {
+    return {
+      outcome: "blocked",
+      phase: "publication",
+      evidence: `Approved partial target ${plan.module} disappeared before publication.`,
+    };
+  }
   return await applyOperations({
     root: target.moduleRoot,
     operations: plan.operations,

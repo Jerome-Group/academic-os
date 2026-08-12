@@ -343,7 +343,7 @@ it("audits historical migrations read-only and distinguishes contract relationsh
   await writeFile(
     definitionPath,
     (await readFile(definitionPath, "utf8")).replace(
-      "contract_version: 2",
+      "contract_version: 3",
       "contract_version: 1",
     ),
   );

@@ -3,7 +3,7 @@
 The normative folder and naming contract every module folder follows. A folder that disagrees
 with an applicable rule here is wrong, and a rule that is not here is not a rule.
 
-**Contract version: 2.** Increase it when a normative requirement, applicability rule or allowed
+**Contract version: 3.** Increase it when a normative requirement, applicability rule or allowed
 structure changes. Editorial clarification and repaired citations do not change it. Definition
 schema versions advance independently.
 
@@ -65,6 +65,7 @@ MODULE_CODE/
 ├── CLAUDE.md
 ├── CONTEXT.md
 └── docs/
+    └── adr/
 ```
 
 **MF-ROOT-002 (deterministic).** Loose academic contents at module root are errors. An unknown root
@@ -108,11 +109,11 @@ schema and contract versions, module identity, offering, applicable context-deri
 declared importer roots and their evidence. It contains module-relative paths only: no absolute
 Drive paths, credentials, deadlines, prose workflows, inventories or learner progress.
 
-The version 2 shape is:
+The schema version 2 shape for contract version 3 is:
 
 ```yaml
 schema_version: 2
-contract_version: 2
+contract_version: 3
 module: {code: MH2100, title: Calculus III}
 offering: {academic_year: 2026-2027, semester: 1, status: active}
 structure:
@@ -150,10 +151,11 @@ distinguished from folder drift.
 ### Agent and domain controls
 
 **MF-AGENTS-001 (deterministic).** Seed `AGENTS.md` once as a concise, fully local router with
-these sections: What this folder is; Start here; Routes; Safety; Updating these instructions.
-Routes cover Learning, Tutorials, Curation, Assessments, Projects/Labs and Maintenance through
-strong context pointers. It contains no git, GitHub, pull-request, generic coding-standard or
-repository workflow.
+these sections: What this folder is; Start here; Routes; Domain language; Safety; Updating these
+instructions. Routes cover Learning, Tutorials, Curation, Assessments, Projects/Labs and
+Maintenance through strong context pointers. Domain language points to `CONTEXT.md` for the
+glossary and `docs/adr/` for decisions before content is classified, named or organised. It
+contains no git, GitHub, pull-request, generic coding-standard or repository workflow.
 
 **MF-AGENTS-002 (deterministic).** `CLAUDE.md` contains exactly a `# Claude Code` heading followed
 by `Read \`AGENTS.md\` completely before working in this module folder.` It never contains an
@@ -164,9 +166,10 @@ independent rule copy. Required AGENTS pointers resolve.
 **MF-CONTEXT-001 (deterministic).** `CONTEXT.md` is a glossary only. Seed its module heading,
 purpose and `## Language`, inventing no terms. Add terms only after ambiguity is resolved.
 
-**MF-DOCS-001 (deterministic).** General documentation belongs in `docs/`. Create `docs/adr/`
-only when a hard-to-reverse, surprising trade-off has actually been decided. Active tasks,
-deadlines and session journals are not current-state authority.
+**MF-DOCS-001 (deterministic).** General documentation belongs in `docs/`. Every module contains
+`docs/adr/`, even when it is empty; add an ADR only when a hard-to-reverse, surprising trade-off
+has actually been decided. Active tasks, deadlines and session journals are not current-state
+authority.
 
 **MF-ADMIN-001 (deterministic).** Module Admin has no subdirectories. Additional flat admin files
 require a decision.

@@ -13,7 +13,7 @@ import { isRecord, nonEmptyString } from "./value-shape.js";
 import type { Finding } from "./types.js";
 
 const definitionPath = moduleControlPaths.definition;
-export const supportedContractVersion = 2 as const;
+export const supportedContractVersion = 3 as const;
 export type { ValidatedDefinition } from "./definition-shape.js";
 
 export interface DefinitionValidation {

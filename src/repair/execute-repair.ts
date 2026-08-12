@@ -423,8 +423,14 @@ function inspectLocalArtifactState(
       artifact,
     ]),
   );
+  const regeneratedFinderArtifacts = matchRegeneratedFinderArtifacts(
+    expected,
+    currentById,
+    retiredIds,
+  );
   const blockers: string[] = [];
   for (const [id, artifact] of currentById) {
+    if (regeneratedFinderArtifacts.currentIds.has(id)) continue;
     const approved = expected.get(id);
     if (approved === undefined) {
       if (!isGeneratedFinderIcon(plan, completed, artifact)) {
@@ -441,6 +447,7 @@ function inspectLocalArtifactState(
     }
   }
   for (const [id, artifact] of expected) {
+    if (regeneratedFinderArtifacts.expectedIds.has(id)) continue;
     if (!retiredIds.has(id) && !currentById.has(id)) {
       blockers.push(
         `Approved local-only artifact disappeared: ${artifact.relativePath}.`,
@@ -510,12 +517,58 @@ function isGeneratedFinderIcon(
     artifact.size !== "0" ||
     artifact.sha256 !==
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" ||
-    !artifact.relativePath.endsWith("/Icon\r")
+    (artifact.relativePath !== "Icon\r" &&
+      !artifact.relativePath.endsWith("/Icon\r"))
   ) {
     return false;
   }
+  if (artifact.relativePath === "Icon\r") return true;
   const expectedPath = artifact.relativePath.slice(0, -"/Icon\r".length);
   return plannedFolderPaths(plan, completed).has(expectedPath);
+}
+
+function matchRegeneratedFinderArtifacts(
+  expectedById: Map<string, LocalRepairArtifact>,
+  currentById: Map<string, LocalRepairArtifact>,
+  retiredIds: Set<string>,
+): { expectedIds: Set<string>; currentIds: Set<string> } {
+  const expectedByPath = new Map(
+    [...expectedById].map(([id, artifact]) => [
+      artifact.relativePath,
+      { id, artifact },
+    ]),
+  );
+  const expectedIds = new Set<string>();
+  const currentIds = new Set<string>();
+  for (const [currentId, current] of currentById) {
+    if (expectedById.has(currentId)) continue;
+    const expected = expectedByPath.get(current.relativePath);
+    if (
+      expected === undefined ||
+      retiredIds.has(expected.id) ||
+      !isEquivalentFinderIcon(expected.artifact, current)
+    ) {
+      continue;
+    }
+    expectedIds.add(expected.id);
+    currentIds.add(currentId);
+  }
+  return { expectedIds, currentIds };
+}
+
+function isEquivalentFinderIcon(
+  expected: LocalRepairArtifact,
+  current: LocalRepairArtifact,
+): boolean {
+  return (
+    expected.relativePath.split("/").at(-1) === "Icon\r" &&
+    expected.relativePath === current.relativePath &&
+    expected.size === "0" &&
+    current.size === "0" &&
+    expected.sha256 === current.sha256 &&
+    expected.sha256 ===
+      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  );
 }
 
 function plannedFolderPaths(

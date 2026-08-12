@@ -1,6 +1,13 @@
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
-import { chmod, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  mkdir,
+  readFile,
+  readdir,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { isDeepStrictEqual, promisify } from "node:util";
 
@@ -387,9 +394,43 @@ function sha256Digest(bytes: Uint8Array): string {
 }
 
 async function protectRepairSnapshot(path: string): Promise<void> {
+  if (await snapshotProtectionIsComplete(path)) return;
+  if (process.platform === "darwin") {
+    await executeFile("/usr/bin/chflags", ["-R", "nouchg", path]);
+  }
   await chmodRecursively(path);
   if (process.platform === "darwin") {
     await executeFile("/usr/bin/chflags", ["-R", "uchg", path]);
+  }
+}
+
+async function snapshotProtectionIsComplete(path: string): Promise<boolean> {
+  try {
+    const metadata = await stat(path);
+    if (metadata.mode & 0o222) return false;
+    if (process.platform === "darwin") {
+      const { stdout } = await executeFile("/usr/bin/stat", [
+        "-f",
+        "%Sf",
+        path,
+      ]);
+      if (
+        !stdout
+          .split(",")
+          .map((flag) => flag.trim())
+          .includes("uchg")
+      ) {
+        return false;
+      }
+    }
+    if (!metadata.isDirectory()) return true;
+    for (const entry of await readdir(path)) {
+      if (!(await snapshotProtectionIsComplete(join(path, entry))))
+        return false;
+    }
+    return true;
+  } catch {
+    return false;
   }
 }
 

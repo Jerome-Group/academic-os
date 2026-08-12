@@ -3,6 +3,7 @@ import { parseDocument } from "yaml";
 import { validateDefinition } from "../conformance/validate-definition.js";
 import { deriveContextualStructure } from "../conformance/contextual-structure.js";
 import { universalStructurePaths } from "../contract/universal-structure.js";
+import { moduleDomainLanguageInstructions } from "../contract/module-domain-language.js";
 import type { SeedPlan } from "./types.js";
 
 export function createModuleSeedPlan(input: {
@@ -106,6 +107,9 @@ Read \`CONTEXT.md\` and \`00 Module Admin/00 Module Profile.md\`.
 - Assessments: \`30 Assessments/\`
 - Projects/Labs: \`40 Projects and Labs/\`
 - Maintenance: \`00 Module Admin/10 Module Definition.yaml\`
+
+## Domain language
+${moduleDomainLanguageInstructions}
 
 ## Safety
 Preserve importer sources and request decisions for ambiguity.

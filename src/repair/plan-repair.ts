@@ -35,6 +35,10 @@ export function createRepairPlan(draft: RepairPlanDraft): RepairPlan {
     );
   }
   const curationEvents = createCurationEvents(draft);
+  const priorCurationContents = draft.curationRegisterPrior?.contents ?? "";
+  const newCurationContents = curationEvents
+    .map((event) => JSON.stringify(event))
+    .join("\n");
   const operations: RepairOperation[] = [
     ...draft.operations,
     {
@@ -43,7 +47,7 @@ export function createRepairPlan(draft: RepairPlanDraft): RepairPlan {
       parent: draft.curationRegisterParent,
       name: "20 Curation Register.jsonl",
       mimeType: "application/jsonl",
-      contents: `${curationEvents.map((event) => JSON.stringify(event)).join("\n")}\n`,
+      contents: `${priorCurationContents}${newCurationContents === "" ? "" : `${newCurationContents}\n`}`,
     },
   ];
   validateOperations(
@@ -235,12 +239,43 @@ function validateDraft(draft: RepairPlanDraft): void {
   const items = validateInventory(draft.inventory);
   repairInventoryPaths(draft.inventory);
   validateOperations(draft.operations, items, draft.inventory.localArtifacts);
+  validatePriorCurationRegister(draft, items);
   validateDecisions(
     draft.decisions,
     draft.operations,
     items,
     draft.inventory.localArtifacts,
   );
+}
+
+function validatePriorCurationRegister(
+  draft: RepairPlanDraft,
+  items: Map<string, CompleteRepairInventory["items"][number]>,
+): void {
+  const prior = draft.curationRegisterPrior;
+  if (prior === undefined) return;
+  const source = items.get(prior.sourceId);
+  if (
+    source?.name !== "20 Curation Register.jsonl" ||
+    source.mimeType === folderMimeType ||
+    source.md5Checksum === undefined ||
+    createHash("md5").update(prior.contents).digest("hex") !==
+      source.md5Checksum ||
+    (prior.contents !== "" && !prior.contents.endsWith("\n"))
+  ) {
+    throw new RepairPlanError(
+      "Prior curation contents must match the exact inventoried register bytes.",
+    );
+  }
+  const retirement = draft.operations.find(
+    (operation) =>
+      operation.kind === "retire-item" && operation.sourceId === prior.sourceId,
+  );
+  if (retirement === undefined) {
+    throw new RepairPlanError(
+      "Replacing a curation register requires retiring its exact prior ID first.",
+    );
+  }
 }
 
 function validateInventory(
@@ -390,6 +425,13 @@ function validateOperations(
         operationIndex,
         items,
       );
+    }
+    if (operation.kind === "retire-item") {
+      for (const parentId of source.parentIds) {
+        destinationKeys.delete(
+          `existing:${parentId}:${canonicalName(source.name)}`,
+        );
+      }
     }
     if (operation.kind === "relocate-item") {
       validateDestination(operation.destination, items, createdOperations);

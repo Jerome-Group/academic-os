@@ -2,6 +2,9 @@ import { createHash } from "node:crypto";
 
 import { supportedContractVersion } from "../conformance/index.js";
 
+import { repairInventoryPaths } from "./repair-inventory-paths.js";
+import { RepairPlanError } from "./repair-plan-error.js";
+
 import type {
   CompleteRepairInventory,
   RepairDecision,
@@ -15,12 +18,7 @@ import type {
 
 const folderMimeType = "application/vnd.google-apps.folder";
 
-export class RepairPlanError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "RepairPlanError";
-  }
-}
+export { RepairPlanError } from "./repair-plan-error.js";
 
 export function createRepairPlan(draft: RepairPlanDraft): RepairPlan {
   validateDraft(draft);
@@ -120,7 +118,7 @@ export function verifyRepairPlan(plan: RepairPlan): void {
 }
 
 function createCurationEvents(draft: RepairPlanDraft): RepairCurationEvent[] {
-  const paths = inventoryRelativePaths(draft.inventory);
+  const paths = repairInventoryPaths(draft.inventory);
   return draft.decisions
     .filter(({ decision }) => decision !== "retained")
     .map((decision) => {
@@ -160,37 +158,6 @@ function createCurationEvents(draft: RepairPlanDraft): RepairCurationEvent[] {
           : { supersedes: decision.supersedes }),
       };
     });
-}
-
-function inventoryRelativePaths(
-  inventory: CompleteRepairInventory,
-): Map<string, string> {
-  const items = new Map(inventory.items.map((item) => [item.id, item]));
-  const paths = new Map<string, string>([[inventory.rootId, ""]]);
-  const visiting = new Set<string>();
-  const resolve = (id: string): string => {
-    const cached = paths.get(id);
-    if (cached !== undefined) return cached;
-    const item = items.get(id);
-    if (item === undefined || visiting.has(id)) {
-      throw new RepairPlanError("Repair inventory is disconnected or cyclic.");
-    }
-    visiting.add(id);
-    const parents = item.parentIds.filter((parentId) => items.has(parentId));
-    if (parents.length !== 1) {
-      throw new RepairPlanError(
-        "Inventory item lacks one unambiguous in-tree parent.",
-      );
-    }
-    const parent = parents[0] as string;
-    const parentPath = resolve(parent);
-    const path = parentPath === "" ? item.name : `${parentPath}/${item.name}`;
-    visiting.delete(id);
-    paths.set(id, path);
-    return path;
-  };
-  for (const item of items.values()) resolve(item.id);
-  return paths;
 }
 
 function destinationPath(
@@ -266,7 +233,7 @@ function validateDraft(draft: RepairPlanDraft): void {
     throw new RepairPlanError("Repair approval must name its approver.");
   }
   const items = validateInventory(draft.inventory);
-  inventoryRelativePaths(draft.inventory);
+  repairInventoryPaths(draft.inventory);
   validateOperations(draft.operations, items, draft.inventory.localArtifacts);
   validateDecisions(
     draft.decisions,

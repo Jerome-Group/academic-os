@@ -1,11 +1,11 @@
 export {
   createRepairPlan,
-  RepairPlanError,
   repairApprovalDigest,
   repairDecisionDigest,
   repairInventoryDigest,
   verifyRepairPlan,
 } from "./plan-repair.js";
+export { RepairPlanError } from "./repair-plan-error.js";
 export {
   recoverRepairPlan,
   type ByteRecoveryManifest,

@@ -1,4 +1,13 @@
 export { auditModule } from "./audit-module.js";
+export {
+  currentModuleContract,
+  type ModuleContract,
+} from "./module-contract.js";
+export {
+  planModuleConformance,
+  type ModuleConformancePlan,
+  type ProposedConformanceOperation,
+} from "./plan-module-conformance.js";
 export { auditContextualStructure } from "./audit-contextual-structure.js";
 export { auditModuleControls } from "./audit-module-controls.js";
 export { auditUniversalStructure } from "./audit-universal-structure.js";

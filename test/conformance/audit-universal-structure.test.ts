@@ -6,6 +6,7 @@ import {
   type Inventory,
 } from "../../src/conformance/index.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
+import { recordFindingEvidence } from "../support/rule-evidence.js";
 
 function conformantInventory(): Inventory {
   return {
@@ -29,6 +30,7 @@ describe("auditUniversalStructure", () => {
       result.findings.map((finding) => finding.path),
       [...universalPaths.map(([path]) => path), "."],
     );
+    recordFindingEvidence(result.findings, "MF-UNIVERSAL-001");
   });
 
   it("reports missing paths, wrong kinds, loose root files, and unknown root directories [MF-ROOT-002]", () => {
@@ -112,5 +114,6 @@ describe("auditUniversalStructure", () => {
       assert.notEqual(finding.explanation, "");
       assert.notEqual(finding.applicability, "");
     }
+    recordFindingEvidence(result.findings, "MF-ROOT-002");
   });
 });

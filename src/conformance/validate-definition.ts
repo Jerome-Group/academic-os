@@ -40,6 +40,7 @@ export function validateDefinition(
   source: string | undefined,
   expectedCode: string,
   expectedSemester: string,
+  expectedContractVersion: number = supportedContractVersion,
 ): DefinitionValidation {
   if (source === undefined) {
     return {
@@ -72,14 +73,14 @@ export function validateDefinition(
   }
 
   const findings: Finding[] = [];
-  const versionProblems = validateVersions(value);
+  const versionProblems = validateVersions(value, expectedContractVersion);
   findings.push(
     versionProblems.length === 0
       ? controlFinding(
           "MF-DEFINITION-001",
           definitionPath,
           "pass",
-          "schema_version and contract_version are supported at version 2.",
+          `schema_version is 2 and contract_version is the requested version ${expectedContractVersion}.`,
           "The Definition uses supported schema and contract versions.",
         )
       : failedControl("MF-DEFINITION-001", definitionPath, versionProblems),
@@ -160,19 +161,22 @@ export function validateDefinition(
   };
 }
 
-function validateVersions(value: Record<string, unknown>): string[] {
+function validateVersions(
+  value: Record<string, unknown>,
+  expectedContractVersion: number,
+): string[] {
   const problems: string[] = [];
   if (value.schema_version !== 2) {
     problems.push(
       `Unsupported schema_version ${renderValue(value.schema_version)}; supported version is 2.`,
     );
   }
-  if (value.contract_version !== supportedContractVersion) {
+  if (value.contract_version !== expectedContractVersion) {
     problems.push(
       typeof value.contract_version === "number" &&
-        value.contract_version < supportedContractVersion
-        ? `contract_version ${value.contract_version} requires upgrade to supported version ${supportedContractVersion}.`
-        : `Unsupported contract_version ${renderValue(value.contract_version)}; supported version is ${supportedContractVersion}.`,
+        value.contract_version < expectedContractVersion
+        ? `contract_version ${value.contract_version} requires upgrade to requested version ${expectedContractVersion}.`
+        : `Unsupported contract_version ${renderValue(value.contract_version)}; requested version is ${expectedContractVersion}.`,
     );
   }
   return problems;

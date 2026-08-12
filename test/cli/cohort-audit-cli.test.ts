@@ -15,6 +15,7 @@ import { afterEach, it } from "node:test";
 import { validModuleControls } from "../fixtures/module-controls.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 import { runCli } from "../support/run-cli.js";
+import { recordBehaviorEvidence } from "../support/rule-evidence.js";
 
 const temporaryRoots: string[] = [];
 
@@ -165,6 +166,11 @@ it("audits only active-semester modules and reports past and future exclusions [
     ),
     ["MH2100"],
   );
+  recordBehaviorEvidence("MF-AUDIT-003", () => {
+    assert.deepEqual(report.selection.included, [
+      { semester: "Y2S1", module: "MH2100" },
+    ]);
+  });
 });
 
 it("reports a missing active module as unresolved", async () => {

@@ -106,9 +106,10 @@ core leaves open. Add them here; they evolve through this repository's normal pu
 TypeScript targets Node 24 or later. Biome owns formatting and linting; `tsc` owns type checking.
 Production code lives in `src/`, and tests mirror its public seams in `test/`.
 
-Tests use the Node test runner at three public seams: in-memory conformance, mounted inventory
-against operating-system temporary roots, and the compiled CLI end to end. Conformance stays
-pure; filesystem access belongs behind the mounted adapter.
+Tests use the Node test runner at the public seams the application exposes: pure in-memory
+conformance planning; mounted inventory, seeding and observation adapters against operating-system
+temporary roots; the read-only Drive inventory adapter; the publication-boundary checker; and the
+compiled CLI end to end. Conformance stays pure; filesystem access belongs behind adapters.
 
 ## 7. Evolution — what is rigid, what moves
 

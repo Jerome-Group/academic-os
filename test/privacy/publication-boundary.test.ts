@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { it } from "node:test";
 
-import { findPublicationBoundaryViolations } from "../../src/privacy/find-publication-boundary-violations.js";
+import { findPublicationBoundaryViolations } from "../../src/privacy/index.js";
 
 it("detects credentials, academic content, and private state before publication", () => {
   const privateKey = [

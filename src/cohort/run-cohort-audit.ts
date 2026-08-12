@@ -1,12 +1,13 @@
 import {
-  auditModule,
-  readDefinitionContractVersion,
+  currentModuleContract,
+  planModuleConformance,
 } from "../conformance/index.js";
 import type { AcademicConfig } from "../config/index.js";
 import {
   inspectMountedModule,
+  appendMountedAuditObservation,
   OperationalError,
-  recordMountedAuditObservation,
+  readMountedAuditHistory,
   resolveConfiguredSemesterRoots,
 } from "../mounted/index.js";
 import { createJsonAuditReport } from "../report/index.js";
@@ -35,19 +36,26 @@ export async function runCohortAudit(
     try {
       const { target, inventory, controls } =
         await inspectMountedModule(targetConfig);
-      const result = auditModule({
-        moduleCode: target.module,
-        semester: target.semester,
+      const history = await readMountedAuditHistory(target);
+      const result = planModuleConformance({
+        contract: currentModuleContract,
+        target: {
+          moduleCode: target.module,
+          semester: target.semester,
+          identity: target.moduleRoot,
+        },
         inventory,
         controls,
-      });
-      const recorded = await recordMountedAuditObservation({
-        target,
-        inventory,
-        controls,
-        result,
+        ...(history.previous === undefined
+          ? {}
+          : { priorObservation: history.previous }),
         observedAt: new Date().toISOString(),
-        contractVersion: readDefinitionContractVersion(controls.definition),
+      });
+      const recorded = await appendMountedAuditObservation({
+        target,
+        observation: result.observation,
+        comparison: result.comparison,
+        historyDiagnostics: history.diagnostics,
       });
       modules.push(
         createJsonAuditReport(target, result, recorded, "monitoring"),

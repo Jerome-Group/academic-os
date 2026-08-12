@@ -22,16 +22,19 @@ node dist/src/cli.js seed --config academic-os.config.json \
 ```
 
 Review every operation, then add `--apply`. Apply is additive: any conflict blocks publication;
-existing content is never overwritten, moved, renamed or removed. An interrupted apply retains
-its append-only journal under `stateRoot`. Rerun without `--resume` to recheck the target and show
-completed/remaining operations; continue only when it reports `safely-resumable`, using
-`--apply --resume`. Keep that journal as recovery evidence until the result is settled.
+existing content is never overwritten, moved, renamed or removed. A new module becomes visible at
+its final code only through one atomic rename of its complete validated staging tree. An
+interrupted apply retains its append-only journal under `stateRoot`. Rerun without `--resume` to
+recheck the target and show completed/remaining operations; continue only when it reports
+`safely-resumable`, using `--apply --resume`. Keep that journal as recovery evidence until the
+result is settled.
 
 ## Audit
 
 `audit --config academic-os.config.json` selects only the configured active cohort. Name both
-`--semester` and `--module` for an explicit target. Add `--migration` only for a configured past
-module; migration audit is informational and never enrols or changes it.
+`--semester` and `--module` for an explicit read-only target, including a past module used for
+acceptance evidence. Add `--migration` only when a configured past module should receive
+historical-migration interpretation; it never enrols or changes the module.
 
 Human output is the default. `--json` emits the versioned report used by automation. Both expose
 the same findings, applicability, evidence and enforcement:

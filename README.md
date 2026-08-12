@@ -52,7 +52,8 @@ node dist/src/cli.js audit --config academic-os.config.json \
 ```
 
 Add `--migration` only for a configured past-semester target. It evaluates that historical module
-against the current contract without changing it or adding it to the active cohort.
+with historical-migration interpretation. An explicitly requested past module may also be audited
+normally as read-only acceptance evidence; neither mode changes it or adds it to the active cohort.
 
 For one explicit module, add its folder ID under `driveApi.moduleFolderIds` and pass
 `--inventory drive-api`. This optional route uses Application Default Credentials with only
@@ -71,10 +72,11 @@ node dist/src/cli.js seed --config academic-os.config.json \
   --definition /path/to/approved-definition.yaml
 ```
 
-Add `--apply` only after reviewing the preview. The command builds a unique staging tree, audits
-it, then publishes only missing operations. Every apply is recorded in an append-only journal
-beneath the private `stateRoot`; existing matching operations are skipped and content is never
-overwritten, moved, renamed, or removed.
+Add `--apply` only after reviewing the preview. For a new module, the command builds and audits a
+unique staging tree, then atomically renames the complete tree to its published directory name. For an
+existing partial module it publishes only missing operations. Every apply is recorded in an
+append-only journal beneath the private `stateRoot`; existing matching operations are skipped and
+content is never overwritten, moved, renamed, or removed.
 
 After an interrupted apply, rerun the same command first without `--resume`. It recomputes target
 preconditions and reports completed and remaining operations without changing Drive. If the report

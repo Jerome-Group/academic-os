@@ -13,7 +13,10 @@ import { basename, dirname, join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 
 import type { AuditResult, Inventory } from "../../src/conformance/index.js";
-import { recordMountedAuditObservation } from "../../src/mounted/index.js";
+import {
+  readMountedAuditHistory,
+  recordMountedAuditObservation,
+} from "../../src/mounted/index.js";
 import type {
   ObservationPublisher,
   ResolvedTarget,
@@ -55,6 +58,20 @@ const deviation: AuditResult = {
 };
 
 describe("recordMountedAuditObservation", () => {
+  it("reads missing history without creating storage", async () => {
+    const target = await mountedTarget();
+    const history = await readMountedAuditHistory(target);
+
+    assert.deepEqual(
+      history.diagnostics.map(({ kind }) => kind),
+      ["missing-history"],
+    );
+    await assert.rejects(
+      readdir(join(target.stateRoot, "observations")),
+      /ENOENT/u,
+    );
+  });
+
   it("appends complete observations and compares with compatible history", async () => {
     const target = await mountedTarget();
     const first = await record(target, deviation, "2026-08-11T01:00:00.000Z");

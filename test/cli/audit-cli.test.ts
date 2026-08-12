@@ -20,6 +20,7 @@ import type { HistoryDiagnostic } from "../../src/mounted/types.js";
 import { validModuleControls } from "../fixtures/module-controls.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 import { runCli, runCliWithEnvironment } from "../support/run-cli.js";
+import { recordBehaviorEvidence } from "../support/rule-evidence.js";
 
 const temporaryRoots: string[] = [];
 afterEach(async () => {
@@ -329,6 +330,10 @@ describe("academic-os audit", () => {
       credentialFailure.error.inventoryProvenance.completeness,
       "partial",
     );
+    recordBehaviorEvidence("MF-AUDIT-001", () => {
+      assert.equal(report.findings.length > 0, true);
+      assert.equal(humanFindingLines.length, report.findings.length);
+    });
   });
 
   it("records and reports new, unchanged, resolved, and contract-version drift [MF-AUDIT-002]", async () => {
@@ -447,6 +452,9 @@ describe("academic-os audit", () => {
     });
     assert.deepEqual(changedReport.comparison.new, []);
     assert.deepEqual(changedReport.comparison.resolved, []);
+    recordBehaviorEvidence("MF-AUDIT-002", () => {
+      assert.equal(changedReport.comparison.basis, "contract-version-changed");
+    });
   });
 
   it("keeps new and resolved drift-transition evidence equivalent across human and JSON reports", async () => {

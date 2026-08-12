@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import { auditModuleControls } from "../../src/conformance/index.js";
 import { validModuleControls } from "../fixtures/module-controls.js";
+import { recordFindingEvidence } from "../support/rule-evidence.js";
 
 describe("auditModuleControls", () => {
   it("accepts valid controls [MF-AGENTS-001] [MF-AGENTS-002] [MF-CONTEXT-001] [MF-CURATION-001] [MF-DEFINITION-001] [MF-DEFINITION-002] [MF-PROFILE-001] [MF-PROFILE-003]", () => {
@@ -20,12 +21,25 @@ describe("auditModuleControls", () => {
         "MF-DEFINITION-001",
         "MF-DEFINITION-002",
         "MF-PROFILE-001",
+        "MF-PROFILE-002",
         "MF-PROFILE-003",
         "MF-CURATION-001",
         "MF-AGENTS-001",
         "MF-AGENTS-002",
         "MF-CONTEXT-001",
       ]),
+    );
+    recordFindingEvidence(
+      result.findings,
+      "MF-AGENTS-001",
+      "MF-AGENTS-002",
+      "MF-CONTEXT-001",
+      "MF-CURATION-001",
+      "MF-DEFINITION-001",
+      "MF-DEFINITION-002",
+      "MF-PROFILE-001",
+      "MF-PROFILE-002",
+      "MF-PROFILE-003",
     );
   });
 
@@ -131,7 +145,7 @@ describe("auditModuleControls", () => {
     );
   });
 
-  it("requires a human decision for contradictory or insufficient evidence [MF-PROFILE-002]", () => {
+  it("requires a human decision for contradictory controls", () => {
     const controls = validModuleControls();
     controls.profile =
       controls.profile?.replace(
@@ -156,6 +170,45 @@ describe("auditModuleControls", () => {
         .filter(({ status }) => status === "requires-decision")
         .map(({ ruleId }) => ruleId),
       ["MF-DEFINITION-002", "MF-PROFILE-003"],
+    );
+  });
+
+  it("requires a human decision when Profile facts lack evidence [MF-PROFILE-002]", () => {
+    const controls = validModuleControls();
+    controls.profile =
+      controls.profile?.replace(
+        "| Semester | 1 | Definition |",
+        "| Semester | 1 |  |",
+      ) ?? "";
+
+    const result = auditModuleControls({
+      moduleCode: "MH2100",
+      semester: "Y2S1",
+      controls,
+    });
+
+    assert.deepEqual(
+      result.findings
+        .filter(({ status }) => status === "requires-decision")
+        .map(({ ruleId }) => ruleId),
+      ["MF-PROFILE-002"],
+    );
+  });
+
+  it("requires explicit unknown instead of ambiguous Profile placeholders", () => {
+    const controls = validModuleControls();
+    controls.profile = controls.profile?.replace("| Week 7 |", "| TBD |") ?? "";
+
+    const result = auditModuleControls({
+      moduleCode: "MH2100",
+      semester: "Y2S1",
+      controls,
+    });
+
+    assert.match(
+      result.findings.find(({ ruleId }) => ruleId === "MF-PROFILE-002")
+        ?.evidence ?? "",
+      /write unknown explicitly/u,
     );
   });
 
@@ -188,6 +241,27 @@ describe("auditModuleControls", () => {
         .length,
       1,
     );
+  });
+
+  it("rejects absolute paths and undeclared private Definition fields [MF-DEFINITION-001]", () => {
+    const controls = validModuleControls();
+    controls.definition = `${controls.definition?.replace(
+      "source: NTULearn course site",
+      "source: /Users/student/private",
+    )}credentials: secret\n`;
+
+    const result = auditModuleControls({
+      moduleCode: "MH2100",
+      semester: "Y2S1",
+      controls,
+    });
+    const finding = result.findings.find(
+      ({ ruleId, status }) =>
+        ruleId === "MF-DEFINITION-001" && status === "fail",
+    );
+
+    assert.match(finding?.evidence ?? "", /absolute personal path/u);
+    assert.match(finding?.evidence ?? "", /undeclared field credentials/u);
   });
 
   it("rejects declared exceptions without evidence as malformed", () => {

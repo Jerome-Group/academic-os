@@ -24,9 +24,10 @@ Y1S1 and Y1S2 are historical archives and change only through an explicitly appr
 6. Preview the complete seed plan; apply only on explicit instruction.
 
 **MF-SEED-002 (deterministic).** Seed is additive. A conflict blocks all planned creation. A new
-module is built in a uniquely marked staging folder, validated, then published under its module
-code. Additions to an existing folder are journalled and idempotent; interruption is reported and
-resumed rather than hidden. Seed never renames or removes existing material.
+module is built in a uniquely marked staging folder, validated, then atomically renamed to its
+module code so no partial final tree becomes visible. Additions to an existing folder are
+journalled and idempotent; interruption is reported and resumed rather than hidden. Seed never
+renames or removes existing material.
 
 **MF-SEED-003 (deterministic).** Without reliable context, enable no context-derived assessment,
 project, lab or resource category. Midterms and Finals remain universal.

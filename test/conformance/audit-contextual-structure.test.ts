@@ -7,6 +7,7 @@ import {
   validModuleControls,
 } from "../fixtures/module-controls.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
+import { recordFindingEvidence } from "../support/rule-evidence.js";
 
 const contextualPaths = [
   "20 Tutorials/CC0001",
@@ -77,6 +78,14 @@ describe("auditModule context-derived structure", () => {
         path,
       );
     }
+    recordFindingEvidence(
+      result.findings,
+      "MF-ASSESSMENTS-001",
+      "MF-TUTORIALS-001",
+      "MF-WORKSPACES-001",
+      "MF-OPEN-001",
+      "MF-IMPORTER-001",
+    );
   });
 
   it("reports missing approved structure and leaves absent optional structure absent", () => {

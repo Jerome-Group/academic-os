@@ -6,16 +6,17 @@ import { validateContext } from "./validate-context.js";
 import { validateCurationRegister } from "./validate-curation-register.js";
 import { validateDefinition } from "./validate-definition.js";
 import { validateProfile } from "./validate-profile.js";
+import { supportedContractVersion } from "./validate-definition.js";
 
-export function auditModuleControls({
-  moduleCode,
-  semester,
-  controls,
-}: ModuleControlAuditInput): AuditResult {
+export function auditModuleControls(
+  { moduleCode, semester, controls }: ModuleControlAuditInput,
+  contractVersion: number = supportedContractVersion,
+): AuditResult {
   const definition = validateDefinition(
     controls.definition,
     moduleCode,
     semester,
+    contractVersion,
   );
   const findings = [
     ...definition.findings,

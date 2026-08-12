@@ -5,7 +5,11 @@ export {
   type OperationalErrorCode,
 } from "./operational-error.js";
 export { resolveTarget } from "./resolve-target.js";
-export { recordMountedAuditObservation } from "./record-mounted-audit-observation.js";
+export {
+  appendMountedAuditObservation,
+  readMountedAuditHistory,
+  recordMountedAuditObservation,
+} from "./record-mounted-audit-observation.js";
 export {
   resolveConfiguredRoots,
   resolveConfiguredSemesterRoots,
@@ -13,8 +17,10 @@ export {
 export { seedMountedModule } from "./seed-mounted-module.js";
 export type {
   LocalConfig,
+  AppendMountedAuditObservationInput,
   HistoryDiagnostic,
   MountedAuditInputResult,
+  MountedAuditHistory,
   MountedInventoryResult,
   ObservationPublisher,
   RecordedAuditObservation,

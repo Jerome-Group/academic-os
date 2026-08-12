@@ -1,4 +1,4 @@
-import { basename } from "node:path";
+import { basename, dirname, extname } from "node:path";
 
 import { deterministicFailure, withDeterministicPass } from "./finding.js";
 import { isInsideRoot } from "./inventory-paths.js";
@@ -34,6 +34,24 @@ export function auditLatexBuilds(
           path,
           `Inventory contains build output inside .scratch at ${path}.`,
           "LaTeX build directories may not live inside .scratch.",
+        ),
+      ];
+    }
+    const workspace = dirname(path);
+    const hasLatexSource = inventory.entries.some(
+      ({ path: candidate, kind }) =>
+        kind === "file" &&
+        extname(candidate).toLowerCase() === ".tex" &&
+        isInsideRoot(candidate, workspace) &&
+        !isInsideRoot(candidate, path),
+    );
+    if (!hasLatexSource) {
+      return [
+        deterministicFailure(
+          "MF-LATEX-001",
+          path,
+          `Inventory contains ${path} without LaTeX source in ${workspace}.`,
+          "A build directory belongs only inside a compilation workspace containing LaTeX source.",
         ),
       ];
     }

@@ -7,11 +7,6 @@ import type {
 import { universalStructurePaths } from "../contract/universal-structure.js";
 import { enforcementForRule } from "./rule-enforcement.js";
 
-const expectedRootPaths = new Set<string>(
-  universalStructurePaths
-    .filter(([path]) => !path.includes("/"))
-    .map(([path]) => path),
-);
 const academicDocumentExtensions = new Set([
   ".doc",
   ".docx",
@@ -28,11 +23,19 @@ const academicDocumentExtensions = new Set([
 export function auditUniversalStructure(
   inventory: Inventory,
   declaredContextualRoots: ReadonlySet<string> = new Set(),
+  expectedStructure: ReadonlyArray<
+    readonly [string, InventoryEntryKind]
+  > = universalStructurePaths,
 ): AuditResult {
+  const expectedRootPaths = new Set<string>(
+    expectedStructure
+      .filter(([path]) => !path.includes("/"))
+      .map(([path]) => path),
+  );
   const entriesByPath = new Map(
     inventory.entries.map((entry) => [entry.path, entry]),
   );
-  const findings = universalStructurePaths.map(([path, expectedKind]) => {
+  const findings = expectedStructure.map(([path, expectedKind]) => {
     const entry = entriesByPath.get(path);
     if (entry === undefined) {
       return missingRequiredPath(path, expectedKind);

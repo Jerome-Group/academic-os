@@ -77,6 +77,18 @@ export interface HistoryDiagnostic {
   message: string;
 }
 
+export interface MountedAuditHistory {
+  previous?: AuditObservation;
+  diagnostics: HistoryDiagnostic[];
+}
+
+export interface AppendMountedAuditObservationInput {
+  target: ResolvedTarget;
+  observation: AuditObservation;
+  comparison: ObservationComparison;
+  historyDiagnostics: HistoryDiagnostic[];
+}
+
 export interface RecordedAuditObservation {
   observation: AuditObservation;
   observationPath: string;

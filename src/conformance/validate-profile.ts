@@ -50,11 +50,67 @@ export function validateProfile(
           "The Profile has the locked structure and allows prose in its prose sections.",
         )
       : failedControl("MF-PROFILE-001", profilePath, problems),
+    validateProfileEvidence(source),
   ];
   if (definition !== undefined && problems.length === 0) {
     findings.push(validateProfileAgreement(source, definition));
   }
   return findings;
+}
+
+function validateProfileEvidence(source: string): Finding {
+  const problems = [
+    ...evidenceTableProblems(source),
+    ...explicitUnknownProblems(source),
+  ];
+  return problems.length === 0
+    ? controlFinding(
+        "MF-PROFILE-002",
+        profilePath,
+        "pass",
+        "Profile facts cite evidence and unsupported details use explicit unknowns.",
+        "Human-facing claims remain evidence-bearing without invented certainty.",
+      )
+    : controlFinding(
+        "MF-PROFILE-002",
+        profilePath,
+        "requires-decision",
+        problems.join(" "),
+        "Profile claims need evidence or an explicit unknown before they can be trusted.",
+      );
+}
+
+function evidenceTableProblems(source: string): string[] {
+  return ["Offering", "Assessment Structure", "Source Authority"].flatMap(
+    (section) =>
+      tableRows(sectionBody(source, section))
+        .slice(2)
+        .flatMap((row) => {
+          const subject =
+            row[0] === "" || row[0] === undefined ? "row" : row[0];
+          const evidence = row.at(-1)?.trim() ?? "";
+          return evidence === ""
+            ? [`${section} ${JSON.stringify(subject)} has no evidence.`]
+            : [];
+        }),
+  );
+}
+
+function explicitUnknownProblems(source: string): string[] {
+  const ambiguous = /^(?:n\/?a|tbc|tbd|\?)$/iu;
+  return [...profileTables.keys()].flatMap((section) =>
+    tableRows(sectionBody(source, section))
+      .slice(2)
+      .flatMap((row, rowIndex) =>
+        row.flatMap((cell, columnIndex) =>
+          cell.trim() === "" || ambiguous.test(cell.trim())
+            ? [
+                `${section} row ${rowIndex + 1}, column ${columnIndex + 1} uses ${JSON.stringify(cell)}; write unknown explicitly.`,
+              ]
+            : [],
+        ),
+      ),
+  );
 }
 
 function validateProfileShape(source: string): string[] {

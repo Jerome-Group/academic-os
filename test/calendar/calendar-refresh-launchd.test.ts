@@ -114,10 +114,12 @@ describe("calendar Refresh LaunchAgent", () => {
     ]);
   });
 
-  it("renders installer wiring without loading a real LaunchAgent", async (context) => {
-    if (process.platform !== "darwin") {
-      context.skip("LaunchAgent installation is macOS-only.");
-    }
+  it("renders installer wiring without loading a real LaunchAgent", {
+    skip:
+      process.platform !== "darwin"
+        ? "LaunchAgent installation is macOS-only."
+        : false,
+  }, async () => {
     const fixture = await setupRunnerFixture(0);
 
     const result = await runProcess(

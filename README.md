@@ -98,7 +98,7 @@ academic side end to end, and the pieces it is shaped for are:
 | Module folder contract | The layout and naming every module folder follows — **here now** |
 | Teaching workspace | The `70 Learning` half of the contract: teaching a subject as a way of learning it |
 | Tasks | The semester's work, tracked as issues on this repository |
-| Calendar | Deadlines, assessments and the teaching timetable, kept somewhere both a person and an agent can read |
+| Calendar | Classes, assessments, meetings, appointments and recurring life events in Google Calendar; tasks and self-directed work stay elsewhere |
 | Site data | What [`homepage`](https://github.com/Jerome-Group/homepage) reads to publish the parts of this that are meant to be seen |
 
 Undergraduate now, and shaped so postgraduate work lands in the same place rather than in a second

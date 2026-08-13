@@ -527,6 +527,141 @@ describe("academic-os calendar promote", () => {
       0,
     );
   });
+
+  it("cancels exactly once, retains a tombstone, retries safely, and explicitly restores", async () => {
+    const fixture = await setupCancellationFixture();
+
+    const cancelled = await runPromote(fixture, "proposal-cancel", "--json");
+    const retry = await runPromote(fixture, "proposal-cancel", "--json");
+
+    assert.equal(cancelled.exitCode, 0, JSON.stringify(cancelled));
+    assert.equal(JSON.parse(cancelled.stdout).outcome, "promoted");
+    assert.equal(JSON.parse(retry.stdout).outcome, "retry");
+    let provider = await readProvider(fixture);
+    assert.equal(
+      provider.requests.filter(({ method }) => method === "DELETE").length,
+      1,
+    );
+    const mirrorPath = join(fixture.calendarRoot, "mirrors", "academic.json");
+    const mirror = JSON.parse(await readFile(mirrorPath, "utf8"));
+    assert.equal(mirror.items.length, 0);
+    assert.equal(mirror.tombstones[0].event.summary, "Original title");
+
+    await writeFile(
+      join(fixture.calendarRoot, "pending-proposals.json"),
+      `${JSON.stringify({
+        schemaVersion: 1,
+        proposals: [
+          {
+            id: "proposal-restore",
+            status: "ready",
+            operation: "restore",
+            source: { kind: "instruction", reference: "restore-owned-event" },
+            itemKind: "fixed-event",
+            target: { calendarRole: "Academic", calendarId: "academic-id" },
+            intendedEvent: {
+              summary: "Original title",
+              visibility: "private",
+              start: mirror.tombstones[0].event.start,
+              end: mirror.tombstones[0].event.end,
+            },
+            restoredFrom: {
+              calendarRole: "Academic",
+              eventId: "owned-event",
+              deletedAt: mirror.tombstones[0].deletedAt,
+            },
+            idempotencyKey: "restore-owned-event",
+            liveVersions: [],
+            relevantAvailabilityVersion: {
+              digest: calendarStateDigest([]),
+              interval: null,
+              checkedCalendarCount: 0,
+            },
+            conflictSummary: { blockers: 0, warnings: 0 },
+          },
+        ],
+      })}\n`,
+    );
+    const restored = await runPromote(fixture, "proposal-restore", "--json");
+    const restoreRetry = await runPromote(
+      fixture,
+      "proposal-restore",
+      "--json",
+    );
+    assert.equal(restored.exitCode, 0, JSON.stringify(restored));
+    assert.equal(JSON.parse(restored.stdout).outcome, "promoted");
+    assert.equal(JSON.parse(restoreRetry.stdout).outcome, "retry");
+    provider = await readProvider(fixture);
+    assert.equal(
+      provider.requests.filter(({ method }) => method === "POST").length,
+      1,
+    );
+  });
+
+  it("honours manual deletion precedence without issuing another delete", async () => {
+    const fixture = await setupCancellationFixture();
+    await mutateProvider(fixture, (provider) => {
+      provider.events["academic-id"] = [];
+      provider.incrementalEvents["academic-id"] ??= {};
+      provider.incrementalEvents["academic-id"]["academic-sync"] = [
+        { id: "owned-event", status: "cancelled" },
+      ];
+    });
+
+    const result = await runPromote(fixture, "proposal-cancel", "--json");
+
+    assert.equal(result.exitCode, 3, JSON.stringify(result));
+    assert.equal(JSON.parse(result.stdout).outcome, "stale");
+    assert.equal(
+      (await readProvider(fixture)).requests.filter(
+        ({ method }) => method === "DELETE",
+      ).length,
+      0,
+    );
+  });
+
+  it("promotes each explicit recurring cancellation scope", async () => {
+    for (const scope of [
+      "this-occurrence",
+      "entire-series",
+      "this-and-future",
+    ] as const) {
+      const fixture = await setupRecurringChangeFixture(scope);
+      const statePath = join(fixture.calendarRoot, "pending-proposals.json");
+      const state = JSON.parse(await readFile(statePath, "utf8"));
+      const change = state.proposals[0];
+      const provider = await readProvider(fixture);
+      const events = provider.events["academic-id"] ?? [];
+      const proposal = {
+        ...change,
+        operation: "cancel",
+        preview: {
+          event:
+            scope === "entire-series"
+              ? (change.recurringMaster ?? events[0])
+              : events[1],
+          recurrenceScope: scope,
+        },
+        target: { calendarRole: "Academic", calendarId: "academic-id" },
+      };
+      delete proposal.patch;
+      delete proposal.recurrenceExceptions;
+      await writeFile(
+        statePath,
+        `${JSON.stringify({ schemaVersion: 1, proposals: [proposal] })}\n`,
+      );
+
+      const result = await runPromote(fixture, "proposal-recurring", "--json");
+      assert.equal(result.exitCode, 0, `${scope}: ${JSON.stringify(result)}`);
+      const mutations = (await readProvider(fixture)).requests.filter(
+        ({ method }) => method !== "GET",
+      );
+      assert.equal(
+        mutations[0]?.method,
+        scope === "this-and-future" ? "PATCH" : "DELETE",
+      );
+    }
+  });
 });
 
 interface Fixture {
@@ -770,6 +905,49 @@ async function setupChangeFixture(
   await mutateProvider(fixture, (provider) => {
     provider.events["academic-id"] = [event];
   });
+  return fixture;
+}
+
+async function setupCancellationFixture(): Promise<Fixture> {
+  const fixture = await setupChangeFixture("Academic");
+  const mirror = JSON.parse(
+    await readFile(
+      join(fixture.calendarRoot, "mirrors", "academic.json"),
+      "utf8",
+    ),
+  );
+  const event = mirror.items[0].event;
+  await writeFile(
+    join(fixture.calendarRoot, "pending-proposals.json"),
+    `${JSON.stringify({
+      schemaVersion: 1,
+      proposals: [
+        {
+          id: "proposal-cancel",
+          status: "ready",
+          operation: "cancel",
+          source: { kind: "instruction", reference: "cancel-owned-event" },
+          itemKind: "fixed-event",
+          sourceItem: {
+            calendarRole: "Academic",
+            calendarId: "academic-id",
+            eventId: event.id,
+            versionDigest: calendarStateDigest(event),
+          },
+          target: { calendarRole: "Academic", calendarId: "academic-id" },
+          preview: { event },
+          idempotencyKey: "cancel-owned-event",
+          liveVersions: [],
+          relevantAvailabilityVersion: {
+            digest: calendarStateDigest([]),
+            interval: null,
+            checkedCalendarCount: 0,
+          },
+          conflictSummary: { blockers: 0, warnings: 0 },
+        },
+      ],
+    })}\n`,
+  );
   return fixture;
 }
 

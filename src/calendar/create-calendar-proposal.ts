@@ -9,6 +9,7 @@ import {
 import {
   parseCalendarChangeProposalInput,
   parseCalendarProposalInput,
+  type ParsedCalendarActionProposalInput,
   type ParsedCalendarChangeProposalInput,
 } from "./calendar-proposal-input.js";
 import type {
@@ -21,6 +22,7 @@ import type {
   CalendarProposalReader,
   CalendarProposalStore,
   CalendarProposeReport,
+  CalendarRecurrenceScope,
   OwnedCalendarMirror,
   OwnedCalendarMirrorStore,
   OwnedCalendarRole,
@@ -39,12 +41,12 @@ export async function createCalendarProposal(input: {
   const workspace = await input.workspaceReader.read();
   const changeInput = parseCalendarChangeProposalInput(input.value);
   if (changeInput !== undefined) {
-    return await createChangeProposal({
+    return await createActionProposal({
       workspace,
       reader: input.reader,
       mirrorStore: input.mirrorStore,
       proposalStore: input.proposalStore,
-      changeInput,
+      actionInput: changeInput,
     });
   }
   const parsed = parseCalendarProposalInput(
@@ -154,6 +156,263 @@ export async function createCalendarProposal(input: {
     conflicts,
     warnings,
     workspace: ready ? "written" : "not-written",
+  };
+}
+
+async function createActionProposal(input: {
+  workspace: Awaited<ReturnType<OwnedCalendarWorkspaceReader["read"]>>;
+  reader: CalendarProposalReader;
+  mirrorStore: OwnedCalendarMirrorStore;
+  proposalStore: CalendarProposalStore;
+  actionInput: ParsedCalendarActionProposalInput;
+}): Promise<CalendarProposeReport> {
+  if (input.actionInput.operation === "cancel") {
+    return await createCancelProposal(
+      input as typeof input & {
+        actionInput: Extract<
+          ParsedCalendarActionProposalInput,
+          { operation: "cancel" }
+        >;
+      },
+    );
+  }
+  if (input.actionInput.operation === "restore") {
+    return await createRestoreProposal(
+      input as typeof input & {
+        actionInput: Extract<
+          ParsedCalendarActionProposalInput,
+          { operation: "restore" }
+        >;
+      },
+    );
+  }
+  return await createChangeProposal({
+    workspace: input.workspace,
+    reader: input.reader,
+    mirrorStore: input.mirrorStore,
+    proposalStore: input.proposalStore,
+    changeInput: input.actionInput,
+  });
+}
+
+async function createCancelProposal(input: {
+  workspace: Awaited<ReturnType<OwnedCalendarWorkspaceReader["read"]>>;
+  mirrorStore: OwnedCalendarMirrorStore;
+  proposalStore: CalendarProposalStore;
+  actionInput: Extract<
+    ParsedCalendarActionProposalInput,
+    { operation: "cancel" }
+  >;
+}): Promise<CalendarProposeReport> {
+  const mirrors = await readCurrentMirrors(input.mirrorStore, input.workspace);
+  const { event, sourceMirror } = resolveActionTarget(
+    mirrors,
+    input.actionInput,
+  );
+  validateCancellationRecurrenceScope(event, input.actionInput.recurrenceScope);
+  const targetEvent =
+    input.actionInput.recurrenceScope === "entire-series" &&
+    event.recurringEventId !== undefined
+      ? sourceMirror.items.find(
+          ({ event: candidate }) => candidate.id === event.recurringEventId,
+        )?.event
+      : event;
+  if (targetEvent === undefined) {
+    throw new OperationalError(
+      "invalid-target",
+      "The recurring master is not mirrored.",
+    );
+  }
+  const digest = calendarStateDigest({
+    operation: "cancel",
+    event: targetEvent,
+    scope: input.actionInput.recurrenceScope,
+  });
+  const futureState =
+    input.actionInput.recurrenceScope === "this-and-future"
+      ? recurringFutureState(sourceMirror, event)
+      : undefined;
+  const proposal: CalendarProposal = {
+    id: `proposal-${digest.slice(0, 24)}`,
+    status: "ready",
+    operation: "cancel",
+    source: input.actionInput.source,
+    itemKind: inferItemKind(targetEvent, input.actionInput.calendarRole),
+    sourceItem: {
+      calendarRole: input.actionInput.calendarRole,
+      calendarId: sourceMirror.calendarId,
+      eventId: targetEvent.id,
+      versionDigest: calendarStateDigest(targetEvent),
+      ...(event.recurringEventId === undefined
+        ? {}
+        : { recurringEventId: event.recurringEventId }),
+    },
+    target: {
+      calendarRole: input.actionInput.calendarRole,
+      calendarId: sourceMirror.calendarId,
+    },
+    ...(input.actionInput.recurrenceScope === undefined
+      ? {}
+      : { recurrenceScope: input.actionInput.recurrenceScope }),
+    ...(futureState === undefined
+      ? {}
+      : {
+          recurringMaster: futureState.recurringMaster,
+          recurrenceDependencies: futureState.recurrenceDependencies,
+        }),
+    preview: {
+      event: targetEvent,
+      ...(input.actionInput.recurrenceScope === undefined
+        ? {}
+        : { recurrenceScope: input.actionInput.recurrenceScope }),
+    },
+    idempotencyKey: `cancel-${digest}`,
+    liveVersions: liveVersions(mirrors),
+    relevantAvailabilityVersion: {
+      digest: calendarStateDigest([]),
+      interval: null,
+      checkedCalendarCount: 0,
+    },
+    conflictSummary: { blockers: 0, warnings: 0 },
+  };
+  await input.proposalStore.writeCurrent(proposal);
+  return readyReport(proposal);
+}
+
+async function createRestoreProposal(input: {
+  workspace: Awaited<ReturnType<OwnedCalendarWorkspaceReader["read"]>>;
+  mirrorStore: OwnedCalendarMirrorStore;
+  proposalStore: CalendarProposalStore;
+  actionInput: Extract<
+    ParsedCalendarActionProposalInput,
+    { operation: "restore" }
+  >;
+}): Promise<CalendarProposeReport> {
+  const mirrors = await readCurrentMirrors(input.mirrorStore, input.workspace);
+  const mirror = mirrors.find(
+    ({ role }) => role === input.actionInput.calendarRole,
+  );
+  const tombstone = mirror?.tombstones.find(
+    ({ event }) => event.id === input.actionInput.eventId,
+  );
+  if (mirror === undefined || tombstone === undefined) {
+    throw new OperationalError(
+      "invalid-target",
+      "Calendar Restore requires a retained Owned tombstone.",
+    );
+  }
+  if (
+    tombstone.access === "invited-read-only" ||
+    (tombstone.access === undefined &&
+      tombstone.event.organizer !== undefined &&
+      tombstone.event.organizer.self !== true)
+  ) {
+    throw new OperationalError(
+      "invalid-target",
+      "Invited events cannot be restored through academic-os.",
+    );
+  }
+  const intendedEvent = restorableEvent(tombstone.event);
+  const digest = calendarStateDigest({ operation: "restore", tombstone });
+  const proposal: CalendarProposal = {
+    id: `proposal-${digest.slice(0, 24)}`,
+    status: "ready",
+    operation: "restore",
+    source: input.actionInput.source,
+    itemKind: inferItemKind(intendedEvent, input.actionInput.calendarRole),
+    target: {
+      calendarRole: input.actionInput.calendarRole,
+      calendarId: mirror.calendarId,
+    },
+    intendedEvent,
+    restoredFrom: {
+      calendarRole: input.actionInput.calendarRole,
+      eventId: tombstone.event.id,
+      deletedAt: tombstone.deletedAt,
+    },
+    idempotencyKey: `restore-${digest}`,
+    liveVersions: liveVersions(mirrors),
+    relevantAvailabilityVersion: {
+      digest: calendarStateDigest([]),
+      interval: null,
+      checkedCalendarCount: 0,
+    },
+    conflictSummary: { blockers: 0, warnings: 0 },
+  };
+  await input.proposalStore.writeCurrent(proposal);
+  return readyReport(proposal);
+}
+
+function resolveActionTarget(
+  mirrors: OwnedCalendarMirror[],
+  action: { calendarRole: OwnedCalendarRole; eventId: string },
+) {
+  const sourceMirror = mirrors.find(({ role }) => role === action.calendarRole);
+  const sourceItem = sourceMirror?.items.find(
+    ({ event }) => event.id === action.eventId,
+  );
+  if (sourceMirror === undefined || sourceItem === undefined) {
+    throw new OperationalError(
+      "invalid-target",
+      "Calendar Proposal target is not a mirrored Owned item.",
+    );
+  }
+  if (sourceItem.access !== "owned") {
+    throw new OperationalError(
+      "invalid-target",
+      "Invited events cannot be cancelled through academic-os.",
+    );
+  }
+  return { event: sourceItem.event, sourceMirror };
+}
+
+function validateCancellationRecurrenceScope(
+  event: CalendarEvent,
+  scope: CalendarRecurrenceScope | undefined,
+): void {
+  const recurring =
+    event.recurringEventId !== undefined || (event.recurrence?.length ?? 0) > 0;
+  if (recurring !== (scope !== undefined)) {
+    throw new OperationalError(
+      "invalid-target",
+      recurring
+        ? "Recurring cancellation requires exactly one recurrenceScope."
+        : "A non-recurring cancellation cannot select recurrenceScope.",
+    );
+  }
+}
+
+function restorableEvent(event: CalendarEvent): CalendarEvent {
+  const {
+    id: _id,
+    status: _status,
+    recurringEventId: _recurringEventId,
+    originalStartTime: _originalStartTime,
+    organizer: _organizer,
+    ...rest
+  } = event;
+  return rest as CalendarEvent;
+}
+
+function liveVersions(mirrors: OwnedCalendarMirror[]) {
+  return mirrors.map((mirror) => ({
+    kind: "owned-mirror" as const,
+    calendarRole: mirror.role,
+    calendarId: mirror.calendarId,
+    syncToken: mirror.syncToken as string,
+    lastSuccessfulRefresh: mirror.lastSuccessfulRefresh as string,
+  }));
+}
+
+function readyReport(proposal: CalendarProposal): CalendarProposeReport {
+  return {
+    schemaVersion: 1,
+    command: "calendar propose",
+    outcome: "ready",
+    proposal,
+    conflicts: [],
+    warnings: [],
+    workspace: "written",
   };
 }
 

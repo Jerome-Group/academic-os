@@ -29,6 +29,7 @@ export interface ParsedCalendarProposalInput {
 }
 
 export interface ParsedCalendarChangeProposalInput {
+  operation: "update";
   source: CalendarProposalSource;
   calendarRole: OwnedCalendarRole;
   eventId: string;
@@ -37,13 +38,35 @@ export interface ParsedCalendarChangeProposalInput {
   recurrenceScope?: CalendarRecurrenceScope;
 }
 
+export interface ParsedCalendarCancelProposalInput {
+  operation: "cancel";
+  source: CalendarProposalSource;
+  calendarRole: OwnedCalendarRole;
+  eventId: string;
+  recurrenceScope?: CalendarRecurrenceScope;
+}
+
+export interface ParsedCalendarRestoreProposalInput {
+  operation: "restore";
+  source: CalendarProposalSource;
+  calendarRole: OwnedCalendarRole;
+  eventId: string;
+}
+
+export type ParsedCalendarActionProposalInput =
+  | ParsedCalendarChangeProposalInput
+  | ParsedCalendarCancelProposalInput
+  | ParsedCalendarRestoreProposalInput;
+
 export function parseCalendarChangeProposalInput(
   value: unknown,
-): ParsedCalendarChangeProposalInput | undefined {
+): ParsedCalendarActionProposalInput | undefined {
   if (
     !isObject(value) ||
     !isObject(value.item) ||
-    value.item.operation !== "update"
+    (value.item.operation !== "update" &&
+      value.item.operation !== "cancel" &&
+      value.item.operation !== "restore")
   ) {
     return undefined;
   }
@@ -54,6 +77,20 @@ export function parseCalendarChangeProposalInput(
   };
   const item = value.item;
   const calendarRole = requireRole(item.calendarRole);
+  const eventId = requireNonEmptyString(item.eventId, "item.eventId");
+  if (item.operation === "restore") {
+    return { operation: "restore", source, calendarRole, eventId };
+  }
+  const recurrenceScope = parseRecurrenceScope(item.recurrenceScope);
+  if (item.operation === "cancel") {
+    return {
+      operation: "cancel",
+      source,
+      calendarRole,
+      eventId,
+      ...(recurrenceScope === undefined ? {} : { recurrenceScope }),
+    };
+  }
   const targetCalendarRole =
     item.targetCalendarRole === undefined
       ? undefined
@@ -62,11 +99,11 @@ export function parseCalendarChangeProposalInput(
     item.patch,
     targetCalendarRole !== undefined && targetCalendarRole !== calendarRole,
   );
-  const recurrenceScope = parseRecurrenceScope(item.recurrenceScope);
   return {
+    operation: "update",
     source,
     calendarRole,
-    eventId: requireNonEmptyString(item.eventId, "item.eventId"),
+    eventId,
     patch,
     ...(targetCalendarRole === undefined ? {} : { targetCalendarRole }),
     ...(recurrenceScope === undefined ? {} : { recurrenceScope }),

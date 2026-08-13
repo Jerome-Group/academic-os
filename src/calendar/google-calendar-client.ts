@@ -43,7 +43,7 @@ interface CalendarEventsPage {
 
 export interface CalendarHttpRequest {
   url: string;
-  method: "GET" | "POST" | "PATCH" | "PUT";
+  method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   params?: {
     maxResults?: 250;
     pageToken?: string;
@@ -104,6 +104,18 @@ export function createGoogleCalendarPromotionWriter(
         method: "POST",
         params: { destination: targetCalendarId },
       });
+    },
+    deleteEvent: async ({ calendarId, eventId }) => {
+      try {
+        await requester.request({
+          url: `${eventCollectionUrl(calendarId)}/${encodeURIComponent(eventId)}`,
+          method: "DELETE",
+        });
+        return "deleted";
+      } catch (error) {
+        if (isMissingEventError(error)) return "missing";
+        throw error;
+      }
     },
     splitRecurringEvent: async (input) =>
       await splitGoogleRecurringEvent(requester, input),
@@ -453,6 +465,12 @@ function isExpiredSyncTokenError(error: unknown): boolean {
     response?: { status?: unknown };
   };
   return value.code === 410 || value.response?.status === 410;
+}
+
+function isMissingEventError(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  const value = error as { code?: unknown; response?: { status?: unknown } };
+  return value.code === 404 || value.response?.status === 404;
 }
 
 function defaultRequester(

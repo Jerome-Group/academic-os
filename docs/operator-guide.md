@@ -48,8 +48,7 @@ or the local configuration.
 
 ## Calendar refresh
 
-After setup, pull the complete Live state of all three Owned calendars from the Management horizon
-forward:
+After setup, pull the Live state of all three Owned calendars from the Management horizon forward:
 
 ```sh
 node dist/src/cli.js calendar refresh --config academic-os.config.json
@@ -60,11 +59,10 @@ and dated exceptions compact, and mirrors invitations as read-only context on th
 Google placed them. A clearly misplaced transparent recurring item remains on its actual calendar
 and is reported as a non-mutating Placement suggestion.
 
-Each complete calendar becomes a private atomic mirror beneath `stateRoot/calendar/mirrors/`.
-Refresh leaves pending Proposals untouched. If any complete provider read fails, no mirror from that
-attempt is published. Human output reports per-calendar counts, freshness and suggestions; add
-`--json` for the equivalent versioned result. Incremental tokens, tombstones and last-good
-per-calendar failure recovery arrive in the separately tracked resilient-Refresh work.
+Repeated runs need no manual token reset. A nonzero result may still have advanced other calendars:
+read the named stale calendars and their last successful Refresh in either human or `--json`
+output. Do not use stale state for Promotion; rerun Refresh after fixing provider access. The
+freshness and deletion-safety boundary is recorded in ADR-0006.
 
 ## Seed
 

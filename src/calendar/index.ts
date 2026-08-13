@@ -6,11 +6,13 @@ export {
   createGoogleCalendarSetupReader,
   createGoogleCalendarSetupWriter,
 } from "./google-calendar-client.js";
+export { CalendarSyncTokenExpiredError } from "./calendar-refresh-error.js";
 export {
   createFileOwnedCalendarWorkspaceReader,
   createFileOwnedCalendarWorkspaceStore,
 } from "./file-owned-calendar-workspace-store.js";
 export { createFileOwnedCalendarMirrorStore } from "./file-owned-calendar-mirror-store.js";
+export { createFileCalendarProposalStore } from "./file-calendar-proposal-store.js";
 export { refreshOwnedCalendars } from "./refresh-owned-calendars.js";
 export {
   DEFAULT_CALENDAR_TIMEZONE,
@@ -25,6 +27,8 @@ export type {
   CalendarEvent,
   CalendarRefreshReader,
   CalendarRefreshReport,
+  CalendarProposalStore,
+  CalendarTombstone,
   CalendarSetupReader,
   CalendarSetupReport,
   CalendarSetupWriter,

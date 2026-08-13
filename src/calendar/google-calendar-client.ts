@@ -1,5 +1,6 @@
 import { GoogleAuth } from "google-auth-library";
 
+import { CalendarSyncTokenExpiredError } from "./calendar-refresh-error.js";
 import type {
   CalendarEvent,
   CalendarListEntry,
@@ -27,6 +28,7 @@ interface CalendarListPage {
 interface CalendarEventsPage {
   items?: CalendarEvent[];
   nextPageToken?: string;
+  nextSyncToken?: string;
 }
 
 export interface CalendarHttpRequest {
@@ -35,10 +37,11 @@ export interface CalendarHttpRequest {
   params?: {
     maxResults?: 250;
     pageToken?: string;
-    showDeleted?: false;
+    showDeleted?: boolean;
     showHidden?: true;
     singleEvents?: false;
     timeMin?: string;
+    syncToken?: string;
   };
   data?: { summary: string };
 }
@@ -107,26 +110,50 @@ export function createGoogleCalendarRefreshReader(
   ),
 ): CalendarRefreshReader {
   return {
-    listForwardEvents: async ({ calendarId, managementHorizon }) => {
+    listEventChanges: async ({ calendarId, managementHorizon, syncToken }) => {
       const events: CalendarEvent[] = [];
       let pageToken: string | undefined;
+      let nextSyncToken: string | undefined;
       do {
-        const response: { data: CalendarEventsPage } = await requester.request({
-          url: `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
-          method: "GET",
-          params: {
-            timeMin: managementHorizon,
-            singleEvents: false,
-            showDeleted: false,
-            ...(pageToken === undefined ? {} : { pageToken }),
-          },
-        });
+        let response: { data: CalendarEventsPage };
+        try {
+          response = await requester.request({
+            url: `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
+            method: "GET",
+            params: {
+              singleEvents: false,
+              showDeleted: true,
+              ...(syncToken === undefined
+                ? { timeMin: managementHorizon }
+                : { syncToken }),
+              ...(pageToken === undefined ? {} : { pageToken }),
+            },
+          });
+        } catch (error) {
+          if (syncToken !== undefined && isExpiredSyncTokenError(error)) {
+            throw new CalendarSyncTokenExpiredError();
+          }
+          throw error;
+        }
         events.push(...(response.data.items ?? []));
         pageToken = response.data.nextPageToken;
+        nextSyncToken = response.data.nextSyncToken ?? nextSyncToken;
       } while (pageToken !== undefined);
-      return events;
+      if (nextSyncToken === undefined || nextSyncToken === "") {
+        throw new Error("Google Calendar returned no next sync token.");
+      }
+      return { events, nextSyncToken };
     },
   };
+}
+
+function isExpiredSyncTokenError(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  const value = error as {
+    code?: unknown;
+    response?: { status?: unknown };
+  };
+  return value.code === 410 || value.response?.status === 410;
 }
 
 function defaultRequester(

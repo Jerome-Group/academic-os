@@ -1,5 +1,6 @@
 import {
   createFileOwnedCalendarMirrorStore,
+  createFileCalendarProposalStore,
   createFileOwnedCalendarWorkspaceReader,
   createGoogleCalendarRefreshReader,
   refreshOwnedCalendars,
@@ -25,11 +26,13 @@ export async function runCalendarRefreshCommand(
     ),
     workspaceReader: createFileOwnedCalendarWorkspaceReader(calendar.stateRoot),
     mirrorStore: createFileOwnedCalendarMirrorStore(calendar.stateRoot),
+    proposalStore: createFileCalendarProposalStore(calendar.stateRoot),
     refreshedAt: new Date().toISOString(),
   });
   process.stdout.write(
     json ? `${JSON.stringify(report, null, 2)}\n` : `${renderHuman(report)}\n`,
   );
+  if (report.outcome !== "refreshed") process.exitCode = 2;
 }
 
 function parseCalendarRefreshArguments(arguments_: string[]): string {
@@ -51,13 +54,14 @@ function renderHuman(report: CalendarRefreshReport): string {
   return [
     `Calendar refresh: ${report.outcome}`,
     `Management horizon: ${report.managementHorizon}`,
-    ...report.calendars.map(({ role, counts, refreshedAt, freshness }) =>
-      [
-        `${role}: ${quantity(counts.items, "item")}`,
-        quantity(counts.recurringMasters, "recurring master"),
-        quantity(counts.exceptions, "exception"),
-        `${counts.invited} invited; ${freshness} at ${refreshedAt}`,
-      ].join(", "),
+    ...report.calendars.map(
+      ({ role, counts, lastSuccessfulRefresh, freshness }) =>
+        [
+          `${role}: ${quantity(counts.items, "item")}`,
+          quantity(counts.recurringMasters, "recurring master"),
+          quantity(counts.exceptions, "exception"),
+          `${counts.invited} invited; ${freshness}; last successful Refresh ${lastSuccessfulRefresh ?? "never"}`,
+        ].join(", "),
     ),
     `Placement suggestions: ${report.placementSuggestions.length}`,
     ...report.placementSuggestions.map(

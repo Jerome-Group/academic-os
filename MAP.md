@@ -21,8 +21,10 @@ Start here: `README.md`, then `AGENTS.md`.
 | Automation | The workflows that run on a pull request or on a new issue, and dependency updates | `.github/` |
 | Quality gates | Cross-file rule coverage and publication checks invoked by package scripts and CI | `scripts/check-contract-rule-coverage.mjs`, `src/privacy/` |
 
-The teaching workspace, the calendar and the data `homepage` reads are named in `README.md` as
-what this repository is for. They have no entry here because they have no files yet; each earns a
-row in the pull request that brings it.
+The teaching workspace and the data `homepage` reads are named in `README.md` as what this
+repository is for. They have no entry here because they have no files yet; each earns a row in the
+pull request that brings it. The calendar's language and authority boundary are recorded in
+`CONTEXT.md` and `docs/adr/0006-…`; its implementation remains deferred to the specification and
+tickets that follow.
 
 Update this file in the same pull request whenever a top-level area is added, moved, or removed.

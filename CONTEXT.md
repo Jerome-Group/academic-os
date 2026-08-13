@@ -137,6 +137,115 @@ The modules in the active semester, which are checked continuously. Past and fut
 outside the cohort and change only after a user request or an agent proposal the user accepts.
 _Avoid_: all modules, managed modules
 
+**Live calendar**:
+The Google Calendar state that is authoritative for which Calendar items actually exist and what
+their current details are.
+_Avoid_: Calendar workspace, private plan
+
+**Calendar workspace**:
+The private, agent-managed mirror of the Live calendar together with unpromoted Proposals. Humans
+do not edit it directly, and its exact schedule data stays outside this public repository.
+_Avoid_: Live calendar, source of truth
+
+**Calendar item**:
+One entry in the calendar system: either a Calendar event or a Calendar milestone.
+_Avoid_: task, time block
+
+**Calendar event**:
+A Calendar item with a start and end during which something happens, such as a class, meeting,
+appointment, exam or sleep.
+_Avoid_: task, work block
+
+**Calendar milestone**:
+A Calendar item marking a fixed date or instant without claiming an occupied interval, such as a
+deadline.
+_Avoid_: Calendar event, task due date
+
+**Owned calendar**:
+One of the three calendars the calendar system controls: the primary **Academic** calendar for
+classes, assessments, deadlines and invitations; **Commitments** for meetings, appointments,
+one-off travel and social events; or **Routine** for sleep and recurring life structure.
+_Avoid_: observed calendar, event category
+
+**Observed calendar**:
+A visible calendar consulted for conflicts but not controlled by the calendar system, such as a
+read-only shared or subscribed calendar.
+_Avoid_: owned calendar, managed calendar
+
+**Invited event**:
+A Calendar event organised by someone else. Refresh mirrors it and conflict checks include it, but
+the calendar system never changes its response, attendees or organiser-owned details.
+_Avoid_: owned event
+
+**Recurring series**:
+A rule that produces repeated Calendar events together with explicit dated exceptions for changed
+or cancelled occurrences.
+_Avoid_: duplicated events
+
+**Routine event**:
+A recurring life-structure Calendar event such as sleep, exercise, meals, routine travel,
+showering or a personal daily standup. It is transparent by default and therefore does not mark
+time busy.
+_Avoid_: task, fixed commitment
+
+**Refresh**:
+An unattended, pull-only update from the Live calendar into the Calendar workspace. It never
+changes the Live calendar and preserves unpromoted Proposals; it runs daily, before an interactive
+calendar session and after every Promotion.
+_Avoid_: synchronisation, promotion
+
+**Proposal**:
+An agent-authored Calendar item change in the Calendar workspace that has not entered the Live
+calendar.
+_Avoid_: draft event, live event
+
+**Promotion**:
+An in-session agent action that applies a Proposal to the Live calendar, verifies the resulting
+live state, then Refreshes the Calendar workspace.
+_Avoid_: refresh, unattended sync
+
+**Calendar tombstone**:
+The retained private record that a formerly live Calendar item was deleted. It prevents Refresh
+or Promotion from silently recreating that item and retains its last-known details for explicit
+restoration.
+_Avoid_: Proposal, archived event
+
+**Stale proposal**:
+A Proposal whose relevant live state changed or was deleted after the Proposal was prepared. It
+must be rebased or abandoned before Promotion.
+_Avoid_: conflict resolution, current proposal
+
+**Management horizon**:
+The configured instant from which Live calendar items are mirrored and managed, extending without
+a future cutoff. Earlier items remain in Google Calendar but outside routine management.
+_Avoid_: calendar history, academic year
+
+**Proposal source**:
+An extensible input that an agent may translate into Proposals, such as an instruction, timetable,
+academic notice, supplied document or calendar import. Tasks and GitHub Issues are never Proposal
+sources.
+_Avoid_: Live calendar, task integration
+
+**Calendar conflict**:
+An overlap found before Promotion across Owned and Observed calendars. Fixed commitments block for
+a decision, Routine overlaps warn, and Calendar milestones never occupy time.
+_Avoid_: live overlap, task collision
+
+**Placement suggestion**:
+A non-mutating warning that a Live calendar item appears on the wrong Owned calendar. Refresh
+mirrors the item where it actually is; only a Promotion may move it.
+_Avoid_: automatic classification, Proposal
+
+**Stale calendar**:
+An Owned calendar whose latest Refresh failed. Its last-good mirror remains available, but it
+cannot support Promotion or a complete conflict check until Refresh succeeds.
+_Avoid_: empty calendar, failed proposal
+
+**Task**:
+A piece of work to complete, owned by task management even when it has a due date. It is not a
+Calendar item.
+_Avoid_: Calendar event, Calendar milestone
+
 **Teaching workspace**:
 The `70 Learning` half of the contract: teaching a subject as the way of learning it. Its internal
 contract is deferred, and the directory is reserved rather than filled.

@@ -1,0 +1,506 @@
+import assert from "node:assert/strict";
+import crypto from "node:crypto";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, it } from "node:test";
+
+import { runCliWithEnvironment } from "../support/run-cli.js";
+
+const temporaryRoots: string[] = [];
+const fakeCalendarPreload = new URL(
+  "../support/fake-calendar-preload.js",
+  import.meta.url,
+).href;
+
+afterEach(async () => {
+  await Promise.all(
+    temporaryRoots.splice(0).map((root) => rm(root, { recursive: true })),
+  );
+});
+
+describe("academic-os calendar promote", () => {
+  it("Refreshes, creates once, rereads, journals once, and Refreshes again", async () => {
+    const fixture = await setupFixture();
+
+    const first = await runPromote(fixture, "proposal-ready", "--json");
+    const firstProvider = await readProvider(fixture);
+    const retry = await runPromote(fixture, "proposal-ready", "--json");
+
+    assert.equal(first.exitCode, 0, JSON.stringify(first));
+    assert.equal(retry.exitCode, 0, JSON.stringify(retry));
+    const report = JSON.parse(first.stdout);
+    assert.equal(report.outcome, "promoted");
+    assert.equal(report.proposalId, "proposal-ready");
+    assert.equal(report.verifiedEvent.id, fixture.eventId);
+    assert.equal(JSON.parse(retry.stdout).outcome, "retry");
+    assert.deepEqual(
+      firstProvider.requests.map(({ method, url }) => ({
+        method,
+        target: providerTarget(url, fixture.eventId),
+      })),
+      [
+        { method: "GET", target: "Academic events" },
+        { method: "GET", target: "Commitments events" },
+        { method: "GET", target: "Routine events" },
+        { method: "GET", target: "Calendar list" },
+        { method: "GET", target: "Observed events" },
+        { method: "POST", target: "Academic events" },
+        { method: "GET", target: "Verified event" },
+        { method: "GET", target: "Academic events" },
+        { method: "GET", target: "Commitments events" },
+        { method: "GET", target: "Routine events" },
+      ],
+    );
+
+    const provider = await readProvider(fixture);
+    const mutations = provider.requests.filter(
+      ({ method }) => method !== "GET",
+    );
+    assert.equal(mutations.length, 1);
+    assert.deepEqual(mutations[0], {
+      body: {
+        id: fixture.eventId,
+        summary: "Topology seminar",
+        visibility: "private",
+        transparency: "opaque",
+        start: {
+          dateTime: "2026-08-20T10:00:00+08:00",
+          timeZone: "Asia/Singapore",
+        },
+        end: {
+          dateTime: "2026-08-20T11:00:00+08:00",
+          timeZone: "Asia/Singapore",
+        },
+        extendedProperties: {
+          private: { academicOsIdempotencyKey: fixture.idempotencyKey },
+        },
+      },
+      credential: fixture.writeCredential,
+      method: "POST",
+      scopes: ["https://www.googleapis.com/auth/calendar.events"],
+      url: "https://www.googleapis.com/calendar/v3/calendars/academic-id/events",
+    });
+    assert.ok(
+      provider.requests.some(
+        ({ method, url }) =>
+          method === "GET" && url.endsWith(`/events/${fixture.eventId}`),
+      ),
+    );
+    const journal = (
+      await readFile(join(fixture.calendarRoot, "promotions.jsonl"), "utf8")
+    )
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    assert.equal(journal.length, 1);
+    assert.equal(journal[0].proposalId, "proposal-ready");
+    assert.equal(journal[0].eventId, fixture.eventId);
+    assert.equal((await readProposal(fixture)).status, "promoted");
+    const mirror = JSON.parse(
+      await readFile(
+        join(fixture.calendarRoot, "mirrors", "academic.json"),
+        "utf8",
+      ),
+    );
+    assert.deepEqual(
+      mirror.items.map(({ event }: { event: { id: string } }) => event.id),
+      [fixture.eventId],
+    );
+  });
+
+  it("marks a Proposal stale when its target provider version changed", async () => {
+    const fixture = await setupFixture();
+    await mutateProvider(fixture, (provider) => {
+      const calendar = provider.calendars[0];
+      assert.ok(calendar);
+      calendar.etag = "changed-version";
+    });
+
+    const result = await runPromote(fixture, "proposal-ready", "--json");
+
+    assert.equal(result.exitCode, 3, JSON.stringify(result));
+    assert.equal(JSON.parse(result.stdout).outcome, "stale");
+    assert.equal(
+      (await readProposal(fixture)).staleReason,
+      "live-version-changed",
+    );
+    assert.equal(
+      (await readProvider(fixture)).requests.filter(
+        ({ method }) => method !== "GET",
+      ).length,
+      0,
+    );
+  });
+
+  it("blocks before create when Refresh discovers a fixed conflict", async () => {
+    const fixture = await setupFixture();
+    await mutateProvider(fixture, (provider) => {
+      const incremental = provider.incrementalEvents["academic-id"];
+      assert.ok(incremental);
+      incremental["academic-sync"] = [
+        {
+          id: "new-conflict",
+          summary: "New live class",
+          start: { dateTime: "2026-08-20T10:30:00+08:00" },
+          end: { dateTime: "2026-08-20T11:30:00+08:00" },
+        },
+      ];
+    });
+
+    const result = await runPromote(fixture, "proposal-ready", "--json");
+
+    assert.equal(result.exitCode, 3, JSON.stringify(result));
+    assert.equal(JSON.parse(result.stdout).outcome, "blocked");
+    assert.equal(
+      (await readProvider(fixture)).requests.filter(
+        ({ method }) => method !== "GET",
+      ).length,
+      0,
+    );
+  });
+
+  it("blocks when pre-Promotion Refresh leaves relevant state stale", async () => {
+    const fixture = await setupFixture();
+    await mutateProvider(fixture, (provider) => {
+      provider.eventReadFailures = ["academic-id"];
+    });
+
+    const result = await runPromote(fixture, "proposal-ready", "--json");
+
+    assert.equal(result.exitCode, 3, JSON.stringify(result));
+    assert.equal(JSON.parse(result.stdout).outcome, "blocked");
+    assert.equal(
+      (await readProvider(fixture)).requests.filter(
+        ({ method }) => method !== "GET",
+      ).length,
+      0,
+    );
+  });
+
+  it("recovers an ambiguous create by stable event ID without a duplicate", async () => {
+    const fixture = await setupFixture();
+    await mutateProvider(fixture, (provider) => {
+      provider.ambiguousCreateFailures = [fixture.eventId];
+    });
+
+    const result = await runPromote(fixture, "proposal-ready", "--json");
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    assert.equal(JSON.parse(result.stdout).outcome, "promoted");
+    const provider = await readProvider(fixture);
+    assert.equal(
+      provider.requests.filter(({ method }) => method === "POST").length,
+      1,
+    );
+    assert.equal(provider.events["academic-id"]?.length, 1);
+  });
+
+  it("reports equivalent human and JSON retry outcomes", async () => {
+    const fixture = await setupFixture();
+    await runPromote(fixture, "proposal-ready", "--json");
+
+    const json = await runPromote(fixture, "proposal-ready", "--json");
+    const human = await runPromote(fixture, "proposal-ready");
+
+    assert.equal(human.exitCode, 0, JSON.stringify(human));
+    const report = JSON.parse(json.stdout);
+    assert.equal(human.stdout.split("\n")[0], "Calendar promote: retry");
+    assert.equal(
+      JSON.parse(
+        human.stdout.split("\n")[2]?.replace("Verified event: ", "") ?? "null",
+      ).id,
+      report.verifiedEvent.id,
+    );
+  });
+
+  it("reports equivalent promoted, stale, and blocked human and JSON outcomes", async () => {
+    for (const outcome of ["promoted", "stale", "blocked"] as const) {
+      const jsonFixture = await setupFixture();
+      const humanFixture = await setupFixture();
+      if (outcome === "stale") {
+        for (const fixture of [jsonFixture, humanFixture]) {
+          await mutateProvider(fixture, (provider) => {
+            const calendar = provider.calendars[0];
+            assert.ok(calendar);
+            calendar.etag = "changed-version";
+          });
+        }
+      }
+      if (outcome === "blocked") {
+        for (const fixture of [jsonFixture, humanFixture]) {
+          await mutateProvider(fixture, (provider) => {
+            provider.eventReadFailures = ["academic-id"];
+          });
+        }
+      }
+      const json = await runPromote(jsonFixture, "proposal-ready", "--json");
+      const human = await runPromote(humanFixture, "proposal-ready");
+      const report = JSON.parse(json.stdout);
+      assert.equal(human.exitCode, json.exitCode);
+      assert.equal(human.stdout.split("\n")[0], `Calendar promote: ${outcome}`);
+      assert.equal(
+        human.stdout.split("\n")[1],
+        `Proposal ID: ${report.proposalId}`,
+      );
+    }
+  });
+
+  it("reconciles an interrupted dead-owner journal lock", async () => {
+    const fixture = await setupFixture();
+    await writeFile(
+      join(fixture.calendarRoot, "promotions.jsonl.lock"),
+      "2147483647\n",
+    );
+
+    const result = await runPromote(fixture, "proposal-ready", "--json");
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    assert.equal(JSON.parse(result.stdout).outcome, "promoted");
+  });
+
+  it("does not report success when post-Refresh omits the verified event", async () => {
+    const fixture = await setupFixture();
+    await mutateProvider(fixture, (provider) => {
+      provider.omitCreatedFromIncremental = true;
+    });
+
+    const result = await runPromote(fixture, "proposal-ready", "--json");
+
+    assert.equal(result.exitCode, 3, JSON.stringify(result));
+    assert.equal(JSON.parse(result.stdout).outcome, "blocked");
+    assert.equal((await readProposal(fixture)).status, "ready");
+
+    const retry = await runPromote(fixture, "proposal-ready", "--json");
+    assert.equal(retry.exitCode, 3, JSON.stringify(retry));
+    assert.equal(JSON.parse(retry.stdout).outcome, "blocked");
+    assert.equal((await readProposal(fixture)).status, "ready");
+  });
+});
+
+interface Fixture {
+  calendarRoot: string;
+  configPath: string;
+  eventId: string;
+  idempotencyKey: string;
+  providerPath: string;
+  writeCredential: string;
+}
+
+function providerTarget(url: string, eventId: string): string {
+  if (url.endsWith("/users/me/calendarList")) return "Calendar list";
+  if (url.endsWith(`/events/${eventId}`)) return "Verified event";
+  if (url.includes("/calendars/academic-id/events")) return "Academic events";
+  if (url.includes("/calendars/commitments-id/events")) {
+    return "Commitments events";
+  }
+  if (url.includes("/calendars/routine-id/events")) return "Routine events";
+  if (url.includes("/calendars/observed-id/events")) return "Observed events";
+  return url;
+}
+
+async function setupFixture(): Promise<Fixture> {
+  const root = await mkdtemp(join(tmpdir(), "academic-os-calendar-promote-"));
+  temporaryRoots.push(root);
+  const driveMount = join(root, "Drive");
+  const stateRoot = join(root, "State");
+  const calendarRoot = join(stateRoot, "calendar");
+  const mirrorsRoot = join(calendarRoot, "mirrors");
+  await Promise.all([
+    mkdir(driveMount),
+    mkdir(mirrorsRoot, { recursive: true }),
+  ]);
+  const readCredential = join(root, "calendar-read.credentials.json");
+  const writeCredential = join(root, "calendar-write.credentials.json");
+  const configPath = join(root, "academic-os.config.json");
+  await writeFile(
+    configPath,
+    `${JSON.stringify({
+      driveMount,
+      stateRoot,
+      calendar: {
+        managementHorizon: "2026-08-01T08:00:00+08:00",
+        credentials: {
+          scheduledRead: readCredential,
+          interactiveWrite: writeCredential,
+        },
+      },
+    })}\n`,
+  );
+  await writeFile(
+    join(calendarRoot, "owned-calendars.json"),
+    `${JSON.stringify({
+      schemaVersion: 1,
+      defaultTimezone: "Asia/Singapore",
+      managementHorizon: "2026-08-01T00:00:00.000Z",
+      ownedCalendarIds: {
+        Academic: "academic-id",
+        Commitments: "commitments-id",
+        Routine: "routine-id",
+      },
+    })}\n`,
+  );
+  for (const [role, calendarId, syncToken] of [
+    ["Academic", "academic-id", "academic-sync"],
+    ["Commitments", "commitments-id", "commitments-sync"],
+    ["Routine", "routine-id", "routine-sync"],
+  ] as const) {
+    await writeFile(
+      join(mirrorsRoot, `${role.toLowerCase()}.json`),
+      `${JSON.stringify({
+        schemaVersion: 1,
+        role,
+        calendarId,
+        managementHorizon: "2026-08-01T00:00:00.000Z",
+        lastSuccessfulRefresh: "2026-08-19T21:00:00.000Z",
+        freshness: "fresh",
+        syncToken,
+        items: [],
+        tombstones: [],
+      })}\n`,
+    );
+  }
+  const idempotencyKey = `create-${"a".repeat(64)}`;
+  const eventId = `a${crypto.createHash("sha256").update(idempotencyKey).digest("hex").slice(0, 31)}`;
+  await writeFile(
+    join(calendarRoot, "pending-proposals.json"),
+    `${JSON.stringify({
+      schemaVersion: 1,
+      proposals: [
+        {
+          id: "proposal-ready",
+          status: "ready",
+          operation: "create",
+          source: { kind: "instruction", reference: "private-request" },
+          itemKind: "fixed-event",
+          target: { calendarRole: "Academic", calendarId: "academic-id" },
+          intendedEvent: {
+            summary: "Topology seminar",
+            visibility: "private",
+            transparency: "opaque",
+            start: {
+              dateTime: "2026-08-20T10:00:00+08:00",
+              timeZone: "Asia/Singapore",
+            },
+            end: {
+              dateTime: "2026-08-20T11:00:00+08:00",
+              timeZone: "Asia/Singapore",
+            },
+          },
+          inheritedDefaults: { calendarColorId: null, reminders: [] },
+          targetCalendarVersion: {
+            calendarId: "academic-id",
+            etag: "academic-version",
+          },
+          idempotencyKey,
+          liveVersions: [],
+          relevantAvailabilityVersion: {
+            digest:
+              "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            interval: {
+              start: "2026-08-20T02:00:00.000Z",
+              end: "2026-08-20T03:00:00.000Z",
+            },
+            checkedCalendarCount: 4,
+          },
+          conflictSummary: { blockers: 0, warnings: 0 },
+        },
+      ],
+    })}\n`,
+  );
+  const providerPath = join(root, "provider.json");
+  await writeFile(
+    providerPath,
+    `${JSON.stringify({
+      calendars: [
+        {
+          id: "academic-id",
+          summary: "Personal",
+          primary: true,
+          selected: true,
+          etag: "academic-version",
+        },
+        { id: "commitments-id", summary: "Commitments", selected: true },
+        { id: "routine-id", summary: "Routine", selected: true },
+        { id: "observed-id", summary: "Observed", selected: true },
+      ],
+      events: {
+        "academic-id": [],
+        "commitments-id": [],
+        "routine-id": [],
+        "observed-id": [],
+      },
+      incrementalEvents: {
+        "academic-id": { "academic-sync": [] },
+        "commitments-id": { "commitments-sync": [] },
+        "routine-id": { "routine-sync": [] },
+      },
+    })}\n`,
+  );
+  return {
+    calendarRoot,
+    configPath,
+    eventId,
+    idempotencyKey,
+    providerPath,
+    writeCredential,
+  };
+}
+
+async function runPromote(
+  fixture: Fixture,
+  proposalId: string,
+  ...arguments_: string[]
+) {
+  return await runCliWithEnvironment(
+    {
+      ACADEMIC_OS_FAKE_CALENDAR_STATE: fixture.providerPath,
+      NODE_OPTIONS: `--import=${fakeCalendarPreload}`,
+    },
+    "calendar",
+    "promote",
+    proposalId,
+    "--config",
+    fixture.configPath,
+    ...arguments_,
+  );
+}
+
+async function readProvider(fixture: Fixture): Promise<{
+  ambiguousCreateFailures?: string[];
+  calendars: Array<{ etag?: string }>;
+  eventReadFailures?: string[];
+  events: Record<string, unknown[]>;
+  incrementalEvents: Record<string, Record<string, unknown[]>>;
+  omitCreatedFromIncremental?: boolean;
+  requests: Array<{
+    body?: unknown;
+    credential?: string;
+    method: string;
+    scopes?: string[];
+    url: string;
+  }>;
+}> {
+  return JSON.parse(await readFile(fixture.providerPath, "utf8"));
+}
+
+async function mutateProvider(
+  fixture: Fixture,
+  mutate: (provider: Awaited<ReturnType<typeof readProvider>>) => void,
+): Promise<void> {
+  const provider = await readProvider(fixture);
+  mutate(provider);
+  await writeFile(fixture.providerPath, `${JSON.stringify(provider)}\n`);
+}
+
+async function readProposal(
+  fixture: Fixture,
+): Promise<{ staleReason?: string; status: string }> {
+  const state = JSON.parse(
+    await readFile(
+      join(fixture.calendarRoot, "pending-proposals.json"),
+      "utf8",
+    ),
+  );
+  return state.proposals[0];
+}

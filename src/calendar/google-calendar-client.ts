@@ -5,6 +5,7 @@ import type {
   CalendarEvent,
   CalendarListEntry,
   CalendarProposalReader,
+  CalendarPromotionWriter,
   CalendarRefreshReader,
   CalendarSetupReader,
   CalendarSetupWriter,
@@ -16,6 +17,8 @@ export const CALENDAR_PROPERTIES_WRITE_SCOPE =
   "https://www.googleapis.com/auth/calendar.calendars";
 export const CALENDAR_EVENTS_READONLY_SCOPE =
   "https://www.googleapis.com/auth/calendar.events.readonly";
+export const CALENDAR_EVENTS_WRITE_SCOPE =
+  "https://www.googleapis.com/auth/calendar.events";
 
 const calendarListUrl =
   "https://www.googleapis.com/calendar/v3/users/me/calendarList";
@@ -45,7 +48,42 @@ export interface CalendarHttpRequest {
     timeMin?: string;
     syncToken?: string;
   };
-  data?: { summary: string };
+  data?: Record<string, unknown>;
+}
+
+export function createGoogleCalendarPromotionWriter(
+  credentialPath: string,
+  requester: CalendarRequester = defaultRequester(
+    credentialPath,
+    CALENDAR_EVENTS_WRITE_SCOPE,
+  ),
+): CalendarPromotionWriter {
+  return {
+    createEvent: async ({ calendarId, eventId, event, idempotencyKey }) => {
+      await requester.request({
+        url: eventCollectionUrl(calendarId),
+        method: "POST",
+        data: {
+          id: eventId,
+          ...event,
+          extendedProperties: {
+            private: { academicOsIdempotencyKey: idempotencyKey },
+          },
+        },
+      });
+    },
+    readEvent: async ({ calendarId, eventId }) => {
+      const response: { data: CalendarEvent } = await requester.request({
+        url: `${eventCollectionUrl(calendarId)}/${encodeURIComponent(eventId)}`,
+        method: "GET",
+      });
+      return response.data;
+    },
+  };
+}
+
+function eventCollectionUrl(calendarId: string): string {
+  return `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`;
 }
 
 export interface CalendarRequester {

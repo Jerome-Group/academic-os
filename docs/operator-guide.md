@@ -1,7 +1,7 @@
 # Operator guide
 
 The CLI has `seed`, `audit`, `calendar setup`, pull-only `calendar refresh`, private
-`calendar propose` and separately gated
+`calendar propose`, explicitly authorised `calendar promote` and separately gated
 `repair` commands. It does not
 schedule weekly LLM work or edit module instructions autonomously.
 
@@ -20,8 +20,9 @@ used only when `repair` is invoked; audit retains metadata-read-only authorizati
 Calendar commands need a current ISO-8601 `managementHorizon` and two distinct absolute credential
 paths. Authorise scheduled-read credentials only for `calendar.calendarlist.readonly` and
 `calendar.events.readonly`. Authorise interactive-write credentials separately for
-`calendar.calendars`; setup uses that authority only after `--apply`. Keep both files and the
-configuration outside git.
+`calendar.calendars` and `calendar.events`; setup uses calendar-creation authority only after
+`--apply`, and Promote is the only event-writing path. Keep both files and the configuration
+outside git.
 
 ## Calendar setup
 
@@ -103,6 +104,22 @@ Only an explicitly supplied travel buffer expands a conflict check. The ready Pr
 the current pending Proposal beneath `stateRoot/calendar/`; Observed event details are reported
 only in the transient preview and are not persisted. Propose never changes Google Calendar. Use
 `--json` for the deterministic equivalent preview.
+
+## Calendar promote
+
+After reviewing one ready Proposal, authorise that exact ID:
+
+```sh
+node dist/src/cli.js calendar promote proposal-0123456789abcdef01234567 \
+  --config academic-os.config.json
+```
+
+Promote Refreshes first and blocks without writing when required state is stale, a blocking
+conflict has appeared, or the Proposal's provider version changed. A valid create uses a stable
+private idempotency key, rereads the created event from Google, appends one private Promotion
+journal record, then Refreshes the verified event into the workspace. A safe retry reports
+`retry` without creating or journalling twice. Human and `--json` reports distinguish `promoted`,
+`stale`, `blocked` and `retry`; stale or blocked results exit 3.
 
 ## Seed
 

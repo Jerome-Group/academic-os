@@ -70,7 +70,7 @@ export async function createCalendarProposal(input: {
   });
   const conflicts = overlaps.filter(({ severity }) => severity === "block");
   const warnings = overlaps.filter(({ severity }) => severity === "warning");
-  const intentDigest = digest({
+  const intentDigest = calendarStateDigest({
     operation: "create",
     source: parsed.source,
     itemKind: parsed.item.kind,
@@ -108,7 +108,7 @@ export async function createCalendarProposal(input: {
       lastSuccessfulRefresh: mirror.lastSuccessfulRefresh as string,
     })),
     relevantAvailabilityVersion: {
-      digest: digest(
+      digest: calendarStateDigest(
         availability.items.map(({ calendarId, event }) => ({
           calendarId,
           event,
@@ -201,7 +201,7 @@ function validateReminders(
   return value;
 }
 
-function digest(value: unknown): string {
+export function calendarStateDigest(value: unknown): string {
   return createHash("sha256").update(canonicalJson(value)).digest("hex");
 }
 

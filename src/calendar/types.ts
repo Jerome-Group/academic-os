@@ -132,6 +132,12 @@ export interface CalendarTombstone {
 }
 
 export interface CalendarProposalStore {
+  markPromoted(proposalId: string): Promise<void>;
+  markStale(
+    proposalId: string,
+    reason: CalendarProposalStaleReason,
+  ): Promise<void>;
+  read(proposalId: string): Promise<CalendarProposal | undefined>;
   markStaleForDeletedItems(
     deletedItems: Array<{
       calendarRole: OwnedCalendarRole;
@@ -139,6 +145,43 @@ export interface CalendarProposalStore {
     }>,
   ): Promise<void>;
   writeCurrent(proposal: CalendarProposal): Promise<void>;
+}
+
+export type CalendarProposalStaleReason =
+  | "live-item-deleted"
+  | "live-version-changed";
+
+export interface CalendarPromotionWriter {
+  createEvent(input: {
+    calendarId: string;
+    eventId: string;
+    event: CalendarIntendedEvent;
+    idempotencyKey: string;
+  }): Promise<void>;
+  readEvent(input: {
+    calendarId: string;
+    eventId: string;
+  }): Promise<CalendarEvent>;
+}
+
+export interface CalendarPromotionReport {
+  schemaVersion: 1;
+  command: "calendar promote";
+  outcome: "promoted" | "retry" | "stale" | "blocked";
+  proposalId: string;
+  verifiedEvent?: CalendarEvent;
+}
+
+export interface CalendarPromotionRecord {
+  schemaVersion: 1;
+  proposalId: string;
+  eventId: string;
+  idempotencyKey: string;
+}
+
+export interface CalendarPromotionJournal {
+  find(proposalId: string): Promise<CalendarPromotionRecord | undefined>;
+  appendOnce(record: CalendarPromotionRecord): Promise<boolean>;
 }
 
 export interface CalendarProposalSource {

@@ -25,7 +25,8 @@ migration plan after fresh inventory and dual recovery verify. It previews by de
 permanent-delete or Trash operation.
 
 Calendar setup now binds the Google primary calendar as Academic, reuses Commitments and Routine,
-and previews any missing secondary-calendar creation. Exact IDs remain in private configured
+and previews any missing secondary-calendar creation. The ordinary Proposal/Promotion path also
+previews and migrates reviewed recurring Routine series. Exact IDs remain in private configured
 state.
 
 ## What is here now

@@ -247,16 +247,34 @@ prototype.request = async function (options) {
       if (existing !== undefined) return { data: existing };
       throw new Error(`Synthetic event ${eventId} not found.`);
     }
-    const [event] = source.splice(index, 1);
+    const sourceEvent = source[index] as Record<string, unknown>;
+    const movedEvents = source.filter((candidate) => {
+      if (typeof candidate !== "object" || candidate === null) return false;
+      const record = candidate as Record<string, unknown>;
+      return (
+        record.id === eventId ||
+        (sourceEvent.recurrence !== undefined &&
+          record.recurringEventId === eventId)
+      );
+    });
+    for (const movedEvent of movedEvents) {
+      const movedIndex = source.indexOf(movedEvent);
+      source.splice(movedIndex, 1);
+    }
     state.events ??= {};
     state.events[targetCalendarId] ??= [];
-    state.events[targetCalendarId].push(event);
-    publishIncremental(state, sourceCalendarId, [
-      { id: eventId, status: "cancelled" },
-    ]);
-    publishIncremental(state, targetCalendarId, [event]);
+    state.events[targetCalendarId].push(...movedEvents);
+    publishIncremental(
+      state,
+      sourceCalendarId,
+      movedEvents.map((movedEvent) => ({
+        id: (movedEvent as { id: string }).id,
+        status: "cancelled",
+      })),
+    );
+    publishIncremental(state, targetCalendarId, movedEvents);
     await writeFile(statePath, `${JSON.stringify(state)}\n`);
-    return { data: event };
+    return { data: sourceEvent };
   }
   if (
     options.method === "GET" &&

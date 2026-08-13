@@ -8,7 +8,7 @@ Start here: `README.md`, then `AGENTS.md`.
 |------|------------------|-------------|
 | The contract | How every module folder is laid out and named. Normative — a folder that disagrees with it is wrong | `docs/module-folder-contract.md` |
 | Module CLI | Previewed journalled/resumable seed and approved ID-bound repair, mounted or Drive API inventory, cohort/migration audit, private observations, pure conformance, and reports | `src/cli.ts`, `docs/operator-guide.md`, `docs/v1-acceptance.md` |
-| Calendar CLI | Previewed Owned-calendar setup, resilient pull-only Refresh, private conflict-checked create Proposals, and verified idempotent Promotion | `src/calendar/`, `src/commands/calendar-*-command.ts`, `docs/operator-guide.md` |
+| Calendar CLI | Previewed Owned-calendar setup, resilient pull-only Refresh, conflict-checked Proposals, verified Promotion, and reviewed whole-series Routine migration | `src/calendar/`, `src/commands/calendar-*-command.ts`, `docs/operator-guide.md` |
 | Tests | Public-seam tests using synthetic temporary module trees | `test/` |
 | The boundary | Why the folders it describes are not in this repository, and what keeps them out | `docs/adr/0002-…`, `.gitignore` |
 | Tasks | The semester's work and this repository's own — GitHub Issues, not a file | the issue tracker |

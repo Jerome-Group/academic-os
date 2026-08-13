@@ -105,6 +105,48 @@ the current pending Proposal beneath `stateRoot/calendar/`; Observed event detai
 only in the transient preview and are not persisted. Propose never changes Google Calendar. Use
 `--json` for the deterministic equivalent preview.
 
+### Routine-series migration
+
+The initial Routine migration uses the same Proposal path. Supply reviewed provider identities from
+the current Academic mirror; labels are only human context and never identity:
+
+```json
+{
+  "schemaVersion": 1,
+  "source": { "kind": "routine-migration", "reference": "reviewed-2026-08" },
+  "item": {
+    "operation": "routine-migration",
+    "reviewedSeries": [
+      {
+        "providerIdentity": {
+          "calendarRole": "Academic",
+          "calendarId": "private-academic-calendar-id",
+          "eventId": "private-sleep-series-id"
+        },
+        "label": "sleep"
+      },
+      {
+        "providerIdentity": {
+          "calendarRole": "Academic",
+          "calendarId": "private-academic-calendar-id",
+          "eventId": "private-exercise-series-id"
+        },
+        "label": "exercise"
+      }
+    ]
+  }
+}
+```
+
+The preview is one Proposal containing exact whole-series moves, already-completed moves and
+identities requiring a human decision. It never selects by title alone. Promote that reviewed
+Proposal explicitly; the move preserves the recurring master and exceptions, changes only an
+opaque master to Routine's default transparency, and leaves reminders and other event fields
+alone. Reread verification and post-Promotion Refresh must prove every approved series moved.
+Past occurrences may appear under Routine after the move but remain outside forward Routine
+management. Repeating the migration preview reports completed series and proposes no duplicate
+moves.
+
 ## Calendar promote
 
 After reviewing one ready Proposal, authorise that exact ID:
@@ -120,6 +162,10 @@ private idempotency key, rereads the created event from Google, appends one priv
 journal record, then Refreshes the verified event into the workspace. A safe retry reports
 `retry` without creating or journalling twice. Human and `--json` reports distinguish `promoted`,
 `stale`, `blocked` and `retry`; stale or blocked results exit 3.
+
+For a `routine-migration` Proposal, Promotion moves each approved recurring master by its exact
+Academic and Routine IDs, verifies the resulting series and exceptions, journals the batch once,
+then Refreshes. It never promotes entries listed as requiring a human decision.
 
 ## Seed
 

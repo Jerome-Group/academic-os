@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 import { OperationalError } from "../operational-error.js";
 import {
   addTravelBuffer,
@@ -9,6 +7,7 @@ import {
 import {
   parseCalendarChangeProposalInput,
   parseCalendarProposalInput,
+  parseCalendarRoutineMigrationProposalInput,
   type ParsedCalendarActionProposalInput,
   type ParsedCalendarChangeProposalInput,
 } from "./calendar-proposal-input.js";
@@ -28,8 +27,12 @@ import type {
   OwnedCalendarRole,
   OwnedCalendarWorkspaceReader,
 } from "./types.js";
-import { OWNED_CALENDAR_ROLES } from "./types.js";
 import { trimCalendarRecurrence } from "./calendar-recurrence.js";
+import { calendarStateDigest } from "./calendar-state-digest.js";
+import { readCurrentCalendarMirrors } from "./read-current-calendar-mirrors.js";
+import { createRoutineMigrationProposal } from "./create-routine-migration-proposal.js";
+
+export { calendarStateDigest } from "./calendar-state-digest.js";
 
 export async function createCalendarProposal(input: {
   value: unknown;
@@ -39,6 +42,17 @@ export async function createCalendarProposal(input: {
   proposalStore: CalendarProposalStore;
 }): Promise<CalendarProposeReport> {
   const workspace = await input.workspaceReader.read();
+  const routineMigrationInput = parseCalendarRoutineMigrationProposalInput(
+    input.value,
+  );
+  if (routineMigrationInput !== undefined) {
+    return await createRoutineMigrationProposal({
+      value: routineMigrationInput,
+      workspace,
+      mirrorStore: input.mirrorStore,
+      proposalStore: input.proposalStore,
+    });
+  }
   const changeInput = parseCalendarChangeProposalInput(input.value);
   if (changeInput !== undefined) {
     return await createActionProposal({
@@ -53,7 +67,10 @@ export async function createCalendarProposal(input: {
     input.value,
     workspace.defaultTimezone,
   );
-  const mirrors = await readCurrentMirrors(input.mirrorStore, workspace);
+  const mirrors = await readCurrentCalendarMirrors(
+    input.mirrorStore,
+    workspace,
+  );
   const calendars = validateCalendars(await input.reader.listCalendars());
   const targetCalendarId = workspace.ownedCalendarIds[parsed.item.calendarRole];
   const targetCalendar = calendars.find(({ id }) => id === targetCalendarId);
@@ -204,7 +221,10 @@ async function createCancelProposal(input: {
     { operation: "cancel" }
   >;
 }): Promise<CalendarProposeReport> {
-  const mirrors = await readCurrentMirrors(input.mirrorStore, input.workspace);
+  const mirrors = await readCurrentCalendarMirrors(
+    input.mirrorStore,
+    input.workspace,
+  );
   const { event, sourceMirror } = resolveActionTarget(
     mirrors,
     input.actionInput,
@@ -288,7 +308,10 @@ async function createRestoreProposal(input: {
     { operation: "restore" }
   >;
 }): Promise<CalendarProposeReport> {
-  const mirrors = await readCurrentMirrors(input.mirrorStore, input.workspace);
+  const mirrors = await readCurrentCalendarMirrors(
+    input.mirrorStore,
+    input.workspace,
+  );
   const mirror = mirrors.find(
     ({ role }) => role === input.actionInput.calendarRole,
   );
@@ -423,7 +446,10 @@ async function createChangeProposal(input: {
   proposalStore: CalendarProposalStore;
   changeInput: ParsedCalendarChangeProposalInput;
 }): Promise<CalendarProposeReport> {
-  const mirrors = await readCurrentMirrors(input.mirrorStore, input.workspace);
+  const mirrors = await readCurrentCalendarMirrors(
+    input.mirrorStore,
+    input.workspace,
+  );
   const { event, sourceMirror } = resolveChangeTarget(
     mirrors,
     input.changeInput,
@@ -681,30 +707,6 @@ function inferItemKind(event: CalendarEvent, role: OwnedCalendarRole) {
   return "fixed-event" as const;
 }
 
-async function readCurrentMirrors(
-  mirrorStore: OwnedCalendarMirrorStore,
-  workspace: Awaited<ReturnType<OwnedCalendarWorkspaceReader["read"]>>,
-): Promise<OwnedCalendarMirror[]> {
-  const mirrors: OwnedCalendarMirror[] = [];
-  for (const role of OWNED_CALENDAR_ROLES) {
-    const mirror = await mirrorStore.read(role);
-    if (
-      mirror === undefined ||
-      mirror.freshness !== "fresh" ||
-      mirror.calendarId !== workspace.ownedCalendarIds[role] ||
-      typeof mirror.syncToken !== "string" ||
-      typeof mirror.lastSuccessfulRefresh !== "string"
-    ) {
-      throw new OperationalError(
-        "operational-failure",
-        `Calendar Refresh must succeed for ${role} before preparing a Proposal.`,
-      );
-    }
-    mirrors.push(mirror);
-  }
-  return mirrors;
-}
-
 function validateCalendars(value: CalendarListEntry[]): CalendarListEntry[] {
   if (
     !Array.isArray(value) ||
@@ -742,21 +744,4 @@ function validateReminders(
     );
   }
   return value;
-}
-
-export function calendarStateDigest(value: unknown): string {
-  return createHash("sha256").update(canonicalJson(value)).digest("hex");
-}
-
-function canonicalJson(value: unknown): string {
-  if (Array.isArray(value)) {
-    return `[${value.map(canonicalJson).join(",")}]`;
-  }
-  if (typeof value === "object" && value !== null) {
-    return `{${Object.entries(value)
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, item]) => `${JSON.stringify(key)}:${canonicalJson(item)}`)
-      .join(",")}}`;
-  }
-  return JSON.stringify(value);
 }

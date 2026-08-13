@@ -18,10 +18,8 @@ export { createFileOwnedCalendarMirrorStore } from "./file-owned-calendar-mirror
 export { createFileCalendarProposalStore } from "./file-calendar-proposal-store.js";
 export { createFileCalendarPromotionJournal } from "./file-calendar-promotion-journal.js";
 export { refreshOwnedCalendars } from "./refresh-owned-calendars.js";
-export {
-  calendarStateDigest,
-  createCalendarProposal,
-} from "./create-calendar-proposal.js";
+export { createCalendarProposal } from "./create-calendar-proposal.js";
+export { calendarStateDigest } from "./calendar-state-digest.js";
 export { promoteCalendarProposal } from "./promote-calendar-proposal.js";
 export {
   DEFAULT_CALENDAR_TIMEZONE,
@@ -52,6 +50,12 @@ export type {
   CalendarPromotionWriter,
   CalendarProposalStore,
   CalendarProposalStaleReason,
+  CalendarProviderIdentity,
+  CalendarRoutineMigrationCompletion,
+  CalendarRoutineMigrationDecision,
+  CalendarRoutineMigrationDecisionReason,
+  CalendarRoutineMigrationMove,
+  CalendarRoutineMigrationProposalCandidate,
   CalendarTombstone,
   CalendarSetupReader,
   CalendarSetupReport,

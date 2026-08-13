@@ -12,7 +12,11 @@ interface FakeCalendarState {
   calendars: FakeCalendar[];
   eventReadFailures?: string[];
   eventPageSizes?: Record<string, number>;
+  eventPageFailures?: Record<string, string[]>;
   events?: Record<string, unknown[]>;
+  expiredSyncTokens?: string[];
+  incrementalEvents?: Record<string, Record<string, unknown[]>>;
+  nextSyncTokens?: Record<string, string>;
   nextId?: number;
   requests?: Array<{
     body?: unknown;
@@ -95,11 +99,28 @@ prototype.request = async function (options) {
   ) {
     const calendarId = decodeURIComponent(eventsMatch[1] ?? "");
     await writeFile(statePath, `${JSON.stringify(state)}\n`);
+    const params = options.params as
+      | { pageToken?: string; syncToken?: string }
+      | undefined;
+    if (state.expiredSyncTokens?.includes(params?.syncToken ?? "") === true) {
+      throw { response: { status: 410 } };
+    }
+    if (
+      state.eventPageFailures?.[calendarId]?.includes(
+        params?.pageToken ?? "first",
+      ) === true
+    ) {
+      throw new Error(
+        `Synthetic event page read failed for ${calendarId} at ${params?.pageToken ?? "first"}.`,
+      );
+    }
     if (state.eventReadFailures?.includes(calendarId) === true) {
       throw new Error(`Synthetic event read failed for ${calendarId}.`);
     }
-    const events = state.events?.[calendarId] ?? [];
-    const params = options.params as { pageToken?: string } | undefined;
+    const events =
+      params?.syncToken === undefined
+        ? (state.events?.[calendarId] ?? [])
+        : (state.incrementalEvents?.[calendarId]?.[params.syncToken] ?? []);
     const offset = Number(params?.pageToken ?? "0");
     const pageSize = state.eventPageSizes?.[calendarId] ?? events.length;
     const nextOffset = offset + pageSize;
@@ -108,7 +129,11 @@ prototype.request = async function (options) {
         items: events.slice(offset, nextOffset),
         ...(nextOffset < events.length
           ? { nextPageToken: String(nextOffset) }
-          : {}),
+          : {
+              nextSyncToken:
+                state.nextSyncTokens?.[calendarId] ??
+                `${calendarId.replace(/-id$/u, "")}-sync-1`,
+            }),
       },
     };
   }

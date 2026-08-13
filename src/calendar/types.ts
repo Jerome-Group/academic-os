@@ -75,10 +75,14 @@ export interface CalendarEvent {
 }
 
 export interface CalendarRefreshReader {
-  listForwardEvents(input: {
+  listEventChanges(input: {
     calendarId: string;
     managementHorizon: string;
-  }): Promise<CalendarEvent[]>;
+    syncToken?: string;
+  }): Promise<{
+    events: CalendarEvent[];
+    nextSyncToken: string;
+  }>;
 }
 
 export interface MirroredCalendarItem {
@@ -92,13 +96,30 @@ export interface OwnedCalendarMirror {
   role: OwnedCalendarRole;
   calendarId: string;
   managementHorizon: string;
-  refreshedAt: string;
-  freshness: "fresh";
+  lastSuccessfulRefresh: string | null;
+  freshness: "fresh" | "stale";
+  syncToken?: string;
   items: MirroredCalendarItem[];
+  tombstones: CalendarTombstone[];
 }
 
 export interface OwnedCalendarMirrorStore {
+  read(role: OwnedCalendarRole): Promise<OwnedCalendarMirror | undefined>;
   write(mirror: OwnedCalendarMirror): Promise<void>;
+}
+
+export interface CalendarTombstone {
+  deletedAt: string;
+  event: CalendarEvent;
+}
+
+export interface CalendarProposalStore {
+  markStaleForDeletedItems(
+    deletedItems: Array<{
+      calendarRole: OwnedCalendarRole;
+      eventId: string;
+    }>,
+  ): Promise<void>;
 }
 
 export interface PlacementSuggestion {
@@ -112,12 +133,12 @@ export interface PlacementSuggestion {
 export interface CalendarRefreshReport {
   schemaVersion: 1;
   command: "calendar refresh";
-  outcome: "refreshed";
+  outcome: "refreshed" | "partially-refreshed" | "stale";
   managementHorizon: string;
   calendars: Array<{
     role: OwnedCalendarRole;
-    refreshedAt: string;
-    freshness: "fresh";
+    lastSuccessfulRefresh: string | null;
+    freshness: "fresh" | "stale";
     counts: {
       items: number;
       recurringMasters: number;

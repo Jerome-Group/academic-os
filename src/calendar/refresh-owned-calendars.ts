@@ -1,6 +1,8 @@
 import { OperationalError } from "../operational-error.js";
+import { CalendarSyncTokenExpiredError } from "./calendar-refresh-error.js";
 import type {
   CalendarEvent,
+  CalendarProposalStore,
   CalendarRefreshReader,
   CalendarRefreshReport,
   MirroredCalendarItem,
@@ -17,6 +19,7 @@ export async function refreshOwnedCalendars(input: {
   reader: CalendarRefreshReader;
   workspaceReader: OwnedCalendarWorkspaceReader;
   mirrorStore: OwnedCalendarMirrorStore;
+  proposalStore: CalendarProposalStore;
   refreshedAt: string;
 }): Promise<CalendarRefreshReport> {
   const workspace = await input.workspaceReader.read();
@@ -28,58 +31,195 @@ export async function refreshOwnedCalendars(input: {
   }
 
   const mirrors: OwnedCalendarMirror[] = [];
+  const deletedItems: Array<{
+    calendarRole: OwnedCalendarRole;
+    eventId: string;
+  }> = [];
   for (const role of OWNED_CALENDAR_ROLES) {
-    const events = await input.reader.listForwardEvents({
-      calendarId: workspace.ownedCalendarIds[role],
-      managementHorizon: input.managementHorizon,
-    });
-    mirrors.push(
-      createMirror({
+    const previous = await input.mirrorStore.read(role);
+    try {
+      const changes = await readChanges({
+        reader: input.reader,
+        calendarId: workspace.ownedCalendarIds[role],
+        managementHorizon: input.managementHorizon,
+        syncToken: previous?.syncToken,
+      });
+      const refreshed = createFreshMirror({
         role,
         calendarId: workspace.ownedCalendarIds[role],
         managementHorizon: input.managementHorizon,
         refreshedAt: input.refreshedAt,
-        events: validateEvents(events),
-      }),
-    );
+        previous,
+        incremental:
+          previous?.syncToken !== undefined && !changes.performedFullRefresh,
+        events: validateEvents(changes.events),
+        nextSyncToken: changes.nextSyncToken,
+      });
+      const mirror = refreshed.mirror;
+      mirrors.push(mirror);
+      deletedItems.push(
+        ...refreshed.deletedEventIds.map((eventId) => ({
+          calendarRole: role,
+          eventId,
+        })),
+      );
+    } catch {
+      const stale = createStaleMirror({
+        role,
+        calendarId: workspace.ownedCalendarIds[role],
+        managementHorizon: input.managementHorizon,
+        previous,
+      });
+      mirrors.push(stale);
+    }
   }
-
+  await input.proposalStore.markStaleForDeletedItems(deletedItems);
   for (const mirror of mirrors) await input.mirrorStore.write(mirror);
+
+  const staleCount = mirrors.filter(
+    ({ freshness }) => freshness === "stale",
+  ).length;
 
   return {
     schemaVersion: 1,
     command: "calendar refresh",
-    outcome: "refreshed",
+    outcome:
+      staleCount === 0
+        ? "refreshed"
+        : staleCount === mirrors.length
+          ? "stale"
+          : "partially-refreshed",
     managementHorizon: input.managementHorizon,
     calendars: mirrors.map((mirror) => ({
       role: mirror.role,
-      refreshedAt: mirror.refreshedAt,
+      lastSuccessfulRefresh: mirror.lastSuccessfulRefresh,
       freshness: mirror.freshness,
       counts: countMirrorItems(mirror.items),
     })),
-    placementSuggestions: mirrors.flatMap(placementSuggestions),
+    placementSuggestions: mirrors
+      .filter(({ freshness }) => freshness === "fresh")
+      .flatMap(placementSuggestions),
   };
 }
 
-function createMirror(input: {
+async function readChanges(input: {
+  reader: CalendarRefreshReader;
+  calendarId: string;
+  managementHorizon: string;
+  syncToken?: string | undefined;
+}): Promise<{
+  events: CalendarEvent[];
+  nextSyncToken: string;
+  performedFullRefresh: boolean;
+}> {
+  try {
+    return {
+      ...(await input.reader.listEventChanges({
+        calendarId: input.calendarId,
+        managementHorizon: input.managementHorizon,
+        ...(input.syncToken === undefined
+          ? {}
+          : { syncToken: input.syncToken }),
+      })),
+      performedFullRefresh: false,
+    };
+  } catch (error) {
+    if (!(error instanceof CalendarSyncTokenExpiredError)) throw error;
+    return {
+      ...(await input.reader.listEventChanges({
+        calendarId: input.calendarId,
+        managementHorizon: input.managementHorizon,
+      })),
+      performedFullRefresh: true,
+    };
+  }
+}
+
+function createFreshMirror(input: {
   role: OwnedCalendarRole;
   calendarId: string;
   managementHorizon: string;
   refreshedAt: string;
+  previous?: OwnedCalendarMirror | undefined;
+  incremental: boolean;
   events: CalendarEvent[];
+  nextSyncToken: string;
+}): { mirror: OwnedCalendarMirror; deletedEventIds: string[] } {
+  const previousItems = input.incremental ? (input.previous?.items ?? []) : [];
+  const itemsById = new Map(
+    previousItems.map((item) => [item.event.id, item] as const),
+  );
+  const tombstonesById = new Map(
+    (input.previous?.tombstones ?? []).map((tombstone) => [
+      tombstone.event.id,
+      tombstone,
+    ]),
+  );
+  const deletedEventIds = new Set<string>();
+  for (const event of input.events) {
+    if (event.status === "cancelled") {
+      const lastKnown = itemsById.get(event.id)?.event;
+      itemsById.delete(event.id);
+      tombstonesById.set(event.id, {
+        deletedAt: input.refreshedAt,
+        event: lastKnown ?? tombstonesById.get(event.id)?.event ?? event,
+      });
+      deletedEventIds.add(event.id);
+      continue;
+    }
+    itemsById.set(event.id, {
+      actualCalendarRole: input.role,
+      access: isInvitedEvent(event) ? "invited-read-only" : "owned",
+      event,
+    });
+    tombstonesById.delete(event.id);
+  }
+  if (!input.incremental) {
+    for (const item of input.previous?.items ?? []) {
+      if (itemsById.has(item.event.id)) continue;
+      if (!tombstonesById.has(item.event.id)) {
+        tombstonesById.set(item.event.id, {
+          deletedAt: input.refreshedAt,
+          event: item.event,
+        });
+      }
+      deletedEventIds.add(item.event.id);
+    }
+  }
+  return {
+    mirror: {
+      schemaVersion: 1,
+      role: input.role,
+      calendarId: input.calendarId,
+      managementHorizon: input.managementHorizon,
+      lastSuccessfulRefresh: input.refreshedAt,
+      freshness: "fresh",
+      syncToken: input.nextSyncToken,
+      items: [...itemsById.values()],
+      tombstones: [...tombstonesById.values()],
+    },
+    deletedEventIds: [...deletedEventIds],
+  };
+}
+
+function createStaleMirror(input: {
+  role: OwnedCalendarRole;
+  calendarId: string;
+  managementHorizon: string;
+  previous?: OwnedCalendarMirror | undefined;
 }): OwnedCalendarMirror {
   return {
     schemaVersion: 1,
     role: input.role,
     calendarId: input.calendarId,
     managementHorizon: input.managementHorizon,
-    refreshedAt: input.refreshedAt,
-    freshness: "fresh",
-    items: input.events.map((event) => ({
-      actualCalendarRole: input.role,
-      access: isInvitedEvent(event) ? "invited-read-only" : "owned",
-      event,
-    })),
+    lastSuccessfulRefresh: input.previous?.lastSuccessfulRefresh ?? null,
+    freshness: "stale",
+    ...(input.previous?.syncToken === undefined
+      ? {}
+      : { syncToken: input.previous.syncToken }),
+    items: input.previous?.items ?? [],
+    tombstones: input.previous?.tombstones ?? [],
   };
 }
 

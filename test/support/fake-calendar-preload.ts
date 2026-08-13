@@ -9,6 +9,7 @@ interface FakeCalendar {
 }
 
 interface FakeCalendarState {
+  ambiguousCreateFailures?: string[];
   calendars: FakeCalendar[];
   eventReadFailures?: string[];
   eventPageSizes?: Record<string, number>;
@@ -18,6 +19,7 @@ interface FakeCalendarState {
   incrementalEvents?: Record<string, Record<string, unknown[]>>;
   nextSyncTokens?: Record<string, string>;
   nextId?: number;
+  omitCreatedFromIncremental?: boolean;
   requests?: Array<{
     body?: unknown;
     credential?: string;
@@ -92,6 +94,55 @@ prototype.request = async function (options) {
   const eventsMatch = options.url?.match(
     /^https:\/\/www\.googleapis\.com\/calendar\/v3\/calendars\/([^/]+)\/events$/u,
   );
+  const eventMatch = options.url?.match(
+    /^https:\/\/www\.googleapis\.com\/calendar\/v3\/calendars\/([^/]+)\/events\/([^/]+)$/u,
+  );
+  if (
+    options.method === "GET" &&
+    eventMatch !== null &&
+    eventMatch !== undefined
+  ) {
+    const calendarId = decodeURIComponent(eventMatch[1] ?? "");
+    const eventId = decodeURIComponent(eventMatch[2] ?? "");
+    const event = state.events?.[calendarId]?.find(
+      (candidate) =>
+        typeof candidate === "object" &&
+        candidate !== null &&
+        "id" in candidate &&
+        candidate.id === eventId,
+    );
+    await writeFile(statePath, `${JSON.stringify(state)}\n`);
+    if (event === undefined)
+      throw new Error(`Synthetic event ${eventId} not found.`);
+    return { data: event };
+  }
+  if (
+    options.method === "POST" &&
+    eventsMatch !== null &&
+    eventsMatch !== undefined
+  ) {
+    const calendarId = decodeURIComponent(eventsMatch[1] ?? "");
+    const event = options.data as { id?: string };
+    state.events ??= {};
+    state.events[calendarId] ??= [];
+    state.events[calendarId].push(event);
+    state.incrementalEvents ??= {};
+    state.incrementalEvents[calendarId] ??= {};
+    const nextSyncToken =
+      state.nextSyncTokens?.[calendarId] ??
+      `${calendarId.replace(/-id$/u, "")}-sync-1`;
+    state.incrementalEvents[calendarId][nextSyncToken] =
+      state.omitCreatedFromIncremental === true ? [] : [event];
+    await writeFile(statePath, `${JSON.stringify(state)}\n`);
+    if (state.ambiguousCreateFailures?.includes(event.id ?? "") === true) {
+      state.ambiguousCreateFailures = state.ambiguousCreateFailures.filter(
+        (id) => id !== event.id,
+      );
+      await writeFile(statePath, `${JSON.stringify(state)}\n`);
+      throw new Error("Synthetic response lost after Calendar create.");
+    }
+    return { data: event };
+  }
   if (
     options.method === "GET" &&
     eventsMatch !== null &&

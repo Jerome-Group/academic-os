@@ -12,7 +12,36 @@ import type { CalendarProposalStore, OwnedCalendarRole } from "./types.js";
 export function createFileCalendarProposalStore(
   stateRoot: string,
 ): CalendarProposalStore {
+  const transition = async (
+    proposalId: string,
+    fields: Record<string, unknown>,
+  ): Promise<void> => {
+    const value = await readProposalState(stateRoot);
+    await replacePrivateCalendarJson(
+      join(stateRoot, "calendar", "pending-proposals.json"),
+      "pending-proposals",
+      {
+        schemaVersion: 1,
+        proposals: value.proposals.map((proposal) =>
+          isJsonObject(proposal) && proposal.id === proposalId
+            ? { ...proposal, ...fields }
+            : proposal,
+        ),
+      },
+    );
+  };
   return {
+    markPromoted: async (proposalId) =>
+      await transition(proposalId, { status: "promoted" }),
+    markStale: async (proposalId, reason) =>
+      await transition(proposalId, { status: "stale", staleReason: reason }),
+    read: async (proposalId) => {
+      const value = await readProposalState(stateRoot);
+      const proposal = value.proposals.find(
+        (candidate) => isJsonObject(candidate) && candidate.id === proposalId,
+      );
+      return proposal as Awaited<ReturnType<CalendarProposalStore["read"]>>;
+    },
     writeCurrent: async (proposal) => {
       await replacePrivateCalendarJson(
         join(stateRoot, "calendar", "pending-proposals.json"),
@@ -64,6 +93,26 @@ export function createFileCalendarProposalStore(
       });
     },
   };
+}
+
+async function readProposalState(
+  stateRoot: string,
+): Promise<{ proposals: unknown[] }> {
+  try {
+    const value: unknown = JSON.parse(
+      await readFile(
+        join(stateRoot, "calendar", "pending-proposals.json"),
+        "utf8",
+      ),
+    );
+    if (!isJsonObject(value) || !Array.isArray(value.proposals)) {
+      throw invalidProposalState();
+    }
+    return { proposals: value.proposals };
+  } catch (error) {
+    if (error instanceof OperationalError) throw error;
+    throw invalidProposalState();
+  }
 }
 
 function isDeletedDependency(

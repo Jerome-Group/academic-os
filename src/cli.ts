@@ -4,6 +4,7 @@ import { runAuditCommand } from "./commands/audit-command.js";
 import { runCalendarSetupCommand } from "./commands/calendar-setup-command.js";
 import { runCalendarRefreshCommand } from "./commands/calendar-refresh-command.js";
 import { runCalendarProposeCommand } from "./commands/calendar-propose-command.js";
+import { runCalendarPromoteCommand } from "./commands/calendar-promote-command.js";
 import { writeOperationalError } from "./commands/operational-error-output.js";
 import { runSeedCommand } from "./commands/seed-command.js";
 import { runRepairCommand } from "./commands/repair-command.js";
@@ -22,6 +23,8 @@ try {
     await runCalendarRefreshCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "calendar" && arguments_[1] === "propose") {
     await runCalendarProposeCommand(arguments_.slice(1), json);
+  } else if (arguments_[0] === "calendar" && arguments_[1] === "promote") {
+    await runCalendarPromoteCommand(arguments_.slice(1), json);
   } else {
     await runAuditCommand(arguments_, json);
   }

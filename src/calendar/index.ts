@@ -1,8 +1,10 @@
 export {
   CALENDAR_EVENTS_READONLY_SCOPE,
+  CALENDAR_EVENTS_WRITE_SCOPE,
   CALENDAR_LIST_READONLY_SCOPE,
   CALENDAR_PROPERTIES_WRITE_SCOPE,
   createGoogleCalendarRefreshReader,
+  createGoogleCalendarPromotionWriter,
   createGoogleCalendarProposalReader,
   createGoogleCalendarSetupReader,
   createGoogleCalendarSetupWriter,
@@ -14,8 +16,13 @@ export {
 } from "./file-owned-calendar-workspace-store.js";
 export { createFileOwnedCalendarMirrorStore } from "./file-owned-calendar-mirror-store.js";
 export { createFileCalendarProposalStore } from "./file-calendar-proposal-store.js";
+export { createFileCalendarPromotionJournal } from "./file-calendar-promotion-journal.js";
 export { refreshOwnedCalendars } from "./refresh-owned-calendars.js";
-export { createCalendarProposal } from "./create-calendar-proposal.js";
+export {
+  calendarStateDigest,
+  createCalendarProposal,
+} from "./create-calendar-proposal.js";
+export { promoteCalendarProposal } from "./promote-calendar-proposal.js";
 export {
   DEFAULT_CALENDAR_TIMEZONE,
   setupOwnedCalendars,
@@ -39,7 +46,12 @@ export type {
   CalendarIntendedEvent,
   CalendarOverlap,
   CalendarProposeReport,
+  CalendarPromotionReport,
+  CalendarPromotionJournal,
+  CalendarPromotionRecord,
+  CalendarPromotionWriter,
   CalendarProposalStore,
+  CalendarProposalStaleReason,
   CalendarTombstone,
   CalendarSetupReader,
   CalendarSetupReport,

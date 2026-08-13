@@ -3,6 +3,7 @@ export {
   CALENDAR_LIST_READONLY_SCOPE,
   CALENDAR_PROPERTIES_WRITE_SCOPE,
   createGoogleCalendarRefreshReader,
+  createGoogleCalendarProposalReader,
   createGoogleCalendarSetupReader,
   createGoogleCalendarSetupWriter,
 } from "./google-calendar-client.js";
@@ -14,6 +15,7 @@ export {
 export { createFileOwnedCalendarMirrorStore } from "./file-owned-calendar-mirror-store.js";
 export { createFileCalendarProposalStore } from "./file-calendar-proposal-store.js";
 export { refreshOwnedCalendars } from "./refresh-owned-calendars.js";
+export { createCalendarProposal } from "./create-calendar-proposal.js";
 export {
   DEFAULT_CALENDAR_TIMEZONE,
   setupOwnedCalendars,
@@ -27,6 +29,16 @@ export type {
   CalendarEvent,
   CalendarRefreshReader,
   CalendarRefreshReport,
+  CalendarProposal,
+  CalendarProposalCandidate,
+  CalendarInterval,
+  CalendarProposalItemKind,
+  CalendarProposalLiveVersion,
+  CalendarProposalReader,
+  CalendarProposalSource,
+  CalendarIntendedEvent,
+  CalendarOverlap,
+  CalendarProposeReport,
   CalendarProposalStore,
   CalendarTombstone,
   CalendarSetupReader,

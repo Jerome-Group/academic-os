@@ -1,6 +1,7 @@
 # Operator guide
 
-The CLI has `seed`, `audit`, `calendar setup`, pull-only `calendar refresh` and separately gated
+The CLI has `seed`, `audit`, `calendar setup`, pull-only `calendar refresh`, private
+`calendar propose` and separately gated
 `repair` commands. It does not
 schedule weekly LLM work or edit module instructions autonomously.
 
@@ -63,6 +64,45 @@ Repeated runs need no manual token reset. A nonzero result may still have advanc
 read the named stale calendars and their last successful Refresh in either human or `--json`
 output. Do not use stale state for Promotion; rerun Refresh after fixing provider access. The
 freshness and deletion-safety boundary is recorded in ADR-0006.
+
+## Calendar propose
+
+Refresh first, then prepare one private create Proposal from an input file outside git:
+
+```sh
+node dist/src/cli.js calendar propose --config academic-os.config.json \
+  --input /private/path/calendar-proposal-input.json
+```
+
+The versioned input names a source and one item. Fixed and Routine events use `start` and `end`
+objects containing an ISO-8601 `dateTime` with an offset and optional IANA `timeZone`; omitted
+timezones default to Asia/Singapore. Timed milestones use `at` and a transparent one-minute
+provider representation while consuming no conflict interval; all-day milestones use a
+timezone-free `date`.
+
+```json
+{
+  "schemaVersion": 1,
+  "source": { "kind": "instruction", "reference": "private-request-1" },
+  "item": {
+    "kind": "fixed-event",
+    "calendarRole": "Academic",
+    "summary": "Topology seminar",
+    "start": { "dateTime": "2026-08-20T10:00:00+08:00" },
+    "end": { "dateTime": "2026-08-20T11:00:00+08:00" },
+    "travelBuffer": { "beforeMinutes": 10, "afterMinutes": 5 }
+  }
+}
+```
+
+`kind` is `fixed-event`, `routine-event`, `timed-milestone` or `all-day-milestone`. Fixed events
+target Academic or Commitments; Routine events target Routine. Propose reads current Owned mirror
+versions, calendar defaults and bounded availability through read-only credentials. Fixed busy
+overlaps block and write no Proposal; Routine overlaps warn. Milestones consume no interval.
+Only an explicitly supplied travel buffer expands a conflict check. The ready Proposal replaces
+the current pending Proposal beneath `stateRoot/calendar/`; Observed event details are reported
+only in the transient preview and are not persisted. Propose never changes Google Calendar. Use
+`--json` for the deterministic equivalent preview.
 
 ## Seed
 
@@ -156,6 +196,7 @@ is mutable and therefore is not itself immutable or WORM storage.
 - Calendar setup preview never mutates Google; apply may create only missing secondary Owned
   calendars.
 - Calendar refresh uses only read-only event authority and never mutates Google.
+- Calendar propose uses only read-only authority and writes only private Proposal state.
 - Audit has no repair path and no write-capable Drive API dependency.
 - A contract change edits `docs/module-folder-contract.md`; repair resolves only an approved
   deviation and cannot change the contract.

@@ -7,8 +7,17 @@ export const OWNED_CALENDAR_ROLES: readonly OwnedCalendarRole[] = [
 ];
 
 export interface CalendarListEntry {
+  accessRole?: string;
+  colorId?: string;
+  defaultReminders?: Array<{
+    method: string;
+    minutes: number;
+  }>;
+  etag?: string;
+  hidden?: boolean;
   id: string;
   primary?: boolean;
+  selected?: boolean;
   summary: string;
 }
 
@@ -85,6 +94,15 @@ export interface CalendarRefreshReader {
   }>;
 }
 
+export interface CalendarProposalReader {
+  listCalendars(): Promise<CalendarListEntry[]>;
+  listEventOccurrences(input: {
+    calendarId: string;
+    timeMin: string;
+    timeMax: string;
+  }): Promise<CalendarEvent[]>;
+}
+
 export interface MirroredCalendarItem {
   actualCalendarRole: OwnedCalendarRole;
   access: "owned" | "invited-read-only";
@@ -120,6 +138,95 @@ export interface CalendarProposalStore {
       eventId: string;
     }>,
   ): Promise<void>;
+  writeCurrent(proposal: CalendarProposal): Promise<void>;
+}
+
+export interface CalendarProposalSource {
+  kind: string;
+  reference: string;
+}
+
+export type CalendarProposalItemKind =
+  | "fixed-event"
+  | "routine-event"
+  | "timed-milestone"
+  | "all-day-milestone";
+
+export interface CalendarInterval {
+  start: string;
+  end: string;
+}
+
+export interface CalendarIntendedEvent {
+  summary: string;
+  visibility: "private";
+  transparency: "opaque" | "transparent";
+  start: { date: string } | { dateTime: string; timeZone: string };
+  end: { date: string } | { dateTime: string; timeZone: string };
+}
+
+export interface CalendarProposalLiveVersion {
+  kind: "owned-mirror";
+  calendarRole: OwnedCalendarRole;
+  calendarId: string;
+  syncToken: string;
+  lastSuccessfulRefresh: string;
+}
+
+export interface CalendarProposalCandidate {
+  id: string;
+  status?: "ready";
+  operation: "create";
+  source: CalendarProposalSource;
+  itemKind: CalendarProposalItemKind;
+  target: {
+    calendarRole: OwnedCalendarRole;
+    calendarId: string;
+  };
+  intendedEvent: CalendarIntendedEvent;
+  inheritedDefaults: {
+    calendarColorId: string | null;
+    reminders: Array<{ method: string; minutes: number }>;
+  };
+  targetCalendarVersion: {
+    calendarId: string;
+    etag: string;
+  };
+  idempotencyKey: string;
+  liveVersions: CalendarProposalLiveVersion[];
+  relevantAvailabilityVersion: {
+    digest: string;
+    interval: CalendarInterval | null;
+    checkedCalendarCount: number;
+  };
+  conflictSummary: {
+    blockers: number;
+    warnings: number;
+  };
+}
+
+export interface CalendarProposal extends CalendarProposalCandidate {
+  status: "ready";
+}
+
+export interface CalendarOverlap {
+  severity: "block" | "warning";
+  source: "Owned" | "Observed";
+  calendarRole?: OwnedCalendarRole;
+  eventId: string;
+  summary: string;
+  start: string;
+  end: string;
+}
+
+export interface CalendarProposeReport {
+  schemaVersion: 1;
+  command: "calendar propose";
+  outcome: "ready" | "blocked";
+  proposal: CalendarProposalCandidate;
+  conflicts: CalendarOverlap[];
+  warnings: CalendarOverlap[];
+  workspace: "written" | "not-written";
 }
 
 export interface PlacementSuggestion {

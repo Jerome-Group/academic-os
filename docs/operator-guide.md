@@ -66,6 +66,46 @@ read the named stale calendars and their last successful Refresh in either human
 output. Do not use stale state for Promotion; rerun Refresh after fixing provider access. The
 freshness and deletion-safety boundary is recorded in ADR-0006.
 
+### Install the daily local Refresh (macOS)
+
+Build the current CLI, then install the private per-user LaunchAgent from this checkout:
+
+```sh
+npm run build
+node scripts/install-calendar-refresh-launchd.mjs \
+  --config /private/path/academic-os.config.json
+```
+
+The installer requires the Mac timezone to be `Asia/Singapore`. It writes only
+`~/Library/LaunchAgents/com.jerome-group.academic-os.calendar-refresh.plist`; launchd runs the
+generated command at 05:00 and coalesces a missed sleep-time run on wake. `RunAtLoad` is disabled,
+stdout and stderr go to `/dev/null`, and the command invokes only `calendar refresh` with the
+configured scheduled-read credential. The interactive-write credential is not used.
+
+Inspect the loaded job and its exact private plist:
+
+```sh
+plutil -p "$HOME/Library/LaunchAgents/com.jerome-group.academic-os.calendar-refresh.plist"
+launchctl print "gui/$(id -u)/com.jerome-group.academic-os.calendar-refresh"
+```
+
+Run the installed job manually:
+
+```sh
+launchctl kickstart -k "gui/$(id -u)/com.jerome-group.academic-os.calendar-refresh"
+```
+
+For a visible report, run the CLI directly with the same private config. A successful scheduled
+Refresh is silent. A nonzero Refresh retains last-good mirrors, marks affected calendars stale,
+and causes one concise local notification; repeated calendar failures in that run do not create
+additional notifications. State, credentials, exact IDs, and scheduler files stay outside git.
+
+Remove the exact job and plist:
+
+```sh
+node scripts/install-calendar-refresh-launchd.mjs --remove
+```
+
 ## Calendar propose
 
 Refresh first, then prepare one private create Proposal from an input file outside git:

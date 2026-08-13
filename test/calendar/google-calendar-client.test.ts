@@ -6,6 +6,7 @@ import {
   CALENDAR_LIST_READONLY_SCOPE,
   CALENDAR_PROPERTIES_WRITE_SCOPE,
   createGoogleCalendarRefreshReader,
+  createGoogleCalendarPromotionWriter,
   createGoogleCalendarSetupReader,
   createGoogleCalendarSetupWriter,
   type CalendarHttpRequest,
@@ -77,6 +78,61 @@ describe("Google Calendar setup adapter", () => {
       CALENDAR_PROPERTIES_WRITE_SCOPE,
       "https://www.googleapis.com/auth/calendar.calendars",
     );
+  });
+});
+
+describe("Google Calendar Promotion adapter", () => {
+  it("maps exact patch and move requests", async () => {
+    const requests: CalendarHttpRequest[] = [];
+    const requester: CalendarRequester = {
+      request: async <T>(request: CalendarHttpRequest) => {
+        requests.push(request);
+        return { data: { id: "event/id" } as T };
+      },
+    };
+    const writer = createGoogleCalendarPromotionWriter(
+      "/private/write",
+      requester,
+    );
+    await writer.patchEvent({
+      calendarId: "source/id",
+      eventId: "event/id",
+      patch: { summary: "Changed" },
+    });
+    await writer.patchEvent({
+      calendarId: "source/id",
+      eventId: "rich/event",
+      patch: {
+        attachments: [{ fileUrl: "https://example.invalid/file" }],
+        conferenceData: { createRequest: { requestId: "conference" } },
+      },
+    });
+    await writer.moveEvent({
+      sourceCalendarId: "source/id",
+      targetCalendarId: "target/id",
+      eventId: "event/id",
+    });
+    assert.deepEqual(requests, [
+      {
+        url: "https://www.googleapis.com/calendar/v3/calendars/source%2Fid/events/event%2Fid",
+        method: "PATCH",
+        data: { summary: "Changed" },
+      },
+      {
+        url: "https://www.googleapis.com/calendar/v3/calendars/source%2Fid/events/rich%2Fevent",
+        method: "PATCH",
+        data: {
+          attachments: [{ fileUrl: "https://example.invalid/file" }],
+          conferenceData: { createRequest: { requestId: "conference" } },
+        },
+        params: { supportsAttachments: true, conferenceDataVersion: 1 },
+      },
+      {
+        url: "https://www.googleapis.com/calendar/v3/calendars/source%2Fid/events/event%2Fid/move",
+        method: "POST",
+        params: { destination: "target/id" },
+      },
+    ]);
   });
 });
 

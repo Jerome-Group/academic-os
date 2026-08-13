@@ -1,8 +1,14 @@
 import { GoogleAuth } from "google-auth-library";
+import { createHash } from "node:crypto";
 
 import { CalendarSyncTokenExpiredError } from "./calendar-refresh-error.js";
+import {
+  futureCalendarRecurrence,
+  trimCalendarRecurrence,
+} from "./calendar-recurrence.js";
 import type {
   CalendarEvent,
+  CalendarEventPatch,
   CalendarListEntry,
   CalendarProposalReader,
   CalendarPromotionWriter,
@@ -37,7 +43,7 @@ interface CalendarEventsPage {
 
 export interface CalendarHttpRequest {
   url: string;
-  method: "GET" | "POST";
+  method: "GET" | "POST" | "PATCH" | "PUT";
   params?: {
     maxResults?: 250;
     pageToken?: string;
@@ -47,6 +53,10 @@ export interface CalendarHttpRequest {
     timeMax?: string;
     timeMin?: string;
     syncToken?: string;
+    destination?: string;
+    originalStart?: string;
+    supportsAttachments?: true;
+    conferenceDataVersion?: 1;
   };
   data?: Record<string, unknown>;
 }
@@ -79,11 +89,236 @@ export function createGoogleCalendarPromotionWriter(
       });
       return response.data;
     },
+    patchEvent: async ({ calendarId, eventId, patch }) => {
+      const params = patchRequestParameters(patch);
+      await requester.request({
+        url: `${eventCollectionUrl(calendarId)}/${encodeURIComponent(eventId)}`,
+        method: "PATCH",
+        data: { ...patch },
+        ...(Object.keys(params).length === 0 ? {} : { params }),
+      });
+    },
+    moveEvent: async ({ sourceCalendarId, targetCalendarId, eventId }) => {
+      await requester.request({
+        url: `${eventCollectionUrl(sourceCalendarId)}/${encodeURIComponent(eventId)}/move`,
+        method: "POST",
+        params: { destination: targetCalendarId },
+      });
+    },
+    splitRecurringEvent: async (input) =>
+      await splitGoogleRecurringEvent(requester, input),
   };
+}
+
+async function splitGoogleRecurringEvent(
+  requester: CalendarRequester,
+  input: Parameters<CalendarPromotionWriter["splitRecurringEvent"]>[0],
+): Promise<{ eventId: string }> {
+  const newEventId = `a${createHash("sha256").update(input.idempotencyKey).digest("hex").slice(0, 31)}`;
+  if (await eventExists(requester, input.targetCalendarId, newEventId)) {
+    await replayRecurrenceExceptions(requester, input, newEventId);
+    return { eventId: newEventId };
+  }
+  const instance = (
+    await requester.request<CalendarEvent>({
+      url: `${eventCollectionUrl(input.sourceCalendarId)}/${encodeURIComponent(input.instanceId)}`,
+      method: "GET",
+    })
+  ).data;
+  const splitPoint = instance.originalStartTime ?? instance.start;
+  const splitBoundary = splitPoint?.dateTime ?? splitPoint?.date;
+  const originalRecurrence = input.recurringMaster.recurrence;
+  if (splitBoundary === undefined || originalRecurrence === undefined) {
+    throw new Error(
+      "This-and-future Promotion requires a timed recurring occurrence and master.",
+    );
+  }
+  const priorInstances = await requester.request<CalendarEventsPage>({
+    url: `${eventCollectionUrl(input.sourceCalendarId)}/${encodeURIComponent(input.recurringEventId)}/instances`,
+    method: "GET",
+    params: { timeMax: recurrenceTimeMax(splitBoundary) },
+  });
+  await trimRecurringMaster(requester, input, splitBoundary);
+  await createFutureSeries(
+    requester,
+    input,
+    instance,
+    newEventId,
+    futureCalendarRecurrence(
+      originalRecurrence,
+      priorInstances.data.items?.length ?? 0,
+    ),
+  );
+  await replayRecurrenceExceptions(requester, input, newEventId);
+  return { eventId: newEventId };
+}
+
+async function trimRecurringMaster(
+  requester: CalendarRequester,
+  input: Parameters<CalendarPromotionWriter["splitRecurringEvent"]>[0],
+  splitBoundary: string,
+): Promise<void> {
+  const trimmed = {
+    ...writableEvent(input.recurringMaster),
+    recurrence: trimCalendarRecurrence(
+      input.recurringMaster.recurrence ?? [],
+      splitBoundary,
+    ),
+  };
+  await requester.request({
+    url: `${eventCollectionUrl(input.sourceCalendarId)}/${encodeURIComponent(input.recurringEventId)}`,
+    method: "PUT",
+    data: trimmed,
+    params: richEventRequestParameters(trimmed),
+  });
+}
+
+async function createFutureSeries(
+  requester: CalendarRequester,
+  input: Parameters<CalendarPromotionWriter["splitRecurringEvent"]>[0],
+  instance: CalendarEvent,
+  eventId: string,
+  recurrence: string[],
+): Promise<void> {
+  const master = input.recurringMaster;
+  const future = {
+    ...writableEvent(master),
+    ...input.patch,
+    id: eventId,
+    start: instance.start,
+    end: instance.end,
+    recurrence,
+    extendedProperties: idempotentExtendedProperties(
+      master,
+      input.idempotencyKey,
+    ),
+  };
+  await requester.request({
+    url: eventCollectionUrl(input.targetCalendarId),
+    method: "POST",
+    data: future,
+    params: richEventRequestParameters(future),
+  });
+}
+
+async function replayRecurrenceExceptions(
+  requester: CalendarRequester,
+  input: Parameters<CalendarPromotionWriter["splitRecurringEvent"]>[0],
+  eventId: string,
+): Promise<void> {
+  for (const exception of input.exceptions) {
+    const originalStart =
+      exception.originalStartTime?.dateTime ??
+      exception.originalStartTime?.date;
+    if (originalStart === undefined) continue;
+    const instances = await requester.request<CalendarEventsPage>({
+      url: `${eventCollectionUrl(input.targetCalendarId)}/${eventId}/instances`,
+      method: "GET",
+      params: { originalStart },
+    });
+    const replacement = instances.data.items?.[0];
+    if (replacement === undefined) {
+      throw new Error(
+        `Calendar returned no replacement instance for ${originalStart}.`,
+      );
+    }
+    const patch = writableException(exception);
+    await requester.request({
+      url: `${eventCollectionUrl(input.targetCalendarId)}/${encodeURIComponent(replacement.id)}`,
+      method: "PATCH",
+      data: patch,
+      params: richEventRequestParameters(patch),
+    });
+  }
+}
+
+async function eventExists(
+  requester: CalendarRequester,
+  calendarId: string,
+  eventId: string,
+): Promise<boolean> {
+  try {
+    await requester.request({
+      url: `${eventCollectionUrl(calendarId)}/${eventId}`,
+      method: "GET",
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function idempotentExtendedProperties(
+  master: CalendarEvent,
+  idempotencyKey: string,
+): Record<string, unknown> {
+  return {
+    ...(isRecord(master.extendedProperties) ? master.extendedProperties : {}),
+    private: {
+      ...(isRecord(master.extendedProperties) &&
+      isRecord(master.extendedProperties.private)
+        ? master.extendedProperties.private
+        : {}),
+      academicOsIdempotencyKey: idempotencyKey,
+    },
+  };
+}
+
+function writableEvent(event: CalendarEvent): Record<string, unknown> {
+  const value = { ...event };
+  for (const key of [
+    "id",
+    "etag",
+    "created",
+    "updated",
+    "htmlLink",
+    "iCalUID",
+    "kind",
+    "recurringEventId",
+    "originalStartTime",
+    "sequence",
+    "status",
+  ])
+    delete value[key];
+  return value;
+}
+
+function writableException(event: CalendarEvent): Record<string, unknown> {
+  return {
+    ...writableEvent(event),
+    ...(typeof event.status === "string" ? { status: event.status } : {}),
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function eventCollectionUrl(calendarId: string): string {
   return `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`;
+}
+
+function patchRequestParameters(patch: CalendarEventPatch): {
+  supportsAttachments?: true;
+  conferenceDataVersion?: 1;
+} {
+  return {
+    ...(patch.attachments === undefined ? {} : { supportsAttachments: true }),
+    ...(patch.conferenceData === undefined ? {} : { conferenceDataVersion: 1 }),
+  };
+}
+
+function richEventRequestParameters(_event: Record<string, unknown>): {
+  supportsAttachments: true;
+  conferenceDataVersion: 1;
+} {
+  return { supportsAttachments: true, conferenceDataVersion: 1 };
+}
+
+function recurrenceTimeMax(boundary: string): string {
+  return /^\d{4}-\d{2}-\d{2}$/u.test(boundary)
+    ? `${boundary}T00:00:00Z`
+    : boundary;
 }
 
 export interface CalendarRequester {

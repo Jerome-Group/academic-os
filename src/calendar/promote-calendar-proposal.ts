@@ -1,14 +1,19 @@
 import { createHash } from "node:crypto";
 
 import { OperationalError } from "../operational-error.js";
+import { eventContainsPatch } from "./calendar-event-helpers.js";
 import {
   collectCalendarAvailability,
   findCalendarOverlaps,
 } from "./calendar-conflicts.js";
-import { calendarStateDigest } from "./create-calendar-proposal.js";
+import { calendarStateDigest } from "./calendar-state-digest.js";
 import { trimCalendarRecurrence } from "./calendar-recurrence.js";
+import { promoteRoutineMigration } from "./promote-routine-migration.js";
 import type {
   CalendarProposal,
+  CalendarCancelProposalCandidate,
+  CalendarChangeProposalCandidate,
+  CalendarCreateProposalCandidate,
   CalendarEventPatch,
   CalendarProposalReader,
   CalendarProposalStore,
@@ -16,6 +21,7 @@ import type {
   CalendarRefreshReport,
   CalendarPromotionReport,
   CalendarPromotionWriter,
+  CalendarRestoreProposalCandidate,
   OwnedCalendarMirrorStore,
   OwnedCalendarWorkspaceReader,
 } from "./types.js";
@@ -32,6 +38,16 @@ type PromotionInput = {
   mirrorStore: OwnedCalendarMirrorStore;
 };
 
+type NonRoutineCalendarProposal =
+  | (CalendarCreateProposalCandidate & { status: "ready" })
+  | (CalendarChangeProposalCandidate & { status: "ready" })
+  | (CalendarCancelProposalCandidate & { status: "ready" })
+  | (CalendarRestoreProposalCandidate & { status: "ready" });
+
+type CalendarMoveProposal = CalendarChangeProposalCandidate & {
+  status: "ready";
+};
+
 export async function promoteCalendarProposal(
   input: PromotionInput,
 ): Promise<CalendarPromotionReport> {
@@ -41,6 +57,9 @@ export async function promoteCalendarProposal(
       "invalid-target",
       "Calendar Promote requires an existing ready Proposal ID.",
     );
+  }
+  if (proposal.operation === "routine-migration") {
+    return await promoteRoutineMigration(input, proposal);
   }
   const eventId =
     proposal.operation === "create" || proposal.operation === "restore"
@@ -144,7 +163,7 @@ export async function promoteCalendarProposal(
 
 async function recoverInterruptedMove(
   input: PromotionInput,
-  proposal: CalendarProposal,
+  proposal: CalendarMoveProposal,
   eventId: string,
 ): Promise<CalendarPromotionReport> {
   if (proposal.operation !== "move") return blockedReport(proposal.id);
@@ -174,7 +193,7 @@ async function recoverInterruptedMove(
 
 async function finalizePromotion(
   input: PromotionInput,
-  proposal: CalendarProposal,
+  proposal: NonRoutineCalendarProposal,
   eventId: string,
   calendarId: string,
   appendJournal: boolean,
@@ -275,19 +294,9 @@ async function markProposalStale(
   };
 }
 
-function eventContainsPatch(
-  event: Awaited<ReturnType<CalendarPromotionWriter["readEvent"]>>,
-  patch: CalendarEventPatch,
-): boolean {
-  return Object.entries(patch).every(
-    ([key, value]) =>
-      calendarStateDigest(event[key]) === calendarStateDigest(value),
-  );
-}
-
 async function mirrorContainsVerifiedEvent(
   input: Pick<Parameters<typeof promoteCalendarProposal>[0], "mirrorStore">,
-  proposal: CalendarProposal,
+  proposal: NonRoutineCalendarProposal,
   verifiedEvent: Awaited<ReturnType<CalendarPromotionWriter["readEvent"]>>,
 ): Promise<boolean> {
   const currentMirror = await input.mirrorStore.read(
@@ -304,7 +313,7 @@ async function mirrorContainsVerifiedEvent(
 
 async function sourceItemExists(
   input: Pick<Parameters<typeof promoteCalendarProposal>[0], "mirrorStore">,
-  proposal: CalendarProposal,
+  proposal: CalendarMoveProposal,
 ): Promise<boolean> {
   if (proposal.operation !== "move") return false;
   const mirror = await input.mirrorStore.read(proposal.sourceItem.calendarRole);
@@ -325,7 +334,7 @@ function blockedReport(proposalId: string): CalendarPromotionReport {
 }
 
 async function validateProposal(
-  proposal: CalendarProposal,
+  proposal: NonRoutineCalendarProposal,
   input: Pick<
     Parameters<typeof promoteCalendarProposal>[0],
     "reader" | "workspaceReader" | "mirrorStore"
@@ -427,7 +436,7 @@ async function validateProposal(
 
 async function applyProposal(
   writer: CalendarPromotionWriter,
-  proposal: CalendarProposal,
+  proposal: NonRoutineCalendarProposal,
   eventId: string,
 ): Promise<string> {
   if (proposal.operation === "create" || proposal.operation === "restore") {

@@ -200,6 +200,7 @@ export interface CalendarPromotionReport {
   outcome: "promoted" | "retry" | "stale" | "blocked";
   proposalId: string;
   verifiedEvent?: CalendarEvent;
+  verifiedEvents?: CalendarEvent[];
 }
 
 export interface CalendarPromotionRecord {
@@ -208,6 +209,7 @@ export interface CalendarPromotionRecord {
   eventId: string;
   idempotencyKey: string;
   calendarId?: string;
+  eventIds?: string[];
 }
 
 export interface CalendarPromotionJournal {
@@ -380,11 +382,79 @@ export interface CalendarRestoreProposalCandidate {
   conflictSummary: { blockers: number; warnings: number };
 }
 
+export interface CalendarProviderIdentity {
+  calendarRole: OwnedCalendarRole;
+  calendarId: string;
+  eventId: string;
+}
+
+export interface CalendarRoutineMigrationMove {
+  sourceItem: CalendarChangeProposalCandidate["sourceItem"];
+  target: {
+    calendarRole: "Routine";
+    calendarId: string;
+  };
+  patch: CalendarEventPatch;
+  recurrenceScope: "entire-series";
+  recurringMaster: CalendarEvent;
+  recurrenceExceptions: CalendarEvent[];
+  seriesEventIds: string[];
+}
+
+export type CalendarRoutineMigrationDecisionReason =
+  | "provider-identity-not-found"
+  | "provider-identity-deleted"
+  | "provider-identity-on-unexpected-calendar"
+  | "provider-identity-on-multiple-calendars"
+  | "not-recurring-series"
+  | "recurring-exception"
+  | "partial-recurring-series"
+  | "invited-series"
+  | "unsupported-event-type"
+  | "unreviewed-recurring-series";
+
+export interface CalendarRoutineMigrationDecision {
+  providerIdentity: CalendarProviderIdentity;
+  reason: CalendarRoutineMigrationDecisionReason;
+  summary?: string;
+  reviewedLabel?: string;
+  actualCalendarRole?: OwnedCalendarRole;
+}
+
+export interface CalendarRoutineMigrationCompletion {
+  providerIdentity: CalendarProviderIdentity;
+  summary?: string;
+}
+
+export interface CalendarRoutineMigrationProposalCandidate {
+  id: string;
+  status?: "ready";
+  operation: "routine-migration";
+  source: CalendarProposalSource;
+  itemKind: "routine-event";
+  target: {
+    calendarRole: "Routine";
+    calendarId: string;
+  };
+  moves: CalendarRoutineMigrationMove[];
+  completed: CalendarRoutineMigrationCompletion[];
+  decisions: CalendarRoutineMigrationDecision[];
+  idempotencyKey: string;
+  liveVersions: CalendarProposalLiveVersion[];
+  relevantAvailabilityVersion: {
+    digest: string;
+    interval: null;
+    checkedCalendarCount: 0;
+  };
+  conflictSummary: { blockers: 0; warnings: 0 };
+}
+
 export type CalendarProposalCandidate =
   | CalendarCreateProposalCandidate
   | CalendarChangeProposalCandidate
   | CalendarCancelProposalCandidate
-  | CalendarRestoreProposalCandidate;
+  | CalendarRestoreProposalCandidate
+  | CalendarRoutineMigrationProposalCandidate;
 
 export type CalendarProposal = CalendarProposalCandidate & { status: "ready" };
 

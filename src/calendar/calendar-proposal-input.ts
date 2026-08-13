@@ -6,6 +6,7 @@ import type {
   CalendarProposalItemKind,
   CalendarProposalSource,
   CalendarRecurrenceScope,
+  CalendarProviderIdentity,
   OwnedCalendarRole,
 } from "./types.js";
 
@@ -53,10 +54,80 @@ export interface ParsedCalendarRestoreProposalInput {
   eventId: string;
 }
 
+export interface ParsedCalendarRoutineMigrationProposalInput {
+  operation: "routine-migration";
+  source: CalendarProposalSource;
+  reviewedSeries: Array<{
+    providerIdentity: CalendarProviderIdentity;
+    label?: string;
+  }>;
+}
+
 export type ParsedCalendarActionProposalInput =
   | ParsedCalendarChangeProposalInput
   | ParsedCalendarCancelProposalInput
   | ParsedCalendarRestoreProposalInput;
+
+export function parseCalendarRoutineMigrationProposalInput(
+  value: unknown,
+): ParsedCalendarRoutineMigrationProposalInput | undefined {
+  if (!isObject(value) || !isObject(value.item)) return undefined;
+  if (value.item.operation !== "routine-migration") return undefined;
+  if (value.schemaVersion !== 1) invalidInput("schemaVersion must be 1");
+  const sourceValue = requireObject(value.source, "source");
+  const source = {
+    kind: requireNonEmptyString(sourceValue.kind, "source.kind"),
+    reference: requireNonEmptyString(sourceValue.reference, "source.reference"),
+  };
+  const reviewedValue = value.item.reviewedSeries;
+  if (!Array.isArray(reviewedValue)) {
+    invalidInput("item.reviewedSeries must be an array");
+  }
+  const seen = new Set<string>();
+  const reviewedSeries = reviewedValue.map((entry, index) => {
+    const reviewed = requireObject(
+      entry,
+      `item.reviewedSeries[${index.toString()}]`,
+    );
+    const providerIdentityValue = requireObject(
+      reviewed.providerIdentity,
+      `item.reviewedSeries[${index.toString()}].providerIdentity`,
+    );
+    const calendarRole = requireRole(providerIdentityValue.calendarRole);
+    if (calendarRole !== "Academic") {
+      invalidInput(
+        `item.reviewedSeries[${index.toString()}].providerIdentity.calendarRole must be Academic`,
+      );
+    }
+    const calendarId = requireNonEmptyString(
+      providerIdentityValue.calendarId,
+      `item.reviewedSeries[${index.toString()}].providerIdentity.calendarId`,
+    );
+    const eventId = requireNonEmptyString(
+      providerIdentityValue.eventId,
+      `item.reviewedSeries[${index.toString()}].providerIdentity.eventId`,
+    );
+    const identityKey = `${calendarRole}\u0000${calendarId}\u0000${eventId}`;
+    if (seen.has(identityKey)) {
+      invalidInput(
+        `item.reviewedSeries contains duplicate provider identity ${calendarId}/${eventId}`,
+      );
+    }
+    seen.add(identityKey);
+    const label =
+      reviewed.label === undefined
+        ? undefined
+        : requireNonEmptyString(
+            reviewed.label,
+            `item.reviewedSeries[${index.toString()}].label`,
+          );
+    return {
+      providerIdentity: { calendarRole, calendarId, eventId },
+      ...(label === undefined ? {} : { label }),
+    };
+  });
+  return { operation: "routine-migration", source, reviewedSeries };
+}
 
 export function parseCalendarChangeProposalInput(
   value: unknown,

@@ -686,6 +686,212 @@ describe("academic-os calendar propose", () => {
       "new-time-conflict",
     );
   });
+
+  it("previews one exact-ID Routine migration with decisions and no provider mutation", async () => {
+    const sleep = {
+      id: "sleep-series",
+      summary: "Sleep",
+      recurrence: ["RRULE:FREQ=DAILY"],
+      transparency: "opaque",
+      reminders: {
+        useDefault: false,
+        overrides: [{ method: "popup", minutes: 5 }],
+      },
+      start: {
+        dateTime: "2026-07-20T23:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+      end: {
+        dateTime: "2026-07-21T07:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+    };
+    const sleepException = {
+      id: "sleep-exception",
+      recurringEventId: "sleep-series",
+      originalStartTime: {
+        dateTime: "2026-08-20T23:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+      summary: "Sleep",
+      start: {
+        dateTime: "2026-08-21T00:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+      end: {
+        dateTime: "2026-08-21T08:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+    };
+    const exercise = {
+      id: "exercise-series",
+      summary: "Exercise",
+      recurrence: ["RRULE:FREQ=WEEKLY"],
+      transparency: "transparent",
+      start: {
+        dateTime: "2026-08-21T18:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+      end: {
+        dateTime: "2026-08-21T19:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+    };
+    const unreviewed = {
+      id: "unreviewed-series",
+      summary: "Weekly class",
+      recurrence: ["RRULE:FREQ=WEEKLY"],
+      start: {
+        dateTime: "2026-08-22T10:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+      end: {
+        dateTime: "2026-08-22T11:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+    };
+    const fixture = await setupFixture({
+      academicEvents: [sleep, sleepException, exercise, unreviewed],
+    });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "routine-migration", reference: "reviewed-2026-08" },
+      item: {
+        operation: "routine-migration",
+        reviewedSeries: [
+          {
+            providerIdentity: {
+              calendarRole: "Academic",
+              calendarId: "academic-id",
+              eventId: "sleep-series",
+            },
+            label: "sleep",
+          },
+          {
+            providerIdentity: {
+              calendarRole: "Academic",
+              calendarId: "academic-id",
+              eventId: "exercise-series",
+            },
+            label: "exercise",
+          },
+          {
+            providerIdentity: {
+              calendarRole: "Academic",
+              calendarId: "academic-id",
+              eventId: "missing-series",
+            },
+            label: "shower",
+          },
+        ],
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.outcome, "ready");
+    assert.deepEqual(
+      report.proposal.moves.map(
+        ({ sourceItem }: { sourceItem: { eventId: string } }) =>
+          sourceItem.eventId,
+      ),
+      ["sleep-series", "exercise-series"],
+    );
+    assert.deepEqual(report.proposal.moves[0].seriesEventIds, [
+      "sleep-series",
+      "sleep-exception",
+    ]);
+    assert.deepEqual(report.proposal.moves[0].patch, {
+      transparency: "transparent",
+    });
+    assert.deepEqual(report.proposal.moves[1].patch, {});
+    assert.ok(
+      report.proposal.decisions.some(
+        ({
+          providerIdentity,
+          reason,
+        }: {
+          providerIdentity: { eventId: string };
+          reason: string;
+        }) =>
+          providerIdentity.eventId === "missing-series" &&
+          reason === "provider-identity-not-found",
+      ),
+    );
+    assert.ok(
+      report.proposal.decisions.some(
+        ({
+          providerIdentity,
+          reason,
+        }: {
+          providerIdentity: { eventId: string };
+          reason: string;
+        }) =>
+          providerIdentity.eventId === "unreviewed-series" &&
+          reason === "unreviewed-recurring-series",
+      ),
+    );
+    assert.equal(
+      ((await readProvider(fixture)).requests ?? []).filter(
+        ({ method }) => method !== "GET",
+      ).length,
+      0,
+    );
+    assert.equal((await readProposalState(fixture)).proposals.length, 1);
+  });
+
+  it("does not mark a Routine master complete while an Academic exception remains", async () => {
+    const fixture = await setupFixture({
+      academicEvents: [
+        {
+          id: "partial-exception",
+          recurringEventId: "partial-series",
+          originalStartTime: {
+            dateTime: "2026-08-22T08:00:00+08:00",
+            timeZone: "Asia/Singapore",
+          },
+          start: { dateTime: "2026-08-22T09:00:00+08:00" },
+          end: { dateTime: "2026-08-22T10:00:00+08:00" },
+        },
+      ],
+      routineEvents: [
+        {
+          id: "partial-series",
+          summary: "Exercise",
+          recurrence: ["RRULE:FREQ=WEEKLY"],
+          transparency: "transparent",
+          start: { dateTime: "2026-08-22T08:00:00+08:00" },
+          end: { dateTime: "2026-08-22T09:00:00+08:00" },
+        },
+      ],
+    });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "routine-migration", reference: "reviewed-2026-08" },
+      item: {
+        operation: "routine-migration",
+        reviewedSeries: [
+          {
+            providerIdentity: {
+              calendarRole: "Academic",
+              calendarId: "academic-id",
+              eventId: "partial-series",
+            },
+          },
+        ],
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    const proposal = JSON.parse(result.stdout).proposal;
+    assert.deepEqual(proposal.moves, []);
+    assert.deepEqual(proposal.completed, []);
+    assert.equal(proposal.decisions[0].reason, "partial-recurring-series");
+  });
 });
 
 interface Fixture {
@@ -701,6 +907,7 @@ async function setupFixture(
     academicEvents?: unknown[];
     observedEvents?: unknown[];
     providerAcademicEvents?: unknown[];
+    routineEvents?: unknown[];
   } = {},
 ): Promise<Fixture> {
   const root = await mkdtemp(join(tmpdir(), "academic-os-calendar-propose-"));
@@ -747,7 +954,7 @@ async function setupFixture(
   const eventsByRole = {
     Academic: input.academicEvents ?? [],
     Commitments: [],
-    Routine: [],
+    Routine: input.routineEvents ?? [],
   };
   for (const [role, calendarId, syncToken] of [
     ["Academic", "academic-id", "academic-sync"],
@@ -820,7 +1027,7 @@ async function setupFixture(
         "academic-id":
           input.providerAcademicEvents ?? input.academicEvents ?? [],
         "commitments-id": [],
-        "routine-id": [],
+        "routine-id": input.routineEvents ?? [],
         "observed-id": input.observedEvents ?? [],
         "hidden-id": [
           {

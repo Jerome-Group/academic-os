@@ -354,6 +354,114 @@ describe("academic-os calendar promote", () => {
     assert.equal(journal.length, 1);
   });
 
+  it("promotes one complete Routine migration, preserves exceptions, verifies, and retries safely", async () => {
+    const fixture = await setupRoutineMigrationFixture();
+
+    const first = await runPromote(
+      fixture,
+      "proposal-routine-migration",
+      "--json",
+    );
+    const retry = await runPromote(
+      fixture,
+      "proposal-routine-migration",
+      "--json",
+    );
+
+    assert.equal(first.exitCode, 0, JSON.stringify(first));
+    assert.equal(JSON.parse(first.stdout).outcome, "promoted");
+    assert.equal(JSON.parse(retry.stdout).outcome, "retry");
+    const migrationInputPath = join(
+      fixture.calendarRoot,
+      "routine-migration-input.json",
+    );
+    await writeFile(
+      migrationInputPath,
+      `${JSON.stringify({
+        schemaVersion: 1,
+        source: {
+          kind: "routine-migration",
+          reference: "reviewed-2026-08",
+        },
+        item: {
+          operation: "routine-migration",
+          reviewedSeries: [
+            {
+              providerIdentity: {
+                calendarRole: "Academic",
+                calendarId: "academic-id",
+                eventId: "sleep-series",
+              },
+              label: "sleep",
+            },
+            {
+              providerIdentity: {
+                calendarRole: "Academic",
+                calendarId: "academic-id",
+                eventId: "exercise-series",
+              },
+              label: "exercise",
+            },
+          ],
+        },
+      })}\n`,
+    );
+    const repeated = await runRoutineMigrationPropose(
+      fixture,
+      migrationInputPath,
+      "--json",
+    );
+    assert.equal(repeated.exitCode, 0, JSON.stringify(repeated));
+    assert.deepEqual(JSON.parse(repeated.stdout).proposal.moves, []);
+    assert.deepEqual(
+      JSON.parse(repeated.stdout).proposal.completed.map(
+        ({ providerIdentity }: { providerIdentity: { eventId: string } }) =>
+          providerIdentity.eventId,
+      ),
+      ["sleep-series", "exercise-series"],
+    );
+    assert.deepEqual(
+      JSON.parse(first.stdout).verifiedEvents.map(
+        ({ id }: { id: string }) => id,
+      ),
+      ["sleep-series", "exercise-series"],
+    );
+    const provider = await readProvider(fixture);
+    assert.deepEqual(
+      provider.events["academic-id"]?.map(
+        (event) => (event as { id: string }).id,
+      ),
+      [],
+    );
+    assert.deepEqual(
+      provider.events["routine-id"]?.map(
+        (event) => (event as { id: string }).id,
+      ),
+      ["sleep-series", "sleep-exception", "exercise-series"],
+    );
+    const movedSleep = provider.events["routine-id"]?.find(
+      (event) => (event as { id: string }).id === "sleep-series",
+    ) as Record<string, unknown>;
+    assert.deepEqual(movedSleep.recurrence, ["RRULE:FREQ=DAILY"]);
+    assert.equal(movedSleep.transparency, "transparent");
+    const movedException = provider.events["routine-id"]?.find(
+      (event) => (event as { id: string }).id === "sleep-exception",
+    ) as Record<string, unknown>;
+    assert.equal(movedException.description, "Preserved exception");
+    assert.equal(
+      provider.requests.filter(({ url }) => url.endsWith("/move")).length,
+      2,
+    );
+    const journal = (
+      await readFile(join(fixture.calendarRoot, "promotions.jsonl"), "utf8")
+    )
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    assert.equal(journal.length, 1);
+    assert.deepEqual(journal[0].eventIds, ["sleep-series", "exercise-series"]);
+  });
+
   it("reconciles a move accepted before its patch could run", async () => {
     const fixture = await setupChangeFixture("Routine", {
       summary: "Moved and renamed",
@@ -1071,6 +1179,137 @@ async function setupRecurringChangeFixture(
   return fixture;
 }
 
+async function setupRoutineMigrationFixture(): Promise<Fixture> {
+  const fixture = await setupFixture();
+  const master = {
+    id: "sleep-series",
+    summary: "Sleep",
+    description: "Preserved series description",
+    recurrence: ["RRULE:FREQ=DAILY"],
+    transparency: "opaque",
+    reminders: {
+      useDefault: false,
+      overrides: [{ method: "popup", minutes: 5 }],
+    },
+    start: {
+      dateTime: "2026-07-20T23:00:00+08:00",
+      timeZone: "Asia/Singapore",
+    },
+    end: {
+      dateTime: "2026-07-21T07:00:00+08:00",
+      timeZone: "Asia/Singapore",
+    },
+  };
+  const exception = {
+    id: "sleep-exception",
+    recurringEventId: "sleep-series",
+    originalStartTime: {
+      dateTime: "2026-08-20T23:00:00+08:00",
+      timeZone: "Asia/Singapore",
+    },
+    summary: "Sleep",
+    description: "Preserved exception",
+    start: {
+      dateTime: "2026-08-21T00:00:00+08:00",
+      timeZone: "Asia/Singapore",
+    },
+    end: {
+      dateTime: "2026-08-21T08:00:00+08:00",
+      timeZone: "Asia/Singapore",
+    },
+  };
+  const exercise = {
+    id: "exercise-series",
+    summary: "Exercise",
+    recurrence: ["RRULE:FREQ=WEEKLY"],
+    transparency: "transparent",
+    start: {
+      dateTime: "2026-08-21T18:00:00+08:00",
+      timeZone: "Asia/Singapore",
+    },
+    end: {
+      dateTime: "2026-08-21T19:00:00+08:00",
+      timeZone: "Asia/Singapore",
+    },
+  };
+  const moves = [
+    {
+      sourceItem: {
+        calendarRole: "Academic",
+        calendarId: "academic-id",
+        eventId: master.id,
+        versionDigest: calendarStateDigest(master),
+      },
+      target: { calendarRole: "Routine", calendarId: "routine-id" },
+      patch: { transparency: "transparent" },
+      recurrenceScope: "entire-series",
+      recurringMaster: master,
+      recurrenceExceptions: [exception],
+      seriesEventIds: [master.id, exception.id],
+    },
+    {
+      sourceItem: {
+        calendarRole: "Academic",
+        calendarId: "academic-id",
+        eventId: exercise.id,
+        versionDigest: calendarStateDigest(exercise),
+      },
+      target: { calendarRole: "Routine", calendarId: "routine-id" },
+      patch: {},
+      recurrenceScope: "entire-series",
+      recurringMaster: exercise,
+      recurrenceExceptions: [],
+      seriesEventIds: [exercise.id],
+    },
+  ];
+  const academicMirrorPath = join(
+    fixture.calendarRoot,
+    "mirrors",
+    "academic.json",
+  );
+  const academicMirror = JSON.parse(await readFile(academicMirrorPath, "utf8"));
+  academicMirror.items = [master, exception, exercise].map((event) => ({
+    actualCalendarRole: "Academic",
+    access: "owned",
+    event,
+  }));
+  await writeFile(academicMirrorPath, `${JSON.stringify(academicMirror)}\n`);
+  await writeFile(
+    join(fixture.calendarRoot, "pending-proposals.json"),
+    `${JSON.stringify({
+      schemaVersion: 1,
+      proposals: [
+        {
+          id: "proposal-routine-migration",
+          status: "ready",
+          operation: "routine-migration",
+          source: {
+            kind: "routine-migration",
+            reference: "reviewed-2026-08",
+          },
+          itemKind: "routine-event",
+          target: { calendarRole: "Routine", calendarId: "routine-id" },
+          moves,
+          completed: [],
+          decisions: [],
+          idempotencyKey: "routine-migration-proposal",
+          liveVersions: [],
+          relevantAvailabilityVersion: {
+            digest: calendarStateDigest([]),
+            interval: null,
+            checkedCalendarCount: 0,
+          },
+          conflictSummary: { blockers: 0, warnings: 0 },
+        },
+      ],
+    })}\n`,
+  );
+  await mutateProvider(fixture, (provider) => {
+    provider.events["academic-id"] = [master, exception, exercise];
+  });
+  return fixture;
+}
+
 async function runPromote(
   fixture: Fixture,
   proposalId: string,
@@ -1086,6 +1325,26 @@ async function runPromote(
     proposalId,
     "--config",
     fixture.configPath,
+    ...arguments_,
+  );
+}
+
+async function runRoutineMigrationPropose(
+  fixture: Fixture,
+  inputPath: string,
+  ...arguments_: string[]
+) {
+  return await runCliWithEnvironment(
+    {
+      ACADEMIC_OS_FAKE_CALENDAR_STATE: fixture.providerPath,
+      NODE_OPTIONS: `--import=${fakeCalendarPreload}`,
+    },
+    "calendar",
+    "propose",
+    "--config",
+    fixture.configPath,
+    "--input",
+    inputPath,
     ...arguments_,
   );
 }

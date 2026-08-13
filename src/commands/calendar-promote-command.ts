@@ -79,11 +79,16 @@ function parseArguments(arguments_: string[]): {
 }
 
 function renderHuman(report: CalendarPromotionReport): string {
-  return [
+  const lines = [
     `Calendar promote: ${report.outcome}`,
     `Proposal ID: ${report.proposalId}`,
-    `Verified event: ${JSON.stringify(report.verifiedEvent ?? null)}`,
-  ]
-    .join("\n")
-    .concat("\n");
+  ];
+  if (report.verifiedEvents !== undefined) {
+    lines.push(`Verified events: ${JSON.stringify(report.verifiedEvents)}`);
+  } else {
+    lines.push(
+      `Verified event: ${JSON.stringify(report.verifiedEvent ?? null)}`,
+    );
+  }
+  return `${lines.join("\n")}\n`;
 }

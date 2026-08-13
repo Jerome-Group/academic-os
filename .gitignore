@@ -23,6 +23,9 @@ reports/
 academic-os-state/
 drive-api-responses/
 *.drive-api-response.json
+/calendar/
+calendar-provider-responses/
+*.calendar-provider-response.json
 repair-plans/
 repair-recovery/
 *.repair-plan.json

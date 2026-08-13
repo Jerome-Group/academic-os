@@ -17,6 +17,11 @@ describe("version-control privacy boundary", () => {
       "application_default_credentials.json",
       "drive-api-responses/page-1.json",
       "nested/audit.drive-api-response.json",
+      "calendar/owned-calendars.json",
+      "calendar-provider-responses/setup.json",
+      "nested/setup.calendar-provider-response.json",
+      "calendar-read.credentials.json",
+      "calendar-write.credentials.json",
       "modules/MH2100/lecture.pdf",
     ];
 

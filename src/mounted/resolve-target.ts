@@ -1,6 +1,7 @@
 import { lstat, readdir, realpath } from "node:fs/promises";
-import { join, relative } from "node:path";
+import { join } from "node:path";
 
+import { isContainedBy } from "./is-contained-by.js";
 import { OperationalError } from "./operational-error.js";
 import { resolveConfiguredRoots } from "./resolve-configured-roots.js";
 import type { LocalConfig, ResolvedTarget } from "./types.js";
@@ -76,9 +77,4 @@ export async function resolveTarget(
     semester: config.semester,
     module: config.module,
   };
-}
-
-function isContainedBy(root: string, candidate: string): boolean {
-  const pathFromRoot = relative(root, candidate);
-  return pathFromRoot === "" || !pathFromRoot.startsWith("..");
 }

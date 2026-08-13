@@ -23,6 +23,13 @@
     "semester": "Y2S1",
     "module": "MH2100"
   },
+  "calendar": {
+    "managementHorizon": "2026-08-01T00:00:00+08:00",
+    "credentials": {
+      "scheduledRead": "/path/to/calendar-read.credentials.json",
+      "interactiveWrite": "/path/to/calendar-write.credentials.json"
+    }
+  },
   "driveApi": {
     "moduleFolderIds": {
       "Y2S1": {

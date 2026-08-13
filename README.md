@@ -24,6 +24,10 @@ The separately gated `repair` command now executes only an approved, Drive-ID-bo
 migration plan after fresh inventory and dual recovery verify. It previews by default and has no
 permanent-delete or Trash operation.
 
+Calendar setup now binds the Google primary calendar as Academic, reuses Commitments and Routine,
+and previews any missing secondary-calendar creation. Exact IDs remain in private configured
+state.
+
 ## What is here now
 
 [`docs/module-folder-contract.md`](docs/module-folder-contract.md) — the folder and naming
@@ -87,6 +91,20 @@ preconditions and reports completed and remaining operations without changing Dr
 is `safely-resumable`, rerun with both `--apply --resume`. Changed controls, contract version,
 target identity, conflicts, or ambiguous journal state block continuation with evidence. Staging
 artifacts are removed after completion or a safely handled failure; the private journal remains.
+
+## Bootstrap Owned calendars
+
+Configure the Calendar block in the same gitignored local configuration, including a current
+Management horizon and distinct scheduled-read and interactive-write credential files. Preview
+setup first:
+
+```sh
+node dist/src/cli.js calendar setup --config academic-os.config.json
+```
+
+The primary calendar is bound as Academic and is never created or renamed. Existing Commitments
+and Routine calendars are reused. Add `--apply` only when the report previews missing secondary
+calendars; rerunning setup reuses the resulting exact IDs. Add `--json` for the versioned report.
 
 ## What it is for
 

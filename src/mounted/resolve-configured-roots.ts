@@ -1,8 +1,9 @@
 import { lstat, realpath } from "node:fs/promises";
-import { isAbsolute, join, relative } from "node:path";
+import { isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { OperationalError } from "./operational-error.js";
+import { isContainedBy } from "./is-contained-by.js";
 import type { LocalConfig } from "./types.js";
 
 export interface ResolvedConfiguredRoots {
@@ -160,12 +161,4 @@ async function existingDirectory(path: string, role: string): Promise<string> {
       `Configured ${role} cannot be resolved: ${path}.`,
     );
   }
-}
-
-function isContainedBy(root: string, candidate: string): boolean {
-  const pathFromRoot = relative(root, candidate);
-  return (
-    pathFromRoot === "" ||
-    (!pathFromRoot.startsWith("..") && !isAbsolute(pathFromRoot))
-  );
 }

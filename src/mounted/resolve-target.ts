@@ -2,7 +2,7 @@ import { lstat, readdir, realpath } from "node:fs/promises";
 import { join } from "node:path";
 
 import { isContainedBy } from "./is-contained-by.js";
-import { OperationalError } from "./operational-error.js";
+import { OperationalError } from "../operational-error.js";
 import { resolveConfiguredRoots } from "./resolve-configured-roots.js";
 import type { LocalConfig, ResolvedTarget } from "./types.js";
 

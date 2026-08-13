@@ -1,3 +1,5 @@
+import type { InventoryProvenance } from "./conformance/index.js";
+
 export type OperationalErrorCode =
   | "ambiguous-target"
   | "case-variant-target"
@@ -27,4 +29,3 @@ export class OperationalError extends Error {
 export interface OperationalErrorDetails {
   inventoryProvenance: InventoryProvenance;
 }
-import type { InventoryProvenance } from "../conformance/index.js";

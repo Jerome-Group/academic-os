@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import type { ModuleControls } from "../conformance/index.js";
 import { moduleControlPaths } from "../conformance/control-paths.js";
-import { OperationalError } from "./operational-error.js";
+import { OperationalError } from "../operational-error.js";
 
 export async function readModuleControls(
   moduleRoot: string,

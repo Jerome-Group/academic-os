@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
-import { OperationalError } from "./operational-error.js";
+import { OperationalError } from "../operational-error.js";
 
 const executeFile = promisify(execFile);
 

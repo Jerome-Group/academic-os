@@ -10,7 +10,7 @@ import { moduleControlPaths } from "../conformance/control-paths.js";
 import type { SeedOperation, SeedPlan } from "../seed/index.js";
 import { ensureMaterialized } from "./ensure-materialized.js";
 import { inventoryDirectory } from "./inventory-mounted-module.js";
-import { OperationalError } from "./operational-error.js";
+import { OperationalError } from "../operational-error.js";
 import { readModuleControls } from "./read-module-controls.js";
 import type { SeedTargetIdentity } from "./seed-operation-journal.js";
 

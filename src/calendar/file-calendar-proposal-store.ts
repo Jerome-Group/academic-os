@@ -13,6 +13,13 @@ export function createFileCalendarProposalStore(
   stateRoot: string,
 ): CalendarProposalStore {
   return {
+    writeCurrent: async (proposal) => {
+      await replacePrivateCalendarJson(
+        join(stateRoot, "calendar", "pending-proposals.json"),
+        "pending-proposals",
+        { schemaVersion: 1, proposals: [proposal] },
+      );
+    },
     markStaleForDeletedItems: async (deletedItems) => {
       if (deletedItems.length === 0) return;
       const target = join(stateRoot, "calendar", "pending-proposals.json");

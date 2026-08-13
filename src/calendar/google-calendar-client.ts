@@ -1,7 +1,9 @@
 import { GoogleAuth } from "google-auth-library";
 
 import type {
+  CalendarEvent,
   CalendarListEntry,
+  CalendarRefreshReader,
   CalendarSetupReader,
   CalendarSetupWriter,
 } from "./types.js";
@@ -10,6 +12,8 @@ export const CALENDAR_LIST_READONLY_SCOPE =
   "https://www.googleapis.com/auth/calendar.calendarlist.readonly";
 export const CALENDAR_PROPERTIES_WRITE_SCOPE =
   "https://www.googleapis.com/auth/calendar.calendars";
+export const CALENDAR_EVENTS_READONLY_SCOPE =
+  "https://www.googleapis.com/auth/calendar.events.readonly";
 
 const calendarListUrl =
   "https://www.googleapis.com/calendar/v3/users/me/calendarList";
@@ -20,14 +24,21 @@ interface CalendarListPage {
   nextPageToken?: string;
 }
 
+interface CalendarEventsPage {
+  items?: CalendarEvent[];
+  nextPageToken?: string;
+}
+
 export interface CalendarHttpRequest {
   url: string;
   method: "GET" | "POST";
   params?: {
-    maxResults: 250;
+    maxResults?: 250;
     pageToken?: string;
-    showDeleted: false;
-    showHidden: true;
+    showDeleted?: false;
+    showHidden?: true;
+    singleEvents?: false;
+    timeMin?: string;
   };
   data?: { summary: string };
 }
@@ -84,6 +95,36 @@ export function createGoogleCalendarSetupWriter(
         throw new Error(`Calendar creation returned no ID for ${summary}.`);
       }
       return { id: response.data.id };
+    },
+  };
+}
+
+export function createGoogleCalendarRefreshReader(
+  credentialPath: string,
+  requester: CalendarRequester = defaultRequester(
+    credentialPath,
+    CALENDAR_EVENTS_READONLY_SCOPE,
+  ),
+): CalendarRefreshReader {
+  return {
+    listForwardEvents: async ({ calendarId, managementHorizon }) => {
+      const events: CalendarEvent[] = [];
+      let pageToken: string | undefined;
+      do {
+        const response: { data: CalendarEventsPage } = await requester.request({
+          url: `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
+          method: "GET",
+          params: {
+            timeMin: managementHorizon,
+            singleEvents: false,
+            showDeleted: false,
+            ...(pageToken === undefined ? {} : { pageToken }),
+          },
+        });
+        events.push(...(response.data.items ?? []));
+        pageToken = response.data.nextPageToken;
+      } while (pageToken !== undefined);
+      return events;
     },
   };
 }

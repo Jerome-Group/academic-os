@@ -10,7 +10,7 @@ import {
   stageSeedPlan,
 } from "./execute-seed-operations.js";
 import { ensureMaterialized } from "./ensure-materialized.js";
-import { OperationalError } from "./operational-error.js";
+import { OperationalError } from "../operational-error.js";
 import { resolveConfiguredRoots } from "./resolve-configured-roots.js";
 import {
   appendSeedJournalEvent,

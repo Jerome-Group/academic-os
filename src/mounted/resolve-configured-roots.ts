@@ -2,7 +2,7 @@ import { lstat, realpath } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { OperationalError } from "./operational-error.js";
+import { OperationalError } from "../operational-error.js";
 import { isContainedBy } from "./is-contained-by.js";
 import type { LocalConfig } from "./types.js";
 

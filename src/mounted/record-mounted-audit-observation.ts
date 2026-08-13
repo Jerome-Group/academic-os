@@ -12,7 +12,7 @@ import {
   ruleSetVersion,
   type AuditObservation,
 } from "../observation/index.js";
-import { OperationalError } from "./operational-error.js";
+import { OperationalError } from "../operational-error.js";
 import type {
   AppendMountedAuditObservationInput,
   HistoryDiagnostic,

@@ -10,12 +10,16 @@ interface FakeCalendar {
 
 interface FakeCalendarState {
   calendars: FakeCalendar[];
+  eventReadFailures?: string[];
+  eventPageSizes?: Record<string, number>;
+  events?: Record<string, unknown[]>;
   nextId?: number;
   requests?: Array<{
     body?: unknown;
     credential?: string;
     method?: string;
     scopes?: string[];
+    params?: unknown;
     url?: string;
   }>;
 }
@@ -24,6 +28,7 @@ interface RequestOptions {
   url?: string;
   method?: string;
   data?: unknown;
+  params?: unknown;
 }
 
 interface GoogleAuthState {
@@ -51,6 +56,7 @@ prototype.request = async function (options) {
     ...(options.data === undefined ? {} : { body: options.data }),
     ...(this.keyFilename === undefined ? {} : { credential: this.keyFilename }),
     method: options.method ?? "GET",
+    ...(options.params === undefined ? {} : { params: options.params }),
     scopes:
       typeof this.scopes === "string" ? [this.scopes] : (this.scopes ?? []),
     ...(options.url === undefined ? {} : { url: options.url }),
@@ -77,6 +83,34 @@ prototype.request = async function (options) {
     state.calendars.push(calendar);
     await writeFile(statePath, `${JSON.stringify(state)}\n`);
     return { data: calendar };
+  }
+
+  const eventsMatch = options.url?.match(
+    /^https:\/\/www\.googleapis\.com\/calendar\/v3\/calendars\/([^/]+)\/events$/u,
+  );
+  if (
+    options.method === "GET" &&
+    eventsMatch !== null &&
+    eventsMatch !== undefined
+  ) {
+    const calendarId = decodeURIComponent(eventsMatch[1] ?? "");
+    await writeFile(statePath, `${JSON.stringify(state)}\n`);
+    if (state.eventReadFailures?.includes(calendarId) === true) {
+      throw new Error(`Synthetic event read failed for ${calendarId}.`);
+    }
+    const events = state.events?.[calendarId] ?? [];
+    const params = options.params as { pageToken?: string } | undefined;
+    const offset = Number(params?.pageToken ?? "0");
+    const pageSize = state.eventPageSizes?.[calendarId] ?? events.length;
+    const nextOffset = offset + pageSize;
+    return {
+      data: {
+        items: events.slice(offset, nextOffset),
+        ...(nextOffset < events.length
+          ? { nextPageToken: String(nextOffset) }
+          : {}),
+      },
+    };
   }
 
   throw new Error(`Unexpected synthetic Calendar request: ${options.url}.`);

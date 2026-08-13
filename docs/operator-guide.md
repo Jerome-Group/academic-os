@@ -1,6 +1,7 @@
 # Operator guide
 
-The CLI has `seed`, `audit`, `calendar setup` and separately gated `repair` commands. It does not
+The CLI has `seed`, `audit`, `calendar setup`, pull-only `calendar refresh` and separately gated
+`repair` commands. It does not
 schedule weekly LLM work or edit module instructions autonomously.
 
 ## Configure
@@ -15,9 +16,9 @@ Repair additionally needs the exact module folder ID, a dedicated unmonitored Dr
 ID, and an existing `snapshotRoot` on a physically separate volume. Its full-Drive OAuth scope is
 used only when `repair` is invoked; audit retains metadata-read-only authorization.
 
-Calendar setup needs a current ISO-8601 `managementHorizon` and two distinct absolute credential
-paths. Authorise scheduled-read credentials only for
-`calendar.calendarlist.readonly`. Authorise interactive-write credentials separately for
+Calendar commands need a current ISO-8601 `managementHorizon` and two distinct absolute credential
+paths. Authorise scheduled-read credentials only for `calendar.calendarlist.readonly` and
+`calendar.events.readonly`. Authorise interactive-write credentials separately for
 `calendar.calendars`; setup uses that authority only after `--apply`. Keep both files and the
 configuration outside git.
 
@@ -44,6 +45,26 @@ Rerunning setup is safe: existing calendars are reused and no duplicates are cre
 workspace also records the Asia/Singapore default timezone and Management horizon. Use `--json`
 for the equivalent versioned result. Never commit the workspace, provider responses, credentials,
 or the local configuration.
+
+## Calendar refresh
+
+After setup, pull the complete Live state of all three Owned calendars from the Management horizon
+forward:
+
+```sh
+node dist/src/cli.js calendar refresh --config academic-os.config.json
+```
+
+Refresh uses only scheduled-read credentials. It supplies no future cutoff, keeps recurring masters
+and dated exceptions compact, and mirrors invitations as read-only context on the calendar where
+Google placed them. A clearly misplaced transparent recurring item remains on its actual calendar
+and is reported as a non-mutating Placement suggestion.
+
+Each complete calendar becomes a private atomic mirror beneath `stateRoot/calendar/mirrors/`.
+Refresh leaves pending Proposals untouched. If any complete provider read fails, no mirror from that
+attempt is published. Human output reports per-calendar counts, freshness and suggestions; add
+`--json` for the equivalent versioned result. Incremental tokens, tombstones and last-good
+per-calendar failure recovery arrive in the separately tracked resilient-Refresh work.
 
 ## Seed
 
@@ -136,6 +157,7 @@ is mutable and therefore is not itself immutable or WORM storage.
 - Preview is non-mutating; apply requires the explicit flag.
 - Calendar setup preview never mutates Google; apply may create only missing secondary Owned
   calendars.
+- Calendar refresh uses only read-only event authority and never mutates Google.
 - Audit has no repair path and no write-capable Drive API dependency.
 - A contract change edits `docs/module-folder-contract.md`; repair resolves only an approved
   deviation and cannot change the contract.

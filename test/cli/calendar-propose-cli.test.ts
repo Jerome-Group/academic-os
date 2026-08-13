@@ -506,6 +506,98 @@ describe("academic-os calendar propose", () => {
     );
   });
 
+  it("previews exact cancellation scopes and explicit tombstone restoration", async () => {
+    const recurring = {
+      id: "weekly-class-instance",
+      recurringEventId: "weekly-class",
+      summary: "Weekly class",
+      originalStartTime: { dateTime: "2026-08-20T10:00:00+08:00" },
+      start: { dateTime: "2026-08-20T10:00:00+08:00" },
+      end: { dateTime: "2026-08-20T11:00:00+08:00" },
+    };
+    const fixture = await setupFixture({ academicEvents: [recurring] });
+    const cancelPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "instruction", reference: "cancel-class" },
+      item: {
+        operation: "cancel",
+        calendarRole: "Academic",
+        eventId: recurring.id,
+        recurrenceScope: "this-occurrence",
+      },
+    });
+
+    const cancelled = await runCalendarPropose(fixture, cancelPath, "--json");
+    assert.equal(cancelled.exitCode, 0, JSON.stringify(cancelled));
+    const cancelProposal = JSON.parse(cancelled.stdout).proposal;
+    assert.equal(cancelProposal.operation, "cancel");
+    assert.equal(cancelProposal.recurrenceScope, "this-occurrence");
+    assert.deepEqual(cancelProposal.preview.event, recurring);
+
+    const mirrorPath = join(fixture.calendarRoot, "mirrors", "academic.json");
+    const mirror = JSON.parse(await readFile(mirrorPath, "utf8"));
+    mirror.items = [];
+    mirror.tombstones = [
+      {
+        access: "owned",
+        deletedAt: "2026-08-20T12:00:00.000Z",
+        event: recurring,
+      },
+    ];
+    await writeFile(mirrorPath, `${JSON.stringify(mirror)}\n`);
+    const restorePath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "instruction", reference: "restore-class" },
+      item: {
+        operation: "restore",
+        calendarRole: "Academic",
+        eventId: recurring.id,
+      },
+    });
+    const restored = await runCalendarPropose(fixture, restorePath, "--json");
+    assert.equal(restored.exitCode, 0, JSON.stringify(restored));
+    const restoreProposal = JSON.parse(restored.stdout).proposal;
+    assert.equal(restoreProposal.operation, "restore");
+    assert.equal(restoreProposal.restoredFrom.eventId, recurring.id);
+    assert.notEqual(
+      restoreProposal.idempotencyKey,
+      cancelProposal.idempotencyKey,
+    );
+    assert.ok(
+      ((await readProvider(fixture)).requests ?? []).every(
+        ({ method }) => method === "GET",
+      ),
+    );
+  });
+
+  it("rejects restoration of retained invited tombstones", async () => {
+    const fixture = await setupFixture();
+    const mirrorPath = join(fixture.calendarRoot, "mirrors", "academic.json");
+    const mirror = JSON.parse(await readFile(mirrorPath, "utf8"));
+    mirror.tombstones = [
+      {
+        access: "invited-read-only",
+        deletedAt: "2026-08-20T12:00:00.000Z",
+        event: { id: "invited-deleted", summary: "Invited talk" },
+      },
+    ];
+    await writeFile(mirrorPath, `${JSON.stringify(mirror)}\n`);
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "instruction", reference: "restore-invited" },
+      item: {
+        operation: "restore",
+        calendarRole: "Academic",
+        eventId: "invited-deleted",
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(result.stdout, /Invited events cannot be restored/u);
+  });
+
   it("turns an explicit placement correction into a move Proposal only", async () => {
     const misplaced = {
       id: "misplaced-routine",

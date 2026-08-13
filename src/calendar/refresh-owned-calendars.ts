@@ -159,10 +159,15 @@ function createFreshMirror(input: {
   for (const event of input.events) {
     if (event.status === "cancelled") {
       const lastKnown = itemsById.get(event.id)?.event;
+      const retained = tombstonesById.get(event.id);
       itemsById.delete(event.id);
       tombstonesById.set(event.id, {
-        deletedAt: input.refreshedAt,
-        event: lastKnown ?? tombstonesById.get(event.id)?.event ?? event,
+        access:
+          itemsById.get(event.id)?.access ??
+          retained?.access ??
+          (isInvitedEvent(event) ? "invited-read-only" : "owned"),
+        deletedAt: retained?.deletedAt ?? input.refreshedAt,
+        event: lastKnown ?? retained?.event ?? event,
       });
       deletedEventIds.add(event.id);
       continue;
@@ -179,6 +184,7 @@ function createFreshMirror(input: {
       if (itemsById.has(item.event.id)) continue;
       if (!tombstonesById.has(item.event.id)) {
         tombstonesById.set(item.event.id, {
+          access: item.access,
           deletedAt: input.refreshedAt,
           event: item.event,
         });

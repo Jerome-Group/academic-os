@@ -106,6 +106,29 @@ prototype.request = async function (options) {
     /^https:\/\/www\.googleapis\.com\/calendar\/v3\/calendars\/([^/]+)\/events\/([^/]+)\/instances$/u,
   );
   if (
+    options.method === "DELETE" &&
+    eventMatch !== null &&
+    eventMatch !== undefined
+  ) {
+    const calendarId = decodeURIComponent(eventMatch[1] ?? "");
+    const eventId = decodeURIComponent(eventMatch[2] ?? "");
+    const events = state.events?.[calendarId] ?? [];
+    const index = events.findIndex(
+      (candidate) =>
+        typeof candidate === "object" &&
+        candidate !== null &&
+        "id" in candidate &&
+        candidate.id === eventId,
+    );
+    if (index < 0) throw { response: { status: 404 } };
+    events.splice(index, 1);
+    publishIncremental(state, calendarId, [
+      { id: eventId, status: "cancelled" },
+    ]);
+    await writeFile(statePath, `${JSON.stringify(state)}\n`);
+    return { data: {} };
+  }
+  if (
     options.method === "GET" &&
     instancesMatch !== null &&
     instancesMatch !== undefined

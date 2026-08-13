@@ -6,6 +6,7 @@ import {
   findCalendarOverlaps,
 } from "./calendar-conflicts.js";
 import { calendarStateDigest } from "./create-calendar-proposal.js";
+import { trimCalendarRecurrence } from "./calendar-recurrence.js";
 import type {
   CalendarProposal,
   CalendarEventPatch,
@@ -42,16 +43,27 @@ export async function promoteCalendarProposal(
     );
   }
   const eventId =
-    proposal.operation === "create"
+    proposal.operation === "create" || proposal.operation === "restore"
       ? eventIdFor(proposal.idempotencyKey)
-      : proposal.recurrenceScope === "this-and-future"
-        ? eventIdFor(proposal.idempotencyKey)
-        : proposal.recurrenceScope === "entire-series"
-          ? (proposal.sourceItem.recurringEventId ??
-            proposal.sourceItem.eventId)
-          : proposal.sourceItem.eventId;
+      : proposal.operation === "cancel" &&
+          proposal.recurrenceScope === "this-and-future"
+        ? (proposal.recurringMaster?.id ?? proposal.sourceItem.eventId)
+        : proposal.recurrenceScope === "this-and-future"
+          ? eventIdFor(proposal.idempotencyKey)
+          : proposal.recurrenceScope === "entire-series"
+            ? (proposal.sourceItem.recurringEventId ??
+              proposal.sourceItem.eventId)
+            : proposal.sourceItem.eventId;
   const recorded = await input.journal.find(proposal.id);
   if (recorded !== undefined) {
+    if (proposal.operation === "cancel") {
+      return await finalizeCancellation(
+        input,
+        proposal,
+        recorded.eventId,
+        false,
+      );
+    }
     return await finalizePromotion(
       input,
       proposal,
@@ -90,12 +102,17 @@ export async function promoteCalendarProposal(
   if (validation === "blocked") {
     return blockedReport(proposal.id);
   }
+  if (proposal.operation === "cancel") {
+    await applyCancellation(input.writer, proposal, eventId);
+    return await finalizeCancellation(input, proposal, eventId, true);
+  }
   let verifiedEventId = eventId;
   try {
     verifiedEventId = await applyProposal(input.writer, proposal, eventId);
   } catch (error) {
     if (
       proposal.operation !== "create" &&
+      proposal.operation !== "restore" &&
       proposal.recurrenceScope === "this-and-future"
     ) {
       throw error;
@@ -107,6 +124,7 @@ export async function promoteCalendarProposal(
       });
       if (
         proposal.operation !== "create" &&
+        proposal.operation !== "restore" &&
         !eventContainsPatch(acceptedEvent, proposal.patch)
       ) {
         throw error;
@@ -161,9 +179,11 @@ async function finalizePromotion(
   calendarId: string,
   appendJournal: boolean,
 ): Promise<CalendarPromotionReport> {
+  if (proposal.operation === "cancel") return blockedReport(proposal.id);
   const verifiedEvent = await input.writer.readEvent({ calendarId, eventId });
   if (
     proposal.operation !== "create" &&
+    proposal.operation !== "restore" &&
     !eventContainsPatch(verifiedEvent, proposal.patch)
   ) {
     return blockedReport(proposal.id);
@@ -186,6 +206,60 @@ async function finalizePromotion(
   }
   await input.proposalStore.markPromoted(proposal.id);
   return report(appended ? "promoted" : "retry", proposal.id, verifiedEvent);
+}
+
+async function finalizeCancellation(
+  input: PromotionInput,
+  proposal: Extract<CalendarProposal, { operation: "cancel" }>,
+  eventId: string,
+  appendJournal: boolean,
+): Promise<CalendarPromotionReport> {
+  const appended = appendJournal
+    ? await input.journal.appendOnce({
+        schemaVersion: 1,
+        proposalId: proposal.id,
+        eventId,
+        idempotencyKey: proposal.idempotencyKey,
+        calendarId: proposal.sourceItem.calendarId,
+      })
+    : false;
+  const refreshed = await input.refresh();
+  let mirror = await input.mirrorStore.read(proposal.sourceItem.calendarRole);
+  if (
+    proposal.recurrenceScope === "this-and-future" &&
+    mirror !== undefined &&
+    !mirror.tombstones.some(
+      ({ event }) => event.id === proposal.preview.event.id,
+    )
+  ) {
+    mirror = {
+      ...mirror,
+      tombstones: [
+        ...mirror.tombstones,
+        {
+          access: "owned",
+          deletedAt: mirror.lastSuccessfulRefresh ?? new Date().toISOString(),
+          event: proposal.preview.event,
+        },
+      ],
+    };
+    await input.mirrorStore.write(mirror);
+  }
+  const deleted =
+    proposal.recurrenceScope === "this-and-future"
+      ? mirror?.items.some(({ event }) => event.id === eventId) === true &&
+        mirror.tombstones.some(
+          ({ event }) => event.id === proposal.preview.event.id,
+        )
+      : mirror?.tombstones.some(({ event }) => event.id === eventId) === true;
+  if (
+    refreshed.calendars.some(({ freshness }) => freshness === "stale") ||
+    !deleted
+  ) {
+    return blockedReport(proposal.id);
+  }
+  await input.proposalStore.markPromoted(proposal.id);
+  return report(appended ? "promoted" : "retry", proposal.id);
 }
 
 async function markProposalStale(
@@ -271,7 +345,18 @@ async function validateProposal(
     if (mirror === undefined || mirror.freshness === "stale") return "blocked";
     mirrors.push(mirror);
   }
-  if (proposal.operation !== "create") {
+  if (proposal.operation === "restore") {
+    const mirror = mirrors.find(
+      ({ role }) => role === proposal.restoredFrom.calendarRole,
+    );
+    const tombstone = mirror?.tombstones.find(
+      ({ event, deletedAt }) =>
+        event.id === proposal.restoredFrom.eventId &&
+        deletedAt === proposal.restoredFrom.deletedAt,
+    );
+    if (tombstone === undefined) return "stale";
+  }
+  if (proposal.operation !== "create" && proposal.operation !== "restore") {
     const sourceMirror = mirrors.find(
       ({ role }) => role === proposal.sourceItem.calendarRole,
     );
@@ -314,6 +399,7 @@ async function validateProposal(
   const relevantAvailability = availability.items.filter(
     ({ calendarId, event }) =>
       proposal.operation === "create" ||
+      proposal.operation === "restore" ||
       calendarId !== proposal.sourceItem.calendarId ||
       (event.id !== proposal.sourceItem.eventId &&
         event.id !== proposal.sourceItem.recurringEventId),
@@ -344,7 +430,7 @@ async function applyProposal(
   proposal: CalendarProposal,
   eventId: string,
 ): Promise<string> {
-  if (proposal.operation === "create") {
+  if (proposal.operation === "create" || proposal.operation === "restore") {
     await writer.createEvent({
       calendarId: proposal.target.calendarId,
       eventId,
@@ -352,6 +438,9 @@ async function applyProposal(
       idempotencyKey: proposal.idempotencyKey,
     });
     return eventId;
+  }
+  if (proposal.operation === "cancel") {
+    throw new Error("Cancellation uses its dedicated Promotion path.");
   }
   if (proposal.recurrenceScope === "this-and-future") {
     const recurringEventId = proposal.sourceItem.recurringEventId;
@@ -399,15 +488,48 @@ async function applyProposal(
 function report(
   outcome: "promoted" | "retry",
   proposalId: string,
-  verifiedEvent: Awaited<ReturnType<CalendarPromotionWriter["readEvent"]>>,
+  verifiedEvent?: Awaited<ReturnType<CalendarPromotionWriter["readEvent"]>>,
 ): CalendarPromotionReport {
   return {
     schemaVersion: 1,
     command: "calendar promote",
     outcome,
     proposalId,
-    verifiedEvent,
+    ...(verifiedEvent === undefined ? {} : { verifiedEvent }),
   };
+}
+
+async function applyCancellation(
+  writer: CalendarPromotionWriter,
+  proposal: Extract<CalendarProposal, { operation: "cancel" }>,
+  eventId: string,
+): Promise<void> {
+  if (proposal.recurrenceScope === "this-and-future") {
+    const master = proposal.recurringMaster;
+    const boundary =
+      proposal.preview.event.originalStartTime?.dateTime ??
+      proposal.preview.event.originalStartTime?.date ??
+      proposal.preview.event.start?.dateTime ??
+      proposal.preview.event.start?.date;
+    if (master?.recurrence === undefined || boundary === undefined) {
+      throw new OperationalError(
+        "invalid-target",
+        "This-and-future cancellation requires its recurring master.",
+      );
+    }
+    await writer.patchEvent({
+      calendarId: proposal.sourceItem.calendarId,
+      eventId: master.id,
+      patch: {
+        recurrence: trimCalendarRecurrence(master.recurrence, boundary),
+      } as CalendarEventPatch,
+    });
+    return;
+  }
+  await writer.deleteEvent({
+    calendarId: proposal.sourceItem.calendarId,
+    eventId,
+  });
 }
 
 function eventIdFor(idempotencyKey: string): string {

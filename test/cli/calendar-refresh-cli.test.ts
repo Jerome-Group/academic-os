@@ -347,6 +347,7 @@ describe("academic-os calendar refresh", () => {
         ({ event }) => (event as { id: string }).id === "class",
       ),
       {
+        access: "owned",
         deletedAt: academic.lastSuccessfulRefresh,
         event: fixture.events["academic-id"]?.[0],
       },

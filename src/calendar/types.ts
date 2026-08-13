@@ -132,6 +132,7 @@ export interface OwnedCalendarMirrorStore {
 }
 
 export interface CalendarTombstone {
+  access?: "owned" | "invited-read-only";
   deletedAt: string;
   event: CalendarEvent;
 }
@@ -160,7 +161,7 @@ export interface CalendarPromotionWriter {
   createEvent(input: {
     calendarId: string;
     eventId: string;
-    event: CalendarIntendedEvent;
+    event: CalendarIntendedEvent | CalendarEvent;
     idempotencyKey: string;
   }): Promise<void>;
   readEvent(input: {
@@ -177,6 +178,10 @@ export interface CalendarPromotionWriter {
     targetCalendarId: string;
     eventId: string;
   }): Promise<void>;
+  deleteEvent(input: {
+    calendarId: string;
+    eventId: string;
+  }): Promise<"deleted" | "missing">;
   splitRecurringEvent(input: {
     sourceCalendarId: string;
     targetCalendarId: string;
@@ -235,6 +240,7 @@ export interface CalendarIntendedEvent {
 }
 
 export interface CalendarEventPatch {
+  recurrence?: string[];
   summary?: string;
   description?: string;
   location?: string;
@@ -329,9 +335,56 @@ export interface CalendarChangeProposalCandidate {
   conflictSummary: { blockers: number; warnings: number };
 }
 
+export interface CalendarCancelProposalCandidate {
+  id: string;
+  status?: "ready";
+  operation: "cancel";
+  source: CalendarProposalSource;
+  itemKind: CalendarProposalItemKind;
+  sourceItem: CalendarChangeProposalCandidate["sourceItem"];
+  target: { calendarRole: OwnedCalendarRole; calendarId: string };
+  recurrenceScope?: CalendarRecurrenceScope;
+  recurringMaster?: CalendarEvent;
+  recurrenceDependencies?: CalendarChangeProposalCandidate["recurrenceDependencies"];
+  preview: { event: CalendarEvent; recurrenceScope?: CalendarRecurrenceScope };
+  idempotencyKey: string;
+  liveVersions: CalendarProposalLiveVersion[];
+  relevantAvailabilityVersion: {
+    digest: string;
+    interval: null;
+    checkedCalendarCount: 0;
+  };
+  conflictSummary: { blockers: 0; warnings: 0 };
+}
+
+export interface CalendarRestoreProposalCandidate {
+  id: string;
+  status?: "ready";
+  operation: "restore";
+  source: CalendarProposalSource;
+  itemKind: CalendarProposalItemKind;
+  target: { calendarRole: OwnedCalendarRole; calendarId: string };
+  intendedEvent: CalendarEvent;
+  restoredFrom: {
+    calendarRole: OwnedCalendarRole;
+    eventId: string;
+    deletedAt: string;
+  };
+  idempotencyKey: string;
+  liveVersions: CalendarProposalLiveVersion[];
+  relevantAvailabilityVersion: {
+    digest: string;
+    interval: CalendarInterval | null;
+    checkedCalendarCount: number;
+  };
+  conflictSummary: { blockers: number; warnings: number };
+}
+
 export type CalendarProposalCandidate =
   | CalendarCreateProposalCandidate
-  | CalendarChangeProposalCandidate;
+  | CalendarChangeProposalCandidate
+  | CalendarCancelProposalCandidate
+  | CalendarRestoreProposalCandidate;
 
 export type CalendarProposal = CalendarProposalCandidate & { status: "ready" };
 

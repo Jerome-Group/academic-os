@@ -106,6 +106,7 @@ node dist/src/cli.js calendar setup --config academic-os.config.json
 The primary calendar is bound as Academic and is never created or renamed. Existing Commitments
 and Routine calendars are reused. Add `--apply` only when the report previews missing secondary
 calendars; rerunning setup reuses the resulting exact IDs. Add `--json` for the versioned report.
+Install the daily private macOS Refresh from the [operator guide](docs/operator-guide.md#install-the-daily-local-refresh-macos).
 
 ## What it is for
 

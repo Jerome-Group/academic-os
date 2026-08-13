@@ -308,6 +308,292 @@ describe("academic-os calendar propose", () => {
     const provider = await readProvider(fixture);
     assert.ok(provider.requests.every(({ method }) => method === "GET"));
   });
+
+  it("previews an exact update patch without provider mutation", async () => {
+    const existing = {
+      id: "owned-seminar",
+      etag: "event-version-1",
+      summary: "Old title",
+      description: "Keep this description",
+      attendees: [{ email: "guest@example.com" }],
+      reminders: {
+        useDefault: false,
+        overrides: [{ method: "popup", minutes: 5 }],
+      },
+      start: {
+        dateTime: "2026-08-20T10:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+      end: {
+        dateTime: "2026-08-20T11:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+    };
+    const fixture = await setupFixture({ academicEvents: [existing] });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "instruction", reference: "rename-owned-seminar" },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: "owned-seminar",
+        patch: { summary: "New title" },
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.proposal.operation, "update");
+    assert.deepEqual(report.proposal.patch, { summary: "New title" });
+    assert.deepEqual(report.proposal.sourceItem, {
+      calendarRole: "Academic",
+      calendarId: "academic-id",
+      eventId: "owned-seminar",
+      versionDigest: report.proposal.sourceItem.versionDigest,
+    });
+    assert.match(report.proposal.sourceItem.versionDigest, /^[a-f0-9]{64}$/u);
+    assert.doesNotMatch(
+      JSON.stringify(report.proposal.patch),
+      /description|attendees|reminders/u,
+    );
+    assert.ok(
+      ((await readProvider(fixture)).requests ?? []).every(
+        ({ method }) => method === "GET",
+      ),
+    );
+  });
+
+  it("requires and preserves each explicit recurring edit scope", async () => {
+    const recurringMaster = {
+      id: "weekly-class",
+      summary: "Weekly class",
+      recurrence: ["RRULE:FREQ=WEEKLY"],
+      start: {
+        dateTime: "2026-08-20T10:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+      end: {
+        dateTime: "2026-08-20T11:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+    };
+    for (const recurrenceScope of [
+      "this-occurrence",
+      "entire-series",
+      "this-and-future",
+    ]) {
+      const recurringTarget =
+        recurrenceScope === "entire-series"
+          ? recurringMaster
+          : {
+              ...recurringMaster,
+              id: `weekly-class-${recurrenceScope}`,
+              recurrence: undefined,
+              recurringEventId: "weekly-class",
+              originalStartTime: recurringMaster.start,
+            };
+      const fixture = await setupFixture({
+        academicEvents:
+          recurrenceScope === "this-and-future"
+            ? [recurringMaster, recurringTarget]
+            : [recurringTarget],
+      });
+      const inputPath = await writeInput(fixture, {
+        schemaVersion: 1,
+        source: { kind: "instruction", reference: recurrenceScope },
+        item: {
+          operation: "update",
+          calendarRole: "Academic",
+          eventId: recurringTarget.id,
+          recurrenceScope,
+          patch: { summary: `Changed ${recurrenceScope}` },
+        },
+      });
+      const result = await runCalendarPropose(fixture, inputPath, "--json");
+      assert.equal(result.exitCode, 0, JSON.stringify(result));
+      assert.equal(
+        JSON.parse(result.stdout).proposal.recurrenceScope,
+        recurrenceScope,
+      );
+    }
+
+    const fixture = await setupFixture({ academicEvents: [recurringMaster] });
+    const missingScope = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "instruction", reference: "missing-scope" },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: "weekly-class",
+        patch: { summary: "Ambiguous change" },
+      },
+    });
+    const rejected = await runCalendarPropose(fixture, missingScope, "--json");
+    assert.equal(rejected.exitCode, 2, JSON.stringify(rejected));
+    assert.match(rejected.stdout, /require exactly one recurrenceScope/u);
+  });
+
+  it("prepares this-and-future for an all-day recurring occurrence", async () => {
+    const master = {
+      id: "annual-day",
+      summary: "Annual day",
+      recurrence: ["RRULE:FREQ=YEARLY;COUNT=3"],
+      start: { date: "2026-08-20" },
+      end: { date: "2026-08-21" },
+    };
+    const occurrence = {
+      id: "annual-day-2027",
+      recurringEventId: "annual-day",
+      originalStartTime: { date: "2027-08-20" },
+      summary: "Annual day",
+      start: { date: "2027-08-20" },
+      end: { date: "2027-08-21" },
+    };
+    const fixture = await setupFixture({
+      academicEvents: [master, occurrence],
+    });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "instruction", reference: "all-day-future" },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: occurrence.id,
+        recurrenceScope: "this-and-future",
+        patch: { summary: "Changed annual day" },
+      },
+    });
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    assert.equal(
+      JSON.parse(result.stdout).proposal.recurrenceScope,
+      "this-and-future",
+    );
+  });
+
+  it("rejects writes to invited events", async () => {
+    const invited = {
+      id: "invited-talk",
+      summary: "Invited talk",
+      organizer: { email: "organiser@example.com", self: false },
+      start: { dateTime: "2026-08-20T10:00:00+08:00" },
+      end: { dateTime: "2026-08-20T11:00:00+08:00" },
+    };
+    const fixture = await setupFixture({ academicEvents: [invited] });
+    const mirrorPath = join(fixture.calendarRoot, "mirrors", "academic.json");
+    const mirror = JSON.parse(await readFile(mirrorPath, "utf8"));
+    mirror.items[0].access = "invited-read-only";
+    await writeFile(mirrorPath, `${JSON.stringify(mirror)}\n`);
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "instruction", reference: "edit-invitation" },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: "invited-talk",
+        patch: { summary: "Forbidden" },
+      },
+    });
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(result.stdout, /Invited events are read-only/u);
+    assert.ok(
+      ((await readProvider(fixture)).requests ?? []).every(
+        ({ method }) => method === "GET",
+      ),
+    );
+  });
+
+  it("turns an explicit placement correction into a move Proposal only", async () => {
+    const misplaced = {
+      id: "misplaced-routine",
+      summary: "Sleep",
+      transparency: "transparent",
+      recurrence: ["RRULE:FREQ=DAILY"],
+      start: { dateTime: "2026-08-20T23:00:00+08:00" },
+      end: { dateTime: "2026-08-21T07:00:00+08:00" },
+    };
+    const fixture = await setupFixture({ academicEvents: [misplaced] });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "placement-suggestion", reference: "misplaced-routine" },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        targetCalendarRole: "Routine",
+        eventId: "misplaced-routine",
+        recurrenceScope: "entire-series",
+        patch: {},
+      },
+    });
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    const proposal = JSON.parse(result.stdout).proposal;
+    assert.equal(proposal.operation, "move");
+    assert.deepEqual(proposal.target, {
+      calendarRole: "Routine",
+      calendarId: "routine-id",
+    });
+    assert.deepEqual(proposal.patch, {});
+    assert.ok(
+      ((await readProvider(fixture)).requests ?? []).every(
+        ({ method }) => method === "GET",
+      ),
+    );
+  });
+
+  it("blocks a time-changing update against current bounded availability", async () => {
+    const existing = {
+      id: "owned-meeting",
+      summary: "Meeting",
+      start: {
+        dateTime: "2026-08-20T10:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+      end: {
+        dateTime: "2026-08-20T11:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+    };
+    const fixture = await setupFixture({
+      academicEvents: [existing],
+      observedEvents: [
+        {
+          id: "new-time-conflict",
+          summary: "Shared commitment",
+          start: { dateTime: "2026-08-20T12:30:00+08:00" },
+          end: { dateTime: "2026-08-20T13:30:00+08:00" },
+        },
+      ],
+    });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "instruction", reference: "move-meeting-time" },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: "owned-meeting",
+        patch: {
+          start: {
+            dateTime: "2026-08-20T12:00:00+08:00",
+            timeZone: "Asia/Singapore",
+          },
+          end: {
+            dateTime: "2026-08-20T13:00:00+08:00",
+            timeZone: "Asia/Singapore",
+          },
+        },
+      },
+    });
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+    assert.equal(result.exitCode, 3, JSON.stringify(result));
+    assert.equal(
+      JSON.parse(result.stdout).conflicts[0].eventId,
+      "new-time-conflict",
+    );
+  });
 });
 
 interface Fixture {

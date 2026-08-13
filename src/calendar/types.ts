@@ -69,6 +69,11 @@ export interface CalendarEvent {
   };
   recurrence?: string[];
   recurringEventId?: string;
+  originalStartTime?: {
+    date?: string;
+    dateTime?: string;
+    timeZone?: string;
+  };
   start?: {
     date?: string;
     dateTime?: string;
@@ -162,6 +167,26 @@ export interface CalendarPromotionWriter {
     calendarId: string;
     eventId: string;
   }): Promise<CalendarEvent>;
+  patchEvent(input: {
+    calendarId: string;
+    eventId: string;
+    patch: CalendarEventPatch;
+  }): Promise<void>;
+  moveEvent(input: {
+    sourceCalendarId: string;
+    targetCalendarId: string;
+    eventId: string;
+  }): Promise<void>;
+  splitRecurringEvent(input: {
+    sourceCalendarId: string;
+    targetCalendarId: string;
+    instanceId: string;
+    recurringEventId: string;
+    patch: CalendarEventPatch;
+    idempotencyKey: string;
+    exceptions: CalendarEvent[];
+    recurringMaster: CalendarEvent;
+  }): Promise<{ eventId: string }>;
 }
 
 export interface CalendarPromotionReport {
@@ -177,6 +202,7 @@ export interface CalendarPromotionRecord {
   proposalId: string;
   eventId: string;
   idempotencyKey: string;
+  calendarId?: string;
 }
 
 export interface CalendarPromotionJournal {
@@ -208,6 +234,25 @@ export interface CalendarIntendedEvent {
   end: { date: string } | { dateTime: string; timeZone: string };
 }
 
+export interface CalendarEventPatch {
+  summary?: string;
+  description?: string;
+  location?: string;
+  attachments?: unknown[];
+  reminders?: unknown;
+  conferenceData?: unknown;
+  source?: unknown;
+  start?: CalendarIntendedEvent["start"];
+  end?: CalendarIntendedEvent["end"];
+  transparency?: "opaque" | "transparent";
+  visibility?: "default" | "private" | "public";
+}
+
+export type CalendarRecurrenceScope =
+  | "this-occurrence"
+  | "entire-series"
+  | "this-and-future";
+
 export interface CalendarProposalLiveVersion {
   kind: "owned-mirror";
   calendarRole: OwnedCalendarRole;
@@ -216,7 +261,7 @@ export interface CalendarProposalLiveVersion {
   lastSuccessfulRefresh: string;
 }
 
-export interface CalendarProposalCandidate {
+export interface CalendarCreateProposalCandidate {
   id: string;
   status?: "ready";
   operation: "create";
@@ -248,9 +293,47 @@ export interface CalendarProposalCandidate {
   };
 }
 
-export interface CalendarProposal extends CalendarProposalCandidate {
-  status: "ready";
+export interface CalendarChangeProposalCandidate {
+  id: string;
+  status?: "ready";
+  operation: "update" | "move";
+  source: CalendarProposalSource;
+  itemKind: CalendarProposalItemKind;
+  sourceItem: {
+    calendarRole: OwnedCalendarRole;
+    calendarId: string;
+    eventId: string;
+    versionDigest: string;
+    recurringEventId?: string;
+  };
+  target: {
+    calendarRole: OwnedCalendarRole;
+    calendarId: string;
+  };
+  patch: CalendarEventPatch;
+  recurrenceScope?: CalendarRecurrenceScope;
+  recurrenceExceptions?: CalendarEvent[];
+  recurringMaster?: CalendarEvent;
+  recurrenceDependencies?: Array<{
+    eventId: string;
+    versionDigest: string;
+    acceptedTrimmedDigest?: string;
+  }>;
+  idempotencyKey: string;
+  liveVersions: CalendarProposalLiveVersion[];
+  relevantAvailabilityVersion: {
+    digest: string;
+    interval: CalendarInterval | null;
+    checkedCalendarCount: number;
+  };
+  conflictSummary: { blockers: number; warnings: number };
 }
+
+export type CalendarProposalCandidate =
+  | CalendarCreateProposalCandidate
+  | CalendarChangeProposalCandidate;
+
+export type CalendarProposal = CalendarProposalCandidate & { status: "ready" };
 
 export interface CalendarOverlap {
   severity: "block" | "warning";

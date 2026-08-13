@@ -12,6 +12,7 @@ interface FakeCalendarState {
   ambiguousCreateFailures?: string[];
   calendars: FakeCalendar[];
   eventReadFailures?: string[];
+  eventCreateFailures?: string[];
   eventPageSizes?: Record<string, number>;
   eventPageFailures?: Record<string, string[]>;
   events?: Record<string, unknown[]>;
@@ -20,6 +21,7 @@ interface FakeCalendarState {
   nextSyncTokens?: Record<string, string>;
   nextId?: number;
   omitCreatedFromIncremental?: boolean;
+  patchFailures?: string[];
   requests?: Array<{
     body?: unknown;
     credential?: string;
@@ -97,6 +99,142 @@ prototype.request = async function (options) {
   const eventMatch = options.url?.match(
     /^https:\/\/www\.googleapis\.com\/calendar\/v3\/calendars\/([^/]+)\/events\/([^/]+)$/u,
   );
+  const moveMatch = options.url?.match(
+    /^https:\/\/www\.googleapis\.com\/calendar\/v3\/calendars\/([^/]+)\/events\/([^/]+)\/move$/u,
+  );
+  const instancesMatch = options.url?.match(
+    /^https:\/\/www\.googleapis\.com\/calendar\/v3\/calendars\/([^/]+)\/events\/([^/]+)\/instances$/u,
+  );
+  if (
+    options.method === "GET" &&
+    instancesMatch !== null &&
+    instancesMatch !== undefined
+  ) {
+    const calendarId = decodeURIComponent(instancesMatch[1] ?? "");
+    const seriesId = decodeURIComponent(instancesMatch[2] ?? "");
+    const originalStart = (
+      options.params as { originalStart?: string } | undefined
+    )?.originalStart;
+    const instance = state.events?.[calendarId]?.find(
+      (candidate) =>
+        typeof candidate === "object" &&
+        candidate !== null &&
+        "recurringEventId" in candidate &&
+        candidate.recurringEventId === seriesId &&
+        "originalStartTime" in candidate &&
+        typeof candidate.originalStartTime === "object" &&
+        candidate.originalStartTime !== null &&
+        "dateTime" in candidate.originalStartTime &&
+        candidate.originalStartTime.dateTime === originalStart,
+    ) ?? {
+      id: `${seriesId}-exception-${Date.parse(originalStart ?? "")}`,
+      recurringEventId: seriesId,
+      originalStartTime: { dateTime: originalStart },
+    };
+    state.events ??= {};
+    state.events[calendarId] ??= [];
+    if (!state.events[calendarId].includes(instance)) {
+      state.events[calendarId].push(instance);
+    }
+    await writeFile(statePath, `${JSON.stringify(state)}\n`);
+    return { data: { items: [instance] } };
+  }
+  if (
+    options.method === "PATCH" &&
+    eventMatch !== null &&
+    eventMatch !== undefined
+  ) {
+    const calendarId = decodeURIComponent(eventMatch[1] ?? "");
+    const eventId = decodeURIComponent(eventMatch[2] ?? "");
+    if (
+      state.patchFailures?.includes(eventId) === true ||
+      state.patchFailures?.includes("*") === true
+    ) {
+      state.patchFailures = state.patchFailures.filter((id) => id !== eventId);
+      state.patchFailures = state.patchFailures.filter((id) => id !== "*");
+      await writeFile(statePath, `${JSON.stringify(state)}\n`);
+      throw new Error("Synthetic Calendar patch failed before acceptance.");
+    }
+    const events = state.events?.[calendarId] ?? [];
+    const index = events.findIndex(
+      (candidate) =>
+        typeof candidate === "object" &&
+        candidate !== null &&
+        "id" in candidate &&
+        candidate.id === eventId,
+    );
+    if (index < 0) throw new Error(`Synthetic event ${eventId} not found.`);
+    const event = {
+      ...(events[index] as Record<string, unknown>),
+      ...(options.data as Record<string, unknown>),
+    };
+    events[index] = event;
+    publishIncremental(state, calendarId, [event]);
+    await writeFile(statePath, `${JSON.stringify(state)}\n`);
+    return { data: event };
+  }
+  if (
+    options.method === "PUT" &&
+    eventMatch !== null &&
+    eventMatch !== undefined
+  ) {
+    const calendarId = decodeURIComponent(eventMatch[1] ?? "");
+    const eventId = decodeURIComponent(eventMatch[2] ?? "");
+    const events = state.events?.[calendarId] ?? [];
+    const index = events.findIndex(
+      (candidate) =>
+        typeof candidate === "object" &&
+        candidate !== null &&
+        "id" in candidate &&
+        candidate.id === eventId,
+    );
+    if (index < 0) throw new Error(`Synthetic event ${eventId} not found.`);
+    const event = { id: eventId, ...(options.data as Record<string, unknown>) };
+    events[index] = event;
+    publishIncremental(state, calendarId, [event]);
+    await writeFile(statePath, `${JSON.stringify(state)}\n`);
+    return { data: event };
+  }
+  if (
+    options.method === "POST" &&
+    moveMatch !== null &&
+    moveMatch !== undefined
+  ) {
+    const sourceCalendarId = decodeURIComponent(moveMatch[1] ?? "");
+    const eventId = decodeURIComponent(moveMatch[2] ?? "");
+    const targetCalendarId =
+      (options.params as { destination?: string } | undefined)?.destination ??
+      "";
+    const source = state.events?.[sourceCalendarId] ?? [];
+    const index = source.findIndex(
+      (candidate) =>
+        typeof candidate === "object" &&
+        candidate !== null &&
+        "id" in candidate &&
+        candidate.id === eventId,
+    );
+    if (index < 0) {
+      const existing = state.events?.[targetCalendarId]?.find(
+        (candidate) =>
+          typeof candidate === "object" &&
+          candidate !== null &&
+          "id" in candidate &&
+          candidate.id === eventId,
+      );
+      if (existing !== undefined) return { data: existing };
+      throw new Error(`Synthetic event ${eventId} not found.`);
+    }
+    const [event] = source.splice(index, 1);
+    state.events ??= {};
+    state.events[targetCalendarId] ??= [];
+    state.events[targetCalendarId].push(event);
+    publishIncremental(state, sourceCalendarId, [
+      { id: eventId, status: "cancelled" },
+    ]);
+    publishIncremental(state, targetCalendarId, [event]);
+    await writeFile(statePath, `${JSON.stringify(state)}\n`);
+    return { data: event };
+  }
   if (
     options.method === "GET" &&
     eventMatch !== null &&
@@ -123,6 +261,13 @@ prototype.request = async function (options) {
   ) {
     const calendarId = decodeURIComponent(eventsMatch[1] ?? "");
     const event = options.data as { id?: string };
+    if (state.eventCreateFailures?.includes(event.id ?? "") === true) {
+      state.eventCreateFailures = state.eventCreateFailures.filter(
+        (id) => id !== event.id,
+      );
+      await writeFile(statePath, `${JSON.stringify(state)}\n`);
+      throw new Error("Synthetic Calendar create failed before acceptance.");
+    }
     state.events ??= {};
     state.events[calendarId] ??= [];
     state.events[calendarId].push(event);
@@ -191,3 +336,19 @@ prototype.request = async function (options) {
 
   throw new Error(`Unexpected synthetic Calendar request: ${options.url}.`);
 };
+
+function publishIncremental(
+  state: FakeCalendarState,
+  calendarId: string,
+  events: unknown[],
+): void {
+  state.incrementalEvents ??= {};
+  state.incrementalEvents[calendarId] ??= {};
+  const nextSyncToken =
+    state.nextSyncTokens?.[calendarId] ??
+    `${calendarId.replace(/-id$/u, "")}-sync-1`;
+  state.incrementalEvents[calendarId][nextSyncToken] = [
+    ...(state.incrementalEvents[calendarId][nextSyncToken] ?? []),
+    ...events,
+  ];
+}

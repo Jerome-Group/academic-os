@@ -1,9 +1,11 @@
 import { OperationalError } from "../operational-error.js";
 import type {
   CalendarIntendedEvent,
+  CalendarEventPatch,
   CalendarInterval,
   CalendarProposalItemKind,
   CalendarProposalSource,
+  CalendarRecurrenceScope,
   OwnedCalendarRole,
 } from "./types.js";
 
@@ -24,6 +26,93 @@ export interface ParsedCalendarProposalInput {
     occupiedInterval: CalendarInterval | null;
     travelBuffer: TravelBuffer;
   };
+}
+
+export interface ParsedCalendarChangeProposalInput {
+  source: CalendarProposalSource;
+  calendarRole: OwnedCalendarRole;
+  eventId: string;
+  patch: CalendarEventPatch;
+  targetCalendarRole?: OwnedCalendarRole;
+  recurrenceScope?: CalendarRecurrenceScope;
+}
+
+export function parseCalendarChangeProposalInput(
+  value: unknown,
+): ParsedCalendarChangeProposalInput | undefined {
+  if (
+    !isObject(value) ||
+    !isObject(value.item) ||
+    value.item.operation !== "update"
+  ) {
+    return undefined;
+  }
+  const sourceValue = requireObject(value.source, "source");
+  const source = {
+    kind: requireNonEmptyString(sourceValue.kind, "source.kind"),
+    reference: requireNonEmptyString(sourceValue.reference, "source.reference"),
+  };
+  const item = value.item;
+  const calendarRole = requireRole(item.calendarRole);
+  const targetCalendarRole =
+    item.targetCalendarRole === undefined
+      ? undefined
+      : requireRole(item.targetCalendarRole);
+  const patch = parseEventPatch(
+    item.patch,
+    targetCalendarRole !== undefined && targetCalendarRole !== calendarRole,
+  );
+  const recurrenceScope = parseRecurrenceScope(item.recurrenceScope);
+  return {
+    source,
+    calendarRole,
+    eventId: requireNonEmptyString(item.eventId, "item.eventId"),
+    patch,
+    ...(targetCalendarRole === undefined ? {} : { targetCalendarRole }),
+    ...(recurrenceScope === undefined ? {} : { recurrenceScope }),
+  };
+}
+
+function parseEventPatch(
+  value: unknown,
+  allowEmpty: boolean,
+): CalendarEventPatch {
+  const patch = requireObject(value, "item.patch");
+  const allowed = new Set([
+    "summary",
+    "description",
+    "location",
+    "attachments",
+    "reminders",
+    "conferenceData",
+    "source",
+    "start",
+    "end",
+    "transparency",
+    "visibility",
+  ]);
+  const keys = Object.keys(patch);
+  if (
+    (!allowEmpty && keys.length === 0) ||
+    keys.some((key) => !allowed.has(key))
+  ) {
+    invalidInput("item.patch must contain only supported event fields");
+  }
+  return patch as CalendarEventPatch;
+}
+
+function parseRecurrenceScope(
+  value: unknown,
+): CalendarRecurrenceScope | undefined {
+  if (value === undefined) return undefined;
+  if (
+    value !== "this-occurrence" &&
+    value !== "entire-series" &&
+    value !== "this-and-future"
+  ) {
+    invalidInput("item.recurrenceScope is not supported");
+  }
+  return value;
 }
 
 export function parseCalendarProposalInput(
@@ -269,6 +358,10 @@ function requireObject(value: unknown, name: string): Record<string, unknown> {
     invalidInput(`${name} must be an object`);
   }
   return value as Record<string, unknown>;
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function invalidInput(message: string): never {

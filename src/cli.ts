@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { runAuditCommand } from "./commands/audit-command.js";
+import { runCalendarSetupCommand } from "./commands/calendar-setup-command.js";
 import { writeOperationalError } from "./commands/operational-error-output.js";
 import { runSeedCommand } from "./commands/seed-command.js";
 import { runRepairCommand } from "./commands/repair-command.js";
@@ -13,6 +14,8 @@ try {
     await runSeedCommand(arguments_, json);
   } else if (arguments_[0] === "repair") {
     await runRepairCommand(arguments_, json);
+  } else if (arguments_[0] === "calendar" && arguments_[1] === "setup") {
+    await runCalendarSetupCommand(arguments_.slice(1), json);
   } else {
     await runAuditCommand(arguments_, json);
   }

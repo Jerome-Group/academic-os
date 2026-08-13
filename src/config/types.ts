@@ -11,12 +11,25 @@ export interface ConfiguredModule {
   module: string;
 }
 
+export interface CalendarConfig {
+  managementHorizon: string;
+  credentials: {
+    scheduledRead: string;
+    interactiveWrite: string;
+  };
+}
+
+export interface ResolvedCalendarConfig extends CalendarConfig {
+  stateRoot: string;
+}
+
 export interface AcademicConfig {
   driveMount: string;
   stateRoot: string;
   activeSemester: string;
   semesters: Record<string, SemesterConfig>;
   seedTarget?: ConfiguredModule;
+  calendar?: CalendarConfig;
   driveApi?: {
     moduleFolderIds: Record<string, Record<string, string>>;
   };

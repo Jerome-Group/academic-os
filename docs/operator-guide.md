@@ -1,7 +1,7 @@
 # Operator guide
 
-The CLI has `seed`, `audit` and separately gated `repair` commands. It does not schedule weekly
-LLM work or edit module instructions autonomously.
+The CLI has `seed`, `audit`, `calendar setup` and separately gated `repair` commands. It does not
+schedule weekly LLM work or edit module instructions autonomously.
 
 ## Configure
 
@@ -14,6 +14,36 @@ credentials; mounted inventory remains the baseline.
 Repair additionally needs the exact module folder ID, a dedicated unmonitored Drive recovery-root
 ID, and an existing `snapshotRoot` on a physically separate volume. Its full-Drive OAuth scope is
 used only when `repair` is invoked; audit retains metadata-read-only authorization.
+
+Calendar setup needs a current ISO-8601 `managementHorizon` and two distinct absolute credential
+paths. Authorise scheduled-read credentials only for
+`calendar.calendarlist.readonly`. Authorise interactive-write credentials separately for
+`calendar.calendars`; setup uses that authority only after `--apply`. Keep both files and the
+configuration outside git.
+
+## Calendar setup
+
+Preview the Owned-calendar topology:
+
+```sh
+node dist/src/cli.js calendar setup --config academic-os.config.json
+```
+
+The command binds the Google primary calendar as Academic without creating or renaming it. It
+reuses exact Commitments and Routine names and reports any missing secondary calendar as
+`would create`. Preview does not create calendars or write an incomplete workspace.
+
+After reviewing the preview, create only the missing secondary calendars and persist all three
+exact IDs beneath `stateRoot/calendar/`:
+
+```sh
+node dist/src/cli.js calendar setup --config academic-os.config.json --apply
+```
+
+Rerunning setup is safe: existing calendars are reused and no duplicates are created. The private
+workspace also records the Asia/Singapore default timezone and Management horizon. Use `--json`
+for the equivalent versioned result. Never commit the workspace, provider responses, credentials,
+or the local configuration.
 
 ## Seed
 
@@ -104,6 +134,8 @@ is mutable and therefore is not itself immutable or WORM storage.
 ## Operate safely
 
 - Preview is non-mutating; apply requires the explicit flag.
+- Calendar setup preview never mutates Google; apply may create only missing secondary Owned
+  calendars.
 - Audit has no repair path and no write-capable Drive API dependency.
 - A contract change edits `docs/module-folder-contract.md`; repair resolves only an approved
   deviation and cannot change the contract.

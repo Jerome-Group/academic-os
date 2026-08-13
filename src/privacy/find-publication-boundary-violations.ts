@@ -47,7 +47,7 @@ const allowedSyntheticOrNormativeText = new Set([
   "test/fixtures/module-controls.ts",
 ]);
 const privateStatePath =
-  /(?:^|\/)(?:observations|journals|reports|academic-os-state|drive-api-responses)(?:\/|$)/u;
+  /(?:^|\/)(?:observations|journals|reports|academic-os-state|drive-api-responses|calendar-provider-responses)(?:\/|$)|^calendar\/|\.calendar-provider-response\.json$/u;
 const credentialPath =
   /(?:^|\/)(?:\.env(?:\..+)?|credentials\.json|[^/]*\.credentials\.json|client_secret[^/]*\.json|application_default_credentials\.json)$/u;
 const credentialContents =

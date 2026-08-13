@@ -68,3 +68,26 @@ it("keeps every tracked or untracked publication candidate inside the boundary",
 
   assert.deepEqual(findPublicationBoundaryViolations(files), []);
 });
+
+it("rejects private Calendar workspace and provider-response files", () => {
+  const files = [
+    {
+      path: "calendar/owned-calendars.json",
+      contents: '{"Academic":"provider-calendar-id"}',
+    },
+    {
+      path: "calendar-provider-responses/setup.json",
+      contents: '{"id":"provider-calendar-id"}',
+    },
+    {
+      path: "tmp/setup.calendar-provider-response.json",
+      contents: '{"id":"provider-calendar-id"}',
+    },
+  ];
+
+  assert.deepEqual(findPublicationBoundaryViolations(files), [
+    { path: files[0]?.path, kind: "private-state" },
+    { path: files[1]?.path, kind: "private-state" },
+    { path: files[2]?.path, kind: "private-state" },
+  ]);
+});

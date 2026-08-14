@@ -19,6 +19,74 @@ afterEach(async () => {
 });
 
 describe("academic-os calendar propose", () => {
+  it("previews one Academic bulk Proposal for classes and exams", async () => {
+    const fixture = await setupFixture();
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "ntu-timetable", reference: "private-image-1" },
+      item: {
+        operation: "academic-timetable",
+        calendarRole: "Academic",
+        term: "AY2026-27-S1",
+        classes: [
+          {
+            key: "mh2500-wednesday", // gitleaks:allow
+            summary: "MH2500 TUT SPMS2",
+            weekday: "WE",
+            startTime: "09:30",
+            endTime: "10:20",
+            weeks: { from: 2, to: 13 },
+            location: "SPMS-TR+5",
+          },
+          {
+            key: "cc0006-monday",
+            summary: "CC0006 TUT T004",
+            weekday: "MO",
+            startTime: "09:30",
+            endTime: "11:20",
+            location: "COLLAB 2",
+          },
+        ],
+        exams: [
+          {
+            key: "mh2500-exam",
+            summary: "MH2500 exam - Probability",
+            date: "2026-11-24",
+            startTime: "13:00",
+            endTime: "15:00",
+          },
+        ],
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.outcome, "ready");
+    assert.equal(report.proposal.operation, "bulk-create");
+    assert.equal(report.proposal.items.length, 3);
+    assert.equal(
+      report.proposal.items.find(
+        ({ key }: { key: string }) => key === "mh2500-wednesday", // gitleaks:allow
+      ).intendedEvent.recurrence[0],
+      "RRULE:FREQ=WEEKLY;UNTIL=20261111T155959Z",
+    );
+    assert.equal(
+      report.proposal.items.find(
+        ({ key }: { key: string }) => key === "mh2500-exam",
+      ).intendedEvent.recurrence,
+      undefined,
+    );
+    assert.equal(report.proposal.conflictSummary.blockers, 0);
+    assert.equal(
+      (await readProvider(fixture)).requests.some(
+        ({ method }) => method !== "GET",
+      ),
+      false,
+    );
+  });
+
   it("prepares a deterministic private fixed-event Proposal with inherited defaults", async () => {
     const fixture = await setupFixture();
     const inputPath = await writeInput(fixture, {

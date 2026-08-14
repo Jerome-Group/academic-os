@@ -155,6 +155,54 @@ the current pending Proposal beneath `stateRoot/calendar/`; Observed event detai
 only in the transient preview and are not persisted. Propose never changes Google Calendar. Use
 `--json` for the deterministic equivalent preview.
 
+### NTU academic timetable
+
+The `academic-timetable` input turns a private timetable manifest into one bulk Academic Proposal.
+The manifest stays outside git and contains `classes` plus `exams`; classes use `weekday`,
+`startTime`, `endTime` and optional `weeks` (`{ "from": 2, "to": 13 }` or `{ "week": 12 }`).
+An omitted `weeks` field means Wk1-Wk13. The built-in NTU AY2026-27 Semester 1 date map applies
+official public-holiday and no-class exceptions, and emits Google recurring-series rules for
+bounded multi-week classes. Exams are one-off timed events. Both classes and exams are private,
+busy Academic events.
+
+Example shape (use a private absolute input path):
+
+```json
+{
+  "schemaVersion": 1,
+  "source": { "kind": "ntu-timetable", "reference": "private-manifest-1" },
+  "item": {
+    "operation": "academic-timetable",
+    "calendarRole": "Academic",
+    "term": "AY2026-27-S1",
+    "classes": [
+      {
+        "key": "mh0000-lecture",
+        "summary": "MH0000 lecture",
+        "weekday": "MO",
+        "startTime": "09:30",
+        "endTime": "11:20",
+        "location": "Example room"
+      }
+    ],
+    "exams": [
+      {
+        "key": "mh0000-exam",
+        "summary": "MH0000 exam",
+        "date": "2026-11-24",
+        "startTime": "13:00",
+        "endTime": "15:00"
+      }
+    ]
+  }
+}
+```
+
+Propose checks every expanded occurrence against current Owned and selected Observed availability,
+then writes one private bulk Proposal. Review its exact event count, recurrence exceptions,
+locations, exam dates, conflicts and warnings before promoting. A room list from a timetable is
+kept on one event; it does not create overlapping copies.
+
 ### Routine-series migration
 
 The initial Routine migration uses the same Proposal path. Supply reviewed provider identities from

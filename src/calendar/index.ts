@@ -10,6 +10,7 @@ export {
 } from "./calendar-refresh-launchd-runner.js";
 export { calendarStateDigest } from "./calendar-state-digest.js";
 export { createCalendarProposal } from "./create-calendar-proposal.js";
+export { createAcademicTimetableProposal } from "./create-academic-timetable-proposal.js";
 export { createFileCalendarPromotionJournal } from "./file-calendar-promotion-journal.js";
 export { createFileCalendarProposalStore } from "./file-calendar-proposal-store.js";
 export { createFileOwnedCalendarMirrorStore } from "./file-owned-calendar-mirror-store.js";
@@ -33,12 +34,20 @@ export {
   createGoogleCalendarSetupWriter,
 } from "./google-calendar-client.js";
 export { promoteCalendarProposal } from "./promote-calendar-proposal.js";
+export {
+  NTU_AY2026_27_SEMESTER_1,
+  datesForNtuWeeks,
+  localNtuDateTime,
+  ntuWeeklyClassSchedule,
+} from "./ntu-academic-calendar.js";
 export { refreshOwnedCalendars } from "./refresh-owned-calendars.js";
 export {
   DEFAULT_CALENDAR_TIMEZONE,
   setupOwnedCalendars,
 } from "./setup-owned-calendars.js";
 export type {
+  CalendarBulkCreateItem,
+  CalendarBulkCreateProposalCandidate,
   CalendarEvent,
   CalendarIntendedEvent,
   CalendarInterval,

@@ -21,6 +21,84 @@ afterEach(async () => {
 });
 
 describe("academic-os calendar promote", () => {
+  it("promotes one bulk Academic Proposal and retries without duplicates", async () => {
+    const fixture = await setupFixture();
+    const inputPath = join(fixture.inputRoot, "academic-timetable.json");
+    await writeFile(
+      inputPath,
+      `${JSON.stringify({
+        schemaVersion: 1,
+        source: { kind: "ntu-timetable", reference: "private-image-1" },
+        item: {
+          operation: "academic-timetable",
+          calendarRole: "Academic",
+          term: "AY2026-27-S1",
+          classes: [
+            {
+              key: "mh2500-wednesday", // gitleaks:allow
+              summary: "MH2500 TUT SPMS2",
+              weekday: "WE",
+              startTime: "09:30",
+              endTime: "10:20",
+              weeks: { from: 2, to: 13 },
+              location: "SPMS-TR+5",
+            },
+            {
+              key: "cc0006-examless",
+              summary: "CC0006 TUT T004",
+              weekday: "MO",
+              startTime: "09:30",
+              endTime: "11:20",
+              weeks: { week: 2 },
+              location: "COLLAB 2",
+            },
+          ],
+          exams: [
+            {
+              key: "mh2500-exam",
+              summary: "MH2500 exam - Probability",
+              date: "2026-11-24",
+              startTime: "13:00",
+              endTime: "15:00",
+            },
+          ],
+        },
+      })}\n`,
+    );
+    const proposed = await runCalendarPropose(fixture, inputPath, "--json");
+    assert.equal(proposed.exitCode, 0, JSON.stringify(proposed));
+    const proposal = JSON.parse(proposed.stdout).proposal;
+    await mutateProvider(fixture, (provider) => {
+      provider.ambiguousCreateFailures = [proposal.items[0].eventId];
+      provider.eventCreateFailures = [proposal.items[1].eventId];
+    });
+
+    const first = await runPromote(fixture, proposal.id, "--json");
+    const retry = await runPromote(fixture, proposal.id, "--json");
+    const finalRetry = await runPromote(fixture, proposal.id, "--json");
+
+    assert.equal(first.exitCode, 2, JSON.stringify(first));
+    assert.equal(retry.exitCode, 0, JSON.stringify(retry));
+    assert.equal(JSON.parse(retry.stdout).outcome, "promoted");
+    assert.equal(JSON.parse(retry.stdout).verifiedEvents.length, 3);
+    assert.equal(finalRetry.exitCode, 0, JSON.stringify(finalRetry));
+    assert.equal(JSON.parse(finalRetry.stdout).outcome, "retry");
+    const provider = await readProvider(fixture);
+    assert.equal(
+      provider.requests.filter(({ method }) => method === "POST").length,
+      4,
+    );
+    assert.equal(provider.events["academic-id"]?.length, 3);
+    const journal = (
+      await readFile(join(fixture.calendarRoot, "promotions.jsonl"), "utf8")
+    )
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    assert.equal(journal.length, 1);
+    assert.equal(journal[0].eventIds.length, 3);
+  });
+
   it("Refreshes, creates once, rereads, journals once, and Refreshes again", async () => {
     const fixture = await setupFixture();
 
@@ -777,6 +855,7 @@ interface Fixture {
   configPath: string;
   eventId: string;
   idempotencyKey: string;
+  inputRoot: string;
   providerPath: string;
   writeCredential: string;
 }
@@ -800,9 +879,11 @@ async function setupFixture(): Promise<Fixture> {
   const stateRoot = join(root, "State");
   const calendarRoot = join(stateRoot, "calendar");
   const mirrorsRoot = join(calendarRoot, "mirrors");
+  const inputRoot = join(root, "Inputs");
   await Promise.all([
     mkdir(driveMount),
     mkdir(mirrorsRoot, { recursive: true }),
+    mkdir(inputRoot),
   ]);
   const readCredential = join(root, "calendar-read.credentials.json");
   const writeCredential = join(root, "calendar-write.credentials.json");
@@ -936,6 +1017,7 @@ async function setupFixture(): Promise<Fixture> {
     configPath,
     eventId,
     idempotencyKey,
+    inputRoot,
     providerPath,
     writeCredential,
   };
@@ -1325,6 +1407,26 @@ async function runPromote(
     proposalId,
     "--config",
     fixture.configPath,
+    ...arguments_,
+  );
+}
+
+async function runCalendarPropose(
+  fixture: Fixture,
+  inputPath: string,
+  ...arguments_: string[]
+) {
+  return await runCliWithEnvironment(
+    {
+      ACADEMIC_OS_FAKE_CALENDAR_STATE: fixture.providerPath,
+      NODE_OPTIONS: `--import=${fakeCalendarPreload}`,
+    },
+    "calendar",
+    "propose",
+    "--config",
+    fixture.configPath,
+    "--input",
+    inputPath,
     ...arguments_,
   );
 }

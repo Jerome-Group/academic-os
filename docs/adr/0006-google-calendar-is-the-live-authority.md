@@ -95,11 +95,13 @@ Promotes create, move, update and cancel operations, handles recurring scope, ch
 runs the daily local Refresh and migrates the existing Routine series. One JSONL file records
 Promotions. Atomic file replacement is the entire persistence design.
 
-V1 accepts concrete Proposals prepared by the interactive agent. A simple source field preserves
-room for later timetable, document or ICS adapters, but none are built now. Refresh stores
-recurring masters and exceptions rather than materialising every occurrence; commands expand only
-the bounded interval they need. Calendar colours carry classification, existing reminders are
-preserved and new items inherit calendar defaults; V1 adds no per-event colour policy.
+V1 accepts concrete and source-backed academic-timetable Proposals prepared by the interactive
+agent. The NTU AY2026-27 Semester 1 date map is public and source-backed; the personal timetable
+manifest, exact event identities and Proposal state remain private. Refresh stores recurring
+masters and exceptions rather than materialising every occurrence; timetable Proposals expand
+their bounded semester occurrences only for conflict checking. Calendar colours carry
+classification, existing reminders are preserved and new items inherit calendar defaults; V1 adds
+no per-event colour policy.
 
 Bootstrap binds the Google primary calendar as **Academic**, reuses or creates **Commitments** and
 **Routine**, and stores their exact IDs privately; later operation never guesses identity from a

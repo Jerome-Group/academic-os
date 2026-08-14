@@ -603,6 +603,41 @@ describe("academic-os calendar propose", () => {
     assert.match(rejected.stdout, /require exactly one recurrenceScope/u);
   });
 
+  it("accepts a recurrence patch for an entire recurring series", async () => {
+    const recurringMaster = {
+      id: "weekday-lunch",
+      summary: "Lunch",
+      recurrence: ["RRULE:FREQ=DAILY"],
+      start: {
+        dateTime: "2026-08-17T12:30:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+      end: {
+        dateTime: "2026-08-17T13:30:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+      transparency: "transparent",
+      visibility: "private",
+    };
+    const fixture = await setupFixture({ routineEvents: [recurringMaster] });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "instruction", reference: "split-weekday-lunch" },
+      item: {
+        operation: "update",
+        calendarRole: "Routine",
+        eventId: "weekday-lunch",
+        recurrenceScope: "entire-series",
+        patch: { recurrence: ["RRULE:FREQ=WEEKLY;BYDAY=TU"] },
+      },
+    });
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    assert.deepEqual(JSON.parse(result.stdout).proposal.patch.recurrence, [
+      "RRULE:FREQ=WEEKLY;BYDAY=TU",
+    ]);
+  });
+
   it("prepares this-and-future for an all-day recurring occurrence", async () => {
     const master = {
       id: "annual-day",

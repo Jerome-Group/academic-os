@@ -426,6 +426,7 @@ function parseEventPatch(
 ): CalendarEventPatch {
   const patch = requireObject(value, "item.patch");
   const allowed = new Set([
+    "recurrence",
     "summary",
     "description",
     "location",

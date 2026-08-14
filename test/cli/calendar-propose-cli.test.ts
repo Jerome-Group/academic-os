@@ -158,6 +158,46 @@ describe("academic-os calendar propose", () => {
     assert.ok(provider.requests.every(({ method }) => method === "GET"));
   });
 
+  it("preserves an explicit recurrence for a Routine-event Proposal", async () => {
+    const fixture = await setupFixture();
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "instruction", reference: "weekday-lunch-series" },
+      item: {
+        kind: "routine-event",
+        calendarRole: "Routine",
+        summary: "Lunch",
+        start: {
+          dateTime: "2026-05-12T12:30:00+08:00",
+          timeZone: "Asia/Singapore",
+        },
+        end: {
+          dateTime: "2026-05-12T13:30:00+08:00",
+          timeZone: "Asia/Singapore",
+        },
+        recurrence: ["RRULE:FREQ=WEEKLY;BYDAY=TU"],
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    assert.deepEqual(JSON.parse(result.stdout).proposal.intendedEvent, {
+      summary: "Lunch",
+      visibility: "private",
+      transparency: "transparent",
+      start: {
+        dateTime: "2026-05-12T12:30:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+      end: {
+        dateTime: "2026-05-12T13:30:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+      recurrence: ["RRULE:FREQ=WEEKLY;BYDAY=TU"],
+    });
+  });
+
   it("warns for Routine overlaps, uses only an explicit travel buffer, and never persists Observed details", async () => {
     const fixture = await setupFixture({
       observedEvents: [

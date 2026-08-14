@@ -155,6 +155,10 @@ the current pending Proposal beneath `stateRoot/calendar/`; Observed event detai
 only in the transient preview and are not persisted. Propose never changes Google Calendar. Use
 `--json` for the deterministic equivalent preview.
 
+Routine-event inputs may also include an explicit `recurrence` array, such as
+`["RRULE:FREQ=WEEKLY;BYDAY=MO"]`; the Proposal preserves the recurrence on the created Routine
+series.
+
 ### NTU academic timetable
 
 The `academic-timetable` input turns a private timetable manifest into one bulk Academic Proposal.

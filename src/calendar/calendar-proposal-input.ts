@@ -526,6 +526,10 @@ function parseEvent(input: {
     "item.end",
     input.defaultTimezone,
   );
+  const recurrence = parseEventRecurrence(input.item.recurrence);
+  if (recurrence !== undefined && input.kind !== "routine-event") {
+    invalidInput("item.recurrence is supported only for routine-event");
+  }
   if (Date.parse(end.dateTime) <= Date.parse(start.dateTime)) {
     invalidInput("item.end must be after item.start");
   }
@@ -539,10 +543,29 @@ function parseEvent(input: {
       transparency: input.kind === "fixed-event" ? "opaque" : "transparent",
       start,
       end,
+      ...(recurrence === undefined ? {} : { recurrence }),
     },
     occupiedInterval: { start: start.dateTime, end: end.dateTime },
     travelBuffer: parseTravelBuffer(input.item.travelBuffer),
   };
+}
+
+function parseEventRecurrence(value: unknown): string[] | undefined {
+  if (value === undefined) return undefined;
+  if (
+    !Array.isArray(value) ||
+    value.length === 0 ||
+    value.some(
+      (line) =>
+        typeof line !== "string" ||
+        line.trim() === "" ||
+        line.includes("\n") ||
+        line.includes("\r"),
+    )
+  ) {
+    invalidInput("item.recurrence must contain non-empty single-line strings");
+  }
+  return value as string[];
 }
 
 function parseTimedMilestone(input: {

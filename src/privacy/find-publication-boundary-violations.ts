@@ -42,8 +42,12 @@ const academicTextExtensions = new Set([
 ]);
 const allowedSyntheticOrNormativeText = new Set([
   "CONTEXT.md",
+  "docs/adr/0006-google-calendar-is-the-live-authority.md",
+  "docs/adr/0007-ntu-academic-timetable-import.md",
   "docs/module-folder-contract.md",
   "docs/operator-guide.md",
+  "docs/research/ntu-ay2026-27-semester-1.md",
+  "src/calendar/ntu-academic-calendar.ts",
   "test/fixtures/module-controls.ts",
 ]);
 const privateStatePath =

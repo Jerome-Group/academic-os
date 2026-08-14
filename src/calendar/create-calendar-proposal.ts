@@ -6,6 +6,7 @@ import {
 } from "./calendar-conflicts.js";
 import {
   parseCalendarChangeProposalInput,
+  parseCalendarAcademicTimetableProposalInput,
   parseCalendarProposalInput,
   parseCalendarRoutineMigrationProposalInput,
   type ParsedCalendarActionProposalInput,
@@ -31,6 +32,7 @@ import { trimCalendarRecurrence } from "./calendar-recurrence.js";
 import { calendarStateDigest } from "./calendar-state-digest.js";
 import { readCurrentCalendarMirrors } from "./read-current-calendar-mirrors.js";
 import { createRoutineMigrationProposal } from "./create-routine-migration-proposal.js";
+import { createAcademicTimetableProposal } from "./create-academic-timetable-proposal.js";
 
 export { calendarStateDigest } from "./calendar-state-digest.js";
 
@@ -49,6 +51,19 @@ export async function createCalendarProposal(input: {
     return await createRoutineMigrationProposal({
       value: routineMigrationInput,
       workspace,
+      mirrorStore: input.mirrorStore,
+      proposalStore: input.proposalStore,
+    });
+  }
+  const academicTimetableInput = parseCalendarAcademicTimetableProposalInput(
+    input.value,
+    workspace.defaultTimezone,
+  );
+  if (academicTimetableInput !== undefined) {
+    return await createAcademicTimetableProposal({
+      value: academicTimetableInput,
+      workspace,
+      reader: input.reader,
       mirrorStore: input.mirrorStore,
       proposalStore: input.proposalStore,
     });
@@ -617,8 +632,10 @@ async function prepareChangeAvailability(input: {
   const items = availability.items.filter(
     ({ calendarId, event }) =>
       calendarId !== input.sourceCalendarId ||
-      (event.id !== input.sourceEvent.id &&
-        event.id !== input.sourceEvent.recurringEventId),
+      !belongsToSourceSeries(event, {
+        eventId: input.sourceEvent.id,
+        recurringEventId: input.sourceEvent.recurringEventId,
+      }),
   );
   const overlaps = findCalendarOverlaps({
     availability: items,
@@ -632,6 +649,14 @@ async function prepareChangeAvailability(input: {
     conflicts: overlaps.filter(({ severity }) => severity === "block"),
     warnings: overlaps.filter(({ severity }) => severity === "warning"),
   };
+}
+
+function belongsToSourceSeries(
+  event: CalendarEvent,
+  source: { eventId: string; recurringEventId?: string | undefined },
+): boolean {
+  const seriesId = source.recurringEventId ?? source.eventId;
+  return event.id === seriesId || event.recurringEventId === seriesId;
 }
 
 function recurringFutureState(

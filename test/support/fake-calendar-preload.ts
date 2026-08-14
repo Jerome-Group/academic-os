@@ -302,6 +302,14 @@ prototype.request = async function (options) {
   ) {
     const calendarId = decodeURIComponent(eventsMatch[1] ?? "");
     const event = options.data as { id?: string };
+    const existing = state.events?.[calendarId]?.some(
+      (candidate) =>
+        typeof candidate === "object" &&
+        candidate !== null &&
+        "id" in candidate &&
+        candidate.id === event.id,
+    );
+    if (existing === true) throw { response: { status: 409 } };
     if (state.eventCreateFailures?.includes(event.id ?? "") === true) {
       state.eventCreateFailures = state.eventCreateFailures.filter(
         (id) => id !== event.id,
@@ -318,7 +326,12 @@ prototype.request = async function (options) {
       state.nextSyncTokens?.[calendarId] ??
       `${calendarId.replace(/-id$/u, "")}-sync-1`;
     state.incrementalEvents[calendarId][nextSyncToken] =
-      state.omitCreatedFromIncremental === true ? [] : [event];
+      state.omitCreatedFromIncremental === true
+        ? []
+        : [
+            ...(state.incrementalEvents[calendarId][nextSyncToken] ?? []),
+            event,
+          ];
     await writeFile(statePath, `${JSON.stringify(state)}\n`);
     if (state.ambiguousCreateFailures?.includes(event.id ?? "") === true) {
       state.ambiguousCreateFailures = state.ambiguousCreateFailures.filter(

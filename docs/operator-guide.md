@@ -24,6 +24,16 @@ paths. Authorise scheduled-read credentials only for `calendar.calendarlist.read
 `--apply`, and Promote is the only event-writing path. Keep both files and the configuration
 outside git.
 
+On macOS, a convenient private layout is `$HOME/.config/academic-os/`: keep the downloaded Desktop
+OAuth client files as `calendar-read-client.json` and `calendar-write-client.json`, and keep the
+separately authorised user credential files as `calendar-read.credentials.json` and
+`calendar-write.credentials.json`. These are private files, should be owner-only, and must never be
+copied into the repository.
+
+This checkout includes `scripts/setup-calendar-local.sh`, which walks through the two sequential
+Google approvals, private config update, setup preview, explicit setup apply, initial Refresh and
+optional LaunchAgent installation. It stops before any event migration or Promotion.
+
 ## Calendar setup
 
 Preview the Owned-calendar topology:
@@ -144,6 +154,58 @@ Only an explicitly supplied travel buffer expands a conflict check. The ready Pr
 the current pending Proposal beneath `stateRoot/calendar/`; Observed event details are reported
 only in the transient preview and are not persisted. Propose never changes Google Calendar. Use
 `--json` for the deterministic equivalent preview.
+
+Routine-event inputs may also include an explicit `recurrence` array, such as
+`["RRULE:FREQ=WEEKLY;BYDAY=MO"]`; the Proposal preserves the recurrence on the created Routine
+series.
+
+### NTU academic timetable
+
+The `academic-timetable` input turns a private timetable manifest into one bulk Academic Proposal.
+The manifest stays outside git and contains `classes` plus `exams`; classes use `weekday`,
+`startTime`, `endTime` and optional `weeks` (`{ "from": 2, "to": 13 }` or `{ "week": 12 }`).
+An omitted `weeks` field means Wk1-Wk13. The built-in NTU AY2026-27 Semester 1 date map applies
+official public-holiday and no-class exceptions, and emits Google recurring-series rules for
+bounded multi-week classes. Exams are one-off timed events. Both classes and exams are private,
+busy Academic events.
+
+Example shape (use a private absolute input path):
+
+```json
+{
+  "schemaVersion": 1,
+  "source": { "kind": "ntu-timetable", "reference": "private-manifest-1" },
+  "item": {
+    "operation": "academic-timetable",
+    "calendarRole": "Academic",
+    "term": "AY2026-27-S1",
+    "classes": [
+      {
+        "key": "mh0000-lecture",
+        "summary": "MH0000 lecture",
+        "weekday": "MO",
+        "startTime": "09:30",
+        "endTime": "11:20",
+        "location": "Example room"
+      }
+    ],
+    "exams": [
+      {
+        "key": "mh0000-exam",
+        "summary": "MH0000 exam",
+        "date": "2026-11-24",
+        "startTime": "13:00",
+        "endTime": "15:00"
+      }
+    ]
+  }
+}
+```
+
+Propose checks every expanded occurrence against current Owned and selected Observed availability,
+then writes one private bulk Proposal. Review its exact event count, recurrence exceptions,
+locations, exam dates, conflicts and warnings before promoting. A room list from a timetable is
+kept on one event; it does not create overlapping copies.
 
 ### Routine-series migration
 

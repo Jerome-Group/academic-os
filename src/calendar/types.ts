@@ -237,6 +237,9 @@ export interface CalendarIntendedEvent {
   summary: string;
   visibility: "private";
   transparency: "opaque" | "transparent";
+  description?: string;
+  location?: string;
+  recurrence?: string[];
   start: { date: string } | { dateTime: string; timeZone: string };
   end: { date: string } | { dateTime: string; timeZone: string };
 }
@@ -293,6 +296,41 @@ export interface CalendarCreateProposalCandidate {
   relevantAvailabilityVersion: {
     digest: string;
     interval: CalendarInterval | null;
+    checkedCalendarCount: number;
+  };
+  conflictSummary: {
+    blockers: number;
+    warnings: number;
+  };
+}
+
+export interface CalendarBulkCreateItem {
+  key: string;
+  eventId: string;
+  idempotencyKey: string;
+  itemKind: "fixed-event";
+  intendedEvent: CalendarIntendedEvent;
+  occupiedIntervals: CalendarInterval[];
+}
+
+export interface CalendarBulkCreateProposalCandidate {
+  id: string;
+  status?: "ready";
+  operation: "bulk-create";
+  source: CalendarProposalSource;
+  itemKind: "fixed-event";
+  target: {
+    calendarRole: OwnedCalendarRole;
+    calendarId: string;
+  };
+  items: CalendarBulkCreateItem[];
+  inheritedDefaults: CalendarCreateProposalCandidate["inheritedDefaults"];
+  targetCalendarVersion: CalendarCreateProposalCandidate["targetCalendarVersion"];
+  idempotencyKey: string;
+  liveVersions: CalendarProposalLiveVersion[];
+  relevantAvailabilityVersion: {
+    digest: string;
+    intervals: CalendarInterval[];
     checkedCalendarCount: number;
   };
   conflictSummary: {
@@ -451,6 +489,7 @@ export interface CalendarRoutineMigrationProposalCandidate {
 
 export type CalendarProposalCandidate =
   | CalendarCreateProposalCandidate
+  | CalendarBulkCreateProposalCandidate
   | CalendarChangeProposalCandidate
   | CalendarCancelProposalCandidate
   | CalendarRestoreProposalCandidate

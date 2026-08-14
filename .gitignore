@@ -6,6 +6,9 @@
 .idea/
 *.swp
 
+# Agent browser-tool artifacts
+.playwright-mcp/
+
 # Env / secrets
 .env
 .env.*

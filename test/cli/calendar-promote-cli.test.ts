@@ -99,6 +99,60 @@ describe("academic-os calendar promote", () => {
     assert.equal(journal[0].eventIds.length, 3);
   });
 
+  it("accepts Google-normalized defaults and recurrence order", async () => {
+    const fixture = await setupFixture();
+    const inputPath = join(fixture.inputRoot, "academic-timetable.json");
+    await writeFile(
+      inputPath,
+      `${JSON.stringify({
+        schemaVersion: 1,
+        source: { kind: "ntu-timetable", reference: "private-image-2" },
+        item: {
+          operation: "academic-timetable",
+          calendarRole: "Academic",
+          term: "AY2026-27-S1",
+          classes: [
+            {
+              key: "cc0006-mon-t004",
+              summary: "CC0006 TUT T004",
+              weekday: "MO",
+              startTime: "09:30",
+              endTime: "11:20",
+              weeks: { from: 1, to: 13 },
+              location: "COLLAB 2",
+            },
+          ],
+          exams: [],
+        },
+      })}\n`,
+    );
+    const proposed = await runCalendarPropose(fixture, inputPath, "--json");
+    assert.equal(proposed.exitCode, 0, JSON.stringify(proposed));
+    const proposal = JSON.parse(proposed.stdout).proposal;
+    const item = proposal.items[0];
+    const normalized: Record<string, unknown> = {
+      id: item.eventId,
+      ...item.intendedEvent,
+      recurrence: [...(item.intendedEvent.recurrence ?? [])].reverse(),
+    };
+    delete normalized.transparency;
+    await mutateProvider(fixture, (provider) => {
+      provider.events["academic-id"] = [normalized];
+      provider.incrementalEvents["academic-id"] = {
+        "academic-sync": [normalized],
+      };
+    });
+
+    const result = await runPromote(fixture, proposal.id, "--json");
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    assert.equal(JSON.parse(result.stdout).outcome, "promoted");
+    assert.equal(
+      (await readProvider(fixture)).events["academic-id"]?.length,
+      1,
+    );
+  });
+
   it("Refreshes, creates once, rereads, journals once, and Refreshes again", async () => {
     const fixture = await setupFixture();
 

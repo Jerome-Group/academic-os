@@ -412,25 +412,69 @@ function eventMatchesIntended(
   intended: CalendarBulkCreateItem["intendedEvent"],
 ): boolean {
   const actual = event as Record<string, unknown>;
-  for (const field of [
-    "summary",
-    "description",
-    "location",
-    "visibility",
-    "transparency",
-    "recurrence",
-    "start",
-    "end",
-  ] as const) {
-    const expected = intended[field];
-    if (
-      expected !== undefined &&
-      JSON.stringify(actual[field]) !== JSON.stringify(expected)
-    ) {
-      return false;
-    }
-  }
-  return true;
+  return (
+    actual.summary === intended.summary &&
+    actual.visibility === intended.visibility &&
+    transparencyMatches(actual.transparency, intended.transparency) &&
+    optionalStringMatches(actual.description, intended.description) &&
+    optionalStringMatches(actual.location, intended.location) &&
+    recurrenceMatches(actual.recurrence, intended.recurrence) &&
+    calendarPointMatches(actual.start, intended.start) &&
+    calendarPointMatches(actual.end, intended.end)
+  );
+}
+
+function optionalStringMatches(
+  actual: unknown,
+  expected: string | undefined,
+): boolean {
+  return expected === undefined || actual === expected;
+}
+
+function transparencyMatches(
+  actual: unknown,
+  expected: "opaque" | "transparent",
+): boolean {
+  return (
+    (actual === undefined || actual === null ? "opaque" : actual) === expected
+  );
+}
+
+function recurrenceMatches(
+  actual: unknown,
+  expected: string[] | undefined,
+): boolean {
+  if (expected === undefined) return true;
+  if (!Array.isArray(actual) || actual.length !== expected.length) return false;
+  const actualLines = actual.filter(
+    (line): line is string => typeof line === "string",
+  );
+  if (actualLines.length !== expected.length) return false;
+  const expectedLines = [...expected].sort();
+  return [...actualLines]
+    .sort()
+    .every((line, index) => line === expectedLines[index]);
+}
+
+function calendarPointMatches(
+  actual: unknown,
+  expected: { date: string } | { dateTime: string; timeZone: string },
+): boolean {
+  if (typeof actual !== "object" || actual === null) return false;
+  const point = actual as {
+    date?: unknown;
+    dateTime?: unknown;
+    timeZone?: unknown;
+  };
+  if ("date" in expected) return point.date === expected.date;
+  if (typeof point.dateTime !== "string") return false;
+  const expectedInstant = Date.parse(expected.dateTime);
+  const actualInstant = Date.parse(point.dateTime);
+  return (
+    Number.isFinite(expectedInstant) &&
+    actualInstant === expectedInstant &&
+    (point.timeZone === undefined || point.timeZone === expected.timeZone)
+  );
 }
 
 function boundingInterval(intervals: CalendarInterval[]): CalendarInterval {

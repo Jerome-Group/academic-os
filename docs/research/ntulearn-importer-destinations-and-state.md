@@ -10,7 +10,7 @@ both, and `<drive-mount>` stands for the Owner's Drive path, which stays out of 
 1. **Destination handling.** The importer writes into exactly one configured folder per NTULearn
    *course site* — the destination — and never outside it. The contract's importer roots reach it
    only as hand-maintained configuration: a git-ignored `config/courses.json` in the importer's own
-   checkout maps each site to an absolute path such as `<drive-mount>/…/AB1234/NTULearn`. Nothing
+   checkout maps each site to an absolute path such as `<drive-mount>/…/MODULE_CODE/NTULearn`. Nothing
    in the importer reads this repository's contract or a Module Definition; the coupling between
    MF-IMPORTER-001's root names and the importer is convention plus a README recommendation.
 2. **State.** There is **no manifest in the mirror**, deliberately. The importer keeps one
@@ -38,7 +38,7 @@ Configuration is a `config/courses.json` in the importer's checkout, ignored by 
 holds the Owner's own paths
 ([README.md](https://github.com/Jerome-Group/ntulearn/blob/5ef5254f03878b887be48e7e9682e3c1759f83bd/README.md),
 "Configuration"). Each entry is `{key, courseId, destination}`; the example ships module-shaped
-paths — `…/Modules/Y1S1/AB1234/NTULearn` and `…/AB1234/NTULearn_Tutorial`
+paths — `…/Modules/Y1S1/MODULE_CODE/NTULearn` and `…/MODULE_CODE/NTULearn_Tutorial`
 ([config/courses.example.json](https://github.com/Jerome-Group/ntulearn/blob/5ef5254f03878b887be48e7e9682e3c1759f83bd/config/courses.example.json)).
 Loading resolves each destination to an absolute, normalised path and **refuses, at startup, two
 courses sharing a destination or nesting one inside another**, compared case-insensitively because

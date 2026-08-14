@@ -24,6 +24,16 @@ paths. Authorise scheduled-read credentials only for `calendar.calendarlist.read
 `--apply`, and Promote is the only event-writing path. Keep both files and the configuration
 outside git.
 
+On macOS, a convenient private layout is `$HOME/.config/academic-os/`: keep the downloaded Desktop
+OAuth client files as `calendar-read-client.json` and `calendar-write-client.json`, and keep the
+separately authorised user credential files as `calendar-read.credentials.json` and
+`calendar-write.credentials.json`. These are private files, should be owner-only, and must never be
+copied into the repository.
+
+This checkout includes `scripts/setup-calendar-local.sh`, which walks through the two sequential
+Google approvals, private config update, setup preview, explicit setup apply, initial Refresh and
+optional LaunchAgent installation. It stops before any event migration or Promotion.
+
 ## Calendar setup
 
 Preview the Owned-calendar topology:

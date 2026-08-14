@@ -758,8 +758,7 @@ async function validateProposal(
       proposal.operation === "create" ||
       proposal.operation === "restore" ||
       calendarId !== proposal.sourceItem.calendarId ||
-      (event.id !== proposal.sourceItem.eventId &&
-        event.id !== proposal.sourceItem.recurringEventId),
+      !belongsToSourceSeries(event, proposal.sourceItem),
   );
   const availabilityDigest = calendarStateDigest(
     relevantAvailability.map(({ calendarId, event }) => ({
@@ -780,6 +779,14 @@ async function validateProposal(
     return blockers.length > 0 ? "blocked" : "stale";
   }
   return "valid";
+}
+
+function belongsToSourceSeries(
+  event: CalendarEvent,
+  source: { eventId: string; recurringEventId?: string | undefined },
+): boolean {
+  const seriesId = source.recurringEventId ?? source.eventId;
+  return event.id === seriesId || event.recurringEventId === seriesId;
 }
 
 async function applyProposal(

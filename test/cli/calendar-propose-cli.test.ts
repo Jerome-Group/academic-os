@@ -198,6 +198,66 @@ describe("academic-os calendar propose", () => {
     });
   });
 
+  it("does not count a recurring master's own occurrences as conflicts", async () => {
+    const recurringMaster = {
+      id: "lunch-master",
+      summary: "Lunch",
+      recurrence: ["RRULE:FREQ=DAILY"],
+      start: {
+        dateTime: "2026-08-20T12:30:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+      end: {
+        dateTime: "2026-08-20T13:30:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+      transparency: "transparent",
+    };
+    const occurrence = {
+      id: "lunch-master_20260821T043000Z",
+      recurringEventId: "lunch-master",
+      summary: "Lunch",
+      originalStartTime: {
+        dateTime: "2026-08-21T12:30:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+      start: {
+        dateTime: "2026-08-21T12:30:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+      end: {
+        dateTime: "2026-08-21T13:30:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+      transparency: "transparent",
+    };
+    const fixture = await setupFixture({
+      academicEvents: [recurringMaster],
+      providerAcademicEvents: [recurringMaster, occurrence],
+    });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "instruction", reference: "round-recurring-master" },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: "lunch-master",
+        recurrenceScope: "entire-series",
+        patch: {
+          end: {
+            dateTime: "2026-08-20T13:30:00+08:00",
+            timeZone: "Asia/Singapore",
+          },
+        },
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    assert.equal(JSON.parse(result.stdout).conflicts.length, 0);
+  });
+
   it("warns for Routine overlaps, uses only an explicit travel buffer, and never persists Observed details", async () => {
     const fixture = await setupFixture({
       observedEvents: [

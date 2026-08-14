@@ -632,8 +632,10 @@ async function prepareChangeAvailability(input: {
   const items = availability.items.filter(
     ({ calendarId, event }) =>
       calendarId !== input.sourceCalendarId ||
-      (event.id !== input.sourceEvent.id &&
-        event.id !== input.sourceEvent.recurringEventId),
+      !belongsToSourceSeries(event, {
+        eventId: input.sourceEvent.id,
+        recurringEventId: input.sourceEvent.recurringEventId,
+      }),
   );
   const overlaps = findCalendarOverlaps({
     availability: items,
@@ -647,6 +649,14 @@ async function prepareChangeAvailability(input: {
     conflicts: overlaps.filter(({ severity }) => severity === "block"),
     warnings: overlaps.filter(({ severity }) => severity === "warning"),
   };
+}
+
+function belongsToSourceSeries(
+  event: CalendarEvent,
+  source: { eventId: string; recurringEventId?: string | undefined },
+): boolean {
+  const seriesId = source.recurringEventId ?? source.eventId;
+  return event.id === seriesId || event.recurringEventId === seriesId;
 }
 
 function recurringFutureState(

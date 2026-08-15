@@ -248,9 +248,23 @@ cannot support Promotion or a complete conflict check until Refresh succeeds.
 _Avoid_: empty calendar, failed proposal
 
 **Task**:
-A piece of work to complete, owned by task management even when it has a due date. It is not a
+A piece of work to complete, owned by task management even when it has a do-date. It is not a
 Calendar item.
 _Avoid_: Calendar event, Calendar milestone
+
+**Do-date**:
+The single date a Task carries — the day the work is planned to be done. It is never a deadline
+and never carries a time; a deadline is a Calendar milestone.
+_Avoid_: due date. That is Google's name for the same field, and it reads as a deadline — exactly
+the misreading this term exists to prevent.
+
+**Task register**:
+The agent-managed mirror of one module's Google Tasks list, kept at
+`00 Module Admin/30 Task Register.yaml` inside its module folder. The list is the live authority;
+the register catches up by pull, never wins a conflict, and carries the provenance the list
+cannot.
+_Avoid_: task list — that is the live authority the register mirrors; task history — the register
+is current state, not an append-only record like the Curation register.
 
 **Teaching workspace**:
 The `70 Learning` half of the contract: teaching a subject as the way of learning it. Its internal

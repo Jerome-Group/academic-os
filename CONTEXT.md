@@ -117,6 +117,12 @@ The recorded classification of one NTULearn item as curated, source-only, or req
 decision. A curated decision also identifies the canonical destination and its provenance.
 _Avoid_: guess, placement note
 
+**Rederivation**:
+Integrating an NTULearn item's content into one or more derived artifacts — module docs, notes,
+the module profile — rather than copying the file itself. Recorded in the curation register as its
+own decision, naming the derived artifacts where a curated decision names a destination.
+_Avoid_: curation — that places a verbatim renamed copy; summarising, extraction
+
 **Module profile**:
 The human-facing description of one module, kept at `00 Module Admin/00 Module Profile.md` inside
 its module folder. It does not define what the auditor enforces.

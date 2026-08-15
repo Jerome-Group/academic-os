@@ -267,10 +267,45 @@ _Avoid_: task list — that is the live authority the register mirrors; task his
 is current state, not an append-only record like the Curation register.
 
 **Teaching workspace**:
-The `70 Learning` half of the contract: teaching a subject as the way of learning it. Its internal
-contract is deferred, and the directory is reserved rather than filled.
+The `70 Learning` half of the contract: teaching a subject as the way of learning it, organised by
+activity — lectures, tutorials, revision, past papers — with each activity keeping its own
+Learning records. Its structure and templates are seeded for every module, used or not.
 _Avoid_: notes. Personal notes are `10 Learning Materials/30 Personal Notes`, which is a different
 thing done for a different reason.
+
+**Lecture-unit**:
+One step of a module's own lecture numbering — a week or a lecture, named exactly as the module
+names it. The spine of the Source map and the unit of lecture work in the Teaching workspace.
+Several files can belong to one unit; a unit is never subdivided further.
+_Avoid_: lecture, class — a unit may span several lecture files; part — a part is a file within a
+unit, not a unit.
+
+**Source map**:
+The machine-readable declaration of one module's Lecture-units and what belongs to each — topics,
+lecture artifacts, textbook chapters, tutorials — kept at `00 Module Admin/40 Source Map.yaml`.
+Lecture-units are authoritative: everything else maps onto them.
+_Avoid_: syllabus, reading list. Both suggest a human-facing plan rather than the mapping
+automations consume.
+
+**Learning record**:
+One numbered markdown record in a Teaching workspace activity area, capturing a session against
+the named sources it worked from. Records are superseded, never deleted, and one marked as
+understanding is evidence-gated: demonstrated, not merely covered.
+_Avoid_: transcript, session log — a record keeps what matters later, not what was said; notes.
+
+**Revisit register**:
+The Teaching workspace's list of what deserves another pass: confusion, questions the Owner was
+completely stuck on, and exam-important questions. Agent-proposed, Owner-accepted, and worked
+through and struck manually; it carries no dates and feeds no task system.
+_Avoid_: task list, schedule, spaced repetition — all imply timing the register deliberately
+refuses.
+
+**Attempt**:
+The Owner's completed work on a tutorial or paper, annotated on their own device and dropped into
+the unit's workspace folder, where it is renamed with an `_Attempt` suffix. It is what the grading
+pass reads.
+_Avoid_: submission — graded coursework handed to the university lives in `50 Submissions`;
+solution — the writeup the workspace itself produces.
 
 Two terms are Organisation-wide and mean the same thing in every repository:
 

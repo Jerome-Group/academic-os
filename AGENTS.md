@@ -33,6 +33,9 @@ convention that only lives in a session.
 
 - Default branch: `main`.
 - Domain glossary lives in `CONTEXT.md`; decisions are recorded as ADRs in `docs/adr/`.
+- A doc agents consume — this file, anything in `docs/agents/`, a skill, a seeded module doc — is
+  written or amended with `/mattpocock-skills:writing-for-agents` loaded, its levers applied
+  alongside the change's own requirements.
 - Keep secrets out of the repo. **Never commit a token.** The conformance check scans every pull
   request for one, and it fires after the push — so a caught credential is burned: rotate it
   first, then clean up. The full response is in `CONTRIBUTING.md`.

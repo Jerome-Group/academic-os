@@ -341,6 +341,27 @@ printed number, table-of-contents title, absolute page range, output filename an
 checksum at cut time; nothing book-level is repeated here.
 _Avoid_: shelf index — that owns the books; chapter list, extraction log.
 
+**Module glossary**:
+The `CONTEXT.md` inside a module folder: that module's organisational language — what its material
+is called and how it is classified and named. A term lands only after an ambiguity actually cost a
+decision or an exchange; the test for belonging is whether the term changes where a file goes or
+what it is named.
+_Avoid_: workspace glossary — that is the subject speaking, not the filing of its material; notes.
+
+**Workspace glossary**:
+The `GLOSSARY.md` inside `70 Learning`: the subject-matter terms of the module itself, kept for
+the learning. A ruling on what the lecturer's word means for classifying or naming files belongs
+in the Module glossary instead.
+_Avoid_: module glossary, definitions list.
+
+**Module ADR**:
+A decision record in a module folder's `docs/adr/`: a standing rule the module follows that the
+contract does not force, whose reversal would strand records already built on it. Numbered from
+`0001` within its module and immutable once written — a change of mind is a new superseding ADR —
+and a per-item decision applying one cites it from the Curation register's evidence.
+_Avoid_: curation decision — that classifies one item; repository ADR — a module ADR's numbering
+and authority stop at its module folder.
+
 Two terms are Organisation-wide and mean the same thing in every repository:
 
 **Organisation**:

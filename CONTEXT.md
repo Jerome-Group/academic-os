@@ -307,6 +307,40 @@ pass reads.
 _Avoid_: submission — graded coursework handed to the university lives in `50 Submissions`;
 solution — the writeup the workspace itself produces.
 
+**Textbook shelf**:
+The `Textbooks` folder beside the semester roots in the Drive mount — the Owner-supplied,
+full-book authority every module extracts chapters from. Books arrive only by the Owner's hand;
+its `Archive` subfolder holds retired books, outside the Shelf index.
+_Avoid_: library — nothing is borrowed or fetched; textbook folder — ambiguous with a module's
+own `20 Textbook Chapters`.
+
+**Shelf index**:
+The agent-maintained catalogue at `00 Index.yaml` inside the Textbook shelf: one entry per book,
+keyed by Book key, holding the exact filename, title, edition, authors, Division word and
+checksum. It owns every book-level fact; agents append entries, and only the Owner renames or
+removes one.
+_Avoid_: register — registers are module-scoped; book list, catalogue file.
+
+**Book key**:
+The globally unique, filename-safe token that names one shelf book everywhere it is referred to —
+Shelf index entry, Textbook register citation, chapter filename. First-author surname by default,
+Owner-qualified on collision, and immutable once any chapter filename cites it.
+_Avoid_: author — several books share one; abbreviation — a key resolves through the index, never
+by parsing.
+
+**Division**:
+The unit a book divides itself by, in the book's own word — Chapter, Lecture, Part. Recorded once
+in the book's Shelf index entry and written in full in chapter filenames; numbering is zero-padded
+arabic even where the book prints roman, with the printed original kept in the Textbook register.
+_Avoid_: chapter — the common case, not the rule; section.
+
+**Textbook register**:
+The chapter-scoped record of what has been extracted into one module, kept at
+`00 Module Admin/50 Textbook Register.yaml` and seeded empty. Each entry cites a Book key with the
+printed number, table-of-contents title, absolute page range, output filename and the book's
+checksum at cut time; nothing book-level is repeated here.
+_Avoid_: shelf index — that owns the books; chapter list, extraction log.
+
 Two terms are Organisation-wide and mean the same thing in every repository:
 
 **Organisation**:

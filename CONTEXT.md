@@ -266,6 +266,21 @@ cannot.
 _Avoid_: task list — that is the live authority the register mirrors; task history — the register
 is current state, not an append-only record like the Curation register.
 
+**Operations server**:
+The MCP server this repository builds and runs on the mini, exposing its operations — task
+operations first, later surfaces joining the same server — to any MCP-speaking agent on the
+Tailnet. A machine registers it once at user scope; module folders and their routers never carry
+its transport.
+_Avoid_: the MCP server — says the protocol, not which surface; the CLI — the same operations run
+locally on the mini, not the remote surface; API, backend.
+
+**Tailnet**:
+The Owner's private Tailscale network joining the mini and every machine an agent works from.
+Reachability on it is the Operations server's entire authorisation — no credential sits on top —
+so a machine joins by signing in to Tailscale, never by carrying a key file.
+_Avoid_: VPN, private tunnel — both read as infrastructure still to be built, when the tailnet
+already runs.
+
 **Teaching workspace**:
 The `70 Learning` half of the contract: teaching a subject as the way of learning it, organised by
 activity — lectures, tutorials, revision, past papers — with each activity keeping its own

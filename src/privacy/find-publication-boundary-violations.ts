@@ -78,7 +78,22 @@ export function findPublicationBoundaryViolations(
 }
 
 function isAcademicPath(path: string): boolean {
-  return isAcademicDirectory(path) || namesCourseworkFile(path);
+  return (
+    isAcademicDirectory(path) ||
+    (!isInspectableSeedTemplate(path) && namesCourseworkFile(path))
+  );
+}
+
+// A seed-source template is this repository's canonical body for a module file, so it carries that
+// file's name and extension and `namesCourseworkFile` reads it as coursework arriving. The
+// `.template` infix is what says otherwise — but only for an extension `containsAcademicText` can
+// read, so that the content heuristics take over the job the name heuristics are giving up. A
+// template that is a binary keeps being refused on its name alone.
+function isInspectableSeedTemplate(path: string): boolean {
+  return (
+    seedSourceTemplatePath.test(path) &&
+    academicTextExtensions.has(posix.extname(path).toLowerCase())
+  );
 }
 
 function isAcademicDirectory(path: string): boolean {
@@ -93,13 +108,6 @@ function isAcademicDirectory(path: string): boolean {
 }
 
 function namesCourseworkFile(path: string): boolean {
-  // A seed-source template is this repository's canonical body for a module file, so it carries
-  // that file's name and extension and the heuristics below read it as coursework arriving. The
-  // `.template` infix is what says otherwise. The content heuristics still run over it, and they
-  // are what would catch a real module's material pasted into one.
-  if (seedSourceTemplatePath.test(path)) {
-    return false;
-  }
   return (
     isAcademicTextFilename(posix.basename(path)) ||
     courseworkBearingExtensions.has(posix.extname(path).toLowerCase())

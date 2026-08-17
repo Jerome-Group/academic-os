@@ -1,5 +1,6 @@
 % The seeded style for this workspace, and the semantic interface every artifact here writes
 % against. A template body carries no visual decision; every one of them is made in this file.
+% A type file inputs this one, so this one is never compiled by itself.
 %
 %   \ArtifactHeader{module}{unit}{title}{date}{sources}   and \ModuleCode, this module's code
 %   environments  defn, thm, prop, example, remark, warning   (and amsthm's proof)
@@ -51,11 +52,12 @@
 \renewcommand{\thethm}{\thesection.\arabic{thm}}
 
 % Questions run on their own counter: a sheet numbers its questions, and the optional argument
-% takes that number whenever the sheet's own numbering is what a reader will look for.
-\newcounter{qn}
+% takes that number whenever the sheet's own numbering is what a reader will look for. The counter
+% steps only where it is the number on the page, so a \label never resolves to an unprinted one.
+\newcounter{question}
 \newenvironment{question}[1][]%
-  {\par\medskip\noindent\refstepcounter{qn}%
-   \textbf{Question \ifblank{#1}{\theqn}{#1}.}\ \ignorespaces}%
+  {\par\medskip\noindent\ifblank{#1}{\refstepcounter{question}}{}%
+   \textbf{Question \ifblank{#1}{\thequestion}{#1}.}\ \ignorespaces}%
   {\par}
 \newenvironment{solution}%
   {\par\smallskip\noindent\textbf{Solution.}\ \ignorespaces}%
@@ -65,8 +67,8 @@
   {\par\medskip\noindent\textbf{Check yourself.}\begin{enumerate}}%
   {\end{enumerate}}
 
-% An underscore is math shift in LaTeX, and the code seeding writes below has to stay one literal
-% token for seeding to find it — so it is read once here with the underscore made ordinary.
+% The module code below stays one literal token, because that token is what seeding substitutes.
+% An underscore is math shift in LaTeX, so it is read here with the underscore made ordinary.
 {\catcode`\_=12 \gdef\ModuleCode{MODULE_CODE}}
 
 \newcommand{\ArtifactHeader}[5]{%

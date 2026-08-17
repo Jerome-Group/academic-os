@@ -7,6 +7,7 @@ Start here: `README.md`, then `AGENTS.md`.
 | Area | What lives there | Entry point |
 |------|------------------|-------------|
 | The contract | How every module folder is laid out and named. Normative — a folder that disagrees with it is wrong | `docs/module-folder-contract.md` |
+| Seed-source templates | The canonical bodies of the pinned module files — what seeding will write into a module folder and the auditor will diff it against | `seed-templates/` |
 | Module CLI | Previewed journalled/resumable seed and approved ID-bound repair, mounted or Drive API inventory, cohort/migration audit, private observations, pure conformance, and reports | `src/cli.ts`, `docs/operator-guide.md`, `docs/v1-acceptance.md` |
 | Calendar CLI | Previewed Owned-calendar setup, resilient pull-only Refresh, local macOS scheduling, conflict-checked Proposals, verified Promotion, and reviewed whole-series Routine migration | `src/calendar/`, `src/commands/calendar-*-command.ts`, `scripts/install-calendar-refresh-launchd.mjs`, `docs/operator-guide.md` |
 | Tests | Public-seam tests using synthetic temporary module trees | `test/` |

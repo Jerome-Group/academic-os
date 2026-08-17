@@ -10,8 +10,10 @@ Nothing reads this directory yet, and the bodies here are version 4's. `docs/mod
 is still at version 3, and version 3 is what seeded modules are audited against — including the
 `AGENTS.md` shape `src/seed/create-module-seed-plan.ts` writes and `src/conformance/validate-agents.ts`
 checks, which is not the router here. Version 4 brings the readers: the pinning rule
-(MF-AGENTS-004), the tree these bodies describe, and MF-AGENTS-001 rewritten around this router.
-Until it lands, a module folder that disagrees with a template here is not yet a finding.
+(MF-AGENTS-004), the tree these bodies describe, MF-AGENTS-001 rewritten around this router, and
+the Curation-register line schema's version 2 — the `rederived` decision the curation procedure
+here already runs on. Until it lands, a module folder that disagrees with a template here is not
+yet a finding.
 
 ## The path is the destination
 
@@ -37,6 +39,5 @@ contract's own text:
 
 ## What lands here next
 
-The three remaining pinned docs — `docs/10 Curation Procedure.md`, `docs/20 Teaching
-Procedure.md`, `docs/30 Textbook Procedure.md` — and the seeded LaTeX set for
+The last pinned doc — `docs/20 Teaching Procedure.md` — and the seeded LaTeX set for
 `70 Learning/templates/`.

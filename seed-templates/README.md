@@ -37,6 +37,5 @@ contract's own text:
 
 ## What lands here next
 
-The three remaining pinned docs — `docs/10 Curation Procedure.md`, `docs/20 Teaching
-Procedure.md`, `docs/30 Textbook Procedure.md` — and the seeded LaTeX set for
+The last pinned doc — `docs/20 Teaching Procedure.md` — and the seeded LaTeX set for
 `70 Learning/templates/`.

@@ -76,18 +76,18 @@ Step 3 pins an outcome, and any means that reaches it is the right one on the ma
 the pages that come out are the pages that went in — same count as the range, each one whole and
 lossless, at the source's own resolution.
 
-A machine that offers no such means has reached a park rather than a workaround. Say so, and record
-the book, the range and the intended name in the parking, so the next capable session finishes it.
+On a machine that offers no such means, step 3 is a step that cannot complete: say so, and let it
+park with the book, the range and the intended name recorded, so the next capable session finishes
+it.
 
 ## The three parks
 
-To park is to leave the shelf and the module folder untouched and surface the request — in the
-session when the Owner is present, in the run's report when not — naming the book and what stopped
-it.
+To park is to leave the shelf and the module folder untouched and surface the request, naming the
+book and what stopped it.
 
 - **The book has no entry in the Shelf index.** Absent from the shelf, or sitting there unindexed:
-  either way, adding or renaming an entry is the Owner's. Park, naming the book to obtain or the
-  entry to settle.
+  either way the cut has no key, checksum or Division word to work from. Park, naming the book to
+  obtain or the entry the index still owes. Renaming or removing an entry is the Owner's.
 - **The request names no division the book prints.** A bare page range, a topic, a subsection, a
   number the book's own contents do not carry — there is nothing to record, so there is nothing to
   cut.

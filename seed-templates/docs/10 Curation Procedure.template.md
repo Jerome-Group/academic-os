@@ -20,7 +20,8 @@ Two things together identify an item, and the pass establishes both from the fil
 - **The checksum** — sha-256 of the file's bytes, computed by this pass.
 
 Whatever an importer or an earlier pass cached about a file is one run's working note. The bytes on
-the mount and the register are the two authorities here.
+the mount and the register are the two authorities here, and a pass leaves nothing behind but its
+own decision lines.
 
 ## The walk and the join
 
@@ -38,7 +39,9 @@ Join each file found against the register on both halves of its identity:
 | Checksum known, path new | Known bytes, filed twice upstream | `source-only`, its evidence naming the original decision |
 | Neither known | A new item | Classify it |
 
-Every file the mirror holds ends the pass carrying a line.
+Every file the mirror holds ends the pass carrying a line. A line whose source is no longer in the
+mirror is the join running the other way: the curated copy stays exactly where it is, and the
+missing source is surfaced as a discrepancy.
 
 ## Classification
 
@@ -90,9 +93,6 @@ A `curated` decision takes its destination and its curated name from
 `docs/00 Structure and Naming.md`, and both freeze in the register line at the moment of the
 decision. That line is the record of where the item went and what it is called, so a later rename
 or move contradicts it — a correction to show the Owner, rather than routine work.
-
-Curation copies out of an importer root and leaves the names and the layout inside it exactly as
-the importer wrote them.
 
 ## The register line
 

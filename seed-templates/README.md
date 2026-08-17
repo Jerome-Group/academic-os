@@ -39,5 +39,5 @@ contract's own text:
 
 ## What lands here next
 
-The last pinned doc — `docs/20 Teaching Procedure.md` — and the seeded LaTeX set for
-`70 Learning/templates/`.
+The seeded LaTeX set for `70 Learning/templates/` — the six template types, the shared preamble and
+the preferences file the teaching procedure here already runs on, cut from the chosen style.

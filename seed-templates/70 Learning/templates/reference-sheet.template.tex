@@ -1,0 +1,36 @@
+% Reference sheet — the module's results and notation at their densest, one artifact per topic or
+% per exam. Formulas and conditions only; anything that argues belongs in revision notes.
+% Copy it into the folder it serves and replace every <...> placeholder. The input line below
+% resolves the preamble from the templates folder or from a unit folder two levels down.
+\documentclass[a4paper,10pt]{article}
+\IfFileExists{preamble.tex}{\input{preamble.tex}}{\input{../../templates/preamble.tex}}
+\begin{document}
+\ArtifactHeader{\ModuleCode}{<Source-map key, or the exam this serves>}{<what this sheet covers>}%
+  {<YYYY-MM-DD>}{<the units and chapters the entries were taken from>}
+
+\section{Notation}
+\begin{itemize}
+  \item <symbol> --- <what it denotes in this module, where the module has a house convention
+        that differs from the textbook's.>
+\end{itemize}
+
+\section{<A group of results>}
+\begin{itemize}
+  \item \textbf{<name>.} <the statement> \quad <the condition it needs, always carried with it:
+        a formula written without its hypothesis is the error this sheet exists to stop.>
+  \item \textbf{<name>.}
+        \[
+          \text{<a result that needs a display>}
+        \]
+        <its condition>
+\end{itemize}
+
+\section{<A second group>}
+\begin{itemize}
+  \item \textbf{<name>.} <the statement> \quad <its condition>
+\end{itemize}
+
+\begin{warning}
+<The pair of results that get used in each other's place, and the one word that tells them apart.>
+\end{warning}
+\end{document}

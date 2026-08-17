@@ -1,0 +1,43 @@
+% Revision notes — one topic worked over its whole spread of sources, in a topic folder under
+% 30 Revision/. The lecture pattern with more sources, and questions reached by pointer.
+% Copy it there and replace every <...> placeholder. The input line below resolves the preamble
+% from the templates folder or from a unit folder two levels down, so it never needs editing.
+\documentclass[a4paper,10pt]{article}
+\IfFileExists{preamble.tex}{\input{preamble.tex}}{\input{../../templates/preamble.tex}}
+\begin{document}
+\ArtifactHeader{\ModuleCode}{<Source-map key>}{<the topic, from the Source map's topics>}%
+  {<YYYY-MM-DD>}{<every unit, sheet and paper this topic spans, by pointer>}
+
+\section{What this topic is}
+<The topic in the shape it will be examined in, not the order it was taught in. Revision earns its
+place by re-cutting the material, so a walkthrough copied here has done nothing.>
+
+\section{What has to be known cold}
+
+\begin{defn}[<term>]
+<The definitions the rest of the topic is stated in terms of.>
+\end{defn}
+
+\begin{thm}[<name>]
+<The result the topic turns on, hypotheses included.>
+\end{thm}
+
+\begin{remark}
+<How the units that taught this fit together — usually the thing no single unit could say.>
+\end{remark}
+
+\begin{warning}
+<The confusion this topic reliably produces, taken from the records and the Revisit register.>
+\end{warning}
+
+\section{Where it is examined}
+\begin{itemize}
+  \item <A sheet question, by pointer — never copied here.>
+  \item <A past-paper question, by pointer, with what makes it the representative one.>
+\end{itemize}
+
+\begin{checkyourself}
+  \item <The derivation to be able to produce from nothing.>
+  \item <The question that would show this topic is closed.>
+\end{checkyourself}
+\end{document}

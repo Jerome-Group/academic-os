@@ -1,0 +1,52 @@
+% Lecture walkthrough — one pass through a unit's own material, written to be re-read. Lives in
+% the unit's folder under 10 Lectures/, about three per folder.
+% Copy it there and replace every <...> placeholder. The input line below resolves the preamble
+% from the templates folder or from a unit folder two levels down, so it never needs editing.
+\documentclass[a4paper,10pt]{article}
+\IfFileExists{preamble.tex}{\input{preamble.tex}}{\input{../../templates/preamble.tex}}
+\begin{document}
+\ArtifactHeader{\ModuleCode}{<Source-map key>}{<what this walkthrough covers>}{<YYYY-MM-DD>}%
+  {<the unit's files, from the Source map, each with the locator actually worked>}
+
+\section{Where this sits}
+<What the last unit left off at, and which of this unit's sources this walkthrough takes. A reader
+who stopped mid-topic starts here.>
+
+\section{<The first idea>}
+
+\begin{defn}[<term>]
+<The definition in the module's own notation, and the alternative notations the source uses for
+the same thing.>
+\end{defn}
+
+\begin{example}
+<The smallest computation that makes the definition concrete, worked rather than cited.>
+\end{example}
+
+\begin{thm}[<name>]
+<The statement with its hypotheses spelled out, since the hypotheses are what the exam tests.>
+\end{thm}
+
+\begin{proof}
+<The argument, where the source proves it. Drop this environment where the source does not.>
+\end{proof}
+
+\begin{remark}
+<Why a hypothesis is there, what the notation hides, or how this connects back to a one-variable
+result already known.>
+\end{remark}
+
+\begin{warning}
+<The mistake the idea invites, with the counterexample that settles it. Warnings share the
+theorem counter, so this one is citable like any other numbered thing.>
+\end{warning}
+
+\section{<The second idea>}
+<One section per idea, in the order the Source map lists the unit's files. A source that sections
+itself finely is worked as a whole rather than copied section for section.>
+
+\begin{checkyourself}
+  \item <Something to rebuild unaided — the test of whether this landed.>
+  \item <A question from the module's own material, named by pointer and never copied here.>
+\end{checkyourself}
+\end{document}

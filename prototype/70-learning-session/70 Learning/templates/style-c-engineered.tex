@@ -1,0 +1,29 @@
+% PROTOTYPE (throwaway) — Style C: "Engineered".
+% Compact kpfonts, strictly monochrome, rules as the only structure: ruled sections, small-caps
+% run-in heads, a tabular header block. The register of a well-drafted engineering datasheet.
+\input{../../templates/preamble-common.tex}
+\usepackage[a4paper,margin=1.6cm]{geometry}
+\usepackage[nott]{kpfonts}
+\usepackage[T1]{fontenc}
+\usepackage{titlesec}
+\titleformat{\section}{\bfseries\scshape}{\thesection}{0.6em}{}[{\titlerule[0.4pt]}]
+\titlespacing*{\section}{0pt}{0.9em}{0.35em}
+
+\newtheoremstyle{scit}{0.4em}{0.4em}{\itshape}{}{\scshape}{.}{0.5em}{}
+\newtheoremstyle{scup}{0.4em}{0.4em}{}{}{\scshape}{.}{0.5em}{}
+\theoremstyle{scit}
+\newtheorem{thm}{Theorem}[section]
+\newtheorem{prop}[thm]{Proposition}
+\theoremstyle{scup}
+\newtheorem{defn}[thm]{Definition}
+\newtheorem{example}[thm]{Example}
+\newtheorem{remark}[thm]{Remark}
+\newtheorem{warning}[thm]{Warning}
+
+\newcommand{\WalkthroughHeader}[5]{%
+  \noindent\begin{tabular*}{\textwidth}{@{}l@{\extracolsep{\fill}}r@{}}
+    {\large\bfseries\scshape #3} & #4 \\
+    #1 & #2 \\
+  \end{tabular*}\par\smallskip
+  \noindent{\small\itshape Sources: #5}\par
+  \smallskip\hrule height 0.8pt\medskip}

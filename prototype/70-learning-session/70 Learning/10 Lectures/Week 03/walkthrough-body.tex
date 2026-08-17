@@ -1,0 +1,102 @@
+% PROTOTYPE (throwaway) — the one lesson body every style candidate renders.
+% Semantic markup only; every visual decision lives in ../../templates/style-*.tex.
+\WalkthroughHeader{MH2100 Calculus III}{Week 03}{Partial Derivatives and the Chain Rule}{2026-08-17}{MH2100\_Lecture\_03A, MH2100\_Lecture\_03B; Stewart Ch.\,14, \S\S14.3--14.5}
+
+\section{Where this sits}
+Week 02 ended with limits and continuity for $f:\mathbb{R}^2\to\mathbb{R}$. This walkthrough
+covers both Week 03 lecture parts against the matching Stewart sections: partial derivatives
+(03A), then differentiability and the chain rule (03B).
+
+\section{Partial derivatives}
+
+\begin{defn}[Partial derivative]
+For $f:\mathbb{R}^2\to\mathbb{R}$,
+\[
+  f_x(a,b) \;=\; \lim_{h\to 0}\frac{f(a+h,\,b)-f(a,b)}{h},
+\]
+provided the limit exists, and $f_y(a,b)$ symmetrically. Notation:
+$f_x = \partial f/\partial x = \partial_x f = D_1 f$. Higher partials iterate:
+$f_{xy} = (f_x)_y = \partial^2 f/\partial y\,\partial x$ --- note the order flip between the
+subscript and the $\partial$ notation.
+\end{defn}
+
+\begin{example}
+For $f(x,y) = x^3 y + e^{xy}$: hold $y$ fixed and differentiate in $x$, and vice versa,
+\[
+  f_x = 3x^2 y + y\,e^{xy}, \qquad f_y = x^3 + x\,e^{xy}.
+\]
+Geometrically, $f_x(a,b)$ is the slope at $x=a$ of the trace $z = f(x,b)$ --- a single-variable
+derivative along a slice, which is why every one-variable rule transfers unchanged.
+\end{example}
+
+\begin{thm}[Clairaut]
+If $f_{xy}$ and $f_{yx}$ are both continuous on an open set containing $(a,b)$, then
+$f_{xy}(a,b) = f_{yx}(a,b)$.
+\end{thm}
+
+\begin{remark}
+The continuity hypothesis does real work. For
+$f(x,y) = xy\,(x^2-y^2)/(x^2+y^2)$ with $f(0,0)=0$ (Stewart \S14.3, ex.~103),
+$f_{xy}(0,0) = -1 \neq 1 = f_{yx}(0,0)$.
+\end{remark}
+
+\section{Differentiability}
+
+\begin{defn}[Differentiable]
+$f$ is \emph{differentiable} at $(a,b)$ if the increment decomposes as
+\[
+  f(a+\Delta x,\, b+\Delta y) - f(a,b)
+  \;=\; f_x(a,b)\,\Delta x + f_y(a,b)\,\Delta y
+        + \varepsilon_1\,\Delta x + \varepsilon_2\,\Delta y,
+\]
+where $\varepsilon_1,\varepsilon_2 \to 0$ as $(\Delta x,\Delta y)\to(0,0)$: the tangent plane is
+a genuinely first-order-accurate approximation, not just a plane through the point.
+\end{defn}
+
+\begin{warning}
+Existence of both partials does \emph{not} give differentiability --- not even continuity. For
+$f(x,y) = xy/(x^2+y^2)$ with $f(0,0)=0$, both partials exist at the origin
+($f_x(0,0)=f_y(0,0)=0$, since $f$ vanishes on both axes), yet $f \equiv \tfrac12$ along the line
+$y=x$, so $f$ is not continuous there. The usable criterion is the sufficiency theorem:
+$f_x, f_y$ exist near $(a,b)$ and are continuous at $(a,b)$ $\Rightarrow$ $f$ differentiable
+at $(a,b)$.
+\end{warning}
+
+\section{The chain rule}
+
+\begin{thm}[Chain rule, case 1]
+If $z = f(x,y)$ is differentiable and $x = g(t)$, $y = h(t)$ are differentiable, then
+\[
+  \frac{dz}{dt} \;=\; \frac{\partial z}{\partial x}\frac{dx}{dt}
+                    + \frac{\partial z}{\partial y}\frac{dy}{dt}.
+\]
+\end{thm}
+
+\begin{thm}[Chain rule, general]
+If $u = f(x_1,\dots,x_n)$ is differentiable and each $x_i = x_i(t_1,\dots,t_m)$ has continuous
+partials, then for each $j$,
+\[
+  \frac{\partial u}{\partial t_j}
+  \;=\; \sum_{i=1}^{n} \frac{\partial u}{\partial x_i}\,\frac{\partial x_i}{\partial t_j}.
+\]
+\end{thm}
+
+\begin{example}
+$z = x^2 y + 3x y^4$ with $x = \sin 2t$, $y = \cos t$; find $dz/dt$ at $t=0$. By case 1,
+\[
+  \frac{dz}{dt} = (2xy + 3y^4)(2\cos 2t) + (x^2 + 12xy^3)(-\sin t).
+\]
+At $t=0$: $x=0$, $y=1$, so $dz/dt = (0+3)(2) + (0+0)(0) = 6$.
+\end{example}
+
+\begin{remark}
+The lecture's tree diagram is bookkeeping for the general theorem: one summand per path from $u$
+down to the target variable $t_j$, multiplying the derivatives along the path's edges.
+\end{remark}
+
+\begin{checkyourself}
+  \item Rebuild the $xy/(x^2+y^2)$ counterexample unaided: compute both partials at the origin
+        from the limit definition, then exhibit the discontinuity along $y=x$.
+  \item Stewart \S14.5, exercises 1--12 shape: pick two, compute $dz/dt$ both by substitution
+        and by the chain rule, and confirm they agree.
+\end{checkyourself}

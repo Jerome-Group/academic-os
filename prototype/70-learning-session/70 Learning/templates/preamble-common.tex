@@ -1,0 +1,12 @@
+% PROTOTYPE (throwaway) — shared by every style candidate.
+% The semantic interface every style must implement, so the body carries zero visual decisions:
+%   \WalkthroughHeader{module}{unit}{title}{date}{sources}
+%   environments: defn, thm, prop, example, remark, warning   (plus amsthm's proof)
+%   environment:  checkyourself                               (an enumerated exercise list)
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{enumitem}
+\usepackage{microtype}
+\setlist{nosep,leftmargin=1.4em}
+\newenvironment{checkyourself}%
+  {\par\medskip\noindent\textbf{Check yourself.}\begin{enumerate}}%
+  {\end{enumerate}}

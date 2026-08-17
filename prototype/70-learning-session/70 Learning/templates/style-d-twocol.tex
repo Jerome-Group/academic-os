@@ -1,0 +1,32 @@
+% PROTOTYPE (throwaway) — Style D: "Two-column compact".
+% 9pt two-column (the wrapper sets the class), narrow margins, minimal vertical space — the
+% densest candidate, at the reference-sheet end of readable. Tests where "space-dense" stops.
+\input{../../templates/preamble-common.tex}
+\usepackage[a4paper,margin=1.3cm,columnsep=0.8cm]{geometry}
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{titlesec}
+\titleformat{\section}{\normalsize\bfseries}{\thesection.}{0.4em}{}
+\titlespacing*{\section}{0pt}{0.7em}{0.25em}
+\setlength{\abovedisplayskip}{3pt}
+\setlength{\belowdisplayskip}{3pt}
+\setlength{\abovedisplayshortskip}{2pt}
+\setlength{\belowdisplayshortskip}{2pt}
+
+\newtheoremstyle{tightit}{0.3em}{0.3em}{\itshape}{}{\bfseries}{.}{0.4em}{}
+\newtheoremstyle{tightup}{0.3em}{0.3em}{}{}{\bfseries}{.}{0.4em}{}
+\theoremstyle{tightit}
+\newtheorem{thm}{Theorem}[section]
+\newtheorem{prop}[thm]{Proposition}
+\theoremstyle{tightup}
+\newtheorem{defn}[thm]{Definition}
+\newtheorem{example}[thm]{Example}
+\newtheorem{remark}[thm]{Remark}
+\newtheorem{warning}[thm]{Warning}
+
+\newcommand{\WalkthroughHeader}[5]{%
+  \twocolumn[{%
+    \noindent{\large\bfseries #3}\par\smallskip
+    \noindent #1 \;\textperiodcentered\; #2 \;\textperiodcentered\; #4\par
+    \noindent{\small Sources: #5}\par
+    \smallskip\hrule\medskip}]}

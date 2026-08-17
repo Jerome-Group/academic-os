@@ -1,0 +1,27 @@
+% PROTOTYPE (throwaway) — Style A: "Classic".
+% Latin Modern, monochrome, run-in theorem heads, tight page — the register of a
+% mathematician's own lecture notes (Tao-style). Nothing boxed, nothing colored.
+\input{../../templates/preamble-common.tex}
+\usepackage[a4paper,margin=1.9cm]{geometry}
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{titlesec}
+\titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
+\titlespacing*{\section}{0pt}{1.0em}{0.35em}
+
+\newtheoremstyle{compactit}{0.45em}{0.45em}{\itshape}{}{\bfseries}{.}{0.5em}{}
+\newtheoremstyle{compactup}{0.45em}{0.45em}{}{}{\bfseries}{.}{0.5em}{}
+\theoremstyle{compactit}
+\newtheorem{thm}{Theorem}[section]
+\newtheorem{prop}[thm]{Proposition}
+\theoremstyle{compactup}
+\newtheorem{defn}[thm]{Definition}
+\newtheorem{example}[thm]{Example}
+\newtheorem{remark}[thm]{Remark}
+\newtheorem{warning}[thm]{Warning}
+
+\newcommand{\WalkthroughHeader}[5]{%
+  \noindent{\Large\bfseries #3}\par\smallskip
+  \noindent #1 \;\textperiodcentered\; #2 \;\textperiodcentered\; #4\par
+  \noindent{\small Sources: #5}\par
+  \medskip\hrule\medskip}

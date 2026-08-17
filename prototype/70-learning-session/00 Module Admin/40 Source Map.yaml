@@ -1,0 +1,17 @@
+# 40 Source Map.yaml — lecture-units are the module's authoritative spine (map ticket #71).
+# The schema here is illustrative for the prototype; the contract-v4 ticket owns the final
+# shape. Week 03 is deliberately the multi-file case: two lecture parts plus a textbook
+# chapter inside one unit.
+units:
+  Week 03:
+    topics:
+      - Partial derivatives and higher partials
+      - Differentiability and linear approximation
+      - Chain rule
+    lectures:
+      - 10 Learning Materials/10 Lecture Materials/MH2100_Lecture_03A_Partial_Derivatives.pdf
+      - 10 Learning Materials/10 Lecture Materials/MH2100_Lecture_03B_Chain_Rule.pdf
+    textbook:
+      - 10 Learning Materials/20 Textbook Chapters/MH2100_Stewart_Chapter_14_Partial_Derivatives.pdf
+    tutorials:
+      - 20 Tutorials/Tutorial 03

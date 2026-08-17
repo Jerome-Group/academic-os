@@ -1,0 +1,51 @@
+% PROTOTYPE (throwaway) — Style B: "Boxed".
+% Palatino-family text, colored tcolorbox environments — definitions tinted, theorems with an
+% accent bar, warnings red-edged. The register of modern typeset course notes (Evan Chen-style).
+\input{../../templates/preamble-common.tex}
+\usepackage[a4paper,margin=2.0cm]{geometry}
+\usepackage{newpxtext,newpxmath}
+\usepackage[T1]{fontenc}
+\usepackage{xcolor}
+\definecolor{inknavy}{HTML}{1A3A6B}
+\definecolor{tealacc}{HTML}{0B6E4F}
+\definecolor{warnred}{HTML}{8C1D18}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{titlesec}
+\titleformat{\section}{\large\bfseries\sffamily\color{inknavy}}{\thesection}{0.6em}{}
+\titlespacing*{\section}{0pt}{1.1em}{0.4em}
+
+\newcounter{thmc}[section]
+\renewcommand{\thethmc}{\thesection.\arabic{thmc}}
+\newtcolorbox[use counter=thmc]{defn}[1][]{enhanced,breakable,
+  colback=inknavy!6,colframe=inknavy!6,boxrule=0pt,arc=1.5pt,
+  left=5pt,right=5pt,top=3pt,bottom=3pt,before skip=6pt,after skip=6pt,
+  before upper={\textbf{\color{inknavy}Definition \thesection.\arabic{thmc}}\ifstrempty{#1}{}{ (#1)}\textbf{.}\ }}
+\newtcolorbox[use counter=thmc]{thm}[1][]{enhanced,breakable,
+  colback=white,colframe=white,boxrule=0pt,arc=0pt,
+  borderline west={2pt}{0pt}{tealacc},
+  left=6pt,right=2pt,top=2pt,bottom=2pt,before skip=6pt,after skip=6pt,
+  fontupper=\itshape,
+  before upper={\upshape\textbf{\color{tealacc}Theorem \thesection.\arabic{thmc}}\ifstrempty{#1}{}{ (#1)}\textbf{.}\ }}
+\newtcolorbox[use counter=thmc]{warning}[1][]{enhanced,breakable,
+  colback=warnred!5,colframe=warnred!5,boxrule=0pt,arc=1.5pt,
+  borderline west={2pt}{0pt}{warnred},
+  left=6pt,right=5pt,top=3pt,bottom=3pt,before skip=6pt,after skip=6pt,
+  before upper={\textbf{\color{warnred}Warning \thesection.\arabic{thmc}}\textbf{.}\ }}
+% tcolorbox's use counter resets \thethmc's representation; restate it for the amsthm envs below.
+\renewcommand{\thethmc}{\thesection.\arabic{thmc}}
+\newtheoremstyle{plainpx}{0.5em}{0.5em}{\itshape}{}{\bfseries}{.}{0.5em}{}
+\newtheoremstyle{uppx}{0.5em}{0.5em}{}{}{\bfseries}{.}{0.5em}{}
+\theoremstyle{plainpx}
+\newtheorem{prop}[thmc]{Proposition}
+\theoremstyle{uppx}
+\newtheorem{example}[thmc]{Example}
+\newtheorem{remark}[thmc]{Remark}
+
+\newcommand{\WalkthroughHeader}[5]{%
+  \begin{tcolorbox}[colback=inknavy!4,colframe=inknavy!4,arc=2pt,boxrule=0pt,
+    left=7pt,right=7pt,top=5pt,bottom=5pt]
+    {\Large\bfseries\sffamily\color{inknavy}#3}\par\smallskip
+    {\sffamily #1 \;\textbar\; #2 \;\textbar\; #4}\par
+    {\small Sources: #5}
+  \end{tcolorbox}\medskip}

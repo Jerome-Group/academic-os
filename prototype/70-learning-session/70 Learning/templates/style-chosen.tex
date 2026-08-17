@@ -1,0 +1,38 @@
+% PROTOTYPE (throwaway) — the Owner's choice on ticket #78: Style A (Classic) with Style B's
+% warning boxes. This merged file is what the repo-canonical template set will be cut from.
+\input{../../templates/preamble-common.tex}
+\usepackage[a4paper,margin=1.9cm]{geometry}
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{xcolor}
+\definecolor{warnred}{HTML}{8C1D18}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{titlesec}
+\titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
+\titlespacing*{\section}{0pt}{1.0em}{0.35em}
+
+\newtheoremstyle{compactit}{0.45em}{0.45em}{\itshape}{}{\bfseries}{.}{0.5em}{}
+\newtheoremstyle{compactup}{0.45em}{0.45em}{}{}{\bfseries}{.}{0.5em}{}
+\theoremstyle{compactit}
+\newtheorem{thm}{Theorem}[section]
+\newtheorem{prop}[thm]{Proposition}
+\theoremstyle{compactup}
+\newtheorem{defn}[thm]{Definition}
+\newtheorem{example}[thm]{Example}
+\newtheorem{remark}[thm]{Remark}
+
+% Style B's warning box, on Style A's shared theorem counter.
+\newtcolorbox[use counter=thm]{warning}[1][]{enhanced,breakable,
+  colback=warnred!5,colframe=warnred!5,boxrule=0pt,arc=1.5pt,
+  borderline west={2pt}{0pt}{warnred},
+  left=6pt,right=5pt,top=2pt,bottom=2pt,before skip=4pt,after skip=4pt,
+  before upper={\textbf{\color{warnred}Warning \thesection.\arabic{thm}}\textbf{.}\ }}
+% tcolorbox resets the counter representation; restate it for the amsthm environments.
+\renewcommand{\thethm}{\thesection.\arabic{thm}}
+
+\newcommand{\WalkthroughHeader}[5]{%
+  \noindent{\Large\bfseries #3}\par\smallskip
+  \noindent #1 \;\textperiodcentered\; #2 \;\textperiodcentered\; #4\par
+  \noindent{\small Sources: #5}\par
+  \medskip\hrule\medskip}

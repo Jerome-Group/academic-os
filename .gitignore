@@ -37,6 +37,10 @@ repair-recovery/
 node_modules/
 dist/
 
+# LaTeX build output — MF-LATEX-001 puts a `build/` beside every compilation workspace, so this
+# refuses one at any depth rather than naming the workspaces one by one.
+build/
+
 # Academic contents — this repository holds the system and never the coursework the system
 # organises (docs/adr/0002). Blunt on purpose: the failure it exists to prevent is one `git add -A`
 # away, and it is not recallable from a public repository. A file that genuinely belongs here and

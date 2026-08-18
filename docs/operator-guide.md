@@ -395,6 +395,58 @@ Supervise the first live round-trip: `tasks create` against a real module list, 
 Google Tasks on the phone, then `tasks refresh`. The row should come back `completed` with its
 provenance intact and no other row moved.
 
+## Textbooks shelf migration
+
+The one-time pass that brings an existing shelf into the system, in the order the index depends on:
+sweep, one review, renames, then the index. It is run once, before the first catch-up.
+
+Sweep the shelf into a review sheet:
+
+```sh
+node dist/src/cli.js textbooks sweep --config academic-os.config.json
+```
+
+The sweep reads the shelf and writes nothing but the sheet, at
+`stateRoot/textbooks/shelf-review.yaml`. It refuses to overwrite a sheet that is already there,
+because the second the sheet exists it is the Owner's working copy. Every book the index does not
+already name gets a line carrying its filename, its checksum and the Book key the sweep derived —
+and where the sweep cannot derive one, a `SETTLE` comment saying what to decide. Three things ask:
+a name the codified naming does not accept, a default key another book already holds, and bytes a
+book already on the shelf carries.
+
+Settle the sheet. `rename` is the filename the book should end up carrying and is left blank to
+keep the name it has; `key` is the Book key the Shelf index will hold it under. A key is immutable
+once a chapter filename cites it, so a collision is qualified here once — `Isaacs_FGT` beside
+`Isaacs_CT` — and never again. A blank key is unsettled and the migration refuses to run.
+
+Preview the settled sheet:
+
+```sh
+node dist/src/cli.js textbooks migrate --config academic-os.config.json
+```
+
+The preview holds the sheet against a fresh listing and a fresh checksum of every book in it, and
+reports everything left to settle at once rather than one problem per run. A shelf that has moved
+under the sheet — a book arrived, a book left, a copy was replaced — blocks the whole run, and the
+answer is to delete the sheet and sweep again. So does a rename that would land on a book that is
+still there, a rename that still does not follow the codified naming, and a key another book or an
+existing entry already holds. Blocking exits nonzero and touches nothing.
+
+Apply it once the preview is clean:
+
+```sh
+node dist/src/cli.js textbooks migrate --config academic-os.config.json --apply
+```
+
+Renames run first and the index last, because the index records final filenames. Every rename is a
+write to the Owner's own books, so each one refuses a target anything on the shelf already carries
+rather than replacing it, and each is journalled to `stateRoot/journals/textbooks/migration.jsonl`
+before and after it happens — a run that dies mid-pass leaves the exact list of books that moved.
+Nothing outside the sheet is renamed, and no path in the command deletes anything.
+
+Verify with a catch-up: after a clean migration `textbooks catch-up` has nothing to append and
+nothing to park, which is the baseline the daily pass runs against from then on.
+
 ## Textbooks catch-up
 
 Diff the Textbook shelf against its Shelf index. The default is a non-mutating preview:

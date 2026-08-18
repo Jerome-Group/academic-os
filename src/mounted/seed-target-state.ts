@@ -7,6 +7,7 @@ import {
   type ModuleControls,
 } from "../conformance/index.js";
 import { moduleControlPaths } from "../conformance/control-paths.js";
+import { loadModuleContract } from "../contract/load-module-contract.js";
 import type { SeedOperation, SeedPlan } from "../seed/index.js";
 import { ensureMaterialized } from "./ensure-materialized.js";
 import { inventoryDirectory } from "./inventory-mounted-module.js";
@@ -162,12 +163,15 @@ export async function auditProjectedSeedTarget(
       return contents === undefined ? [] : [[name, contents]];
     }),
   ) as ModuleControls;
-  const audit = auditModule({
-    moduleCode: plan.module,
-    semester: plan.semester,
-    inventory: { moduleCode: plan.module, entries: projectedEntries },
-    controls,
-  });
+  const audit = auditModule(
+    {
+      moduleCode: plan.module,
+      semester: plan.semester,
+      inventory: { moduleCode: plan.module, entries: projectedEntries },
+      controls,
+    },
+    await loadModuleContract(),
+  );
   return audit.outcome === "conformant"
     ? []
     : audit.findings
@@ -182,15 +186,18 @@ export async function auditSeedRoot(
   root: string,
   plan: SeedPlan,
 ): Promise<string[]> {
-  const audit = auditModule({
-    moduleCode: plan.module,
-    semester: plan.semester,
-    inventory: {
+  const audit = auditModule(
+    {
       moduleCode: plan.module,
-      entries: await inventoryDirectory(root),
+      semester: plan.semester,
+      inventory: {
+        moduleCode: plan.module,
+        entries: await inventoryDirectory(root),
+      },
+      controls: await readModuleControls(root),
     },
-    controls: await readModuleControls(root),
-  });
+    await loadModuleContract(),
+  );
   return audit.outcome === "conformant"
     ? []
     : audit.findings

@@ -7,6 +7,7 @@ import {
   OperationalError,
   seedMountedModule,
 } from "../mounted/index.js";
+import { loadModuleContract } from "../contract/load-module-contract.js";
 import { createModuleSeedPlan, type SeedReport } from "../seed/index.js";
 import { parseArgumentTokens } from "./argument-tokens.js";
 
@@ -28,6 +29,7 @@ export async function runSeedCommand(
     semester: config.semester,
     profile,
     definition,
+    contract: await loadModuleContract(),
   });
   const report = await seedMountedModule(
     config,

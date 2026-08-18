@@ -12,7 +12,10 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, it } from "node:test";
 
-import { validModuleControls } from "../fixtures/module-controls.js";
+import {
+  moduleControlContents,
+  validModuleControls,
+} from "../fixtures/module-controls.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 import { runCli } from "../support/run-cli.js";
 import { recordBehaviorEvidence } from "../support/rule-evidence.js";
@@ -41,20 +44,12 @@ async function writeConformantModule(
           .replace("semester: 1", "semester: 2")
       : selectedModule;
   };
-  const controlContents = new Map<string, string>([
-    ["00 Module Admin/00 Module Profile.md", forModule(controls.profile ?? "")],
-    [
-      "00 Module Admin/10 Module Definition.yaml",
-      forModule(controls.definition ?? ""),
-    ],
-    [
-      "00 Module Admin/20 Curation Register.jsonl",
-      controls.curationRegister ?? "",
-    ],
-    ["AGENTS.md", forModule(controls.agents ?? "")],
-    ["CLAUDE.md", controls.claude ?? ""],
-    ["CONTEXT.md", forModule(controls.context ?? "")],
-  ]);
+  const controlContents = new Map(
+    [...moduleControlContents(controls)].map(([path, contents]) => [
+      path,
+      forModule(contents),
+    ]),
+  );
   for (const [relativePath, kind] of universalPaths) {
     const path = join(moduleRoot, relativePath);
     if (kind === "directory") {

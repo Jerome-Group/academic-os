@@ -11,6 +11,7 @@ import {
   recordBehaviorEvidence,
   recordFindingEvidence,
 } from "../support/rule-evidence.js";
+import { testModuleContract } from "../fixtures/module-contract.js";
 
 const modifiedAt = "2026-08-11T00:00:00.000Z";
 const vanillaDefinition = (validModuleControls().definition ?? "").replace(
@@ -46,12 +47,15 @@ function add(
 function audit(target: Inventory, definition = vanillaDefinition) {
   const controls = validModuleControls();
   controls.definition = definition;
-  return auditModule({
-    moduleCode: "MH2100",
-    semester: "Y2S1",
-    inventory: target,
-    controls,
-  });
+  return auditModule(
+    {
+      moduleCode: "MH2100",
+      semester: "Y2S1",
+      inventory: target,
+      controls,
+    },
+    testModuleContract,
+  );
 }
 
 describe("auditModule governed content", () => {

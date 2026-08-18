@@ -18,6 +18,7 @@ import {
 } from "../../src/mounted/index.js";
 import { createModuleSeedPlan } from "../../src/seed/index.js";
 import { validModuleControls } from "../fixtures/module-controls.js";
+import { testModuleContract } from "../fixtures/module-contract.js";
 
 const temporaryRoots: string[] = [];
 
@@ -120,6 +121,7 @@ describe("seedMountedModule", () => {
         "Changed approved scope.",
       ),
       definition: changedControls.definition ?? "",
+      contract: testModuleContract,
     });
     const changedPlanReport = await seedMountedModule(
       changedPlan.config,
@@ -376,6 +378,7 @@ async function mountedSeedFixture() {
       "quizzes: {enabled: true, evidence: [assessment-profile]}",
       "quizzes: {enabled: false}",
     ),
+    contract: testModuleContract,
   });
   return {
     config: {

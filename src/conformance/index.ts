@@ -1,8 +1,5 @@
 export { auditModule } from "./audit-module.js";
-export {
-  currentModuleContract,
-  type ModuleContract,
-} from "./module-contract.js";
+export type { ModuleContract } from "./module-contract.js";
 export {
   planModuleConformance,
   type ModuleConformancePlan,

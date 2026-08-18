@@ -1,19 +1,24 @@
 # Seed-source templates
 
-The canonical bodies of the pinned files a module folder is seeded with. Seeding will write them
-into a new module folder; the auditor will diff each module's copy back against them. These files,
-and never a copy in Drive, are what "pinned" means.
+The canonical bodies of the pinned files a module folder is seeded with. Seeding writes them into a
+new module folder; the auditor diffs each module's copy back against them. These files, and never a
+copy in Drive, are what "pinned" means.
 
-## Ahead of contract v4
+## Ahead of the rest of contract v4
 
-Nothing reads this directory yet, and the bodies here are version 4's. `docs/module-folder-contract.md`
-is still at version 3, and version 3 is what seeded modules are audited against — including the
-`AGENTS.md` shape `src/seed/create-module-seed-plan.ts` writes and `src/conformance/validate-agents.ts`
-checks, which is not the router here. Version 4 brings the readers: the pinning rule
-(MF-AGENTS-004), the tree these bodies describe, MF-AGENTS-001 rewritten around this router, and
-the Curation-register line schema's version 2 — the `rederived` decision the curation procedure
-here already runs on. Until it lands, a module folder that disagrees with a template here is not
-yet a finding.
+The pinned docs layer is live: `AGENTS.md` and the four `docs/` templates are what
+`src/seed/create-module-seed-plan.ts` writes into a module folder, and what
+`src/conformance/validate-pinned-documents.ts` diffs each module's copy back against under
+MF-AGENTS-004.
+
+Three things here still outrun their readers on `integration/contract-v4`, the branch that layer
+landed on:
+
+- The contract's version line reads 3 until the chain's last batch flips it, so a cohort module is
+  audited against version 3 until then.
+- `70 Learning/templates/` reaches no module folder until MF-LEARNING lands the workspace.
+- The curation procedure here runs the `rederived` decision, which the Curation-register line
+  schema does not yet carry.
 
 ## The path is the destination
 

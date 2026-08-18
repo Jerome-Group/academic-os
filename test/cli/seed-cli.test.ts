@@ -26,6 +26,12 @@ import { createModuleSeedPlan } from "../../src/seed/index.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 import { runCli } from "../support/run-cli.js";
 import { recordBehaviorEvidence } from "../support/rule-evidence.js";
+import { testModuleContract } from "../fixtures/module-contract.js";
+import {
+  interpolateModuleCode,
+  pinnedDocumentNames,
+  pinnedDocumentPaths,
+} from "../../src/contract/pinned-documents.js";
 
 const temporaryRoots: string[] = [];
 
@@ -180,9 +186,18 @@ describe("academic-os seed", () => {
     assert.equal(audit.exitCode, 0);
     assert.equal(JSON.parse(audit.stdout).outcome, "conformant");
     recordBehaviorEvidence("MF-DOCS-001", () => {
-      assert.equal(
-        universalPaths.some(([path]) => path === "docs/adr"),
-        true,
+      assert.deepEqual(
+        universalPaths
+          .map(([path]) => path)
+          .filter((path) => path.startsWith("docs")),
+        [
+          "docs",
+          "docs/00 Structure and Naming.md",
+          "docs/10 Curation Procedure.md",
+          "docs/20 Teaching Procedure.md",
+          "docs/30 Textbook Procedure.md",
+          "docs/adr",
+        ],
       );
     });
     const agents = await readFile(
@@ -192,15 +207,30 @@ describe("academic-os seed", () => {
     recordBehaviorEvidence("MF-AGENTS-003", () => {
       assert.equal(
         agents.includes(
-          "Show proposed changes for approval before applying them.",
+          "Propose a change by showing the Owner the exact new wording before",
         ),
         true,
       );
     });
-    assert.match(
-      agents,
-      /## Domain language\nThe glossary is `CONTEXT\.md` and decisions are `docs\/adr\/`\./u,
+    const seededPinnedDocuments = await Promise.all(
+      pinnedDocumentNames.map(async (name) => ({
+        path: pinnedDocumentPaths[name],
+        seeded: await readFile(
+          join(fixture.moduleRoot, pinnedDocumentPaths[name]),
+          "utf8",
+        ),
+        expected: interpolateModuleCode(
+          testModuleContract.pinnedDocuments[name],
+          "MH2100",
+        ),
+      })),
     );
+    recordBehaviorEvidence("MF-AGENTS-004", () => {
+      for (const { path, seeded, expected } of seededPinnedDocuments) {
+        assert.equal(seeded, expected, path);
+        assert.equal(seeded.includes("MODULE_CODE"), false, path);
+      }
+    });
   });
 
   it("refuses an incompatible existing target without changing its content [MF-SEED-002]", async () => {
@@ -571,6 +601,7 @@ describe("academic-os seed", () => {
       semester: "Y2S1",
       profile: await readFile(fixture.profilePath, "utf8"),
       definition: await readFile(fixture.definitionPath, "utf8"),
+      contract: testModuleContract,
     });
     let interrupted = false;
     await assert.rejects(

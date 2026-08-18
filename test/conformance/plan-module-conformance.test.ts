@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import { it } from "node:test";
 
 import {
-  currentModuleContract,
   planModuleConformance,
   type Inventory,
   type ModuleContract,
 } from "../../src/conformance/index.js";
+import { testModuleContract } from "../fixtures/module-contract.js";
 import { validModuleControls } from "../fixtures/module-controls.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 
@@ -18,7 +18,7 @@ it("plans findings, operations, and observations through one pure seam", () => {
   const before = structuredClone(inventory);
 
   const first = planModuleConformance({
-    contract: currentModuleContract,
+    contract: testModuleContract,
     target: {
       moduleCode: "MH2100",
       semester: "Y2S1",
@@ -52,7 +52,7 @@ it("plans findings, operations, and observations through one pure seam", () => {
     kind: "directory",
   });
   const second = planModuleConformance({
-    contract: currentModuleContract,
+    contract: testModuleContract,
     target: first.observation.target,
     controls: validModuleControls(),
     inventory: resolved,
@@ -67,9 +67,9 @@ it("plans findings, operations, and observations through one pure seam", () => {
 
 it("uses contract version and applicability as authoritative inputs", () => {
   const contract: ModuleContract = {
-    ...currentModuleContract,
+    ...testModuleContract,
     version: 4,
-    ruleIds: currentModuleContract.ruleIds.filter(
+    ruleIds: testModuleContract.ruleIds.filter(
       (ruleId) => ruleId !== "MF-UNIVERSAL-001",
     ),
   };

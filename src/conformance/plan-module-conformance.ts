@@ -1,3 +1,4 @@
+import { pinnedDocumentNames } from "../contract/pinned-documents.js";
 import {
   compareAuditObservations,
   createAuditObservation,
@@ -69,7 +70,10 @@ function assertUsableContract(contract: ModuleContract): void {
     contract.version <= 0 ||
     contract.ruleIds.length === 0 ||
     rules.size !== contract.ruleIds.length ||
-    contract.universalStructure.length === 0
+    contract.universalStructure.length === 0 ||
+    pinnedDocumentNames.some(
+      (name) => contract.pinnedDocuments[name] === undefined,
+    )
   ) {
     throw new TypeError("Conformance planning requires a complete contract.");
   }

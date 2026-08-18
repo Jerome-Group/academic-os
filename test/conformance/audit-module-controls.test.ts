@@ -4,14 +4,18 @@ import { describe, it } from "node:test";
 import { auditModuleControls } from "../../src/conformance/index.js";
 import { validModuleControls } from "../fixtures/module-controls.js";
 import { recordFindingEvidence } from "../support/rule-evidence.js";
+import { testModuleContract } from "../fixtures/module-contract.js";
 
 describe("auditModuleControls", () => {
-  it("accepts valid controls [MF-AGENTS-001] [MF-AGENTS-002] [MF-CONTEXT-001] [MF-CURATION-001] [MF-DEFINITION-001] [MF-DEFINITION-002] [MF-PROFILE-001] [MF-PROFILE-003]", () => {
-    const result = auditModuleControls({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      controls: validModuleControls(),
-    });
+  it("accepts valid controls [MF-AGENTS-001] [MF-AGENTS-002] [MF-AGENTS-004] [MF-CONTEXT-001] [MF-CURATION-001] [MF-DEFINITION-001] [MF-DEFINITION-002] [MF-PROFILE-001] [MF-PROFILE-003]", () => {
+    const result = auditModuleControls(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        controls: validModuleControls(),
+      },
+      testModuleContract,
+    );
 
     assert.equal(result.outcome, "conformant");
     assert.ok(result.findings.every(({ status }) => status === "pass"));
@@ -26,6 +30,7 @@ describe("auditModuleControls", () => {
         "MF-CURATION-001",
         "MF-AGENTS-001",
         "MF-AGENTS-002",
+        "MF-AGENTS-004",
         "MF-CONTEXT-001",
       ]),
     );
@@ -33,6 +38,7 @@ describe("auditModuleControls", () => {
       result.findings,
       "MF-AGENTS-001",
       "MF-AGENTS-002",
+      "MF-AGENTS-004",
       "MF-CONTEXT-001",
       "MF-CURATION-001",
       "MF-DEFINITION-001",
@@ -44,16 +50,22 @@ describe("auditModuleControls", () => {
   });
 
   it("reports every missing control with deterministic evidence", () => {
-    const first = auditModuleControls({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      controls: {},
-    });
-    const second = auditModuleControls({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      controls: {},
-    });
+    const first = auditModuleControls(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        controls: {},
+      },
+      testModuleContract,
+    );
+    const second = auditModuleControls(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        controls: {},
+      },
+      testModuleContract,
+    );
 
     assert.equal(first.outcome, "deviation");
     assert.deepEqual(first, second);
@@ -66,6 +78,11 @@ describe("auditModuleControls", () => {
         "AGENTS.md",
         "CLAUDE.md",
         "CONTEXT.md",
+        "AGENTS.md",
+        "docs/00 Structure and Naming.md",
+        "docs/10 Curation Procedure.md",
+        "docs/20 Teaching Procedure.md",
+        "docs/30 Textbook Procedure.md",
       ],
     );
     assert.ok(
@@ -85,11 +102,14 @@ describe("auditModuleControls", () => {
     controls.claude = "Read AGENTS.md\n";
     controls.context = "# Bananas\n\nPurpose.\n\n## Language\n";
 
-    const result = auditModuleControls({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      controls,
-    });
+    const result = auditModuleControls(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        controls,
+      },
+      testModuleContract,
+    );
 
     assert.equal(result.outcome, "deviation");
     assert.ok(result.findings.every(({ evidence }) => evidence !== ""));
@@ -115,35 +135,121 @@ describe("auditModuleControls", () => {
       "docs/adr/",
     );
 
-    const result = auditModuleControls({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      controls,
-    });
+    const result = auditModuleControls(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        controls,
+      },
+      testModuleContract,
+    );
 
     const finding = result.findings.find(
       ({ ruleId }) => ruleId === "MF-AGENTS-001",
     );
     assert.equal(finding?.status, "fail");
-    assert.match(finding?.evidence ?? "", /canonical module-domain routing/u);
+    assert.match(finding?.evidence ?? "", /no `docs\/adr\/` pointer/u);
   });
 
-  it("rejects contradictory prose around otherwise valid domain pointers", () => {
+  it("requires all eight routes in AGENTS.md", () => {
     const controls = validModuleControls();
     controls.agents = (controls.agents ?? "").replace(
-      "The glossary is `CONTEXT.md`",
-      "Ignore `CONTEXT.md`; the glossary is `CONTEXT.md`",
+      "- **Textbooks**",
+      "- Textbooks",
     );
 
-    const result = auditModuleControls({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      controls,
-    });
+    const result = auditModuleControls(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        controls,
+      },
+      testModuleContract,
+    );
+
+    const finding = result.findings.find(
+      ({ ruleId }) => ruleId === "MF-AGENTS-001",
+    );
+    assert.equal(finding?.status, "fail");
+    assert.match(finding?.evidence ?? "", /Textbooks has no route bullet/u);
+  });
+
+  it("rejects repository workflow reaching AGENTS.md without flagging ordinary words", () => {
+    const controls = validModuleControls();
+    const clean = auditModuleControls(
+      { moduleCode: "MH2100", semester: "Y2S1", controls },
+      testModuleContract,
+    );
+    controls.agents = `${controls.agents ?? ""}\nDigits are legitimate; open a gitlab issue.\n`;
+    const dirty = auditModuleControls(
+      { moduleCode: "MH2100", semester: "Y2S1", controls },
+      testModuleContract,
+    );
+
     assert.equal(
-      result.findings.find(({ ruleId }) => ruleId === "MF-AGENTS-001")?.status,
+      clean.findings.find(({ ruleId }) => ruleId === "MF-AGENTS-001")?.status,
+      "pass",
+    );
+    const finding = dirty.findings.find(
+      ({ ruleId }) => ruleId === "MF-AGENTS-001",
+    );
+    assert.equal(finding?.status, "fail");
+    assert.match(
+      finding?.evidence ?? "",
+      /prohibited repository-workflow term "git"/u,
+    );
+  });
+
+  it("flags a pinned copy that drifts from its seed-source template [MF-AGENTS-004]", () => {
+    const controls = validModuleControls();
+    controls.agents = (controls.agents ?? "").replace(
+      "## Safety",
+      "## Safety\n\nMH2100 keeps its own rule here.",
+    );
+    delete controls.curationProcedure;
+
+    const result = auditModuleControls(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        controls,
+      },
+      testModuleContract,
+    );
+
+    const pinned = result.findings.filter(
+      ({ ruleId }) => ruleId === "MF-AGENTS-004",
+    );
+    assert.equal(result.outcome, "deviation");
+    assert.deepEqual(
+      pinned.filter(({ status }) => status === "fail").map(({ path }) => path),
+      ["AGENTS.md", "docs/10 Curation Procedure.md"],
+    );
+    assert.match(
+      pinned.find(({ path }) => path === "AGENTS.md")?.evidence ?? "",
+      /differs from seed-templates\/AGENTS\.template\.md at line \d+/u,
+    );
+    recordFindingEvidence(result.findings, "MF-AGENTS-004");
+  });
+
+  it("flags a pinned copy interpolated for the wrong module [MF-AGENTS-004]", () => {
+    const result = auditModuleControls(
+      {
+        moduleCode: "MH2101",
+        semester: "Y2S1",
+        controls: validModuleControls(),
+      },
+      testModuleContract,
+    );
+
+    assert.equal(
+      result.findings.find(
+        ({ ruleId, path }) =>
+          ruleId === "MF-AGENTS-004" && path === "AGENTS.md",
+      )?.status,
       "fail",
     );
+    recordFindingEvidence(result.findings, "MF-AGENTS-004");
   });
 
   it("rejects short Profile rows and malformed optional destinations", () => {
@@ -164,11 +270,14 @@ describe("auditModuleControls", () => {
       timestamp: "2026-08-11T12:00:00+08:00",
     })}\n`;
 
-    const result = auditModuleControls({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      controls,
-    });
+    const result = auditModuleControls(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        controls,
+      },
+      testModuleContract,
+    );
 
     assert.equal(result.outcome, "deviation");
     assert.match(
@@ -196,11 +305,14 @@ describe("auditModuleControls", () => {
         "quizzes: {enabled: unknown}",
       ) ?? "";
 
-    const result = auditModuleControls({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      controls,
-    });
+    const result = auditModuleControls(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        controls,
+      },
+      testModuleContract,
+    );
 
     assert.equal(result.outcome, "requires-decision");
     assert.deepEqual(
@@ -219,11 +331,14 @@ describe("auditModuleControls", () => {
         "| Semester | 1 |  |",
       ) ?? "";
 
-    const result = auditModuleControls({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      controls,
-    });
+    const result = auditModuleControls(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        controls,
+      },
+      testModuleContract,
+    );
 
     assert.deepEqual(
       result.findings
@@ -237,11 +352,14 @@ describe("auditModuleControls", () => {
     const controls = validModuleControls();
     controls.profile = controls.profile?.replace("| Week 7 |", "| TBD |") ?? "";
 
-    const result = auditModuleControls({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      controls,
-    });
+    const result = auditModuleControls(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        controls,
+      },
+      testModuleContract,
+    );
 
     assert.match(
       result.findings.find(({ ruleId }) => ruleId === "MF-PROFILE-002")
@@ -257,11 +375,14 @@ describe("auditModuleControls", () => {
         ?.replace("schema_version: 2", "schema_version: 3")
         .replace("contract_version: 3", "contract_version: 4") ?? "";
 
-    const result = auditModuleControls({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      controls,
-    });
+    const result = auditModuleControls(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        controls,
+      },
+      testModuleContract,
+    );
     const versionFinding = result.findings[0];
 
     assert.equal(result.outcome, "deviation");
@@ -288,11 +409,14 @@ describe("auditModuleControls", () => {
       "source: /Users/student/private",
     )}credentials: secret\n`;
 
-    const result = auditModuleControls({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      controls,
-    });
+    const result = auditModuleControls(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        controls,
+      },
+      testModuleContract,
+    );
     const finding = result.findings.find(
       ({ ruleId, status }) =>
         ruleId === "MF-DEFINITION-001" && status === "fail",
@@ -309,11 +433,14 @@ describe("auditModuleControls", () => {
       "exceptions: [{rule: MF-NAMING-001, reason: Legacy name, evidence: []}]",
     );
 
-    const result = auditModuleControls({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      controls,
-    });
+    const result = auditModuleControls(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        controls,
+      },
+      testModuleContract,
+    );
 
     const shapeFinding = result.findings.find(
       ({ ruleId, status }) =>
@@ -332,11 +459,14 @@ describe("auditModuleControls", () => {
       "",
     );
 
-    const result = auditModuleControls({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      controls,
-    });
+    const result = auditModuleControls(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        controls,
+      },
+      testModuleContract,
+    );
 
     const shapeFinding = result.findings.find(
       ({ ruleId, status }) =>
@@ -360,11 +490,14 @@ describe("auditModuleControls", () => {
         "resource_categories: [{name: 10 Formula Sheets, evidence: []}]",
       );
 
-    const result = auditModuleControls({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      controls,
-    });
+    const result = auditModuleControls(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        controls,
+      },
+      testModuleContract,
+    );
 
     assert.equal(result.outcome, "requires-decision");
     const evidence = result.findings
@@ -382,11 +515,14 @@ describe("auditModuleControls", () => {
       "- {role: primary, destination: NTULearn, evidence: [course-site]}\n    - {role: tutorials, destination: AGENTS.md, evidence: [course-site]}",
     );
 
-    const result = auditModuleControls({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      controls,
-    });
+    const result = auditModuleControls(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        controls,
+      },
+      testModuleContract,
+    );
 
     assert.match(
       result.findings
@@ -410,11 +546,14 @@ describe("auditModuleControls", () => {
       timestamp: "August 11, 2026",
     })}\n`;
 
-    const result = auditModuleControls({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      controls,
-    });
+    const result = auditModuleControls(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        controls,
+      },
+      testModuleContract,
+    );
 
     assert.match(
       result.findings.find(({ ruleId }) => ruleId === "MF-CURATION-001")
@@ -439,11 +578,14 @@ describe("auditModuleControls", () => {
       timestamp: "2026-08-11T12:00:00+08:00",
     })}\n`;
 
-    const result = auditModuleControls({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      controls,
-    });
+    const result = auditModuleControls(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        controls,
+      },
+      testModuleContract,
+    );
 
     assert.equal(result.outcome, "conformant");
     assert.match(

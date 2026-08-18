@@ -17,7 +17,10 @@ import type {
 } from "../../src/conformance/index.js";
 import type { ObservationComparison } from "../../src/observation/index.js";
 import type { HistoryDiagnostic } from "../../src/mounted/types.js";
-import { validModuleControls } from "../fixtures/module-controls.js";
+import {
+  moduleControlContents,
+  validModuleControls,
+} from "../fixtures/module-controls.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 import { runCli, runCliWithEnvironment } from "../support/run-cli.js";
 import { recordBehaviorEvidence } from "../support/rule-evidence.js";
@@ -80,17 +83,7 @@ async function conformantModule(): Promise<{
   await mkdir(stateRoot, { recursive: true });
   await mkdir(moduleRoot, { recursive: true });
   const controls = validModuleControls();
-  const controlContents = new Map<string, string>([
-    ["00 Module Admin/00 Module Profile.md", controls.profile ?? ""],
-    ["00 Module Admin/10 Module Definition.yaml", controls.definition ?? ""],
-    [
-      "00 Module Admin/20 Curation Register.jsonl",
-      controls.curationRegister ?? "",
-    ],
-    ["AGENTS.md", controls.agents ?? ""],
-    ["CLAUDE.md", controls.claude ?? ""],
-    ["CONTEXT.md", controls.context ?? ""],
-  ]);
+  const controlContents = moduleControlContents(controls);
   for (const [relativePath, kind] of universalPaths) {
     const path = join(moduleRoot, relativePath);
     if (kind === "directory") {

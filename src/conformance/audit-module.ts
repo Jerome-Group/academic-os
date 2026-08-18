@@ -1,3 +1,4 @@
+import { auditLearningWorkspace } from "./audit-learning-workspace.js";
 import { auditModuleControls } from "./audit-module-controls.js";
 import { auditContextualStructure } from "./audit-contextual-structure.js";
 import { auditGovernedContent } from "./audit-governed-content.js";
@@ -21,6 +22,10 @@ export function auditModule(
     contextualExpectation.rootPaths,
     contract.universalStructure,
   );
+  const workspace = auditLearningWorkspace(
+    input.inventory,
+    contract.learningWorkspace,
+  );
   const contextual = auditContextualStructure(
     input.inventory,
     input.controls.definition,
@@ -33,6 +38,7 @@ export function auditModule(
   const applicable = applicableRuleIds(contract);
   const findings = [
     ...structure.findings,
+    ...workspace,
     ...contextual.findings,
     ...controls.findings,
     ...governed.findings,

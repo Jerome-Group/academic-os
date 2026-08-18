@@ -23,6 +23,11 @@ import {
   type LocalConfig,
 } from "../../src/mounted/index.js";
 import { createModuleSeedPlan } from "../../src/seed/index.js";
+import {
+  learningWorkspacePaths,
+  learningWorkspaceTemplatePaths,
+  seededSourceMap,
+} from "../fixtures/learning-workspace.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 import { runCli } from "../support/run-cli.js";
 import { recordBehaviorEvidence } from "../support/rule-evidence.js";
@@ -141,7 +146,11 @@ describe("academic-os seed", () => {
     assert.match(human.stdout, /Outcome: preview/u);
     assert.deepEqual(
       report.operations.map(({ kind, path }) => [path, kind]),
-      universalPaths,
+      [
+        ...universalPaths,
+        ...learningWorkspacePaths,
+        ...learningWorkspaceTemplatePaths.map((path) => [path, "file"]),
+      ],
     );
     await assert.rejects(access(fixture.moduleRoot));
     assert.deepEqual(await readdir(fixture.semesterRoot), []);
@@ -168,7 +177,10 @@ describe("academic-os seed", () => {
 
     assert.equal(result.exitCode, 0);
     assert.equal(JSON.parse(result.stdout).outcome, "completed");
-    for (const [relativePath, kind] of universalPaths) {
+    for (const [relativePath, kind] of [
+      ...universalPaths,
+      ...learningWorkspacePaths,
+    ]) {
       const metadata = await lstat(join(fixture.moduleRoot, relativePath));
       assert.equal(
         kind === "directory" ? metadata.isDirectory() : metadata.isFile(),
@@ -230,6 +242,34 @@ describe("academic-os seed", () => {
         assert.equal(seeded, expected, path);
         assert.equal(seeded.includes("MODULE_CODE"), false, path);
       }
+    });
+    const seededWorkspaceFiles = await Promise.all(
+      [
+        "70 Learning/GLOSSARY.md",
+        "70 Learning/RESOURCES.md",
+        "70 Learning/REVISIT.md",
+        ...learningWorkspaceTemplatePaths,
+      ].map(async (path) => ({
+        path,
+        body: await readFile(join(fixture.moduleRoot, path), "utf8"),
+      })),
+    );
+    recordBehaviorEvidence("MF-LEARNING-001", () => {
+      for (const { path, body } of seededWorkspaceFiles) {
+        assert.notEqual(body, "", path);
+        assert.equal(body.includes("MODULE_CODE"), false, path);
+      }
+      assert.equal(
+        seededWorkspaceFiles.some(({ body }) => body.includes("\\ModuleCode")),
+        true,
+      );
+    });
+    const seededMap = await readFile(
+      join(fixture.moduleRoot, "00 Module Admin/40 Source Map.yaml"),
+      "utf8",
+    );
+    recordBehaviorEvidence("MF-LEARNING-002", () => {
+      assert.equal(seededMap.includes(seededSourceMap), true);
     });
   });
 

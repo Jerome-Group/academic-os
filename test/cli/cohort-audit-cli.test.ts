@@ -16,6 +16,7 @@ import {
   moduleControlContents,
   validModuleControls,
 } from "../fixtures/module-controls.js";
+import { learningWorkspacePaths } from "../fixtures/learning-workspace.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 import { runCli } from "../support/run-cli.js";
 import { recordBehaviorEvidence } from "../support/rule-evidence.js";
@@ -50,7 +51,10 @@ async function writeConformantModule(
       forModule(contents),
     ]),
   );
-  for (const [relativePath, kind] of universalPaths) {
+  for (const [relativePath, kind] of [
+    ...universalPaths,
+    ...learningWorkspacePaths,
+  ]) {
     const path = join(moduleRoot, relativePath);
     if (kind === "directory") {
       await mkdir(path, { recursive: true });

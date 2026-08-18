@@ -6,6 +6,8 @@ export {
   type ProposedConformanceOperation,
 } from "./plan-module-conformance.js";
 export { auditContextualStructure } from "./audit-contextual-structure.js";
+export { auditLearningWorkspace } from "./audit-learning-workspace.js";
+export { validateSourceMap } from "./validate-source-map.js";
 export { auditModuleControls } from "./audit-module-controls.js";
 export { auditUniversalStructure } from "./audit-universal-structure.js";
 export {

@@ -8,7 +8,14 @@ import {
   pinnedDocumentNames,
   pinnedDocumentPaths,
 } from "../contract/pinned-documents.js";
-import type { SeedPlan } from "./types.js";
+import type { SeedOperation, SeedPlan } from "./types.js";
+
+// The workspace reads this file for what a unit is made of, so it is seeded declaring nothing
+// rather than guessing units the module research has not confirmed yet.
+const seededSourceMap = `# The module's Lecture-units, keyed exactly as the module numbers them.
+# Each unit carries its topics, its lecture and textbook files, and its tutorials.
+units: {}
+`;
 
 export function createModuleSeedPlan(input: {
   module: string;
@@ -22,10 +29,22 @@ export function createModuleSeedPlan(input: {
   const claude =
     "# Claude Code\n\nRead `AGENTS.md` completely before working in this module folder.\n";
   const context = `# ${input.module} — ${definition.title}\n\nPurpose: organise learning and work for ${input.module}.\n\n## Language\n`;
+  const workspaceFiles = new Map(
+    Object.entries(input.contract.learningWorkspaceFiles).map(
+      ([path, body]): [string, string] => [
+        path,
+        interpolateModuleCode(body, input.module),
+      ],
+    ),
+  );
+  const workspaceStructure = new Set(
+    input.contract.learningWorkspace.map(([path]) => path),
+  );
   const contentsByPath = new Map<string, string>([
     ["00 Module Admin/00 Module Profile.md", input.profile],
     ["00 Module Admin/10 Module Definition.yaml", input.definition],
     ["00 Module Admin/20 Curation Register.jsonl", ""],
+    ["00 Module Admin/40 Source Map.yaml", seededSourceMap],
     ["CLAUDE.md", claude],
     ["CONTEXT.md", context],
     ...pinnedDocumentNames.map((name): [string, string] => [
@@ -38,19 +57,28 @@ export function createModuleSeedPlan(input: {
     semester: input.semester,
     blockers: definition.blockers,
     operations: [
-      ...input.contract.universalStructure.map(([path, kind]) => ({
-        kind,
-        path,
-        ...(kind === "file"
-          ? { contents: contentsByPath.get(path) ?? "" }
-          : {}),
-      })),
+      ...structureOperations(input.contract.universalStructure, contentsByPath),
+      ...structureOperations(input.contract.learningWorkspace, workspaceFiles),
+      ...[...workspaceFiles]
+        .filter(([path]) => !workspaceStructure.has(path))
+        .map(([path, contents]) => ({ kind: "file" as const, path, contents })),
       ...contextualStructure.paths.map((path) => ({
         kind: "directory" as const,
         path,
       })),
     ],
   };
+}
+
+function structureOperations(
+  structure: ReadonlyArray<readonly [string, "directory" | "file"]>,
+  bodies: ReadonlyMap<string, string>,
+): SeedOperation[] {
+  return structure.map(([path, kind]) => ({
+    kind,
+    path,
+    ...(kind === "file" ? { contents: bodies.get(path) ?? "" } : {}),
+  }));
 }
 
 function readSeedDefinition(input: {

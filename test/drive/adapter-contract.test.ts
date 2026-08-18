@@ -17,6 +17,7 @@ import {
   type LocalConfig,
 } from "../../src/mounted/index.js";
 import { validModuleControls } from "../fixtures/module-controls.js";
+import { learningWorkspacePaths } from "../fixtures/learning-workspace.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 import { testModuleContract } from "../fixtures/module-contract.js";
 
@@ -44,7 +45,7 @@ describe("inventory adapter contract", () => {
     const stateRoot = join(root, "State");
     await mkdir(moduleRoot, { recursive: true });
     await mkdir(stateRoot);
-    for (const [path, kind] of universalPaths) {
+    for (const [path, kind] of [...universalPaths, ...learningWorkspacePaths]) {
       const target = join(moduleRoot, path);
       if (kind === "directory") await mkdir(target, { recursive: true });
       else {

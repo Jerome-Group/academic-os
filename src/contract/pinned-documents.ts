@@ -1,3 +1,5 @@
+import { seedSourceTemplatePath } from "./seed-source-template-path.js";
+
 export const pinnedDocumentPaths = {
   agents: "AGENTS.md",
   structureAndNaming: "docs/00 Structure and Naming.md",
@@ -14,7 +16,7 @@ export const pinnedDocumentNames = Object.keys(
 ) as PinnedDocumentName[];
 
 export function seedTemplatePath(name: PinnedDocumentName): string {
-  return pinnedDocumentPaths[name].replace(/(\.[^./]+)$/u, ".template$1");
+  return seedSourceTemplatePath(pinnedDocumentPaths[name]);
 }
 
 export function interpolateModuleCode(

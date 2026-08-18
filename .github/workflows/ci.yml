@@ -65,6 +65,34 @@ jobs:
       - run: npm ci
       - run: npm test
 
+      # The seeded LaTeX set is this repository's other artefact, and `CODING_STANDARDS.md` §5 puts
+      # a template tree under the same obligation as the code. It rides in this job rather than its
+      # own because every job here is named one by one in the hub's ruleset as a required context:
+      # a new job is a new context, and until the hub names it the conformance check reads it as
+      # ungated. Promoting it later is that one line in the hub plus a job here.
+      #
+      # TeX comes from the runner's own apt rather than a marketplace action. Both candidates would
+      # be a new third-party dependency in the one place a compromise runs with the repository
+      # checked out, and the maintained one carries very little use behind it (#121). Distribution
+      # packages buy the same compilation for a longer install and no new trust — and it installs
+      # after the tests above, so a broken test does not wait on TeX to say so.
+      #
+      # `--no-install-recommends` is what keeps this inside the timeout: the recommends of
+      # texlive-latex-extra pull in most of TeX Live.
+      - name: Install TeX Live
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            latexmk \
+            lmodern \
+            texlive-fonts-recommended \
+            texlive-latex-base \
+            texlive-latex-extra \
+            texlive-latex-recommended \
+            texlive-pictures
+      - name: Compile the seeded LaTeX set
+        run: npm run templates:check
+
   rule-coverage:
     runs-on: ubuntu-latest
     timeout-minutes: 9

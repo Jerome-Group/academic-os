@@ -107,26 +107,32 @@ jobs:
       # TeX comes from the runner's own apt rather than a marketplace action. Both candidates would
       # be a new third-party dependency in the one place a compromise runs with the repository
       # checked out, and the maintained one carries very little use behind it (#121). Distribution
-      # packages buy the same compilation for a longer install and no new trust to extend.
+      # packages buy the same compilation for no new trust to extend.
       #
       # What an explicit tlmgr package list would have bought on top — a red run when a template
       # reaches outside the surface #78 pinned — is bought instead by
       # `test/seed-templates/latex-package-surface.test.ts`, which needs no TeX at all and so runs
       # in `test` above on every pull request.
       #
-      # `--no-install-recommends` is what keeps this inside the timeout: the recommends of
-      # texlive-latex-extra pull in most of TeX Live.
+      # `--no-install-recommends` is what makes the set installable at all: the recommends of
+      # texlive-latex-extra pull in most of TeX Live. What it does not fix is the download, which
+      # is the half that varies — this job first ran in five minutes and then spent nine still
+      # fetching, so the archives are cached and apt is pointed at the cache. The key names the
+      # package set, so changing the set is a miss and nothing else is.
+      - name: Cache the TeX Live packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/tex-live-archives
+          key: tex-live-${{ hashFiles('.github/tex-live-packages.txt') }}
       - name: Install TeX Live
         run: |
+          mkdir -p ~/tex-live-archives/partial
+          chmod -R 777 ~/tex-live-archives
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            latexmk \
-            lmodern \
-            texlive-fonts-recommended \
-            texlive-latex-base \
-            texlive-latex-extra \
-            texlive-latex-recommended \
-            texlive-pictures
+          xargs -a .github/tex-live-packages.txt sudo apt-get install -y \
+            --no-install-recommends \
+            -o Acquire::Retries=3 \
+            -o Dir::Cache::archives="$HOME/tex-live-archives"
       - name: Compile the seeded LaTeX set
         run: npm run templates:check
 

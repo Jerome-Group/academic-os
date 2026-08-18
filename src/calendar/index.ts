@@ -1,8 +1,7 @@
 export { CalendarSyncTokenExpiredError } from "./calendar-refresh-error.js";
-export type { CalendarRefreshLaunchdPlan } from "./calendar-refresh-launchd.js";
 export {
-  CALENDAR_REFRESH_LAUNCHD_LABEL,
-  createCalendarRefreshLaunchdPlan,
+  CALENDAR_REFRESH_LAUNCHD_JOB_NAME,
+  describeCalendarRefreshLaunchdJob,
 } from "./calendar-refresh-launchd.js";
 export {
   CALENDAR_REFRESH_FAILURE_NOTIFICATION,

@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { createCalendarRefreshLaunchdPlan } from "../../src/calendar/calendar-refresh-launchd.js";
+import { describeCalendarRefreshLaunchdJob } from "../../src/calendar/calendar-refresh-launchd.js";
 
 const temporaryRoots: string[] = [];
 const runnerPath = fileURLToPath(
@@ -29,9 +29,8 @@ afterEach(async () => {
 });
 
 describe("calendar Refresh LaunchAgent", () => {
-  it("generates a Singapore-time, wake-aware, silent Refresh command", () => {
-    const plan = createCalendarRefreshLaunchdPlan({
-      hostTimeZone: "Asia/Singapore",
+  it("describes a Singapore-time, wake-aware, silent Refresh job", () => {
+    const description = describeCalendarRefreshLaunchdJob({
       nodePath: "/usr/local/bin/node",
       runnerModulePath: "/private/academic-os/dist/runner.js",
       cliPath: "/private/academic-os/dist/cli.js",
@@ -39,47 +38,22 @@ describe("calendar Refresh LaunchAgent", () => {
       notificationPath: "/usr/bin/osascript",
     });
 
-    assert.equal(plan.label, "com.jerome-group.academic-os.calendar-refresh");
-    assert.equal(plan.calendarTimeZone, "Asia/Singapore");
-    assert.deepEqual(plan.startCalendarInterval, { Hour: 5, Minute: 0 });
-    assert.deepEqual(plan.programArguments, [
+    assert.equal(description.name, "calendar-refresh");
+    assert.deepEqual(description.schedule, {
+      kind: "calendar-interval",
+      hour: 5,
+      minute: 0,
+      timeZone: "Asia/Singapore",
+    });
+    assert.deepEqual(description.programArguments, [
       "/usr/local/bin/node",
       "/private/academic-os/dist/runner.js",
       "/private/academic-os/dist/cli.js",
       "/private/academic-os/config & owner.json",
       "/usr/bin/osascript",
     ]);
-    assert.equal(plan.standardOutPath, "/dev/null");
-    assert.equal(plan.standardErrorPath, "/dev/null");
-    assert.equal(plan.runAtLoad, false);
-    assert.match(plan.plist, /<key>Hour<\/key>\n\s*<integer>5<\/integer>/u);
-    assert.match(plan.plist, /<key>Minute<\/key>\n\s*<integer>0<\/integer>/u);
-    assert.match(plan.plist, /<key>RunAtLoad<\/key>\n\s*<false\/>/u);
-    assert.match(
-      plan.plist,
-      /<key>StandardOutPath<\/key>\n\s*<string>\/dev\/null<\/string>/u,
-    );
-    assert.match(
-      plan.plist,
-      /<key>StandardErrorPath<\/key>\n\s*<string>\/dev\/null<\/string>/u,
-    );
-    assert.match(plan.plist, /config &amp; owner\.json/u);
-    assert.doesNotMatch(plan.plist, /<key>StartInterval<\/key>/u);
-  });
-
-  it("rejects installation on a non-Singapore host timezone", () => {
-    assert.throws(
-      () =>
-        createCalendarRefreshLaunchdPlan({
-          hostTimeZone: "UTC",
-          nodePath: "/usr/local/bin/node",
-          runnerModulePath: "/private/academic-os/dist/runner.js",
-          cliPath: "/private/academic-os/dist/cli.js",
-          configPath: "/private/academic-os/config.json",
-          notificationPath: "/usr/bin/osascript",
-        }),
-      /Asia\/Singapore/u,
-    );
+    assert.equal(description.standardOutPath, "/dev/null");
+    assert.equal(description.standardErrorPath, "/dev/null");
   });
 
   it("runs only calendar Refresh and stays silent on success", async () => {
@@ -132,6 +106,8 @@ describe("calendar Refresh LaunchAgent", () => {
     const report = JSON.parse(result.stdout);
     assert.equal(report.command, "calendar refresh schedule");
     assert.equal(report.outcome, "preview");
+    assert.equal(report.label, "com.jerome-group.academic-os.calendar-refresh");
+    assert.equal(report.calendarTimeZone, "Asia/Singapore");
     assert.deepEqual(report.startCalendarInterval, { Hour: 5, Minute: 0 });
     assert.equal(report.programArguments[0], process.execPath);
     assert.match(

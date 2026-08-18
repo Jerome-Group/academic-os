@@ -1,19 +1,22 @@
 #!/usr/bin/env node
 
-import { spawnSync } from "node:child_process";
-import { randomUUID } from "node:crypto";
-import { access, mkdir, rename, rm, writeFile } from "node:fs/promises";
+import { access } from "node:fs/promises";
 import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
-  CALENDAR_REFRESH_LAUNCHD_LABEL,
-  createCalendarRefreshLaunchdPlan,
+  CALENDAR_REFRESH_LAUNCHD_JOB_NAME,
+  describeCalendarRefreshLaunchdJob,
 } from "../dist/src/calendar/index.js";
+import {
+  installLaunchdJob,
+  launchdJobTarget,
+  planLaunchdJob,
+  removeLaunchdJob,
+} from "../dist/src/launchd/index.js";
 
 const notificationPath = "/usr/bin/osascript";
-const launchctlPath = "/bin/launchctl";
 const scriptPath = fileURLToPath(import.meta.url);
 const cliPath = fileURLToPath(new URL("../dist/src/cli.js", import.meta.url));
 const runnerModulePath = fileURLToPath(
@@ -36,14 +39,25 @@ try {
 
 async function main() {
   const arguments_ = parseArguments(process.argv.slice(2));
-  const paths = schedulePaths();
+  const homeDirectory = homedir();
+  const uid = requireUid();
   if (arguments_.remove) {
-    await removeSchedule(paths);
-    process.stdout.write(`Removed ${CALENDAR_REFRESH_LAUNCHD_LABEL}.\n`);
+    const target = launchdJobTarget({
+      name: CALENDAR_REFRESH_LAUNCHD_JOB_NAME,
+      homeDirectory,
+      uid,
+    });
+    await removeLaunchdJob(target);
+    process.stdout.write(`Removed ${target.label}.\n`);
     return;
   }
 
-  const plan = await createPlan(arguments_.configPath);
+  const plan = planLaunchdJob({
+    description: await describeJob(arguments_.configPath),
+    hostTimeZone: new Intl.DateTimeFormat().resolvedOptions().timeZone,
+    homeDirectory,
+    uid,
+  });
   if (arguments_.dryRun) {
     process.stdout.write(
       `${JSON.stringify(
@@ -51,9 +65,12 @@ async function main() {
           command: "calendar refresh schedule",
           outcome: "preview",
           label: plan.label,
-          calendarTimeZone: plan.calendarTimeZone,
-          startCalendarInterval: plan.startCalendarInterval,
-          plistPath: paths.plistPath,
+          calendarTimeZone: plan.schedule.timeZone,
+          startCalendarInterval: {
+            Hour: plan.schedule.hour,
+            Minute: plan.schedule.minute,
+          },
+          plistPath: plan.plistPath,
           programArguments: plan.programArguments,
           plist: plan.plist,
         },
@@ -64,14 +81,14 @@ async function main() {
     return;
   }
 
-  await installSchedule(paths, plan.plist);
+  await installLaunchdJob(plan);
   process.stdout.write(
     `${[
-      `Installed ${CALENDAR_REFRESH_LAUNCHD_LABEL}.`,
-      `Schedule: 05:00 ${plan.calendarTimeZone}; launchd catches up after sleep/wake.`,
-      `Plist: ${paths.plistPath}`,
-      `Inspect: launchctl print ${paths.serviceTarget}`,
-      `Manual run: launchctl kickstart -k ${paths.serviceTarget}`,
+      `Installed ${plan.label}.`,
+      `Schedule: ${formatDailyTime(plan.schedule)}; launchd catches up after sleep/wake.`,
+      `Plist: ${plan.plistPath}`,
+      `Inspect: launchctl print ${plan.serviceTarget}`,
+      `Manual run: launchctl kickstart -k ${plan.serviceTarget}`,
       `Remove: node ${scriptPath} --remove`,
     ].join("\n")}\n`,
   );
@@ -114,25 +131,17 @@ function parseArguments(arguments_) {
   return { configPath, dryRun, remove };
 }
 
-function schedulePaths() {
-  const home = homedir();
-  const plistPath = join(
-    home,
-    "Library",
-    "LaunchAgents",
-    `${CALENDAR_REFRESH_LAUNCHD_LABEL}.plist`,
-  );
+function requireUid() {
   const uid = process.getuid?.();
   if (uid === undefined) {
     throw new Error(
       "Calendar Refresh scheduling requires a macOS user session.",
     );
   }
-  const serviceTarget = `gui/${uid}/${CALENDAR_REFRESH_LAUNCHD_LABEL}`;
-  return { plistPath, serviceTarget };
+  return uid;
 }
 
-async function createPlan(configPath) {
+async function describeJob(configPath) {
   const resolvedConfigPath = resolve(configPath);
   await Promise.all([
     access(resolvedConfigPath),
@@ -144,8 +153,7 @@ async function createPlan(configPath) {
       "Calendar Refresh config, built CLI, runner, and osascript must all exist.",
     );
   });
-  return createCalendarRefreshLaunchdPlan({
-    hostTimeZone: new Intl.DateTimeFormat().resolvedOptions().timeZone,
+  return describeCalendarRefreshLaunchdJob({
     nodePath: process.execPath,
     runnerModulePath,
     cliPath,
@@ -154,58 +162,8 @@ async function createPlan(configPath) {
   });
 }
 
-async function installSchedule(paths, plist) {
-  await unloadSchedule(paths);
-  await mkdir(dirname(paths.plistPath), { recursive: true });
-  await writeAtomically(paths.plistPath, plist);
-  const result = spawnSync(
-    launchctlPath,
-    ["bootstrap", `gui/${process.getuid()}`, paths.plistPath],
-    {
-      stdio: "inherit",
-    },
-  );
-  if (result.status !== 0) {
-    await rm(paths.plistPath, { force: true });
-    throw new Error("launchctl could not install the Calendar Refresh job.");
-  }
-}
-
-async function removeSchedule(paths) {
-  await unloadSchedule(paths);
-  await rm(paths.plistPath, { force: true });
-}
-
-async function unloadSchedule(paths) {
-  if (!(await pathExists(paths.plistPath))) return;
-  const result = runLaunchctl(["bootout", paths.serviceTarget]);
-  if (result.status !== 0) {
-    throw new Error(
-      `launchctl could not unload ${paths.serviceTarget}; plist retained.`,
-    );
-  }
-}
-
-function runLaunchctl(arguments_) {
-  return spawnSync(launchctlPath, arguments_, { stdio: "ignore" });
-}
-
-async function pathExists(path) {
-  try {
-    await access(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function writeAtomically(path, content) {
-  const temporaryPath = `${path}.${randomUUID()}.tmp`;
-  try {
-    await writeFile(temporaryPath, content, { mode: 0o600 });
-    await rename(temporaryPath, path);
-  } catch (error) {
-    await rm(temporaryPath, { force: true });
-    throw error;
-  }
+function formatDailyTime(schedule) {
+  const hour = String(schedule.hour).padStart(2, "0");
+  const minute = String(schedule.minute).padStart(2, "0");
+  return `${hour}:${minute} ${schedule.timeZone}`;
 }

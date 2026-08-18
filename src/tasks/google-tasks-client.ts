@@ -6,6 +6,7 @@ import type {
   TaskListReader,
   TaskListWriter,
   TaskRefreshReader,
+  TaskWriter,
 } from "./types.js";
 
 export const TASKS_READONLY_SCOPE =
@@ -22,7 +23,7 @@ const TASK_PAGE_SIZE = 100;
 
 export interface TasksHttpRequest {
   url: string;
-  method: "GET" | "POST";
+  method: "GET" | "POST" | "PATCH" | "DELETE";
   params?: {
     maxResults?: number;
     pageToken?: string;
@@ -118,6 +119,64 @@ export function createGoogleTaskRefreshReader(
         return response.data;
       }),
   };
+}
+
+export function createGoogleTaskWriter(
+  credentialPath: string,
+  requester: TasksRequester = defaultRequester(
+    credentialPath,
+    TASKS_WRITE_SCOPE,
+  ),
+): TaskWriter {
+  return {
+    createTask: async ({ listId, task }) => {
+      const response: { data: { id?: string } } = await requester.request({
+        url: taskCollectionUrl(listId),
+        method: "POST",
+        data: { ...task },
+      });
+      if (typeof response.data.id !== "string" || response.data.id === "") {
+        throw new Error(`Task creation returned no ID for ${task.title}.`);
+      }
+      return { id: response.data.id };
+    },
+    patchTask: async ({ listId, taskId, patch }) => {
+      await requester.request({
+        url: taskUrl(listId, taskId),
+        method: "PATCH",
+        data: { ...patch },
+      });
+    },
+    readTask: async ({ listId, taskId }) => {
+      try {
+        const response: { data: LiveTask } = await requester.request({
+          url: taskUrl(listId, taskId),
+          method: "GET",
+        });
+        return response.data;
+      } catch (error) {
+        // A task Google no longer has is the verified outcome of a cancel push, not a failure.
+        if (isMissingTaskError(error)) return undefined;
+        throw error;
+      }
+    },
+    deleteTask: async ({ listId, taskId }) => {
+      await requester.request({
+        url: taskUrl(listId, taskId),
+        method: "DELETE",
+      });
+    },
+  };
+}
+
+function isMissingTaskError(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  const value = error as { code?: unknown; response?: { status?: unknown } };
+  return value.code === 404 || value.response?.status === 404;
+}
+
+function taskUrl(listId: string, taskId: string): string {
+  return `${taskCollectionUrl(listId)}/${encodeURIComponent(taskId)}`;
 }
 
 function taskCollectionUrl(listId: string): string {

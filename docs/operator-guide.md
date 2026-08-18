@@ -2,9 +2,9 @@
 
 The CLI has `seed`, `audit`, `calendar setup`, pull-only `calendar refresh`, private
 `calendar propose`, explicitly authorised `calendar promote`, `tasks provision`, pull-only
-`tasks refresh`, additive `textbooks catch-up` and separately gated
-`repair` commands. It does not
-schedule weekly LLM work or edit module instructions autonomously.
+`tasks refresh`, in-session `tasks create`, `tasks change`, `tasks complete` and `tasks cancel`,
+additive `textbooks catch-up` and separately gated `repair` commands. It does not schedule weekly
+LLM work or edit module instructions autonomously.
 
 ## Configure
 
@@ -345,6 +345,47 @@ other modules: the named stale modules kept their last-good register and report 
 stale register is fine when its staleness is named; the register is a mirror, so the fix is a
 rerun rather than an edit.
 
+## Tasks operations
+
+Write to a module's live list in session — the pushes an unattended refresh has no authority to
+make:
+
+```sh
+node dist/src/cli.js tasks create --config academic-os.config.json \
+  --semester Y2S1 --module MODULE_CODE --title 'Attempt tutorial 3' --do-date 2026-08-27
+```
+
+```sh
+node dist/src/cli.js tasks change --config academic-os.config.json \
+  --semester Y2S1 --module MODULE_CODE --task TASK_ID --do-date 2026-08-28
+```
+
+`tasks complete` and `tasks cancel` take the same `--task` and nothing more. Every operation
+pushes with the interactive-write credential, reads the live result back, then runs the same pull
+`tasks refresh` runs with the scheduled-read one — so the register only ever mirrors what Google
+accepted, and the Owner's phone has it first.
+
+`create` also takes `--notes` and the provenance flags `--assessment`, `--source` and
+`--milestone`; the returned task ID and that provenance are what the new row carries, and
+provenance never reaches Google. `change` takes any of `--title`, `--do-date` and `--notes`. A
+`--do-date` is a date with no time: Google discards a time and a Do-date is not a deadline, so the
+command refuses one rather than truncating it.
+
+`--task` names a task the register already has a row for. A task created on the phone since the
+last pull parks until `tasks refresh` mirrors it — pushing to an ID the register does not know
+would be writing blind. `tasks cancel` deletes the task in Google, and the refresh behind it marks
+the row `cancelled`; the register never drops a task it tracked.
+
+A push Google did not take parks the operation: the report reads `parked`, names the failure, exits
+nonzero, and leaves the register with no row for work that does not exist. Nothing queues it —
+Google's own apps are the manual fallback, and the register catches up at the next pull. A verified
+push whose refresh then failed reports `applied` against a `stale` register, which a rerun of
+`tasks refresh` settles.
+
+Supervise the first live round-trip: `tasks create` against a real module list, tick the task in
+Google Tasks on the phone, then `tasks refresh`. The row should come back `completed` with its
+provenance intact and no other row moved.
+
 ## Textbooks catch-up
 
 Diff the Textbook shelf against its Shelf index. The default is a non-mutating preview:
@@ -475,6 +516,8 @@ is mutable and therefore is not itself immutable or WORM storage.
   calendars.
 - Calendar refresh uses only read-only event authority and never mutates Google.
 - Calendar propose uses only read-only authority and writes only private Proposal state.
+- Tasks refresh is pull-only; the task operations are the one Tasks path that writes to Google, and
+  they run in session under the interactive-write credential, never unattended.
 - Audit has no repair path and no write-capable Drive API dependency.
 - A contract change edits `docs/module-folder-contract.md`; repair resolves only an approved
   deviation and cannot change the contract.

@@ -7,6 +7,10 @@ import { runCalendarProposeCommand } from "./commands/calendar-propose-command.j
 import { runCalendarPromoteCommand } from "./commands/calendar-promote-command.js";
 import { writeOperationalError } from "./commands/operational-error-output.js";
 import { runSeedCommand } from "./commands/seed-command.js";
+import {
+  isTaskOperation,
+  runTasksOperateCommand,
+} from "./commands/tasks-operate-command.js";
 import { runTasksProvisionCommand } from "./commands/tasks-provision-command.js";
 import { runTasksRefreshCommand } from "./commands/tasks-refresh-command.js";
 import { runTextbooksCatchUpCommand } from "./commands/textbooks-catch-up-command.js";
@@ -32,6 +36,8 @@ try {
     await runTasksProvisionCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "tasks" && arguments_[1] === "refresh") {
     await runTasksRefreshCommand(arguments_.slice(1), json);
+  } else if (arguments_[0] === "tasks" && isTaskOperation(arguments_[1])) {
+    await runTasksOperateCommand(arguments_[1], arguments_.slice(1), json);
   } else if (arguments_[0] === "textbooks" && arguments_[1] === "catch-up") {
     await runTextbooksCatchUpCommand(arguments_.slice(1), json);
   } else {

@@ -51,6 +51,67 @@ export interface TaskRefreshReader {
   listTasks(input: { listId: string }): Promise<LiveTask[]>;
 }
 
+// The fields of a live task an in-session operation writes, in Google's own vocabulary — the one
+// place a Do-date is a `due` and a status is Google's, so every other unit reads the domain's.
+export interface LiveTaskFields {
+  title?: string;
+  notes?: string;
+  due?: string;
+  status?: "needsAction" | "completed";
+}
+
+export interface TaskWriter {
+  createTask(input: {
+    listId: string;
+    task: LiveTaskFields & { title: string };
+  }): Promise<{ id: string }>;
+  patchTask(input: {
+    listId: string;
+    taskId: string;
+    patch: LiveTaskFields;
+  }): Promise<void>;
+  readTask(input: {
+    listId: string;
+    taskId: string;
+  }): Promise<LiveTask | undefined>;
+  deleteTask(input: { listId: string; taskId: string }): Promise<void>;
+}
+
+// Cancel deletes the task in Google, which the next pull mirrors as a cancelled row: the register
+// never drops a task it tracked, and nothing here re-pushes one Google has already forgotten.
+export type TaskOperation =
+  | {
+      name: "create";
+      title: string;
+      doDate?: string;
+      notes?: string;
+      provenance?: TaskProvenance;
+    }
+  | {
+      name: "change";
+      taskId: string;
+      title?: string;
+      doDate?: string;
+      notes?: string;
+    }
+  | { name: "complete"; taskId: string }
+  | { name: "cancel"; taskId: string };
+
+export type TaskOperationName = TaskOperation["name"];
+
+export interface TaskOperationReport {
+  schemaVersion: 1;
+  command: `tasks ${TaskOperationName}`;
+  outcome: "applied" | "parked";
+  module: ConfiguredModuleIdentity;
+  taskId: string | null;
+  register: TaskRefreshModuleReport | null;
+  failure?: {
+    code: string;
+    message: string;
+  };
+}
+
 export interface TaskRegisterChanges {
   added: number;
   updated: number;

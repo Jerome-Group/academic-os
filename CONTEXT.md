@@ -271,6 +271,14 @@ cannot.
 _Avoid_: task list — that is the live authority the register mirrors; task history — the register
 is current state, not an append-only record like the Curation register.
 
+**Task operation**:
+An in-session create, change, complete or cancel that pushes to a module's live task list, verifies
+the live result, then refreshes the Task register. It carries the Promotion pattern without a
+Proposal — the Owner asked for the change in session, so nothing stages it for approval — and a
+push Google does not take parks, leaving the register with no row for it.
+_Avoid_: task sync — every operation here is asked for in session; Promotion — that word belongs to
+the Calendar, whose Proposals a register can never be a source for.
+
 **Operations server**:
 The MCP server this repository builds and runs on the mini, exposing its operations — task
 operations first, later surfaces joining the same server — to any MCP-speaking agent on the

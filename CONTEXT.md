@@ -356,6 +356,20 @@ for every new book whose filename parses and whose default Book key is free, and
 the Owner. It appends and never revises, so what it cannot read off a filename it does not write.
 _Avoid_: sync, import — both suggest a two-way settlement the pass refuses; scan.
 
+**Shelf migration**:
+The one-time pass that brings an existing Textbook shelf into the system, strictly ordered — sweep,
+one Owner review, renames, then the Shelf index. Sweeping precedes indexing because the index
+records final filenames, and the migration is what makes a later Shelf catch-up's parks rare.
+_Avoid_: import — nothing arrives; backfill, bootstrap.
+
+**Shelf review sheet**:
+The single artifact the Shelf migration is approved through: one line per unindexed book carrying
+its filename, its checksum and the Book key, with the settling questions as comments beside the
+lines that answer them. The Owner settles it once; the migration holds it against a fresh reading
+of the shelf and refuses every disagreement.
+_Avoid_: proposal — that is the Calendar's, and a Proposal is promoted rather than settled;
+manifest, plan file.
+
 **Book key**:
 The globally unique, filename-safe token that names one shelf book everywhere it is referred to —
 Shelf index entry, Textbook register citation, chapter filename. First-author surname by default,

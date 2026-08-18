@@ -49,14 +49,14 @@ The sheet names the Owner's own books, so it lives in private state, never in a 
 never in this repository.
 
 `Icon\r` — the file Finder leaves beside a custom folder icon — joins dot-files as something the
-shelf reader does not see. This narrows one consequence of **ADR-0009**, which has anything on the
-shelf that is not a cleanly named PDF parking on every run "until the Owner deals with it — that is
-the intended pressure". The pressure is well aimed at a book; it cannot land on this file, because
-there is nothing for the Owner to do. Finder writes it back whenever the folder icon is set, so the
-park would never end, and a shelf that can never park nothing can never hand the daily catch-up the
-clean baseline this migration exists to produce. ADR-0009 stands otherwise and is not superseded:
-what changed is the reading of what counts as being on the shelf, which that ADR already drew
-around dot-files for exactly this reason.
+shelf reader does not see. **ADR-0009** has anything on the shelf that is not a cleanly named PDF
+parking on every run "until the Owner deals with it — that is the intended pressure", and that
+decision stands unchanged; what this settles is the prior question of what counts as being *on the
+shelf* at all, which that record already answered for dot-files and answers the same way here. The
+pressure is well aimed at a book, and cannot land on this file, because there is nothing for the
+Owner to do: Finder writes it back whenever the folder icon is set, so the park would never end,
+and a shelf that can never park nothing can never hand the daily catch-up the clean baseline this
+migration exists to produce.
 
 ## Revisit when
 

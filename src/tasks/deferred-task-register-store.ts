@@ -5,7 +5,7 @@ import type { TaskRegisterStore } from "./types.js";
 // Resolving a module folder is a Drive read that can fail on its own, so a cohort refresh defers
 // it to the moment the register is touched: one unresolvable module reports stale beside the
 // modules that refreshed rather than aborting the run before it starts.
-export function createConfiguredTaskRegisterStore(
+export function createDeferredTaskRegisterStore(
   config: LocalConfig,
 ): TaskRegisterStore {
   let moduleRoot: Promise<string> | undefined;

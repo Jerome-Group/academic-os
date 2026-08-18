@@ -30,8 +30,6 @@ export interface TasksConfig {
   };
 }
 
-export type ResolvedTasksConfig = TasksConfig;
-
 export interface AcademicConfig {
   driveMount: string;
   stateRoot: string;

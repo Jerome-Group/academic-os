@@ -56,7 +56,7 @@ export function createGoogleTaskListReader(
 ): TaskListReader {
   return {
     listTaskLists: async () =>
-      await readPages<TaskList, TaskListPage>(async (pageToken) => {
+      await readPages<TaskList>(async (pageToken) => {
         const response: { data: TaskListPage } = await requester.request({
           url: taskListsUrl,
           method: "GET",
@@ -103,7 +103,7 @@ export function createGoogleTaskRefreshReader(
     listTasks: async ({ listId }) =>
       // Completed tasks are hidden and a deletion is a flag rather than an absence, so a pull
       // that does not ask for all three cannot tell a tick from a task that never existed.
-      await readPages<LiveTask, TaskPage>(async (pageToken) => {
+      await readPages<LiveTask>(async (pageToken) => {
         const response: { data: TaskPage } = await requester.request({
           url: taskCollectionUrl(listId),
           method: "GET",
@@ -124,11 +124,10 @@ function taskCollectionUrl(listId: string): string {
   return `${tasksApiUrl}/lists/${encodeURIComponent(listId)}/tasks`;
 }
 
-async function readPages<
-  TItem,
-  TPage extends { items?: TItem[]; nextPageToken?: string },
->(
-  readPage: (pageToken: string | undefined) => Promise<TPage>,
+async function readPages<TItem>(
+  readPage: (
+    pageToken: string | undefined,
+  ) => Promise<{ items?: TItem[]; nextPageToken?: string }>,
 ): Promise<TItem[]> {
   const items: TItem[] = [];
   let pageToken: string | undefined;

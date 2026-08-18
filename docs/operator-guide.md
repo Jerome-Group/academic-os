@@ -36,7 +36,7 @@ Tasks scopes are the whole set Google offers: authorise scheduled-read credentia
 `tasks.readonly`, and interactive-write credentials separately for `tasks` — which necessarily
 covers every task list on the account, so the write credential is the one to keep furthest from a
 scheduled job. Enable the Tasks API once on the same Cloud project as the Calendar OAuth clients
-before the first approval. Mint either file with the shared consent helper:
+before the first approval. Mint each file with the shared consent helper:
 
 ```sh
 node scripts/authorize-google-credentials.mjs \
@@ -46,8 +46,17 @@ node scripts/authorize-google-credentials.mjs \
   --output "$HOME/.config/academic-os/tasks-read.credentials.json"
 ```
 
+```sh
+node scripts/authorize-google-credentials.mjs \
+  --surface tasks --role write \
+  --client "$HOME/.config/academic-os/tasks-write-client.json" \
+  --scopes https://www.googleapis.com/auth/tasks \
+  --output "$HOME/.config/academic-os/tasks-write.credentials.json"
+```
+
 A refresh token carries the scopes it was granted, so widening a credential means running the
-helper again rather than editing the config.
+helper again rather than editing the config. `tasks provision --apply` is the only path that uses
+the write credential.
 
 This checkout includes `scripts/setup-calendar-local.sh`, which walks through the two sequential
 Google approvals, private config update, setup preview, explicit setup apply, initial Refresh and
@@ -297,9 +306,10 @@ node dist/src/cli.js tasks provision --config academic-os.config.json \
   --semester Y2S1 --module MODULE_CODE
 ```
 
-The command adopts a list whose title is exactly the module code and reports a missing one as
-`would create`; preview creates nothing and writes no register. Adding `--apply` creates the
-missing list and writes `00 Module Admin/30 Task Register.yaml` carrying its exact ID.
+The command reports what it would do — `would adopt` for a list titled exactly the module code,
+`would create` for a missing one — and creates nothing and writes no register. Adding `--apply`
+adopts or creates the list and writes `00 Module Admin/30 Task Register.yaml` carrying its exact
+ID.
 
 Rerunning is safe. Once the register names a list, provisioning verifies that list still exists,
 reports `bound` and leaves the register's rows alone — the persisted ID is the module's task-list

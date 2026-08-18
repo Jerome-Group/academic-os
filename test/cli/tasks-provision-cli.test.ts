@@ -85,6 +85,23 @@ describe("academic-os tasks provision", () => {
     );
   });
 
+  it("previews an adoptable list without writing a register", async () => {
+    const fixture = await setupFixture();
+    const provider = await readProvider(fixture);
+    provider.lists = [{ id: "module-list", title: "MH2100" }];
+    await writeProvider(fixture, provider);
+
+    const result = await runTasksProvision(fixture, "--json");
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.outcome, "preview");
+    assert.equal(report.list.action, "would-adopt");
+    assert.equal(report.list.listId, "module-list");
+    assert.equal(report.register, "not-written");
+    assert.equal(await readRegisterOrUndefined(fixture), undefined);
+  });
+
   it("adopts an exactly titled list rather than creating a second one", async () => {
     const fixture = await setupFixture();
     const provider = await readProvider(fixture);

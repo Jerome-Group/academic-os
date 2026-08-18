@@ -37,7 +37,6 @@ export interface LiveTask {
   due?: string;
   status?: "needsAction" | "completed";
   deleted?: boolean;
-  hidden?: boolean;
 }
 
 export interface TaskListReader {
@@ -65,7 +64,7 @@ export interface TaskProvisionReport {
   module: ConfiguredModuleIdentity;
   list: {
     title: string;
-    action: "bound" | "adopted" | "created" | "would-create";
+    action: "bound" | "adopted" | "created" | "would-adopt" | "would-create";
     listId: string | null;
   };
   register: "written" | "not-written";

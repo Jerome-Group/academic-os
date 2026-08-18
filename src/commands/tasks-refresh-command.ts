@@ -2,14 +2,10 @@ import {
   planCohortAudit,
   resolveConfiguredAuditTarget,
 } from "../cohort/index.js";
-import {
-  type AcademicConfig,
-  loadLocalConfig,
-  resolveTasksConfig,
-} from "../config/index.js";
+import type { AcademicConfig } from "../config/index.js";
 import { OperationalError } from "../mounted/index.js";
 import {
-  createConfiguredTaskRegisterStore,
+  createDeferredTaskRegisterStore,
   createGoogleTaskRefreshReader,
   refreshTaskRegisters,
   type TaskRefreshModuleReport,
@@ -17,6 +13,8 @@ import {
   type TaskRefreshTarget,
 } from "../tasks/index.js";
 import { parseArgumentTokens } from "./argument-tokens.js";
+import { loadCohortTasksConfig } from "./load-cohort-tasks-config.js";
+import { quantity } from "./quantity.js";
 
 const usage =
   "Usage: academic-os tasks refresh --config <path> [--semester <semester> --module <module>] [--json]";
@@ -26,14 +24,7 @@ export async function runTasksRefreshCommand(
   json: boolean,
 ): Promise<void> {
   const parsed = parseTasksRefreshArguments(arguments_);
-  const config = await loadLocalConfig(parsed.configPath);
-  if (!("activeSemester" in config)) {
-    throw new OperationalError(
-      "invalid-config",
-      "A Tasks refresh requires the cohort configuration.",
-    );
-  }
-  const tasks = resolveTasksConfig(config);
+  const { config, tasks } = await loadCohortTasksConfig(parsed.configPath);
   const report = await refreshTaskRegisters({
     targets: refreshTargets(config, parsed),
     reader: createGoogleTaskRefreshReader(tasks.credentials.scheduledRead),
@@ -52,7 +43,7 @@ function refreshTargets(
     return planCohortAudit(config).targets.map((target) => ({
       semester: target.semester,
       module: target.module,
-      registerStore: createConfiguredTaskRegisterStore(target),
+      registerStore: createDeferredTaskRegisterStore(target),
     }));
   }
   const target = resolveConfiguredAuditTarget(
@@ -64,7 +55,7 @@ function refreshTargets(
     {
       semester: target.semester,
       module: target.module,
-      registerStore: createConfiguredTaskRegisterStore(target),
+      registerStore: createDeferredTaskRegisterStore(target),
     },
   ];
 }
@@ -114,8 +105,4 @@ function renderModule(module: TaskRefreshModuleReport): string {
       ? []
       : [`${module.failure.code}: ${module.failure.message}`]),
   ].join("; ");
-}
-
-function quantity(count: number, singular: string): string {
-  return `${count} ${singular}${count === 1 ? "" : "s"}`;
 }

@@ -9,6 +9,7 @@ import {
 import { loadLocalConfig, resolveCalendarConfig } from "../config/index.js";
 import { OperationalError } from "../operational-error.js";
 import { parseArgumentTokens } from "./argument-tokens.js";
+import { quantity } from "./quantity.js";
 
 const usage = "Usage: academic-os calendar refresh --config <path> [--json]";
 
@@ -69,8 +70,4 @@ function renderHuman(report: CalendarRefreshReport): string {
         `${eventId} ${JSON.stringify(summary)}: ${actualRole} -> ${suggestedRole} (${reason.replace("-", " ")})`,
     ),
   ].join("\n");
-}
-
-function quantity(count: number, singular: string): string {
-  return `${count} ${singular}${count === 1 ? "" : "s"}`;
 }

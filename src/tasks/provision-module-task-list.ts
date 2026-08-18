@@ -33,6 +33,7 @@ export async function provisionModuleTaskList(input: {
   if (register !== undefined && boundList !== undefined) {
     return report({
       module: input.module,
+      outcome: "provisioned",
       title,
       action: "bound",
       listId: register.listId,
@@ -48,12 +49,13 @@ export async function provisionModuleTaskList(input: {
     );
   }
   const adopted = named[0];
-  if (adopted === undefined && !input.apply) {
+  if (!input.apply) {
     return report({
       module: input.module,
+      outcome: "preview",
       title,
-      action: "would-create",
-      listId: null,
+      action: adopted === undefined ? "would-create" : "would-adopt",
+      listId: adopted === undefined ? null : requireListId(adopted, title),
       register: "not-written",
     });
   }
@@ -64,6 +66,7 @@ export async function provisionModuleTaskList(input: {
   await input.registerStore.write(emptyRegister(listId));
   return report({
     module: input.module,
+    outcome: "provisioned",
     title,
     action: adopted === undefined ? "created" : "adopted",
     listId,
@@ -87,6 +90,7 @@ function requireListId(list: { id?: string }, title: string): string {
 
 function report(input: {
   module: ConfiguredModuleIdentity;
+  outcome: TaskProvisionReport["outcome"];
   title: string;
   action: TaskProvisionReport["list"]["action"];
   listId: string | null;
@@ -95,7 +99,7 @@ function report(input: {
   return {
     schemaVersion: 1,
     command: "tasks provision",
-    outcome: input.action === "would-create" ? "preview" : "provisioned",
+    outcome: input.outcome,
     module: input.module,
     list: { title: input.title, action: input.action, listId: input.listId },
     register: input.register,

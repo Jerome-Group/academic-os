@@ -8,6 +8,5 @@ export type {
   SemesterConfig,
   SemesterStatus,
   ResolvedCalendarConfig,
-  ResolvedTasksConfig,
   TasksConfig,
 } from "./types.js";

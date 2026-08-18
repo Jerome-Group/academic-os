@@ -1,3 +1,4 @@
+import { isDoDate } from "./do-date.js";
 import type {
   LiveTask,
   TaskRegister,
@@ -68,9 +69,7 @@ function mirrorLiveTask(
 // date it can read back and never a time it cannot.
 function liveDoDate(due: string | undefined): string | undefined {
   const date = due?.slice(0, 10);
-  return date !== undefined && /^\d{4}-\d{2}-\d{2}$/u.test(date)
-    ? date
-    : undefined;
+  return isDoDate(date) ? date : undefined;
 }
 
 function liveStatus(status: LiveTask["status"]): TaskStatus {

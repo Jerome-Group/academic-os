@@ -1,4 +1,3 @@
-import { loadLocalConfig, resolveTasksConfig } from "../config/index.js";
 import { resolveConfiguredAuditTarget } from "../cohort/index.js";
 import { OperationalError, resolveTarget } from "../mounted/index.js";
 import {
@@ -9,6 +8,7 @@ import {
   type TaskProvisionReport,
 } from "../tasks/index.js";
 import { parseArgumentTokens } from "./argument-tokens.js";
+import { loadCohortTasksConfig } from "./load-cohort-tasks-config.js";
 
 const usage =
   "Usage: academic-os tasks provision --config <path> --semester <semester> --module <module> [--apply] [--json]";
@@ -18,14 +18,7 @@ export async function runTasksProvisionCommand(
   json: boolean,
 ): Promise<void> {
   const parsed = parseTasksProvisionArguments(arguments_);
-  const config = await loadLocalConfig(parsed.configPath);
-  if (!("activeSemester" in config)) {
-    throw new OperationalError(
-      "invalid-config",
-      "Task-list provisioning requires the cohort configuration.",
-    );
-  }
-  const tasks = resolveTasksConfig(config);
+  const { config, tasks } = await loadCohortTasksConfig(parsed.configPath);
   const target = resolveConfiguredAuditTarget(
     config,
     parsed.semester,

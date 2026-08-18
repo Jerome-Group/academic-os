@@ -1,11 +1,9 @@
 import { isAbsolute } from "node:path";
 
 import { OperationalError } from "../mounted/index.js";
-import type { ResolvedTasksConfig } from "./types.js";
+import type { TasksConfig } from "./types.js";
 
-export function resolveTasksConfig(config: {
-  tasks?: unknown;
-}): ResolvedTasksConfig {
+export function resolveTasksConfig(config: { tasks?: unknown }): TasksConfig {
   const tasks = config.tasks;
   if (!isObject(tasks) || !isObject(tasks.credentials)) {
     throw new OperationalError(

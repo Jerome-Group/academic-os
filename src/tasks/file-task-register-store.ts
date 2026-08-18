@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { parse, stringify } from "yaml";
 
 import { OperationalError } from "../operational-error.js";
+import { isDoDate } from "./do-date.js";
 import type {
   TaskProvenance,
   TaskRegister,
@@ -79,12 +80,10 @@ function readEntry(value: unknown): TaskRegisterEntry {
   };
 }
 
-// A do-date is the day work is planned, and the schema reserves no room for a time: anything
-// carrying one is a register to fix by hand rather than one to silently truncate.
+// A register carrying a time is one to fix by hand rather than one to silently truncate: the
+// time is the only evidence that somebody meant a deadline.
 function readDoDate(value: unknown): string {
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/u.test(value)) {
-    throw invalidRegister();
-  }
+  if (!isDoDate(value)) throw invalidRegister();
   return value;
 }
 

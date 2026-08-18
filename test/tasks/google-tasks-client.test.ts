@@ -5,6 +5,7 @@ import {
   createGoogleTaskListReader,
   createGoogleTaskListWriter,
   createGoogleTaskRefreshReader,
+  createGoogleTaskOperationWriter,
   type TasksHttpRequest,
   type TasksRequester,
 } from "../../src/tasks/index.js";
@@ -101,6 +102,92 @@ describe("Google Tasks adapter", () => {
           params?.showHidden === true &&
           params?.maxResults === 100,
       ),
+    );
+  });
+
+  it("creates, patches, reads and deletes one task in its list", async () => {
+    const requests: TasksHttpRequest[] = [];
+    const requester: TasksRequester = {
+      request: async <T>(request: TasksHttpRequest) => {
+        requests.push(request);
+        return { data: { id: "created", title: "Attempt tutorial 3" } as T };
+      },
+    };
+    const writer = createGoogleTaskOperationWriter("/private/write", requester);
+
+    assert.deepEqual(
+      await writer.createTask({
+        listId: "list/one",
+        task: { title: "Attempt tutorial 3", due: "2026-08-27T00:00:00.000Z" },
+      }),
+      { id: "created" },
+    );
+    await writer.patchTask({
+      listId: "list/one",
+      taskId: "task/one",
+      patch: { status: "completed" },
+    });
+    assert.deepEqual(
+      await writer.readTask({ listId: "list/one", taskId: "task/one" }),
+      { id: "created", title: "Attempt tutorial 3" },
+    );
+    await writer.deleteTask({ listId: "list/one", taskId: "task/one" });
+
+    assert.deepEqual(
+      requests.map(({ url, method, data }) => ({ url, method, data })),
+      [
+        {
+          url: "https://tasks.googleapis.com/tasks/v1/lists/list%2Fone/tasks",
+          method: "POST",
+          data: {
+            title: "Attempt tutorial 3",
+            due: "2026-08-27T00:00:00.000Z",
+          },
+        },
+        {
+          url: "https://tasks.googleapis.com/tasks/v1/lists/list%2Fone/tasks/task%2Fone",
+          method: "PATCH",
+          data: { status: "completed" },
+        },
+        {
+          url: "https://tasks.googleapis.com/tasks/v1/lists/list%2Fone/tasks/task%2Fone",
+          method: "GET",
+          data: undefined,
+        },
+        {
+          url: "https://tasks.googleapis.com/tasks/v1/lists/list%2Fone/tasks/task%2Fone",
+          method: "DELETE",
+          data: undefined,
+        },
+      ],
+    );
+  });
+
+  it("reads a task Google no longer has as absent rather than as a failure", async () => {
+    const writer = createGoogleTaskOperationWriter("/private/write", {
+      request: async () => {
+        throw Object.assign(new Error("Not Found"), { code: 404 });
+      },
+    });
+
+    assert.equal(
+      await writer.readTask({ listId: "list-one", taskId: "gone" }),
+      undefined,
+    );
+  });
+
+  it("refuses a created task the provider gave no ID for", async () => {
+    const writer = createGoogleTaskOperationWriter("/private/write", {
+      request: async <T>() => ({ data: {} as T }),
+    });
+
+    await assert.rejects(
+      async () =>
+        await writer.createTask({
+          listId: "list-one",
+          task: { title: "Attempt tutorial 3" },
+        }),
+      /returned no ID/u,
     );
   });
 });

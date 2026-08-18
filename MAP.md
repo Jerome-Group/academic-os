@@ -10,6 +10,7 @@ Start here: `README.md`, then `AGENTS.md`.
 | Seed-source templates | The canonical bodies of the pinned module files — what seeding will write into a module folder and the auditor will diff it against | `seed-templates/` |
 | Module CLI | Previewed journalled/resumable seed and approved ID-bound repair, mounted or Drive API inventory, cohort/migration audit, private observations, pure conformance, and reports | `src/cli.ts`, `docs/operator-guide.md`, `docs/v1-acceptance.md` |
 | Calendar CLI | Previewed Owned-calendar setup, resilient pull-only Refresh, local macOS scheduling, conflict-checked Proposals, verified Promotion, and reviewed whole-series Routine migration | `src/calendar/`, `src/commands/calendar-*-command.ts`, `scripts/install-calendar-refresh-launchd.mjs`, `docs/operator-guide.md` |
+| Scheduling | The one LaunchAgent installer every scheduled job goes through — a job description in, a timezone-pinned plist and an atomic bootout-first install out | `src/launchd/` |
 | Tests | Public-seam tests using synthetic temporary module trees | `test/` |
 | The boundary | Why the folders it describes are not in this repository, and what keeps them out | `docs/adr/0002-…`, `.gitignore` |
 | Tasks | The semester's work and this repository's own — GitHub Issues, not a file | the issue tracker |

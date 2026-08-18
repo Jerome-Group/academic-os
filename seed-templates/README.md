@@ -55,5 +55,6 @@ Two things a reader would otherwise find out the hard way:
   unit folder, with no path to edit.
 - **They compile in their seeded form, not this one** — here the preamble is still
   `preamble.template.tex`. `npm run templates:check` strips the infix into a temporary directory and
-  runs `latexmk -pdf -outdir=build` over each type. It needs `latexmk` on PATH, so it is a local
-  check rather than a CI one; run it whenever a type or the preamble changes.
+  runs `latexmk -pdf -outdir=build` over each type. CI runs it too, on a runner it installs TeX Live
+  onto, so a broken template cannot merge; run it locally as well, because the round trip through a
+  red job is the slow way to find a missing brace.

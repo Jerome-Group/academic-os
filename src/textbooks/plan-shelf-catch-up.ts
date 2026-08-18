@@ -1,11 +1,14 @@
-import { defaultBookKey, parseShelfFilename } from "./parse-shelf-filename.js";
+import {
+  defaultBookKey,
+  shelfBooksSolutionsLast,
+  UNPARSEABLE_NAME_NOTE,
+} from "./parse-shelf-filename.js";
+import { shelfIndexEntry } from "./shelf-index-entry.js";
 import type {
   ParkedShelfBook,
-  ParsedShelfBook,
   ShelfCatchUpPlan,
   ShelfIndex,
   ShelfIndexAppend,
-  ShelfIndexEntry,
   ShelfReader,
 } from "./types.js";
 
@@ -29,11 +32,11 @@ export async function planShelfCatchUp(input: {
   const books = await input.reader.listBooks();
   const appends: ShelfIndexAppend[] = [];
   const parked: ParkedShelfBook[] = [];
-  for (const { file, book } of candidates(
+  for (const { file, book } of shelfBooksSolutionsLast(
     books.filter((shelved) => !indexedFiles.has(shelved)),
   )) {
     if (book === undefined) {
-      parked.push(park(file, "unparseable-name", unparseableNote));
+      parked.push(park(file, "unparseable-name", UNPARSEABLE_NAME_NOTE));
       continue;
     }
     const key = defaultBookKey(book);
@@ -60,8 +63,7 @@ export async function planShelfCatchUp(input: {
       );
       continue;
     }
-    const entry = shelfIndexEntry(file, book, sha256);
-    appends.push({ key, entry });
+    appends.push({ key, entry: shelfIndexEntry({ file, book, sha256 }) });
     keysHeld.set(key, file);
     filesByChecksum.set(sha256, { key, file });
   }
@@ -76,42 +78,10 @@ export async function planShelfCatchUp(input: {
   };
 }
 
-// A solutions manual answers a book, and the two share a surname: taking them in that order is
-// what leaves the plain key to the book itself, whichever of the pair the shelf lists first.
-function candidates(
-  files: string[],
-): Array<{ file: string; book: ParsedShelfBook | undefined }> {
-  const parsed = files.map((file) => ({
-    file,
-    book: parseShelfFilename(file),
-  }));
-  return [
-    ...parsed.filter(({ book }) => book?.solutions !== true),
-    ...parsed.filter(({ book }) => book?.solutions === true),
-  ];
-}
-
-const unparseableNote =
-  "The filename does not follow <Title> <N>e <Author surnames, comma-separated>.pdf.";
-
 function park(
   file: string,
   reason: ParkedShelfBook["reason"],
   note: string,
 ): ParkedShelfBook {
   return { file, reason, note };
-}
-
-function shelfIndexEntry(
-  file: string,
-  book: ParsedShelfBook,
-  sha256: string,
-): ShelfIndexEntry {
-  return {
-    file,
-    title: book.title,
-    ...(book.edition === undefined ? {} : { edition: book.edition }),
-    authors: [...book.authors],
-    sha256,
-  };
 }

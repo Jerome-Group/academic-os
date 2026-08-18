@@ -14,6 +14,8 @@ import {
 import { runTasksProvisionCommand } from "./commands/tasks-provision-command.js";
 import { runTasksRefreshCommand } from "./commands/tasks-refresh-command.js";
 import { runTextbooksCatchUpCommand } from "./commands/textbooks-catch-up-command.js";
+import { runTextbooksMigrateCommand } from "./commands/textbooks-migrate-command.js";
+import { runTextbooksSweepCommand } from "./commands/textbooks-sweep-command.js";
 import { runRepairCommand } from "./commands/repair-command.js";
 
 const arguments_ = process.argv.slice(2);
@@ -40,6 +42,10 @@ try {
     await runTasksOperateCommand(arguments_[1], arguments_.slice(1), json);
   } else if (arguments_[0] === "textbooks" && arguments_[1] === "catch-up") {
     await runTextbooksCatchUpCommand(arguments_.slice(1), json);
+  } else if (arguments_[0] === "textbooks" && arguments_[1] === "sweep") {
+    await runTextbooksSweepCommand(arguments_.slice(1), json);
+  } else if (arguments_[0] === "textbooks" && arguments_[1] === "migrate") {
+    await runTextbooksMigrateCommand(arguments_.slice(1), json);
   } else {
     await runAuditCommand(arguments_, json);
   }

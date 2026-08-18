@@ -174,6 +174,32 @@ describe("auditModuleControls", () => {
     assert.match(finding?.evidence ?? "", /Textbooks has no route bullet/u);
   });
 
+  it("rejects repository workflow reaching AGENTS.md without flagging ordinary words", () => {
+    const controls = validModuleControls();
+    const clean = auditModuleControls(
+      { moduleCode: "MH2100", semester: "Y2S1", controls },
+      testModuleContract,
+    );
+    controls.agents = `${controls.agents ?? ""}\nDigits are legitimate; open a gitlab issue.\n`;
+    const dirty = auditModuleControls(
+      { moduleCode: "MH2100", semester: "Y2S1", controls },
+      testModuleContract,
+    );
+
+    assert.equal(
+      clean.findings.find(({ ruleId }) => ruleId === "MF-AGENTS-001")?.status,
+      "pass",
+    );
+    const finding = dirty.findings.find(
+      ({ ruleId }) => ruleId === "MF-AGENTS-001",
+    );
+    assert.equal(finding?.status, "fail");
+    assert.match(
+      finding?.evidence ?? "",
+      /prohibited repository-workflow term "git"/u,
+    );
+  });
+
   it("flags a pinned copy that drifts from its seed-source template [MF-AGENTS-004]", () => {
     const controls = validModuleControls();
     controls.agents = (controls.agents ?? "").replace(

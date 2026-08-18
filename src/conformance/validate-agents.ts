@@ -23,12 +23,7 @@ const routes = [
   "Maintenance",
 ];
 const domainLanguagePointers = ["CONTEXT.md", "docs/adr/"];
-const repositoryWorkflowTerms = [
-  "git",
-  "github",
-  "pull request",
-  "coding standard",
-];
+const repositoryWorkflowTerms = ["git", "pull request", "coding standard"];
 
 export function validateAgents(source: string | undefined): Finding {
   if (source === undefined) {
@@ -92,9 +87,10 @@ function domainLanguageProblems(domainLanguage: string): string[] {
   );
 }
 
+// Opening boundary only: it must reach `github` and `gitignore` while leaving `digits` alone.
 function repositoryWorkflowProblems(source: string): string[] {
   return repositoryWorkflowTerms.flatMap((term) =>
-    new RegExp(`\\b${escapeRegex(term)}\\b`, "iu").test(source)
+    new RegExp(`\\b${escapeRegex(term)}`, "iu").test(source)
       ? [
           `Instructions contain prohibited repository-workflow term ${JSON.stringify(term)}.`,
         ]

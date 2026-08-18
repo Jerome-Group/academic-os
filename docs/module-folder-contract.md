@@ -159,8 +159,8 @@ carries no git, GitHub, pull-request, generic coding-standard or repository work
 are these six, in this order: What this folder is; Start here; Routes; Domain language; Safety;
 Updating these instructions.
 
-Routes are these eight, each a bullet naming its area and pointing at the procedure or file the
-work runs by:
+Routes are these eight, each a bullet opening with its area in bold and pointing at the procedure
+or file the work runs by:
 
 ```text
 Curation  Teaching  Tutorials  Textbooks  Tasks  Assessments  Projects/Labs  Maintenance

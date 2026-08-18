@@ -11,6 +11,7 @@ import {
   type PinnedDocumentBodies,
 } from "./pinned-documents.js";
 
+// Three levels up because this file runs compiled, from `dist/src/contract/`.
 const seedTemplateRoot = new URL("../../../seed-templates/", import.meta.url);
 
 export async function loadModuleContract(): Promise<ModuleContract> {

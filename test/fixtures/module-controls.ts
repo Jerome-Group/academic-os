@@ -74,20 +74,16 @@ Purpose: organise learning and work for MH2100.
 
 **Module**: MH2100 Calculus III.
 `,
-    ...pinnedModuleControls("MH2100"),
+    ...Object.fromEntries(
+      pinnedDocumentNames.map((name) => [
+        name,
+        interpolateModuleCode(
+          testModuleContract.pinnedDocuments[name],
+          "MH2100",
+        ),
+      ]),
+    ),
   };
-}
-
-export function pinnedModuleControls(moduleCode: string): ModuleControls {
-  return Object.fromEntries(
-    pinnedDocumentNames.map((name) => [
-      name,
-      interpolateModuleCode(
-        testModuleContract.pinnedDocuments[name],
-        moduleCode,
-      ),
-    ]),
-  );
 }
 
 export function contextualModuleDefinition(

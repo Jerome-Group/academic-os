@@ -7,13 +7,21 @@ interface FakeTaskList {
   title: string;
 }
 
+interface FakeTask {
+  id: string;
+  deleted?: boolean;
+  [field: string]: unknown;
+}
+
 interface FakeTasksState {
   lists: FakeTaskList[];
   listReadFailures?: string[];
   nextId?: number;
   taskPageSizes?: Record<string, number>;
   taskReadFailures?: string[];
-  tasks?: Record<string, unknown[]>;
+  taskWriteFailures?: string[];
+  taskWritesIgnored?: string[];
+  tasks?: Record<string, FakeTask[]>;
   requests?: Array<{
     body?: unknown;
     credential?: string;
@@ -66,9 +74,11 @@ prototype.request = async function (options) {
       ...(options.url === undefined ? {} : { url: options.url }),
     },
   ];
+  // Every request is recorded before it can fail, so a parked operation is still readable at the
+  // seam as a push that was attempted.
+  await writeFile(statePath, `${JSON.stringify(state)}\n`);
 
   if (options.method === "GET" && options.url === listsUrl) {
-    await writeFile(statePath, `${JSON.stringify(state)}\n`);
     if (state.listReadFailures?.includes("lists") === true) {
       throw new Error("Synthetic task-list read failed.");
     }
@@ -87,16 +97,65 @@ prototype.request = async function (options) {
     return { data: list };
   }
 
+  const taskMatch = options.url?.match(
+    /^https:\/\/tasks\.googleapis\.com\/tasks\/v1\/lists\/([^/]+)\/tasks\/([^/]+)$/u,
+  );
+  if (taskMatch !== null && taskMatch !== undefined) {
+    const listId = decodeURIComponent(taskMatch[1] ?? "");
+    const taskId = decodeURIComponent(taskMatch[2] ?? "");
+    const task = state.tasks?.[listId]?.find(({ id }) => id === taskId);
+    if (options.method === "GET") {
+      if (task === undefined) throw missingTask(taskId);
+      return { data: task };
+    }
+    refuseWriteFailure(state, [listId, taskId]);
+    if (task === undefined) throw missingTask(taskId);
+    if (options.method === "PATCH") {
+      if (state.taskWritesIgnored?.includes(taskId) !== true) {
+        Object.assign(task, options.data);
+      }
+      await writeFile(statePath, `${JSON.stringify(state)}\n`);
+      return { data: task };
+    }
+    if (options.method === "DELETE") {
+      task.deleted = true;
+      await writeFile(statePath, `${JSON.stringify(state)}\n`);
+      return { data: {} };
+    }
+  }
+
   const tasksMatch = options.url?.match(
     /^https:\/\/tasks\.googleapis\.com\/tasks\/v1\/lists\/([^/]+)\/tasks$/u,
   );
+  if (
+    options.method === "POST" &&
+    tasksMatch !== null &&
+    tasksMatch !== undefined
+  ) {
+    const listId = decodeURIComponent(tasksMatch[1] ?? "");
+    refuseWriteFailure(state, [listId]);
+    const written = options.data as Record<string, unknown>;
+    const task: FakeTask = {
+      id: `created-${state.nextId ?? 1}`,
+      status: "needsAction",
+      ...(state.taskWritesIgnored?.includes(listId) === true
+        ? { title: written.title }
+        : written),
+    };
+    state.nextId = (state.nextId ?? 1) + 1;
+    state.tasks = {
+      ...state.tasks,
+      [listId]: [...(state.tasks?.[listId] ?? []), task],
+    };
+    await writeFile(statePath, `${JSON.stringify(state)}\n`);
+    return { data: task };
+  }
   if (
     options.method === "GET" &&
     tasksMatch !== null &&
     tasksMatch !== undefined
   ) {
     const listId = decodeURIComponent(tasksMatch[1] ?? "");
-    await writeFile(statePath, `${JSON.stringify(state)}\n`);
     if (state.taskReadFailures?.includes(listId) === true) {
       throw new Error(`Synthetic task read failed for ${listId}.`);
     }
@@ -117,3 +176,18 @@ prototype.request = async function (options) {
 
   throw new Error(`Unexpected synthetic Tasks request: ${options.url}.`);
 };
+
+function refuseWriteFailure(state: FakeTasksState, keys: string[]): void {
+  const refused = keys.find(
+    (key) => state.taskWriteFailures?.includes(key) === true,
+  );
+  if (refused !== undefined) {
+    throw new Error(`Synthetic task write failed for ${refused}.`);
+  }
+}
+
+function missingTask(taskId: string): Error {
+  return Object.assign(new Error(`No synthetic task ${taskId}.`), {
+    code: 404,
+  });
+}

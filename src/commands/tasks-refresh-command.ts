@@ -14,7 +14,7 @@ import {
 } from "../tasks/index.js";
 import { parseArgumentTokens } from "./argument-tokens.js";
 import { loadCohortTasksConfig } from "./load-cohort-tasks-config.js";
-import { quantity } from "./quantity.js";
+import { renderTaskCounts } from "./render-task-counts.js";
 
 const usage =
   "Usage: academic-os tasks refresh --config <path> [--semester <semester> --module <module>] [--json]";
@@ -96,10 +96,9 @@ function renderHuman(report: TaskRefreshReport): string {
 }
 
 function renderModule(module: TaskRefreshModuleReport): string {
-  const { counts, changes } = module;
+  const { changes } = module;
   return [
-    `${module.module} (${module.semester}): ${quantity(counts.tasks, "task")}`,
-    `${counts.open} open, ${counts.completed} completed, ${counts.cancelled} cancelled, ${counts.unpushed} unpushed`,
+    `${module.module} (${module.semester}): ${renderTaskCounts(module.counts)}`,
     `${module.freshness}; ${changes.added} added, ${changes.updated} updated, ${changes.cancelled} newly cancelled`,
     ...(module.failure === undefined
       ? []

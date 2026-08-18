@@ -1,5 +1,6 @@
 import { OperationalError } from "../operational-error.js";
 import { mergeLiveTasks } from "./merge-live-tasks.js";
+import { taskFailure } from "./task-failure.js";
 import type {
   ConfiguredModuleIdentity,
   LiveTask,
@@ -24,7 +25,7 @@ export async function refreshTaskRegisters(input: {
 }): Promise<TaskRefreshReport> {
   const modules: TaskRefreshModuleReport[] = [];
   for (const target of input.targets) {
-    modules.push(await refreshModule(target, input.reader));
+    modules.push(await refreshTaskRegister(target, input.reader));
   }
   const staleCount = modules.filter(
     ({ freshness }) => freshness === "stale",
@@ -42,7 +43,10 @@ export async function refreshTaskRegisters(input: {
   };
 }
 
-async function refreshModule(
+// One module's pull, and the whole of what a task operation refreshes with once its push is
+// verified: the same merge, the same conflict rules, the same stale report when the list is
+// unreachable.
+export async function refreshTaskRegister(
   target: TaskRefreshTarget,
   reader: TaskRefreshReader,
 ): Promise<TaskRefreshModuleReport> {
@@ -76,7 +80,7 @@ async function refreshModule(
       listId: register?.listId ?? null,
       counts: countRegister(register),
       changes: { added: 0, updated: 0, cancelled: 0 },
-      failure: failure(error),
+      failure: taskFailure(error, "The Tasks pull failed unexpectedly."),
     };
   }
 }
@@ -108,19 +112,5 @@ function countRegister(register: TaskRegister | undefined): TaskRegisterCounts {
     completed: tasks.filter(({ status }) => status === "completed").length,
     cancelled: tasks.filter(({ status }) => status === "cancelled").length,
     unpushed: tasks.filter(({ taskId }) => taskId === undefined).length,
-  };
-}
-
-function failure(error: unknown): { code: string; message: string } {
-  const operationalError =
-    error instanceof OperationalError
-      ? error
-      : new OperationalError(
-          "operational-failure",
-          "The Tasks pull failed unexpectedly.",
-        );
-  return {
-    code: operationalError.code,
-    message: operationalError.message,
   };
 }

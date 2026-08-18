@@ -1,4 +1,4 @@
-import { isDoDate } from "./do-date.js";
+import { liveDoDate } from "./do-date.js";
 import type {
   LiveTask,
   TaskRegister,
@@ -63,13 +63,6 @@ function mirrorLiveTask(
       : { notes: live.notes }),
     ...(provenance === undefined ? {} : { provenance }),
   };
-}
-
-// Google records only the date half of `due` and discards the time, so the register mirrors the
-// date it can read back and never a time it cannot.
-function liveDoDate(due: string | undefined): string | undefined {
-  const date = due?.slice(0, 10);
-  return isDoDate(date) ? date : undefined;
 }
 
 function liveStatus(status: LiveTask["status"]): TaskStatus {

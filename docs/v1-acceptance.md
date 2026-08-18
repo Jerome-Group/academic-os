@@ -44,3 +44,13 @@ contextual entry `NTULearn_Tutorial`”; its applicability was Definition-contro
 structure. Each historical item reported “inventory contains the unclassified root directory
 <category above>”; root-entry classification applies to every module folder. No private filename,
 report or observation is committed here. No module content changed and no repair was attempted.
+
+## Live Tasks round-trip
+
+Verified on 2026-08-18 against one active module's real Google Tasks list, on the mini and under
+the Owner's own credentials. `tasks create` pushed a task carrying a do-date, notes and
+provenance; the push read back verified and the register row landed with the task ID Google
+returned. The Owner ticked the task in Google Tasks on a phone. `tasks refresh` then reported one
+updated row and rewrote that row's status to `completed`, leaving the notes and the provenance —
+which Google never sees — exactly as the create had written them. No other row in the register
+moved, and no list-level state changed.

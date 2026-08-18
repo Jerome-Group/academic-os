@@ -15,7 +15,7 @@ import { spawn } from "node:child_process";
 import { OAuth2Client } from "google-auth-library";
 
 const usage =
-  "Usage: authorize-calendar-credentials.mjs --role <read|write> --client <path> --scopes <comma-separated> --output <path>";
+  "Usage: authorize-google-credentials.mjs --surface <calendar|tasks> --role <read|write> --client <path> --scopes <comma-separated> --output <path>";
 
 try {
   const arguments_ = parseArguments(process.argv.slice(2));
@@ -41,11 +41,13 @@ function parseArguments(arguments_) {
     values.set(argument, value);
     index += 1;
   }
+  const surface = values.get("--surface");
   const role = values.get("--role");
   const clientPath = values.get("--client");
   const scopes = values.get("--scopes");
   const outputPath = values.get("--output");
   if (
+    (surface !== "calendar" && surface !== "tasks") ||
     (role !== "read" && role !== "write") ||
     clientPath === undefined ||
     scopes === undefined ||
@@ -54,6 +56,7 @@ function parseArguments(arguments_) {
     throw new Error(usage);
   }
   return {
+    surface,
     role,
     clientPath,
     scopes: scopes.split(",").filter(Boolean),
@@ -61,7 +64,7 @@ function parseArguments(arguments_) {
   };
 }
 
-async function authorize({ role, clientPath, scopes, outputPath }) {
+async function authorize({ surface, role, clientPath, scopes, outputPath }) {
   const client = await readClient(clientPath);
   const server = createServer();
   await listen(server);
@@ -90,7 +93,7 @@ async function authorize({ role, clientPath, scopes, outputPath }) {
   });
 
   process.stdout.write(
-    `Starting ${role} Calendar OAuth approval. Requested scopes: ${scopes.join(", ")}\n`,
+    `Starting ${role} ${surface} OAuth approval. Requested scopes: ${scopes.join(", ")}\n`,
   );
   process.stdout.write("Opening the approval page in the default browser.\n");
   openBrowser(authorizationUrl);
@@ -112,7 +115,7 @@ async function authorize({ role, clientPath, scopes, outputPath }) {
       outputPath,
       refreshToken: tokens.refresh_token,
     });
-    process.stdout.write(`Stored ${role} Calendar credential.\n`);
+    process.stdout.write(`Stored ${role} ${surface} credential.\n`);
   } finally {
     server.close();
   }

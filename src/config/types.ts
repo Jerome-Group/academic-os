@@ -23,6 +23,13 @@ export interface ResolvedCalendarConfig extends CalendarConfig {
   stateRoot: string;
 }
 
+export interface TasksConfig {
+  credentials: {
+    scheduledRead: string;
+    interactiveWrite: string;
+  };
+}
+
 export interface AcademicConfig {
   driveMount: string;
   stateRoot: string;
@@ -30,6 +37,7 @@ export interface AcademicConfig {
   semesters: Record<string, SemesterConfig>;
   seedTarget?: ConfiguredModule;
   calendar?: CalendarConfig;
+  tasks?: TasksConfig;
   driveApi?: {
     moduleFolderIds: Record<string, Record<string, string>>;
   };

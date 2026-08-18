@@ -247,6 +247,11 @@ An Owned calendar whose latest Refresh failed. Its last-good mirror remains avai
 cannot support Promotion or a complete conflict check until Refresh succeeds.
 _Avoid_: empty calendar, failed proposal
 
+**Stale register**:
+A Task register whose latest pull failed. Its last-good rows remain readable, and it catches up on
+the next successful pull rather than by being edited.
+_Avoid_: out-of-date register, unsynced register
+
 **Task**:
 A piece of work to complete, owned by task management even when it has a do-date. It is not a
 Calendar item.

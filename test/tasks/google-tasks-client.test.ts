@@ -5,7 +5,7 @@ import {
   createGoogleTaskListReader,
   createGoogleTaskListWriter,
   createGoogleTaskRefreshReader,
-  createGoogleTaskWriter,
+  createGoogleTaskOperationWriter,
   type TasksHttpRequest,
   type TasksRequester,
 } from "../../src/tasks/index.js";
@@ -113,7 +113,7 @@ describe("Google Tasks adapter", () => {
         return { data: { id: "created", title: "Attempt tutorial 3" } as T };
       },
     };
-    const writer = createGoogleTaskWriter("/private/write", requester);
+    const writer = createGoogleTaskOperationWriter("/private/write", requester);
 
     assert.deepEqual(
       await writer.createTask({
@@ -164,7 +164,7 @@ describe("Google Tasks adapter", () => {
   });
 
   it("reads a task Google no longer has as absent rather than as a failure", async () => {
-    const writer = createGoogleTaskWriter("/private/write", {
+    const writer = createGoogleTaskOperationWriter("/private/write", {
       request: async () => {
         throw Object.assign(new Error("Not Found"), { code: 404 });
       },
@@ -177,7 +177,7 @@ describe("Google Tasks adapter", () => {
   });
 
   it("refuses a created task the provider gave no ID for", async () => {
-    const writer = createGoogleTaskWriter("/private/write", {
+    const writer = createGoogleTaskOperationWriter("/private/write", {
       request: async <T>() => ({ data: {} as T }),
     });
 

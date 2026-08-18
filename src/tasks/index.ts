@@ -10,7 +10,7 @@ export {
   createGoogleTaskListReader,
   createGoogleTaskListWriter,
   createGoogleTaskRefreshReader,
-  createGoogleTaskWriter,
+  createGoogleTaskOperationWriter,
   TASKS_READONLY_SCOPE,
   TASKS_WRITE_SCOPE,
 } from "./google-tasks-client.js";
@@ -28,4 +28,5 @@ export type {
   TaskProvisionReport,
   TaskRefreshModuleReport,
   TaskRefreshReport,
+  TaskRegisterCounts,
 } from "./types.js";

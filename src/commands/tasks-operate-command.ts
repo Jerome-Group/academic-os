@@ -4,7 +4,7 @@ import {
   applyTaskOperation,
   createDeferredTaskRegisterStore,
   createGoogleTaskRefreshReader,
-  createGoogleTaskWriter,
+  createGoogleTaskOperationWriter,
   isDoDate,
   type TaskOperation,
   type TaskOperationName,
@@ -13,37 +13,47 @@ import {
 } from "../tasks/index.js";
 import { parseArgumentTokens } from "./argument-tokens.js";
 import { loadCohortTasksConfig } from "./load-cohort-tasks-config.js";
-import { quantity } from "./quantity.js";
+import { renderTaskCounts } from "./render-task-counts.js";
 
-const usage: Record<TaskOperationName, string> = {
-  create:
-    "Usage: academic-os tasks create --config <path> --semester <semester> --module <module> --title <title> [--do-date <YYYY-MM-DD>] [--notes <notes>] [--assessment <name>] [--source <name>] [--milestone <name>] [--json]",
-  change:
-    "Usage: academic-os tasks change --config <path> --semester <semester> --module <module> --task <task-id> [--title <title>] [--do-date <YYYY-MM-DD>] [--notes <notes>] [--json]",
-  complete:
-    "Usage: academic-os tasks complete --config <path> --semester <semester> --module <module> --task <task-id> [--json]",
-  cancel:
-    "Usage: academic-os tasks cancel --config <path> --semester <semester> --module <module> --task <task-id> [--json]",
-};
-
-const operationFlags: Record<TaskOperationName, readonly string[]> = {
-  create: [
-    "--title",
-    "--do-date",
-    "--notes",
-    "--assessment",
-    "--source",
-    "--milestone",
-  ],
-  change: ["--task", "--title", "--do-date", "--notes"],
-  complete: ["--task"],
-  cancel: ["--task"],
+// The operations this command serves, and the whole of what tells them apart: their own flags and
+// their own usage line. The table is the command set, so the dispatcher asks it what it accepts.
+const operations: Record<
+  TaskOperationName,
+  { valueFlags: readonly string[]; usage: string }
+> = {
+  create: {
+    valueFlags: [
+      "--title",
+      "--do-date",
+      "--notes",
+      "--assessment",
+      "--source",
+      "--milestone",
+    ],
+    usage:
+      "Usage: academic-os tasks create --config <path> --semester <semester> --module <module> --title <title> [--do-date <YYYY-MM-DD>] [--notes <notes>] [--assessment <name>] [--source <name>] [--milestone <name>] [--json]",
+  },
+  change: {
+    valueFlags: ["--task", "--title", "--do-date", "--notes"],
+    usage:
+      "Usage: academic-os tasks change --config <path> --semester <semester> --module <module> --task <task-id> [--title <title>] [--do-date <YYYY-MM-DD>] [--notes <notes>] [--json]",
+  },
+  complete: {
+    valueFlags: ["--task"],
+    usage:
+      "Usage: academic-os tasks complete --config <path> --semester <semester> --module <module> --task <task-id> [--json]",
+  },
+  cancel: {
+    valueFlags: ["--task"],
+    usage:
+      "Usage: academic-os tasks cancel --config <path> --semester <semester> --module <module> --task <task-id> [--json]",
+  },
 };
 
 export function isTaskOperation(
   value: string | undefined,
 ): value is TaskOperationName {
-  return value !== undefined && value in usage;
+  return value !== undefined && Object.hasOwn(operations, value);
 }
 
 // The four in-session task operations share everything but their arguments: each one pushes to
@@ -68,7 +78,7 @@ export async function runTasksOperateCommand(
       registerStore: createDeferredTaskRegisterStore(target),
     },
     operation: parsed.operation,
-    writer: createGoogleTaskWriter(tasks.credentials.interactiveWrite),
+    writer: createGoogleTaskOperationWriter(tasks.credentials.interactiveWrite),
     reader: createGoogleTaskRefreshReader(tasks.credentials.scheduledRead),
   });
   process.stdout.write(
@@ -93,9 +103,14 @@ function parseOperationArguments(
   const { values } = parseArgumentTokens({
     arguments: arguments_,
     command: name,
-    valueFlags: ["--config", "--semester", "--module", ...operationFlags[name]],
+    valueFlags: [
+      "--config",
+      "--semester",
+      "--module",
+      ...operations[name].valueFlags,
+    ],
     booleanFlags: ["--json"],
-    usage: usage[name],
+    usage: operations[name].usage,
   });
   const configPath = values.get("--config");
   const semester = values.get("--semester");
@@ -105,7 +120,7 @@ function parseOperationArguments(
     semester === undefined ||
     module === undefined
   ) {
-    throw new OperationalError("invalid-arguments", usage[name]);
+    throw new OperationalError("invalid-arguments", operations[name].usage);
   }
   return {
     configPath,
@@ -124,7 +139,7 @@ function readOperation(
   const doDate = readDoDate(values.get("--do-date"), name);
   if (name === "create") {
     if (title === undefined) {
-      throw new OperationalError("invalid-arguments", usage.create);
+      throw new OperationalError("invalid-arguments", operations.create.usage);
     }
     return {
       name,
@@ -136,11 +151,11 @@ function readOperation(
   }
   const taskId = values.get("--task");
   if (taskId === undefined) {
-    throw new OperationalError("invalid-arguments", usage[name]);
+    throw new OperationalError("invalid-arguments", operations[name].usage);
   }
   if (name !== "change") return { name, taskId };
   if (title === undefined && doDate === undefined && notes === undefined) {
-    throw new OperationalError("invalid-arguments", usage.change);
+    throw new OperationalError("invalid-arguments", operations.change.usage);
   }
   return {
     name,
@@ -161,7 +176,7 @@ function readDoDate(
   if (!isDoDate(value)) {
     throw new OperationalError(
       "invalid-arguments",
-      `A do-date is a date with no time: YYYY-MM-DD. ${usage[name]}`,
+      `A do-date is a date with no time: YYYY-MM-DD. ${operations[name].usage}`,
     );
   }
   return value;
@@ -184,17 +199,24 @@ function provenanceOf(values: ReadonlyMap<string, string>): {
   return Object.keys(provenance).length === 0 ? {} : { provenance };
 }
 
+function renderLiveOutcome(report: TaskOperationReport): string {
+  if (report.taskId === null) return "no live change";
+  return report.outcome === "unverified"
+    ? `task ${report.taskId}, live result unverified`
+    : `task ${report.taskId}`;
+}
+
 function renderHuman(
   name: TaskOperationName,
   report: TaskOperationReport,
 ): string {
   return [
     `Tasks ${name}: ${report.outcome}`,
-    `${report.module.module} (${report.module.semester}): ${report.taskId === null ? "no live change" : `task ${report.taskId}`}`,
+    `${report.module.module} (${report.module.semester}): ${renderLiveOutcome(report)}`,
     ...(report.register === null
       ? []
       : [
-          `Register: ${report.register.freshness}; ${quantity(report.register.counts.tasks, "task")}; ${report.register.counts.open} open, ${report.register.counts.completed} completed, ${report.register.counts.cancelled} cancelled, ${report.register.counts.unpushed} unpushed`,
+          `Register: ${report.register.freshness}; ${renderTaskCounts(report.register.counts)}`,
         ]),
     ...(report.failure === undefined
       ? []

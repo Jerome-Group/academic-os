@@ -275,7 +275,8 @@ is current state, not an append-only record like the Curation register.
 An in-session create, change, complete or cancel that pushes to a module's live task list, verifies
 the live result, then refreshes the Task register. It carries the Promotion pattern without a
 Proposal — the Owner asked for the change in session, so nothing stages it for approval — and a
-push Google does not take parks, leaving the register with no row for it.
+push Google does not take parks, leaving the register with no row for it; one Google takes but
+records as something else is unverified rather than parked, and a pull settles it.
 _Avoid_: task sync — every operation here is asked for in session; Promotion — that word belongs to
 the Calendar, whose Proposals a register can never be a source for.
 

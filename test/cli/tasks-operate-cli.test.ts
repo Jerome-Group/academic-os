@@ -142,13 +142,64 @@ describe("academic-os tasks create", () => {
     );
   });
 
+  it("reports a push Google took but did not record as unverified, not parked", async () => {
+    const fixture = await setupFixture();
+    await writeFile(fixture.register, seededRegister);
+    await patchProvider(fixture, { taskWritesIgnored: ["first-list"] });
+
+    const jsonResult = await runTasks(
+      fixture,
+      "create",
+      "--title",
+      "Attempt tutorial 3",
+      "--do-date",
+      "2026-08-27",
+      "--json",
+    );
+    const humanResult = await runTasks(
+      fixture,
+      "create",
+      "--title",
+      "Attempt tutorial 3",
+      "--do-date",
+      "2026-08-27",
+    );
+
+    assert.equal(jsonResult.exitCode, 2, JSON.stringify(jsonResult));
+    const report = JSON.parse(jsonResult.stdout);
+    assert.equal(report.outcome, "unverified");
+    assert.equal(report.taskId, "created-1");
+    assert.equal(report.register, null);
+    assert.match(report.failure.message, /run tasks refresh/u);
+    assert.equal(await readFile(fixture.register, "utf8"), seededRegister);
+    assert.match(
+      humanResult.stdout,
+      /^MH2100 \(Y2S1\): task created-2, live result unverified$/mu,
+    );
+  });
+
   it("holds the conflict rules across the refresh its push runs", async () => {
     const fixture = await setupFixture();
     await writeFile(fixture.register, seededRegister);
+    await writeFile(
+      fixture.register,
+      [
+        seededRegister.trimEnd(),
+        "  - task_id: withdrawn",
+        "    title: Collect the handout",
+        "    status: open",
+        "",
+      ].join("\n"),
+    );
     await patchProvider(fixture, {
       tasks: {
         "first-list": [
-          { id: "mirrored", title: "Read chapter", deleted: true },
+          {
+            id: "mirrored",
+            title: "Read chapter 4 before the tutorial",
+            due: "2026-08-22T00:00:00.000Z",
+            status: "needsAction",
+          },
           {
             id: "added-on-the-phone",
             title: "Buy the textbook",
@@ -170,7 +221,7 @@ describe("academic-os tasks create", () => {
     assert.equal(result.exitCode, 0, JSON.stringify(result));
     assert.deepEqual(JSON.parse(result.stdout).register.changes, {
       added: 1,
-      updated: 0,
+      updated: 1,
       cancelled: 1,
     });
     assert.equal(
@@ -179,14 +230,17 @@ describe("academic-os tasks create", () => {
         "list_id: first-list",
         "tasks:",
         "  - task_id: mirrored",
-        "    title: Read chapter",
-        "    do_date: 2026-08-21",
-        "    status: cancelled",
+        "    title: Read chapter 4 before the tutorial",
+        "    do_date: 2026-08-22",
+        "    status: open",
         "  - title: Draft the summary",
         "    do_date: 2026-08-25",
         "    status: open",
         "    provenance:",
         "      source: Session decision",
+        "  - task_id: withdrawn",
+        "    title: Collect the handout",
+        "    status: cancelled",
         "  - task_id: created-1",
         "    title: Attempt tutorial 3",
         "    status: open",
@@ -263,7 +317,7 @@ describe("academic-os tasks change", () => {
     });
   });
 
-  it("parks a push the live list did not take, leaving the register alone", async () => {
+  it("reports a patch the live task did not take as unverified, register untouched", async () => {
     const fixture = await setupFixture();
     await writeFile(fixture.register, seededRegister);
     await patchProvider(fixture, { taskWritesIgnored: ["mirrored"] });
@@ -280,7 +334,8 @@ describe("academic-os tasks change", () => {
 
     assert.equal(result.exitCode, 2, JSON.stringify(result));
     const report = JSON.parse(result.stdout);
-    assert.equal(report.outcome, "parked");
+    assert.equal(report.outcome, "unverified");
+    assert.equal(report.taskId, "mirrored");
     assert.match(report.failure.message, /did not read back/u);
     assert.equal(await readFile(fixture.register, "utf8"), seededRegister);
   });
@@ -365,6 +420,35 @@ describe("academic-os tasks cancel", () => {
       (await readProvider(fixture)).requests.map(({ method }) => method),
       ["DELETE", "GET", "GET"],
     );
+  });
+
+  it("never re-pushes a row the register holds as cancelled", async () => {
+    const fixture = await setupFixture();
+    await writeFile(
+      fixture.register,
+      [
+        "list_id: first-list",
+        "tasks:",
+        "  - task_id: mirrored",
+        "    title: Read chapter",
+        "    status: cancelled",
+        "",
+      ].join("\n"),
+    );
+
+    const result = await runTasks(
+      fixture,
+      "complete",
+      "--task",
+      "mirrored",
+      "--json",
+    );
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.outcome, "parked");
+    assert.equal(report.failure.code, "invalid-target");
+    assert.deepEqual((await readProvider(fixture)).requests, []);
   });
 
   it("parks a module that has no register at all", async () => {

@@ -79,7 +79,6 @@ prototype.request = async function (options) {
   await writeFile(statePath, `${JSON.stringify(state)}\n`);
 
   if (options.method === "GET" && options.url === listsUrl) {
-    await writeFile(statePath, `${JSON.stringify(state)}\n`);
     if (state.listReadFailures?.includes("lists") === true) {
       throw new Error("Synthetic task-list read failed.");
     }
@@ -106,7 +105,6 @@ prototype.request = async function (options) {
     const taskId = decodeURIComponent(taskMatch[2] ?? "");
     const task = state.tasks?.[listId]?.find(({ id }) => id === taskId);
     if (options.method === "GET") {
-      await writeFile(statePath, `${JSON.stringify(state)}\n`);
       if (task === undefined) throw missingTask(taskId);
       return { data: task };
     }
@@ -136,10 +134,13 @@ prototype.request = async function (options) {
   ) {
     const listId = decodeURIComponent(tasksMatch[1] ?? "");
     refuseWriteFailure(state, [listId]);
+    const written = options.data as Record<string, unknown>;
     const task: FakeTask = {
       id: `created-${state.nextId ?? 1}`,
       status: "needsAction",
-      ...(options.data as Record<string, unknown>),
+      ...(state.taskWritesIgnored?.includes(listId) === true
+        ? { title: written.title }
+        : written),
     };
     state.nextId = (state.nextId ?? 1) + 1;
     state.tasks = {
@@ -155,7 +156,6 @@ prototype.request = async function (options) {
     tasksMatch !== undefined
   ) {
     const listId = decodeURIComponent(tasksMatch[1] ?? "");
-    await writeFile(statePath, `${JSON.stringify(state)}\n`);
     if (state.taskReadFailures?.includes(listId) === true) {
       throw new Error(`Synthetic task read failed for ${listId}.`);
     }

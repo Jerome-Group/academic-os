@@ -373,14 +373,23 @@ command refuses one rather than truncating it.
 
 `--task` names a task the register already has a row for. A task created on the phone since the
 last pull parks until `tasks refresh` mirrors it — pushing to an ID the register does not know
-would be writing blind. `tasks cancel` deletes the task in Google, and the refresh behind it marks
-the row `cancelled`; the register never drops a task it tracked.
+would be writing blind — and a row the register holds as `cancelled` parks too, because Google no
+longer has that task and a cancelled task is never re-pushed. `tasks cancel` deletes the task in
+Google, and the refresh behind it marks the row `cancelled`; the register never drops a task it
+tracked.
 
-A push Google did not take parks the operation: the report reads `parked`, names the failure, exits
-nonzero, and leaves the register with no row for work that does not exist. Nothing queues it —
-Google's own apps are the manual fallback, and the register catches up at the next pull. A verified
-push whose refresh then failed reports `applied` against a `stale` register, which a rerun of
-`tasks refresh` settles.
+Three outcomes, and the difference between them is what Google did:
+
+- `applied` — pushed, verified, register refreshed. A verified push whose refresh then failed also
+  reads `applied`, against a `stale` register a rerun of `tasks refresh` settles.
+- `parked` — Google refused the push. The live list is as it was and the register kept no row for
+  work that does not exist. Nothing queues it: Google's own apps are the manual fallback, and the
+  register catches up at the next pull.
+- `unverified` — Google took the push and the live result then read back as something else. The
+  report names the task ID, because the task is on the phone; `tasks refresh` mirrors whatever
+  Google actually holds.
+
+Anything but `applied` against a fresh register exits nonzero.
 
 Supervise the first live round-trip: `tasks create` against a real module list, tick the task in
 Google Tasks on the phone, then `tasks refresh`. The row should come back `completed` with its

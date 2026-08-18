@@ -6,7 +6,7 @@ import type {
   TaskListReader,
   TaskListWriter,
   TaskRefreshReader,
-  TaskWriter,
+  TaskOperationWriter,
 } from "./types.js";
 
 export const TASKS_READONLY_SCOPE =
@@ -121,13 +121,13 @@ export function createGoogleTaskRefreshReader(
   };
 }
 
-export function createGoogleTaskWriter(
+export function createGoogleTaskOperationWriter(
   credentialPath: string,
   requester: TasksRequester = defaultRequester(
     credentialPath,
     TASKS_WRITE_SCOPE,
   ),
-): TaskWriter {
+): TaskOperationWriter {
   return {
     createTask: async ({ listId, task }) => {
       const response: { data: { id?: string } } = await requester.request({

@@ -10,6 +10,9 @@ this file is the binding procedure.
   every Drive mount.
 - **Live acceptance audits** inspect real module folders read-only.
 - **Drive integration tests** are opt-in and write only inside the configured test-root Drive ID.
+- **Mounted writes** change the Owner's real content through Drive for Desktop rather than the
+  API — seeding, the repair executor's staging and publication, the shelf migration's renames.
+  They are the one tier with no Drive ID to hold, and *Prove a mounted write* below is their rule.
 
 Real module folders are never integration-test fixtures. A test run is correctly scoped when its
 tier is explicit and every possible write resolves inside that tier's disposable root.
@@ -54,6 +57,32 @@ and verify both an ID-mapped Drive copy and a byte snapshot on separate storage.
 move to the recovery vault rather than being permanently deleted; Drive Trash is not a recovery
 design.
 
-Paths are human evidence, not mutation identity. Inventory and mutation use Drive IDs, request
-every page, reject incomplete results, and treat absent checksums or revisions as unavailable
-rather than equal.
+Through the API, paths are human evidence, not mutation identity: inventory and mutation use Drive
+IDs, request every page, reject incomplete results, and treat absent checksums or revisions as
+unavailable rather than equal.
+
+## Prove a mounted write before it happens
+
+Drive for Desktop hands the seeder, the repair staging and the shelf renamer a filesystem and no ID
+surface, so the identity above is one none of them can hold. Content stands in its place: a Drive
+ID names the container a file arrived in, and a sha256 names the file. A mounted write that needs
+to know it has the right target holds a checksum and reads it again.
+
+Each write proves all four before it happens:
+
+1. **Containment.** The target's `realpath` resolves inside a configured root, so the check is
+   against where the write lands rather than where it was asked for.
+2. **A target taken deliberately.** A new file takes its name exclusively; a file the caller owns
+   is replaced through a temporary and one rename, so no reader meets it half-written; a name
+   anything else already holds refuses the write. Overwriting on the mount destroys the file
+   without passing it through Drive Trash.
+3. **Materialization.** Every target and source is real bytes rather than a dataless placeholder.
+   A Drive file that has not been downloaded appears in the listing and reads as empty, so a pass
+   that skips this reads nothing and reports it as content.
+4. **A fresh reading.** Whatever the write was planned against — a checksum, a listing, a target
+   state — is read again immediately before the write, and a disagreement refuses the run rather
+   than the one operation. A plan built against a tree that has since moved is a plan about a
+   different tree.
+
+The journal obligation above holds here and records paths: a mounted recovery has nothing else to
+read.

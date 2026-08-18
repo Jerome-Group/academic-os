@@ -5,7 +5,14 @@ import type {
   InventoryEntryKind,
 } from "./types.js";
 import { universalStructurePaths } from "../contract/universal-structure.js";
+import { requiredPathFindings } from "./required-paths.js";
 import { enforcementForRule } from "./rule-enforcement.js";
+
+const universalStructureRule = {
+  ruleId: "MF-UNIVERSAL-001",
+  subject: "universal",
+  applicability: "Universal structure applies to every module folder.",
+} as const;
 
 const academicDocumentExtensions = new Set([
   ".doc",
@@ -32,19 +39,11 @@ export function auditUniversalStructure(
       .filter(([path]) => !path.includes("/"))
       .map(([path]) => path),
   );
-  const entriesByPath = new Map(
-    inventory.entries.map((entry) => [entry.path, entry]),
+  const findings = requiredPathFindings(
+    inventory,
+    expectedStructure,
+    universalStructureRule,
   );
-  const findings = expectedStructure.map(([path, expectedKind]) => {
-    const entry = entriesByPath.get(path);
-    if (entry === undefined) {
-      return missingRequiredPath(path, expectedKind);
-    }
-    if (entry.kind !== expectedKind) {
-      return wrongRequiredPathKind(path, expectedKind, entry.kind);
-    }
-    return presentRequiredPath(path, expectedKind);
-  });
 
   const unexpectedRootEntries = inventory.entries
     .filter(
@@ -69,56 +68,6 @@ export function auditUniversalStructure(
   return {
     outcome: outcomeFor(findings),
     findings,
-  };
-}
-
-function presentRequiredPath(
-  path: string,
-  expectedKind: InventoryEntryKind,
-): Finding {
-  return {
-    ruleId: "MF-UNIVERSAL-001",
-    enforcement: enforcementForRule("MF-UNIVERSAL-001"),
-    status: "pass",
-    severity: "information",
-    path,
-    evidence: `Inventory contains a ${expectedKind} at ${path}.`,
-    explanation:
-      "The required universal path is present with the required kind.",
-    applicability: "Universal structure applies to every module folder.",
-  };
-}
-
-function missingRequiredPath(
-  path: string,
-  expectedKind: InventoryEntryKind,
-): Finding {
-  return {
-    ruleId: "MF-UNIVERSAL-001",
-    enforcement: enforcementForRule("MF-UNIVERSAL-001"),
-    status: "fail",
-    severity: "error",
-    path,
-    evidence: `Inventory has no entry at ${path}.`,
-    explanation: `The contract requires a ${expectedKind} at this path.`,
-    applicability: "Universal structure applies to every module folder.",
-  };
-}
-
-function wrongRequiredPathKind(
-  path: string,
-  expectedKind: InventoryEntryKind,
-  actualKind: InventoryEntryKind,
-): Finding {
-  return {
-    ruleId: "MF-UNIVERSAL-001",
-    enforcement: enforcementForRule("MF-UNIVERSAL-001"),
-    status: "fail",
-    severity: "error",
-    path,
-    evidence: `Inventory identifies ${path} as a ${actualKind}.`,
-    explanation: `The contract requires a ${expectedKind} at this path.`,
-    applicability: "Universal structure applies to every module folder.",
   };
 }
 

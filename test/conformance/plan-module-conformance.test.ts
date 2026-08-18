@@ -8,6 +8,7 @@ import {
 } from "../../src/conformance/index.js";
 import { testModuleContract } from "../fixtures/module-contract.js";
 import { validModuleControls } from "../fixtures/module-controls.js";
+import { learningWorkspacePaths } from "../fixtures/learning-workspace.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 
 it("plans findings, operations, and observations through one pure seam", () => {
@@ -113,6 +114,8 @@ it("uses contract version and applicability as authoritative inputs", () => {
 function conformantInventory(): Inventory {
   return {
     moduleCode: "MH2100",
-    entries: universalPaths.map(([path, kind]) => ({ path, kind })),
+    entries: [...universalPaths, ...learningWorkspacePaths].map(
+      ([path, kind]) => ({ path, kind }),
+    ),
   };
 }

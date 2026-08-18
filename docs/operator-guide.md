@@ -516,6 +516,14 @@ repository's `seed-templates/`, with `MODULE_CODE` replaced by the module's code
 module's whole instruction set, and audit diffs each copy back against its template, so a module
 that needs to say something of its own says it in `CONTEXT.md`, `docs/adr/` or the Profile.
 
+The Teaching workspace is seeded whole, for every module, whether or not that module will use it:
+the four activity areas under `70 Learning` with their `records/`, the LaTeX template set and
+teaching preferences in `templates/`, and `GLOSSARY.md`, `RESOURCES.md` and `REVISIT.md`. Beside
+them in Module Admin, `40 Source Map.yaml` is seeded declaring no units; the Lecture-units the
+workspace reads it for are filled in from the module research. A template is the module's to edit
+where the difference is functional, so audit checks that the workspace's own structure is there
+rather than diffing a template copy back.
+
 ## Audit
 
 `audit --config academic-os.config.json` selects only the configured active cohort. Name both

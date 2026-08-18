@@ -21,6 +21,7 @@ import {
   moduleControlContents,
   validModuleControls,
 } from "../fixtures/module-controls.js";
+import { learningWorkspacePaths } from "../fixtures/learning-workspace.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 import { runCli, runCliWithEnvironment } from "../support/run-cli.js";
 import { recordBehaviorEvidence } from "../support/rule-evidence.js";
@@ -84,7 +85,10 @@ async function conformantModule(): Promise<{
   await mkdir(moduleRoot, { recursive: true });
   const controls = validModuleControls();
   const controlContents = moduleControlContents(controls);
-  for (const [relativePath, kind] of universalPaths) {
+  for (const [relativePath, kind] of [
+    ...universalPaths,
+    ...learningWorkspacePaths,
+  ]) {
     const path = join(moduleRoot, relativePath);
     if (kind === "directory") {
       await mkdir(path, { recursive: true });

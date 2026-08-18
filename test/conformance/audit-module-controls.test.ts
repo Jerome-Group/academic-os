@@ -32,6 +32,7 @@ describe("auditModuleControls", () => {
         "MF-AGENTS-002",
         "MF-AGENTS-004",
         "MF-CONTEXT-001",
+        "MF-LEARNING-002",
       ]),
     );
     recordFindingEvidence(
@@ -75,6 +76,7 @@ describe("auditModuleControls", () => {
         "00 Module Admin/10 Module Definition.yaml",
         "00 Module Admin/00 Module Profile.md",
         "00 Module Admin/20 Curation Register.jsonl",
+        "00 Module Admin/40 Source Map.yaml",
         "AGENTS.md",
         "CLAUDE.md",
         "CONTEXT.md",

@@ -65,34 +65,6 @@ jobs:
       - run: npm ci
       - run: npm test
 
-      # The seeded LaTeX set is this repository's other artefact, and `CODING_STANDARDS.md` §5 puts
-      # a template tree under the same obligation as the code. It rides in this job rather than its
-      # own because every job here is named one by one in the hub's ruleset as a required context:
-      # a new job is a new context, and until the hub names it the conformance check reads it as
-      # ungated. Promoting it later is that one line in the hub plus a job here.
-      #
-      # TeX comes from the runner's own apt rather than a marketplace action. Both candidates would
-      # be a new third-party dependency in the one place a compromise runs with the repository
-      # checked out, and the maintained one carries very little use behind it (#121). Distribution
-      # packages buy the same compilation for a longer install and no new trust — and it installs
-      # after the tests above, so a broken test does not wait on TeX to say so.
-      #
-      # `--no-install-recommends` is what keeps this inside the timeout: the recommends of
-      # texlive-latex-extra pull in most of TeX Live.
-      - name: Install TeX Live
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            latexmk \
-            lmodern \
-            texlive-fonts-recommended \
-            texlive-latex-base \
-            texlive-latex-extra \
-            texlive-latex-recommended \
-            texlive-pictures
-      - name: Compile the seeded LaTeX set
-        run: npm run templates:check
-
   rule-coverage:
     runs-on: ubuntu-latest
     timeout-minutes: 9
@@ -117,9 +89,69 @@ jobs:
       - run: npm ci
       - run: npm run privacy:check
 
+  templates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      # The seeded LaTeX set is this repository's other artefact, and `CODING_STANDARDS.md` §5 puts
+      # a template tree under the same obligation as the code: a change to the shared preamble
+      # breaks all six seeded types at once, and without this it would merge green.
+      #
+      # TeX comes from the runner's own apt rather than a marketplace action. Both candidates would
+      # be a new third-party dependency in the one place a compromise runs with the repository
+      # checked out, and the maintained one carries very little use behind it (#121). Distribution
+      # packages buy the same compilation for no new trust to extend.
+      #
+      # What an explicit tlmgr package list would have bought on top — a red run when a template
+      # reaches outside the surface #78 pinned — is bought instead by
+      # `test/seed-templates/latex-package-surface.test.ts`, which needs no TeX at all and so runs
+      # in `test` above on every pull request.
+      #
+      # `--no-install-recommends` is what makes the set installable at all: the recommends of
+      # texlive-latex-extra pull in most of TeX Live.
+      #
+      # The two lines before the update are what keep this job inside its timeout. Twice it spent
+      # the whole nine minutes inside `apt-get update` and never reached the install, both times
+      # still fetching — the runner image carries source lists for Azure CLI, Chrome and Docker
+      # that this job has no use for, and one of them stalling stalls the update. Only Ubuntu's own
+      # `ubuntu.sources` survives, and the acquire timeouts bound what a stall can cost, so a slow
+      # mirror is retried rather than waited on.
+      #
+      # The archives are cached on top, because the install's own download is the other half that
+      # varies. The key names the package set, so changing the set is a miss and nothing else is.
+      - name: Cache the TeX Live packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/tex-live-archives
+          key: tex-live-${{ hashFiles('.github/tex-live-packages.txt') }}
+      - name: Install TeX Live
+        env:
+          APT_ACQUIRE: >-
+            -o Acquire::Retries=3
+            -o Acquire::http::Timeout=20
+            -o Acquire::https::Timeout=20
+        run: |
+          mkdir -p ~/tex-live-archives/partial
+          chmod -R 777 ~/tex-live-archives
+          sudo find /etc/apt/sources.list.d -type f ! -name ubuntu.sources -delete
+          sudo apt-get update $APT_ACQUIRE
+          xargs -a .github/tex-live-packages.txt sudo apt-get install -y \
+            --no-install-recommends \
+            $APT_ACQUIRE \
+            -o Dir::Cache::archives="$HOME/tex-live-archives"
+      - name: Compile the seeded LaTeX set
+        run: npm run templates:check
+
   checks:
     if: always()
-    needs: [format, lint, typecheck, test, rule-coverage, privacy]
+    needs: [format, lint, typecheck, test, rule-coverage, privacy, templates]
     runs-on: ubuntu-latest
     timeout-minutes: 1
     steps:
@@ -147,6 +179,7 @@ jobs:
           TEST_RESULT: ${{ needs.test.result }}
           RULE_COVERAGE_RESULT: ${{ needs.rule-coverage.result }}
           PRIVACY_RESULT: ${{ needs.privacy.result }}
+          TEMPLATES_RESULT: ${{ needs.templates.result }}
         run: |
           test "$FORMAT_RESULT" = success
           test "$LINT_RESULT" = success
@@ -154,6 +187,7 @@ jobs:
           test "$TEST_RESULT" = success
           test "$RULE_COVERAGE_RESULT" = success
           test "$PRIVACY_RESULT" = success
+          test "$TEMPLATES_RESULT" = success
 
       # This repository's checks are above. What they owe —
       # what CI must prove, how the checks grow, and why none of them gets a path filter — is

@@ -48,7 +48,7 @@ describe("academic-os textbooks catch-up", () => {
     assert.equal(report.schemaVersion, 1);
     assert.equal(report.command, "textbooks catch-up");
     assert.equal(report.outcome, "previewed");
-    assert.equal(report.index, "unchanged");
+    assert.equal(report.index, "not-written");
     assert.deepEqual(report.counts, {
       books: 3,
       indexed: 1,
@@ -77,7 +77,7 @@ describe("academic-os textbooks catch-up", () => {
 
     const result = await runCatchUp(shelf, "--apply", "--json");
 
-    assert.equal(result.exitCode, 1, JSON.stringify(result));
+    assert.equal(result.exitCode, 3, JSON.stringify(result));
     const report = JSON.parse(result.stdout);
     assert.equal(report.outcome, "requires-decision");
     assert.equal(report.index, "written");
@@ -131,7 +131,7 @@ describe("academic-os textbooks catch-up", () => {
     assert.equal(second.exitCode, 0, JSON.stringify(second));
     const report = JSON.parse(second.stdout);
     assert.equal(report.outcome, "caught-up");
-    assert.equal(report.index, "unchanged");
+    assert.equal(report.index, "not-written");
     assert.deepEqual(report.counts, {
       books: 2,
       indexed: 2,
@@ -149,13 +149,13 @@ describe("academic-os textbooks catch-up", () => {
 
     const result = await runCatchUp(shelf);
 
-    assert.equal(result.exitCode, 1, JSON.stringify(result));
+    assert.equal(result.exitCode, 3, JSON.stringify(result));
     assert.equal(
       result.stdout,
       [
         "Textbook shelf catch-up: requires-decision",
         "2 books on the shelf; 1 already indexed, 0 to append, 1 parked",
-        "Index: unchanged",
+        "Index: not-written",
         "Park scan of the old one.pdf: unparseable-name; The filename does not follow <Title> <N>e <Author surnames, comma-separated>.pdf.",
         "",
       ].join("\n"),

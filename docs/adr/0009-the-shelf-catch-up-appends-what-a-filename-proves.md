@@ -16,6 +16,12 @@ words are cited by files that then cannot be renamed, and a wrong word there is 
 nobody can trace back. A missing one costs the first cut from that book a park, which the seeded
 Textbook procedure already handles as ambiguity.
 
+A solutions manual is considered after the books, whichever order the shelf lists them in, so the
+plain surname key falls to the book rather than to the manual answering it — the Owner's own
+example qualifies the manual as `Axler_Solutions`, which only reads that way if `Axler` is the
+book. The qualifier itself is not folded into the recorded title: the index holds the book's title
+and the filename beside it already says which of the pair an entry is.
+
 Writes are additive and the store has no other kind: it appends entries and offers no operation
 that renames or removes one, because neither is the tool's to make. The index is edited in place
 as a document rather than rewritten from a parsed value, so the Owner's ordering and comments
@@ -30,6 +36,12 @@ Anything on the shelf that is not a cleanly named PDF parks on every run until t
 it — that is the intended pressure, and it is why `Archive/` is invisible rather than merely
 unindexed. A book renamed on the shelf parks as a checksum duplicate rather than moving its entry,
 because the entry's filename is the Owner's to correct.
+
+The diff is by filename first and checksum second, because checksumming a book on a Drive mount
+pulls it down: a filename the index already names is left alone unread. A copy replaced in place
+under its old name therefore keeps its entry and its old checksum, and the mismatch surfaces where
+it matters — the Textbook procedure verifies the checksum before it cuts, and parks when it
+disagrees.
 
 The one-time migration is what makes the parks rare: it settles collision keys and nonconforming
 names before the index exists, so a routine catch-up afterwards has only genuinely new books to

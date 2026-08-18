@@ -44,9 +44,10 @@ describe("the shelf catch-up plan", () => {
     assert.deepEqual(plan.counts, { books: 1, indexed: 0 });
   });
 
-  it("keeps the Solutions qualifier in the title it records", async () => {
+  it("leaves the plain key to the book its solutions manual answers", async () => {
     const shelf = syntheticShelf({
       "Linear Algebra Done Right 4e Axler Solutions.pdf": "c".repeat(64),
+      [axler]: "b".repeat(64),
     });
 
     const plan = await planShelfCatchUp({
@@ -54,10 +55,23 @@ describe("the shelf catch-up plan", () => {
       index: { books: {} },
     });
 
+    assert.deepEqual(plan.appends, [
+      {
+        key: "Axler",
+        entry: {
+          file: axler,
+          title: "Linear Algebra Done Right",
+          edition: "4e",
+          authors: ["Axler"],
+          sha256: "b".repeat(64),
+        },
+      },
+    ]);
     assert.equal(
-      plan.appends[0]?.entry.title,
-      "Linear Algebra Done Right Solutions",
+      plan.parked[0]?.file,
+      "Linear Algebra Done Right 4e Axler Solutions.pdf",
     );
+    assert.equal(plan.parked[0]?.reason, "key-collision");
   });
 
   it("leaves a book the index already names alone, and never reads its bytes", async () => {

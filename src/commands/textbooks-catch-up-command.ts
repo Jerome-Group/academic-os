@@ -1,5 +1,6 @@
-import { loadLocalConfig, resolveTextbooksConfig } from "../config/index.js";
+import { loadLocalConfig, resolveShelfRoot } from "../config/index.js";
 import { OperationalError } from "../mounted/index.js";
+import { exitCodeForOutcome } from "../report/index.js";
 import {
   createFileShelfIndexStore,
   createFileShelfReader,
@@ -19,7 +20,7 @@ export async function runTextbooksCatchUpCommand(
   json: boolean,
 ): Promise<void> {
   const parsed = parseCatchUpArguments(arguments_);
-  const { shelfRoot } = await resolveTextbooksConfig(
+  const shelfRoot = await resolveShelfRoot(
     await loadLocalConfig(parsed.configPath),
   );
   const store = createFileShelfIndexStore(shelfRoot);
@@ -35,7 +36,9 @@ export async function runTextbooksCatchUpCommand(
   process.stdout.write(
     json ? `${JSON.stringify(report, null, 2)}\n` : `${renderHuman(report)}\n`,
   );
-  if (report.outcome === "requires-decision") process.exitCode = 1;
+  if (report.outcome === "requires-decision") {
+    process.exitCode = exitCodeForOutcome(report.outcome);
+  }
 }
 
 function parseCatchUpArguments(arguments_: string[]): {

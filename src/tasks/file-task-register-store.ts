@@ -1,9 +1,9 @@
-import { randomUUID } from "node:crypto";
-import { readFile, rename, rm, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { parse, stringify } from "yaml";
 
 import { OperationalError } from "../operational-error.js";
+import { writeFileAtomically } from "../write-file-atomically.js";
 import { isDoDate } from "./do-date.js";
 import type {
   TaskProvenance,
@@ -27,7 +27,8 @@ export function createFileTaskRegisterStore(
   const registerPath = join(moduleRoot, TASK_REGISTER_RELATIVE_PATH);
   return {
     read: async () => await readRegister(registerPath),
-    write: async (register) => await writeRegister(registerPath, register),
+    write: async (register) =>
+      await writeFileAtomically(registerPath, serializeRegister(register)),
   };
 }
 
@@ -108,22 +109,6 @@ function invalidRegister(): OperationalError {
     "operational-failure",
     `The module's ${TASK_REGISTER_RELATIVE_PATH} is not a readable Task register.`,
   );
-}
-
-async function writeRegister(
-  registerPath: string,
-  register: TaskRegister,
-): Promise<void> {
-  const temporary = join(
-    dirname(registerPath),
-    `.30 Task Register-${randomUUID()}.tmp`,
-  );
-  try {
-    await writeFile(temporary, serializeRegister(register), { flag: "wx" });
-    await rename(temporary, registerPath);
-  } finally {
-    await rm(temporary, { force: true });
-  }
 }
 
 function serializeRegister(register: TaskRegister): string {

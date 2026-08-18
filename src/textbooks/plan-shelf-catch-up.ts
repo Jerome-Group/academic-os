@@ -29,8 +29,9 @@ export async function planShelfCatchUp(input: {
   const books = await input.reader.listBooks();
   const appends: ShelfIndexAppend[] = [];
   const parked: ParkedShelfBook[] = [];
-  for (const file of books.filter((book) => !indexedFiles.has(book))) {
-    const book = parseShelfFilename(file);
+  for (const { file, book } of candidates(
+    books.filter((shelved) => !indexedFiles.has(shelved)),
+  )) {
     if (book === undefined) {
       parked.push(park(file, "unparseable-name", unparseableNote));
       continue;
@@ -75,6 +76,21 @@ export async function planShelfCatchUp(input: {
   };
 }
 
+// A solutions manual answers a book, and the two share a surname: taking them in that order is
+// what leaves the plain key to the book itself, whichever of the pair the shelf lists first.
+function candidates(
+  files: string[],
+): Array<{ file: string; book: ParsedShelfBook | undefined }> {
+  const parsed = files.map((file) => ({
+    file,
+    book: parseShelfFilename(file),
+  }));
+  return [
+    ...parsed.filter(({ book }) => book?.solutions !== true),
+    ...parsed.filter(({ book }) => book?.solutions === true),
+  ];
+}
+
 const unparseableNote =
   "The filename does not follow <Title> <N>e <Author surnames, comma-separated>.pdf.";
 
@@ -93,9 +109,7 @@ function shelfIndexEntry(
 ): ShelfIndexEntry {
   return {
     file,
-    // A solutions manual and the book it answers share a title, so the qualifier the filename
-    // carries stays part of the title the index records.
-    title: book.solutions ? `${book.title} Solutions` : book.title,
+    title: book.title,
     ...(book.edition === undefined ? {} : { edition: book.edition }),
     authors: [...book.authors],
     sha256,

@@ -3,14 +3,12 @@ import { isAbsolute, join } from "node:path";
 
 import { OperationalError } from "../mounted/index.js";
 import { isContainedBy } from "../mounted/is-contained-by.js";
-import type { ResolvedTextbooksConfig } from "./types.js";
-
 // The shelf is a path into the Owner's coursework, so it is configured rather than known here,
 // and configured relative to the Drive mount for the same reason every semester root is.
-export async function resolveTextbooksConfig(config: {
+export async function resolveShelfRoot(config: {
   driveMount: unknown;
   textbooks?: unknown;
-}): Promise<ResolvedTextbooksConfig> {
+}): Promise<string> {
   if (typeof config.driveMount !== "string" || !isAbsolute(config.driveMount)) {
     throw new OperationalError(
       "invalid-config",
@@ -45,7 +43,7 @@ export async function resolveTextbooksConfig(config: {
       "The resolved Textbook shelf escapes the Drive mount.",
     );
   }
-  return { shelfRoot: resolved };
+  return resolved;
 }
 
 async function existingDirectory(path: string, role: string): Promise<string> {

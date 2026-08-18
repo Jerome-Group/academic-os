@@ -61,7 +61,7 @@ export interface ShelfCatchUpReport {
   schemaVersion: 1;
   command: "textbooks catch-up";
   outcome: "caught-up" | "previewed" | "requires-decision";
-  index: "written" | "unchanged";
+  index: "written" | "not-written";
   counts: {
     books: number;
     indexed: number;

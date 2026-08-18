@@ -1,9 +1,9 @@
-import { randomUUID } from "node:crypto";
-import { readFile, rename, rm, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { Document, isMap, isSeq, parseDocument } from "yaml";
 
 import { OperationalError } from "../operational-error.js";
+import { writeFileAtomically } from "../write-file-atomically.js";
 import type {
   ShelfIndex,
   ShelfIndexAppend,
@@ -41,7 +41,7 @@ async function appendEntries(
     }
     document.setIn(["books", key], entryNode(document, entry));
   }
-  await writeAtomically(
+  await writeFileAtomically(
     indexPath,
     document.toString({ flowCollectionPadding: false }),
   );
@@ -109,16 +109,16 @@ function readEntry(value: unknown): ShelfIndexEntry {
     title: value.title,
     ...(value.edition === undefined
       ? {}
-      : { edition: readWord(value.edition) }),
+      : { edition: readText(value.edition) }),
     authors: value.authors,
     ...(value.division === undefined
       ? {}
-      : { division: readWord(value.division) }),
+      : { division: readText(value.division) }),
     sha256: value.sha256,
   };
 }
 
-function readWord(value: unknown): string {
+function readText(value: unknown): string {
   if (!isText(value)) throw unreadableIndex();
   return value;
 }
@@ -132,22 +132,6 @@ function unreadableIndex(): OperationalError {
     "operational-failure",
     `The shelf's ${SHELF_INDEX_FILENAME} is not a readable Shelf index.`,
   );
-}
-
-async function writeAtomically(
-  indexPath: string,
-  contents: string,
-): Promise<void> {
-  const temporary = join(
-    dirname(indexPath),
-    `.${SHELF_INDEX_FILENAME}-${randomUUID()}.tmp`,
-  );
-  try {
-    await writeFile(temporary, contents, { flag: "wx" });
-    await rename(temporary, indexPath);
-  } finally {
-    await rm(temporary, { force: true });
-  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

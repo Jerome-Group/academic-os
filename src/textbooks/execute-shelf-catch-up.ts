@@ -23,13 +23,8 @@ export async function executeShelfCatchUp(input: {
         : input.mode === "apply"
           ? "caught-up"
           : "previewed",
-    index: written ? "written" : "unchanged",
-    counts: {
-      books: counts.books,
-      indexed: counts.indexed,
-      appends: appends.length,
-      parked: parked.length,
-    },
+    index: written ? "written" : "not-written",
+    counts: { ...counts, appends: appends.length, parked: parked.length },
     appends: appends.map(({ key, entry }) => ({ key, file: entry.file })),
     parked,
   };

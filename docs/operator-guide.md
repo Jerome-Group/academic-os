@@ -369,9 +369,15 @@ An appended entry carries no `division`. The book's own word for how it divides 
 Lecture, Part — is in the book rather than in its filename, so the Owner records it once and the
 first chapter cut from that book parks until they do (ADR-0009).
 
-The shelf's `Archive/` is invisible to the catch-up, retired books and all. Everything else sitting
-directly on the shelf is read as a book, so anything there that is not a cleanly named PDF parks on
-every run until it is renamed or archived.
+The shelf's `Archive/` is invisible to the catch-up, retired books and all — as is any other folder
+on the shelf, so books live directly on it. Everything else sitting directly on the shelf is read as
+a book, so anything there that is not a cleanly named PDF parks on every run until it is renamed or
+archived.
+
+A book the index already names by filename is left unread, which is what keeps a run from pulling
+the whole shelf down the Drive mount. Replacing a copy in place under its old name therefore leaves
+its entry and its old checksum standing; the disagreement surfaces at the next cut from that book,
+where the Textbook procedure verifies the checksum before it cuts.
 
 ## Seed
 

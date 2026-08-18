@@ -30,13 +30,8 @@ export interface TasksConfig {
   };
 }
 
-// The shelf as the configuration names it: a path relative to the Drive mount.
+// The Textbook shelf, named relative to the Drive mount as every semester root is.
 export interface TextbooksConfig {
-  shelfRoot: string;
-}
-
-// The shelf as a command uses it: the absolute path that relative one resolved to.
-export interface ResolvedTextbooksConfig {
   shelfRoot: string;
 }
 

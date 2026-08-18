@@ -248,7 +248,8 @@ authorize_user_credentials() {
 
   say "A browser approval page will open for the $role Calendar scopes."
   step "Approve only after checking the requested scope level; return here when Google finishes."
-  node "$REPO_ROOT/scripts/authorize-calendar-credentials.mjs" \
+  node "$REPO_ROOT/scripts/authorize-google-credentials.mjs" \
+    --surface calendar \
     --role "$role" \
     --client "$client_path" \
     --scopes "$scopes" \

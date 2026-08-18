@@ -30,6 +30,12 @@
       "interactiveWrite": "/path/to/calendar-write.credentials.json"
     }
   },
+  "tasks": {
+    "credentials": {
+      "scheduledRead": "/path/to/tasks-read.credentials.json",
+      "interactiveWrite": "/path/to/tasks-write.credentials.json"
+    }
+  },
   "driveApi": {
     "moduleFolderIds": {
       "Y2S1": {

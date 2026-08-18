@@ -61,7 +61,7 @@ The Calendar clients build a `GoogleAuth` from `google-auth-library` with an exp
 pointing at a credential path named in the gitignored private config
 (`calendar.credentials.scheduledRead` / `interactiveWrite`), one file per role. Those files are
 `authorized_user` JSON (client id, client secret, refresh token) minted by
-`scripts/authorize-calendar-credentials.mjs`, a Node-only loopback OAuth flow with PKCE.
+`scripts/authorize-google-credentials.mjs`, a Node-only loopback OAuth flow with PKCE.
 
 That pattern carries over to Tasks unchanged in kind, with two things to know:
 

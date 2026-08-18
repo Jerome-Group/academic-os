@@ -6,6 +6,7 @@ import {
   contextualModuleDefinition,
   validModuleControls,
 } from "../fixtures/module-controls.js";
+import { learningWorkspacePaths } from "../fixtures/learning-workspace.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 import {
   recordBehaviorEvidence,
@@ -22,12 +23,14 @@ const vanillaDefinition = (validModuleControls().definition ?? "").replace(
 function inventory(): Inventory {
   return {
     moduleCode: "MH2100",
-    entries: universalPaths.map(([path, kind]) => ({
-      path,
-      kind,
-      ...(kind === "file" ? { size: 0 } : {}),
-      modifiedAt,
-    })),
+    entries: [...universalPaths, ...learningWorkspacePaths].map(
+      ([path, kind]) => ({
+        path,
+        kind,
+        ...(kind === "file" ? { size: 0 } : {}),
+        modifiedAt,
+      }),
+    ),
   };
 }
 
@@ -64,6 +67,7 @@ describe("auditModule governed content", () => {
     add(target, "10 Learning Materials/10 lecture materials");
     add(target, "00 Module Admin/Archive");
     add(target, "30 Assessments/30 Midterms/Archive");
+    add(target, "70 Learning/10 lectures");
     add(target, "70 Learning/00 Module Profile.md", "file");
 
     const findings = audit(target).findings.filter(
@@ -74,6 +78,7 @@ describe("auditModule governed content", () => {
       findings.map(({ ruleId, path }) => [ruleId, path]),
       [
         ["MF-NAMING-001", "10 Learning Materials/10 lecture materials"],
+        ["MF-NAMING-001", "70 Learning/10 lectures"],
         ["MF-ADMIN-001", "00 Module Admin/Archive"],
         ["MF-ASSESSMENTS-001", "30 Assessments/30 Midterms/Archive"],
         ["MF-NAMING-001", "70 Learning/00 Module Profile.md"],

@@ -6,6 +6,7 @@ import {
   contextualModuleDefinition,
   validModuleControls,
 } from "../fixtures/module-controls.js";
+import { learningWorkspacePaths } from "../fixtures/learning-workspace.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 import { recordFindingEvidence } from "../support/rule-evidence.js";
 import { testModuleContract } from "../fixtures/module-contract.js";
@@ -46,12 +47,14 @@ function inventory(paths: readonly string[]): Inventory {
 function universalInventory(): Inventory {
   return {
     moduleCode: "MH2100",
-    entries: universalPaths.map(([path, kind]) => ({
-      path,
-      kind,
-      ...(kind === "file" ? { size: 0 } : {}),
-      modifiedAt: "2026-08-11T00:00:00.000Z",
-    })),
+    entries: [...universalPaths, ...learningWorkspacePaths].map(
+      ([path, kind]) => ({
+        path,
+        kind,
+        ...(kind === "file" ? { size: 0 } : {}),
+        modifiedAt: "2026-08-11T00:00:00.000Z",
+      }),
+    ),
   };
 }
 

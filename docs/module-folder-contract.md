@@ -46,7 +46,8 @@ MODULE_CODE/
 ├── 00 Module Admin/
 │   ├── 00 Module Profile.md
 │   ├── 10 Module Definition.yaml
-│   └── 20 Curation Register.jsonl
+│   ├── 20 Curation Register.jsonl
+│   └── 40 Source Map.yaml
 ├── 10 Learning Materials/
 │   ├── 10 Lecture Materials/
 │   ├── 20 Textbook Chapters/
@@ -57,6 +58,18 @@ MODULE_CODE/
 │   └── 40 Finals/
 ├── 40 Projects and Labs/
 ├── 70 Learning/
+│   ├── 10 Lectures/
+│   │   └── records/
+│   ├── 20 Tutorials/
+│   │   └── records/
+│   ├── 30 Revision/
+│   │   └── records/
+│   ├── 40 Past Papers/
+│   │   └── records/
+│   ├── templates/
+│   ├── GLOSSARY.md
+│   ├── RESOURCES.md
+│   └── REVISIT.md
 ├── 90 Resources/
 │   └── 00 Unclassified/
 ├── .scratch/
@@ -220,6 +233,46 @@ Version 1 uses `schema_version`, `source_id`, `integration`, `role`, `source_pat
 `supersedes`. Paths are relative, the timestamp is ISO-compatible, and a curated event requires a
 destination.
 
+## The Teaching workspace
+
+**MF-LEARNING-001 (deterministic).** `70 Learning` is the Teaching workspace, and it holds four
+activity areas — `10 Lectures`, `20 Tutorials`, `30 Revision`, `40 Past Papers` — each with its
+own `records/`, beside `templates/`, `GLOSSARY.md`, `RESOURCES.md` and `REVISIT.md`. Seeding
+creates every one of them for every module, whether or not that module will ever use them, and
+writes this repository's LaTeX template set and teaching preferences into `templates/`. A module
+edits a template where the difference is functional; the rendered page stays the same across
+modules.
+
+Enforcement stops at the activity area. What a folder inside one holds — a Lecture-unit, a
+tutorial, a revision topic, a past paper — is the seeded Teaching procedure's business, and this
+contract reads none of it.
+
+**MF-LEARNING-002 (deterministic).** `00 Module Admin/40 Source Map.yaml` is the workspace's spine,
+and it sits in Module Admin because it is machine-read module state rather than workspace content.
+Its `units` mapping is keyed exactly as the module numbers its Lecture-units — a week or a lecture
+in the module's own words, never a subdivision this system invented — and every unit carries
+`topics`, `lectures`, `textbook` and `tutorials`, each of them a sequence, written out even when
+empty — a unit with no textbook chapter says `textbook: []`, so a missing key is a malformed unit
+rather than a quiet nothing. `topics` names ideas in the module's language; the other three hold
+paths relative to the module folder, which is where the module's own material sits rather than the
+workspace that studies it.
+
+```yaml
+units:
+  Week 03:
+    topics: [Partial derivatives, Chain rule]
+    lectures:
+      - 10 Learning Materials/10 Lecture Materials/MH2100_Lecture_03A_Partial_Derivatives.pdf
+    textbook:
+      - 10 Learning Materials/20 Textbook Chapters/MH2100_Stewart_Chapter_14.pdf
+    tutorials:
+      - 20 Tutorials/MH2100_Tutorial_03_Questions.pdf
+```
+
+Seeding writes an empty `units`, which grows as the module's material lands. A folder in
+`10 Lectures` is named for a key here, and a Learning record's `unit` is one of them, so which files
+a unit means is a lookup rather than a judgment.
+
 ## Context-derived structure
 
 ### Tutorials
@@ -272,10 +325,10 @@ uses its exact five children; contents beneath them may nest:
 **MF-OPEN-001 (deterministic).** Learning Materials requires its three universal children and
 allows nesting beneath them. Resources requires `00 Unclassified` and allows Definition-declared
 additional categories, each declared by exact `name` with evidence. Projects/Labs workspace
-children allow nesting. The interiors of
-`70 Learning`, `docs`, `.scratch` and every declared importer root are outside structural
-enforcement, with two exceptions: `docs` holds the pinned procedure files and `adr/` that
-MF-UNIVERSAL-001 names, and `.scratch` may not contain a LaTeX `build/`.
+children allow nesting. The interiors of `docs`, `.scratch` and every declared importer root are
+outside structural enforcement, with two exceptions: `docs` holds the pinned procedure files and
+`adr/` that MF-UNIVERSAL-001 names, and `.scratch` may not contain a LaTeX `build/`. `70 Learning`
+is enforced as deep as MF-LEARNING-001 reaches and open below it.
 
 ## Importer roots and curation
 
@@ -338,6 +391,6 @@ their target.
 
 ## Deferred work
 
-Teaching-workspace internals, automated curation, weekly LLM orchestration and autonomous
-module-specific instruction evolution remain future work. The contract defines the interfaces
-they must respect; it does not claim they exist.
+Automated curation, weekly LLM orchestration and autonomous module-specific instruction evolution
+remain future work. The contract defines the interfaces they must respect; it does not claim they
+exist.

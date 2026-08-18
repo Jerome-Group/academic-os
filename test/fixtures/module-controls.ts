@@ -4,6 +4,7 @@ import {
   interpolateModuleCode,
   pinnedDocumentNames,
 } from "../../src/contract/pinned-documents.js";
+import { seededSourceMap } from "./learning-workspace.js";
 import { testModuleContract } from "./module-contract.js";
 
 export function validModuleControls(): ModuleControls {
@@ -64,6 +65,7 @@ evidence:
 exceptions: []
 `,
     curationRegister: "",
+    sourceMap: seededSourceMap,
     claude:
       "# Claude Code\n\nRead `AGENTS.md` completely before working in this module folder.\n",
     context: `# MH2100 — Calculus III

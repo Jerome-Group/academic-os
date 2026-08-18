@@ -1,6 +1,7 @@
 export { loadLocalConfig } from "./load-local-config.js";
 export { resolveCalendarConfig } from "./resolve-calendar-config.js";
 export { resolveTasksConfig } from "./resolve-tasks-config.js";
+export { resolveShelfRoot } from "./resolve-shelf-root.js";
 export type {
   AcademicConfig,
   CalendarConfig,
@@ -9,4 +10,5 @@ export type {
   SemesterStatus,
   ResolvedCalendarConfig,
   TasksConfig,
+  TextbooksConfig,
 } from "./types.js";

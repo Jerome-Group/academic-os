@@ -2,7 +2,7 @@
 
 The CLI has `seed`, `audit`, `calendar setup`, pull-only `calendar refresh`, private
 `calendar propose`, explicitly authorised `calendar promote`, `tasks provision`, pull-only
-`tasks refresh` and separately gated
+`tasks refresh`, additive `textbooks catch-up` and separately gated
 `repair` commands. It does not
 schedule weekly LLM work or edit module instructions autonomously.
 
@@ -57,6 +57,10 @@ node scripts/authorize-google-credentials.mjs \
 A refresh token carries the scopes it was granted, so widening a credential means running the
 helper again rather than editing the config. `tasks provision --apply` is the only path that uses
 the write credential.
+
+`textbooks catch-up` needs `textbooks.shelfRoot` — the Textbook shelf relative to the Drive mount,
+beside the semester roots. It reads the shelf and writes only the shelf's own `00 Index.yaml`, so
+it needs no credentials at all.
 
 This checkout includes `scripts/setup-calendar-local.sh`, which walks through the two sequential
 Google approvals, private config update, setup preview, explicit setup apply, initial Refresh and
@@ -340,6 +344,40 @@ Add `--semester` and `--module` to refresh one module. A nonzero result may stil
 other modules: the named stale modules kept their last-good register and report why. Reading a
 stale register is fine when its staleness is named; the register is a mirror, so the fix is a
 rerun rather than an edit.
+
+## Textbooks catch-up
+
+Diff the Textbook shelf against its Shelf index. The default is a non-mutating preview:
+
+```sh
+node dist/src/cli.js textbooks catch-up --config academic-os.config.json
+```
+
+Review what it would append, then add `--apply`. An append lands beneath the entries already
+there, comments and ordering intact; renaming or removing an entry is the Owner's own edit, and
+the command has no path that does either.
+
+A book is appended when its filename follows `<Title> <N>e <Author surnames, comma-separated>.pdf`
+— the edition token only where the book has one, `Solutions` trailing a solutions manual — and its
+default Book key, the first author's surname, is free. Three things park instead: a name the
+codified naming does not accept, a key an entry already holds, and bytes already indexed under
+another name. Parking exits nonzero and stops nothing else: the clean books of the same run are
+appended, and the parked ones wait for the Owner. A book renamed on the shelf therefore parks as a
+duplicate rather than moving its entry.
+
+An appended entry carries no `division`. The book's own word for how it divides itself — Chapter,
+Lecture, Part — is in the book rather than in its filename, so the Owner records it once and the
+first chapter cut from that book parks until they do (ADR-0009).
+
+The shelf's `Archive/` is invisible to the catch-up, retired books and all — as is any other folder
+on the shelf, so books live directly on it. Everything else sitting directly on the shelf is read as
+a book, so anything there that is not a cleanly named PDF parks on every run until it is renamed or
+archived.
+
+A book the index already names by filename is left unread, which is what keeps a run from pulling
+the whole shelf down the Drive mount. Replacing a copy in place under its old name therefore leaves
+its entry and its old checksum standing; the disagreement surfaces at the next cut from that book,
+where the Textbook procedure verifies the checksum before it cuts.
 
 ## Seed
 

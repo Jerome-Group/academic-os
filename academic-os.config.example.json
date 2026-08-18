@@ -36,6 +36,9 @@
       "interactiveWrite": "/path/to/tasks-write.credentials.json"
     }
   },
+  "textbooks": {
+    "shelfRoot": "Modules/Textbooks"
+  },
   "driveApi": {
     "moduleFolderIds": {
       "Y2S1": {

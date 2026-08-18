@@ -341,6 +341,12 @@ checksum. It owns every book-level fact; agents append entries, and only the Own
 removes one.
 _Avoid_: register — registers are module-scoped; book list, catalogue file.
 
+**Shelf catch-up**:
+The deterministic daily pass that brings the Shelf index level with the shelf: it appends an entry
+for every new book whose filename parses and whose default Book key is free, and parks the rest for
+the Owner. It appends and never revises, so what it cannot read off a filename it does not write.
+_Avoid_: sync, import — both suggest a two-way settlement the pass refuses; scan.
+
 **Book key**:
 The globally unique, filename-safe token that names one shelf book everywhere it is referred to —
 Shelf index entry, Textbook register citation, chapter filename. First-author surname by default,

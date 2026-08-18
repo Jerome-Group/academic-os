@@ -1,3 +1,5 @@
+import type { moduleControlPaths } from "./control-paths.js";
+
 export type InventoryEntryKind = "directory" | "file" | "symlink" | "other";
 
 export type MetadataEvidence<T> =
@@ -54,14 +56,9 @@ export interface Inventory {
   provenance?: InventoryProvenance;
 }
 
-export interface ModuleControls {
-  profile?: string;
-  definition?: string;
-  curationRegister?: string;
-  agents?: string;
-  claude?: string;
-  context?: string;
-}
+export type ModuleControls = Partial<
+  Record<keyof typeof moduleControlPaths, string>
+>;
 
 export interface ModuleControlAuditInput {
   moduleCode: string;

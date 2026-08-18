@@ -1,4 +1,10 @@
 import type { ModuleControls } from "../../src/conformance/index.js";
+import { moduleControlPaths } from "../../src/conformance/control-paths.js";
+import {
+  interpolateModuleCode,
+  pinnedDocumentNames,
+} from "../../src/contract/pinned-documents.js";
+import { testModuleContract } from "./module-contract.js";
 
 export function validModuleControls(): ModuleControls {
   return {
@@ -58,29 +64,6 @@ evidence:
 exceptions: []
 `,
     curationRegister: "",
-    agents: `# What this folder is
-MH2100 module folder.
-
-## Start here
-Read \`CONTEXT.md\` and \`00 Module Admin/00 Module Profile.md\`.
-
-## Routes
-- Learning: \`70 Learning/\`
-- Tutorials: \`20 Tutorials/\`
-- Curation: \`00 Module Admin/20 Curation Register.jsonl\`
-- Assessments: \`30 Assessments/\`
-- Projects/Labs: \`40 Projects and Labs/\`
-- Maintenance: \`00 Module Admin/10 Module Definition.yaml\`
-
-## Domain language
-The glossary is \`CONTEXT.md\` and decisions are \`docs/adr/\`. Read both before classifying, naming or organising module content. Use the glossary's terms; resolve ambiguity before adding language or decisions.
-
-## Safety
-Preserve importer sources and request decisions for ambiguity.
-
-## Updating these instructions
-Show proposed changes for approval before applying them.
-`,
     claude:
       "# Claude Code\n\nRead `AGENTS.md` completely before working in this module folder.\n",
     context: `# MH2100 — Calculus III
@@ -91,7 +74,20 @@ Purpose: organise learning and work for MH2100.
 
 **Module**: MH2100 Calculus III.
 `,
+    ...pinnedModuleControls("MH2100"),
   };
+}
+
+export function pinnedModuleControls(moduleCode: string): ModuleControls {
+  return Object.fromEntries(
+    pinnedDocumentNames.map((name) => [
+      name,
+      interpolateModuleCode(
+        testModuleContract.pinnedDocuments[name],
+        moduleCode,
+      ),
+    ]),
+  );
 }
 
 export function contextualModuleDefinition(
@@ -130,4 +126,15 @@ export function contextualModuleDefinition(
       "- {role: primary, destination: NTULearn, evidence: [course-site]}",
       "- {role: primary, destination: NTULearn, evidence: [course-site]}\n    - {role: tutorials, destination: NTULearn_Tutorial, evidence: [course-site]}",
     );
+}
+
+export function moduleControlContents(
+  controls: ModuleControls,
+): Map<string, string> {
+  return new Map(
+    Object.entries(moduleControlPaths).flatMap(([name, path]) => {
+      const contents = controls[name as keyof ModuleControls];
+      return contents === undefined ? [] : [[path, contents]];
+    }),
+  );
 }

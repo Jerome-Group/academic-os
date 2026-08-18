@@ -1,6 +1,5 @@
 import { controlFinding, failedControl } from "./control-finding.js";
 import { moduleControlPaths } from "./control-paths.js";
-import { moduleDomainLanguageInstructions } from "../contract/module-domain-language.js";
 import { escapeRegex, sectionBody } from "./markdown-control-helpers.js";
 import type { Finding } from "./types.js";
 
@@ -14,12 +13,21 @@ const agentSections = [
   "Updating these instructions",
 ];
 const routes = [
-  "Learning",
-  "Tutorials",
   "Curation",
+  "Teaching",
+  "Tutorials",
+  "Textbooks",
+  "Tasks",
   "Assessments",
   "Projects/Labs",
   "Maintenance",
+];
+const domainLanguagePointers = ["CONTEXT.md", "docs/adr/"];
+const repositoryWorkflowTerms = [
+  "git",
+  "github",
+  "pull request",
+  "coding standard",
 ];
 
 export function validateAgents(source: string | undefined): Finding {
@@ -28,6 +36,24 @@ export function validateAgents(source: string | undefined): Finding {
       `No readable control exists at ${agentsPath}.`,
     ]);
   }
+  const problems = [
+    ...sectionProblems(source),
+    ...routeProblems(sectionBody(source, "Routes")),
+    ...domainLanguageProblems(sectionBody(source, "Domain language")),
+    ...repositoryWorkflowProblems(source),
+  ];
+  return problems.length === 0
+    ? controlFinding(
+        "MF-AGENTS-001",
+        agentsPath,
+        "pass",
+        "AGENTS.md has the six local sections, all eight route pointers, and both domain-documentation pointers.",
+        "Module instructions are a concise local router.",
+      )
+    : failedControl("MF-AGENTS-001", agentsPath, problems);
+}
+
+function sectionProblems(source: string): string[] {
   const headings = source
     .split(/\r?\n/)
     .flatMap((line) =>
@@ -37,40 +63,41 @@ export function validateAgents(source: string | undefined): Finding {
           ? [line.slice(3)]
           : [],
     );
-  const problems =
-    headings.length === agentSections.length &&
+  return headings.length === agentSections.length &&
     headings.every((heading, index) => heading === agentSections[index])
-      ? []
-      : [
-          `Section headings are ${JSON.stringify(headings)}; expected ${JSON.stringify(agentSections)}.`,
-        ];
-  const routeBody = sectionBody(source, "Routes");
-  for (const route of routes) {
-    const routePattern = `(?:^|\\n)- ${escapeRegex(route)}: \`[^\`]+\``;
-    if (!new RegExp(routePattern, "u").test(routeBody)) {
-      problems.push(`${route} route has no backticked context pointer.`);
-    }
-  }
-  const domainLanguage = sectionBody(source, "Domain language");
-  if (domainLanguage.trim() !== moduleDomainLanguageInstructions) {
-    problems.push(
-      "Domain language does not exactly match the canonical module-domain routing instruction.",
+    ? []
+    : [
+        `Section headings are ${JSON.stringify(headings)}; expected ${JSON.stringify(agentSections)}.`,
+      ];
+}
+
+function routeProblems(routeBody: string): string[] {
+  const bullets = routeBody.split(/(?:^|\r?\n)- /u).slice(1);
+  return routes.flatMap((route) => {
+    const bullet = bullets.find((candidate) =>
+      candidate.startsWith(`**${route}**`),
     );
-  }
-  for (const term of ["git", "github", "pull request", "coding standard"]) {
-    if (source.toLowerCase().includes(term)) {
-      problems.push(
-        `Instructions contain prohibited repository-workflow term ${JSON.stringify(term)}.`,
-      );
-    }
-  }
-  return problems.length === 0
-    ? controlFinding(
-        "MF-AGENTS-001",
-        agentsPath,
-        "pass",
-        "AGENTS.md has the six local sections, all six route pointers, and both domain-documentation pointers.",
-        "Module instructions are a concise local router.",
-      )
-    : failedControl("MF-AGENTS-001", agentsPath, problems);
+    if (bullet === undefined) return [`${route} has no route bullet.`];
+    return /`[^`]+`/u.test(bullet)
+      ? []
+      : [`${route} route has no backticked context pointer.`];
+  });
+}
+
+function domainLanguageProblems(domainLanguage: string): string[] {
+  return domainLanguagePointers.flatMap((pointer) =>
+    domainLanguage.includes(`\`${pointer}\``)
+      ? []
+      : [`Domain language has no \`${pointer}\` pointer.`],
+  );
+}
+
+function repositoryWorkflowProblems(source: string): string[] {
+  return repositoryWorkflowTerms.flatMap((term) =>
+    new RegExp(`\\b${escapeRegex(term)}\\b`, "iu").test(source)
+      ? [
+          `Instructions contain prohibited repository-workflow term ${JSON.stringify(term)}.`,
+        ]
+      : [],
+  );
 }

@@ -66,7 +66,13 @@ export function renderShelfReviewSheet(input: {
       }
     }
   }
-  return document.toString({ flowCollectionPadding: false, nullStr: "" });
+  // Never folded: a filename wrapped across two lines is one the Owner has to reassemble by eye
+  // before they can copy it into `rename`, and one they can silently break while editing.
+  return document.toString({
+    flowCollectionPadding: false,
+    lineWidth: 0,
+    nullStr: "",
+  });
 }
 
 export function readShelfReviewSheet(contents: string): ShelfReview {

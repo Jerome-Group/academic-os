@@ -51,6 +51,23 @@ describe("the shelf review sheet", () => {
     );
   });
 
+  it("never folds a long filename across two lines", () => {
+    const long =
+      "The Elements of Statistical Learning Data Mining Inference and Prediction 2e Hastie, Tibshirani, Friedman.pdf";
+    const sheet = renderShelfReviewSheet({
+      sweep: {
+        counts: { books: 1, indexed: 0, settle: 0 },
+        books: [{ file: long, sha256: "d".repeat(64), key: "Hastie" }],
+      },
+      shelf: "/shelf",
+    });
+
+    assert.match(
+      sheet,
+      new RegExp(`- file: ${long.replaceAll(".", "\\.")}\n`, "u"),
+    );
+  });
+
   it("reads back what the Owner settled", () => {
     const review = readShelfReviewSheet(`schemaVersion: 1
 shelf: /shelf

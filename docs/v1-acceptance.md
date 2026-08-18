@@ -54,3 +54,26 @@ returned. The Owner ticked the task in Google Tasks on a phone. `tasks refresh` 
 updated row and rewrote that row's status to `completed`, leaving the notes and the provenance —
 which Google never sees — exactly as the create had written them. No other row in the register
 moved, and no list-level state changed.
+
+## Live Textbook-shelf migration
+
+Run on 2026-08-18 against the Owner's real shelf, on the mini. The sweep read 59 books — `Archive/`
+and its retired books invisible throughout — and asked about fourteen: eight filenames the codified
+naming does not accept, and six default Book keys two books each claimed. The Owner settled all
+fourteen in one pass: eight renames, and eleven keys qualified where two books were peers
+(`Tao_I`/`Tao_II`, `Jacobson_I`/`Jacobson_II`, `Isaacs_CT`/`Isaacs_FGT`/`Isaacs_Algebra`,
+`Alperin_GR`/`Alperin_LRT`, `Stewart_ANT`/`Stewart_Calculus` — two different Stewarts) or where a
+manual answers a book that keeps the plain key (`Axler`/`Axler_Solutions`).
+
+The preview reported no blockers. The apply renamed exactly those eight books, none outside the
+settled sheet, and wrote 59 entries with checksums pinned; ten journal lines record the run either
+side of every move. `textbooks catch-up` then reported 59 books, 59 already indexed, nothing to
+append and nothing parked, exiting zero — the baseline the daily pass runs against.
+
+A second pass indexed one book the migration itself produced: the Owner's `Calculus 9e Stewart
+Solutions` folder of twenty part-files was merged into a single 1,761-page PDF beside the other
+books and settled as `Stewart_Calculus_Solutions`. The catch-up reported 60 of 60 indexed,
+nothing parked. Two other part-file folders were left alone: the merged PDF each would produce
+already sits beside it, and in one case is the more complete copy.
+
+No book was deleted, no book was overwritten, and nothing in `Archive/` was touched.

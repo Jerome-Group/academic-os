@@ -1,0 +1,78 @@
+% The seeded style for this workspace, and the semantic interface every artifact here writes
+% against. A template body carries no visual decision; every one of them is made in this file.
+% A type file inputs this one, so this one is never compiled by itself.
+%
+%   \ArtifactHeader{module}{unit}{title}{date}{sources}   and \ModuleCode, this module's code
+%   environments  defn, thm, prop, example, remark, warning   (and amsthm's proof)
+%   environments  question, solution
+%   environment   checkyourself
+%
+% Package surface: lmodern, fontenc, geometry, titlesec, amsmath/amssymb/amsthm/mathtools,
+% enumitem, microtype, xcolor, etoolbox, tcolorbox[most]. That list documents what these templates
+% use, for the session that edits one. It is not a checklist to verify package by package.
+% Cut against TeX Live 2026; anything newer is fine.
+%
+% Divergence is functional, never visual. A module adds macros, notation shortcuts and
+% environments that make writing its own LaTeX easier. A change that would show in a rendered page
+% is a change to the seeded set, and so the Owner's.
+\usepackage[a4paper,margin=1.9cm]{geometry}
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{etoolbox}
+\usepackage{titlesec}
+
+\definecolor{warnred}{HTML}{8C1D18}
+
+\setlist{nosep,leftmargin=1.4em}
+
+\titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
+\titlespacing*{\section}{0pt}{1.0em}{0.35em}
+
+\newtheoremstyle{compactit}{0.45em}{0.45em}{\itshape}{}{\bfseries}{.}{0.5em}{}
+\newtheoremstyle{compactup}{0.45em}{0.45em}{}{}{\bfseries}{.}{0.5em}{}
+\theoremstyle{compactit}
+\newtheorem{thm}{Theorem}[section]
+\newtheorem{prop}[thm]{Proposition}
+\theoremstyle{compactup}
+\newtheorem{defn}[thm]{Definition}
+\newtheorem{example}[thm]{Example}
+\newtheorem{remark}[thm]{Remark}
+
+\newtcolorbox[use counter=thm]{warning}[1][]{enhanced,breakable,
+  colback=warnred!5,colframe=warnred!5,boxrule=0pt,arc=1.5pt,
+  borderline west={2pt}{0pt}{warnred},
+  left=6pt,right=5pt,top=2pt,bottom=2pt,before skip=4pt,after skip=4pt,
+  before upper={\textbf{\color{warnred}Warning \thesection.\arabic{thm}}\textbf{.}\ }}
+% tcolorbox resets the counter representation; restate it for the amsthm environments.
+\renewcommand{\thethm}{\thesection.\arabic{thm}}
+
+% Questions run on their own counter: a sheet numbers its questions, and the optional argument
+% takes that number whenever the sheet's own numbering is what a reader will look for. The counter
+% steps only where it is the number on the page, so a \label never resolves to an unprinted one.
+\newcounter{question}
+\newenvironment{question}[1][]%
+  {\par\medskip\noindent\ifblank{#1}{\refstepcounter{question}}{}%
+   \textbf{Question \ifblank{#1}{\thequestion}{#1}.}\ \ignorespaces}%
+  {\par}
+\newenvironment{solution}%
+  {\par\smallskip\noindent\textbf{Solution.}\ \ignorespaces}%
+  {\par}
+
+\newenvironment{checkyourself}%
+  {\par\medskip\noindent\textbf{Check yourself.}\begin{enumerate}}%
+  {\end{enumerate}}
+
+% The module code below stays one literal token, because that token is what seeding substitutes.
+% An underscore is math shift in LaTeX, so it is read here with the underscore made ordinary.
+{\catcode`\_=12 \gdef\ModuleCode{MODULE_CODE}}
+
+\newcommand{\ArtifactHeader}[5]{%
+  \noindent{\Large\bfseries #3}\par\smallskip
+  \noindent #1 \;\textperiodcentered\; #2 \;\textperiodcentered\; #4\par
+  \noindent{\small Sources: #5}\par
+  \medskip\hrule\medskip}

@@ -1,0 +1,45 @@
+% Graded feedback — the marked-up verdict on one attempt, written beside the attempt it grades.
+% Real marks and the real grade; reading the question correctly outranks everything else here.
+% Copy it there and replace every <...> placeholder; the input line below needs no edit.
+\documentclass[a4paper,10pt]{article}
+\IfFileExists{preamble.tex}{\input{preamble.tex}}{\input{../../templates/preamble.tex}}
+\begin{document}
+\ArtifactHeader{\ModuleCode}{<Source-map key>}{<the sheet's own name> --- Graded}{<YYYY-MM-DD>}%
+  {<the attempt file>}
+
+\section{Marks}
+\noindent
+\begin{tabular}{@{}llp{9.5cm}@{}}
+\textbf{Question} & \textbf{Mark} & \textbf{What cost it} \\
+\hline
+<the sheet's number> & <n>/<n> & <the specific error, not a category> \\
+<the sheet's number> & <n>/<n> & <---, where nothing did> \\
+\hline
+\textbf{Total} & \textbf{<n>/<n>} & \textbf{<the grade this earns>} \\
+\end{tabular}
+
+\section{How this was graded}
+<Against the module's own written solutions, against verified solutions found for it, or on my own
+reading because the hunt found none. Say which; a grade from the third is a weaker claim than a
+grade from the first, and the reader is entitled to know that.>
+
+\section{Question by question}
+
+\begin{question}[<the sheet's number>]
+<What the answer did, where it left the correct path, and what the marker would have wanted at
+that step. One paragraph per question — the table above already carries the marks.>
+\end{question}
+
+\begin{question}[<the sheet's number>]
+<The feedback on the next question.>
+\end{question}
+
+\begin{warning}
+<The error that appeared more than once. A systematic error is worth more attention than the
+marks it cost on this sheet.>
+\end{warning}
+
+\section{Worth another pass}
+<What to take to the Revisit register, if anything. Grading closes into a record and goes no
+further — except a sheet completed with no help at all, which is demonstrated understanding.>
+\end{document}

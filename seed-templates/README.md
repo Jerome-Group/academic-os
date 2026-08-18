@@ -37,7 +37,23 @@ contract's own text:
 - A change that outruns `docs/module-folder-contract.md` is a contract change, and lands in the
   same pull request.
 
-## What lands here next
+## The LaTeX set
 
-The seeded LaTeX set for `70 Learning/templates/` — the six template types, the shared preamble and
-the preferences file the teaching procedure here already runs on, cut from the chosen style.
+`70 Learning/templates/` seeds `preamble.tex`, one file per artifact type named for that type, and
+`preferences.md`. The preamble holds every visual decision, and holds them exactly as the Owner
+chose them on `prototype/teaching-session-artifacts`: Latin Modern on a tight monochrome page,
+run-in theorem heads, warnings as red-edged boxes on the shared theorem counter. What the preamble
+adds beyond that branch is the semantic interface — the header macro and the environments the six
+types write against — which is where a one-type prototype had nothing to say. A type file carries
+structure and placeholder prose and no styling at all, and that separation is what lets a module's
+divergence stay functional rather than visual.
+
+Two things a reader would otherwise find out the hard way:
+
+- **A type file reaches the preamble from either place.** Its input line tries `preamble.tex` beside
+  it and falls back two levels up, so the same file compiles here in `templates/` and as a copy in a
+  unit folder, with no path to edit.
+- **They compile in their seeded form, not this one** — here the preamble is still
+  `preamble.template.tex`. `npm run templates:check` strips the infix into a temporary directory and
+  runs `latexmk -pdf -outdir=build` over each type. It needs `latexmk` on PATH, so it is a local
+  check rather than a CI one; run it whenever a type or the preamble changes.

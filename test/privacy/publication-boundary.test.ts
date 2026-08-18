@@ -69,6 +69,33 @@ it("keeps every tracked or untracked publication candidate inside the boundary",
   assert.deepEqual(findPublicationBoundaryViolations(files), []);
 });
 
+it("admits a seed-source template carrying its destination's name", () => {
+  const files = [
+    {
+      path: "seed-templates/70 Learning/templates/lecture-walkthrough.template.tex",
+      contents: "\\section{Where this sits}",
+    },
+    {
+      path: "seed-templates/70 Learning/templates/lecture-walkthrough.tex",
+      contents: "\\section{Where this sits}",
+    },
+    {
+      path: "seed-templates/70 Learning/templates/reference-sheet.template.tex",
+      contents: "\\section{Week 03}",
+    },
+    {
+      path: "seed-templates/70 Learning/templates/reference-sheet.template.pdf",
+      contents: "%PDF-1.7",
+    },
+  ];
+
+  assert.deepEqual(findPublicationBoundaryViolations(files), [
+    { path: files[1]?.path, kind: "academic-content" },
+    { path: files[2]?.path, kind: "academic-content" },
+    { path: files[3]?.path, kind: "academic-content" },
+  ]);
+});
+
 it("rejects private Calendar workspace and provider-response files", () => {
   const files = [
     {

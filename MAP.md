@@ -21,7 +21,7 @@ Start here: `README.md`, then `AGENTS.md`.
 | Agent skills | The routines an agent follows here, one file per skill | `docs/agents/` |
 | Research | Primary-source evidence that informs contracts, decisions and agent procedures | `docs/research/` |
 | Automation | The workflows that run on a pull request or on a new issue, and dependency updates | `.github/` |
-| Quality gates | Cross-file rule coverage and publication checks invoked by package scripts and CI | `scripts/check-contract-rule-coverage.mjs`, `src/privacy/` |
+| Quality gates | Cross-file rule coverage and publication checks invoked by package scripts and CI, plus the seeded LaTeX set's compile check, which needs `latexmk` and so runs locally | `scripts/check-contract-rule-coverage.mjs`, `src/privacy/`, `scripts/compile-seed-templates.mjs` |
 
 The teaching workspace and the data `homepage` reads are named in `README.md` as what this
 repository is for. They have no entry here because they have no files yet; each earns a row in the

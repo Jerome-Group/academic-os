@@ -50,6 +50,8 @@ const allowedSyntheticOrNormativeText = new Set([
   "src/calendar/ntu-academic-calendar.ts",
   "test/fixtures/module-controls.ts",
 ]);
+const seedSourceTemplatePath =
+  /^seed-templates\/(?:[^/]+\/)*[^/]+\.template\.[^/.]+$/u;
 const privateStatePath =
   /(?:^|\/)(?:observations|journals|reports|academic-os-state|drive-api-responses|calendar-provider-responses)(?:\/|$)|^calendar\/|\.calendar-provider-response\.json$/u;
 const credentialPath =
@@ -76,14 +78,37 @@ export function findPublicationBoundaryViolations(
 }
 
 function isAcademicPath(path: string): boolean {
-  const segments = path.split("/");
   return (
-    segments.some(
+    isAcademicDirectory(path) ||
+    (!isInspectableSeedTemplate(path) && namesCourseworkFile(path))
+  );
+}
+
+// A seed-source template is this repository's canonical body for a module file, so it carries that
+// file's name and extension and `namesCourseworkFile` reads it as coursework arriving. The
+// `.template` infix is what says otherwise — but only for an extension `containsAcademicText` can
+// read, so that the content heuristics take over the job the name heuristics are giving up. A
+// template that is a binary keeps being refused on its name alone.
+function isInspectableSeedTemplate(path: string): boolean {
+  return (
+    seedSourceTemplatePath.test(path) &&
+    academicTextExtensions.has(posix.extname(path).toLowerCase())
+  );
+}
+
+function isAcademicDirectory(path: string): boolean {
+  return path
+    .split("/")
+    .some(
       (segment) =>
         segment.toLowerCase() === "modules" ||
         /^Y[0-9]S[0-9]$/u.test(segment) ||
         /^(?:CC|MH)[0-9]{4}$/u.test(segment),
-    ) ||
+    );
+}
+
+function namesCourseworkFile(path: string): boolean {
+  return (
     isAcademicTextFilename(posix.basename(path)) ||
     courseworkBearingExtensions.has(posix.extname(path).toLowerCase())
   );

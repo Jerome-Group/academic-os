@@ -1,0 +1,38 @@
+% Tutorial solution writeup — the full worked solution set for one sheet. Lives in that sheet's
+% folder under 20 Tutorials/, and a past paper takes the same shape under 40 Past Papers/.
+% Copy it there and replace every <...> placeholder; the input line below needs no edit.
+\documentclass[a4paper,10pt]{article}
+\IfFileExists{preamble.tex}{\input{preamble.tex}}{\input{../../templates/preamble.tex}}
+\begin{document}
+\ArtifactHeader{\ModuleCode}{<Source-map key>}{<the sheet's own name> --- Solutions}{<YYYY-MM-DD>}%
+  {<the sheet, and whatever verified solutions this was checked against>}
+
+\section{<The sheet's own grouping, or Solutions where it has none>}
+
+% The optional argument takes the sheet's own numbering, which is what a reader looks for.
+\begin{question}[<the sheet's number>]
+<The question, restated closely enough that the solution reads without the sheet in hand.>
+\end{question}
+
+\begin{solution}
+<The working, in the steps a reader would have to produce themselves — the step that is easy to
+skip is the step worth writing.>
+\[
+  \text{<the display the answer turns on>}
+\]
+<The answer, stated as an answer.>
+\end{solution}
+
+\begin{question}[<the sheet's number>]
+<A question whose difficulty is a trap rather than the algebra.>
+\end{question}
+
+\begin{solution}
+<The working.>
+\end{solution}
+
+\begin{warning}
+<The trap that question sets, and how to see it coming next time. This belongs here only when it
+is about the question; what the sheet taught goes in the concepts consolidation.>
+\end{warning}
+\end{document}

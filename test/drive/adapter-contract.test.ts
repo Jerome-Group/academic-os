@@ -18,6 +18,7 @@ import {
 } from "../../src/mounted/index.js";
 import { validModuleControls } from "../fixtures/module-controls.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
+import { testModuleContract } from "../fixtures/module-contract.js";
 
 const temporaryRoots: string[] = [];
 
@@ -66,18 +67,24 @@ describe("inventory adapter contract", () => {
     );
     const controls = validModuleControls();
 
-    const mountedResult = auditModule({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      controls,
-      inventory: mounted.inventory,
-    });
-    const driveResult = auditModule({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      controls,
-      inventory: drive,
-    });
+    const mountedResult = auditModule(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        controls,
+        inventory: mounted.inventory,
+      },
+      testModuleContract,
+    );
+    const driveResult = auditModule(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        controls,
+        inventory: drive,
+      },
+      testModuleContract,
+    );
 
     assert.deepEqual(driveResult, mountedResult);
     assert.deepEqual(mounted.inventory.provenance, {

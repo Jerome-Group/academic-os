@@ -3,10 +3,8 @@ import {
   resolveConfiguredAuditTarget,
   runCohortAudit,
 } from "../cohort/index.js";
-import {
-  currentModuleContract,
-  planModuleConformance,
-} from "../conformance/index.js";
+import { planModuleConformance } from "../conformance/index.js";
+import { loadModuleContract } from "../contract/load-module-contract.js";
 import {
   createGoogleDriveFilesClient,
   inventoryDriveModule,
@@ -88,7 +86,7 @@ async function runTargetAudit(
   const { target, controls } = mounted;
   const history = await readMountedAuditHistory(target);
   const result = planModuleConformance({
-    contract: currentModuleContract,
+    contract: await loadModuleContract(),
     target: {
       moduleCode: target.module,
       semester: target.semester,

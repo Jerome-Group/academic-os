@@ -65,6 +65,10 @@ MODULE_CODE/
 ├── CLAUDE.md
 ├── CONTEXT.md
 └── docs/
+    ├── 00 Structure and Naming.md
+    ├── 10 Curation Procedure.md
+    ├── 20 Teaching Procedure.md
+    ├── 30 Textbook Procedure.md
     └── adr/
 ```
 
@@ -150,25 +154,54 @@ distinguished from folder drift.
 
 ### Agent and domain controls
 
-**MF-AGENTS-001 (deterministic).** Seed `AGENTS.md` once as a concise, fully local router with
-these sections: What this folder is; Start here; Routes; Domain language; Safety; Updating these
-instructions. Routes cover Learning, Tutorials, Curation, Assessments, Projects/Labs and
-Maintenance through strong context pointers. Domain language points to `CONTEXT.md` for the
-glossary and `docs/adr/` for decisions before content is classified, named or organised. It
-contains no git, GitHub, pull-request, generic coding-standard or repository workflow.
+**MF-AGENTS-001 (deterministic).** `AGENTS.md` is the module's router, and it is fully local: it
+carries no git, GitHub, pull-request, generic coding-standard or repository workflow. Its sections
+are these six, in this order: What this folder is; Start here; Routes; Domain language; Safety;
+Updating these instructions.
+
+Routes are these eight, each a bullet opening with its area in bold and pointing at the procedure
+or file the work runs by:
+
+```text
+Curation  Teaching  Tutorials  Textbooks  Tasks  Assessments  Projects/Labs  Maintenance
+```
+
+Domain language points at `CONTEXT.md` for the module's organisational terms and `docs/adr/` for
+its standing decisions, both read before content is classified, named or organised.
 
 **MF-AGENTS-002 (deterministic).** `CLAUDE.md` contains exactly a `# Claude Code` heading followed
 by `Read \`AGENTS.md\` completely before working in this module folder.` It never contains an
 independent rule copy. Required AGENTS pointers resolve.
 
-**MF-AGENTS-003 (judgment).** Changes to AGENTS are shown and approved before application.
+**MF-AGENTS-003 (judgment).** A change to a doc agents read here — `AGENTS.md`, the four procedure
+files, `CONTEXT.md`, an ADR — is approved before it is applied, and the gate is who is present.
+With the Owner in the session, the drafted wording is shown in the exchange that raised it, and
+their yes on that exact wording is the approval. Unattended, a run writes `CONTEXT.md` and
+`docs/adr/` directly only with the domain-modeling discipline loaded and its tests applied, and
+surfaces every such write in its report; precedent is its only resolver, and an ambiguity without
+precedent parks.
 
-**MF-CONTEXT-001 (deterministic).** `CONTEXT.md` is a glossary only. Seed its module heading,
-purpose and `## Language`, inventing no terms. Add terms only after ambiguity is resolved.
+**MF-AGENTS-004 (deterministic).** `AGENTS.md` and the four `docs/` procedure files are pinned:
+each module's copy is byte-identical to this repository's canonical seed-source template in
+`seed-templates/`, modulo `MODULE_CODE` interpolation. Seeding writes them from those templates and
+audit diffs them back against the same files, so a copy differing by one byte is a deviation,
+repaired by rewriting the copy rather than by editing it. Module-specific content never enters a
+pinned file; it belongs in `CONTEXT.md`, `docs/adr/` or the Profile.
 
-**MF-DOCS-001 (deterministic).** General documentation belongs in `docs/`. Every module contains
-`docs/adr/`, even when it is empty; add an ADR only when a hard-to-reverse, surprising trade-off
-has actually been decided. Active tasks, deadlines and session journals are not current-state
+**MF-CONTEXT-001 (deterministic).** `CONTEXT.md` is a glossary only, holding the module's
+organisational terms — what its material is called, and how that changes where a file goes or what
+it is named. Seed its module heading, purpose and `## Language`, inventing no terms. Add a term
+only after an ambiguity has been resolved. A new term appends; an existing meaning is amended in
+place as the deliberate point of the change, never as a side effect of other work. The file keeps
+no superseded entry.
+
+**MF-DOCS-001 (deterministic).** General documentation belongs in `docs/`, which holds the four
+pinned procedure files and `docs/adr/`. Every module contains `docs/adr/`, even when it is empty.
+An ADR records a standing rule this contract does not force, whose reversal would strand the
+records built on it; a decision that touches one item once is a register line instead. ADRs are
+numbered module-locally from `0001` and are append-only: an ADR is never edited, and a change of
+mind is a new ADR superseding it. A per-item decision applying one cites it from its register
+line's `evidence` field. Active tasks, deadlines and session journals are not current-state
 authority.
 
 **MF-ADMIN-001 (deterministic).** Module Admin has no subdirectories. Additional flat admin files
@@ -241,7 +274,8 @@ allows nesting beneath them. Resources requires `00 Unclassified` and allows Def
 additional categories, each declared by exact `name` with evidence. Projects/Labs workspace
 children allow nesting. The interiors of
 `70 Learning`, `docs`, `.scratch` and every declared importer root are outside structural
-enforcement, except that `.scratch` may not contain a LaTeX `build/`.
+enforcement, with two exceptions: `docs` holds the pinned procedure files and `adr/` that
+MF-UNIVERSAL-001 names, and `.scratch` may not contain a LaTeX `build/`.
 
 ## Importer roots and curation
 

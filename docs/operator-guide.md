@@ -398,8 +398,11 @@ recheck the target and show completed/remaining operations; continue only when i
 result is settled.
 
 Every seed includes `CONTEXT.md` as the module glossary and an initially empty `docs/adr/` for
-decisions. Generated `AGENTS.md` routes classification, naming and organisation through both; an
-empty ADR directory means no qualifying decision has yet been recorded.
+decisions; an empty ADR directory means no qualifying decision has yet been recorded. It also
+writes the five pinned files — the `AGENTS.md` router and the four `docs/` procedures — from this
+repository's `seed-templates/`, with `MODULE_CODE` replaced by the module's code. They are the
+module's whole instruction set, and audit diffs each copy back against its template, so a module
+that needs to say something of its own says it in `CONTEXT.md`, `docs/adr/` or the Profile.
 
 ## Audit
 

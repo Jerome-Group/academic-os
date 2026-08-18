@@ -1,14 +1,15 @@
-import { defaultBookKey, parseShelfFilename } from "./parse-shelf-filename.js";
+import {
+  defaultBookKey,
+  shelfBooksSolutionsLast,
+  UNPARSEABLE_NAME_NOTE,
+} from "./parse-shelf-filename.js";
 import type {
   ShelfIndex,
+  ShelfParkReason,
   ShelfReader,
-  ShelfSettlement,
   ShelfSweep,
   SweptShelfBook,
 } from "./types.js";
-
-const NONCONFORMING_NOTE =
-  "The filename does not follow <Title> <N>e <Author surnames, comma-separated>.pdf.";
 
 // The sweep is the migration's read-only first pass: it derives what a filename proves and asks
 // the Owner about everything else. It runs before the index exists, so a book the index already
@@ -26,30 +27,33 @@ export async function planShelfSweep(input: {
 
   const shelved = await input.reader.listBooks();
   const books: SweptShelfBook[] = [];
-  for (const file of solutionsLast(
+  for (const { file, book } of shelfBooksSolutionsLast(
     shelved.filter((candidate) => !indexedFiles.has(candidate)),
   )) {
     const sha256 = await input.reader.checksum(file);
-    const parsed = parseShelfFilename(file);
-    if (parsed === undefined) {
+    // Recorded before anything else can send this book away, so a copy of the same bytes further
+    // down the shelf is a duplicate of it even when the name it arrived under is unreadable.
+    const twin = filesByChecksum.get(sha256);
+    if (twin === undefined) filesByChecksum.set(sha256, file);
+
+    if (book === undefined) {
       books.push(
-        settleable(file, sha256, "nonconforming-name", NONCONFORMING_NOTE),
+        settleable(file, sha256, "unparseable-name", UNPARSEABLE_NAME_NOTE),
       );
       continue;
     }
-    const twin = filesByChecksum.get(sha256);
     if (twin !== undefined) {
       books.push(
         settleable(
           file,
           sha256,
-          "duplicate-bytes",
+          "checksum-duplicate",
           `The same bytes are already on the shelf as ${twin}.`,
         ),
       );
       continue;
     }
-    const key = defaultBookKey(parsed);
+    const key = defaultBookKey(book);
     const holder = keysHeld.get(key);
     if (holder !== undefined) {
       books.push(
@@ -63,7 +67,6 @@ export async function planShelfSweep(input: {
       continue;
     }
     keysHeld.set(key, file);
-    filesByChecksum.set(sha256, file);
     books.push({ file, sha256, key });
   }
 
@@ -77,21 +80,10 @@ export async function planShelfSweep(input: {
   };
 }
 
-// A solutions manual answers a book and the two share a surname, so the books are considered
-// first and the plain key falls to the book rather than to the manual.
-function solutionsLast(files: string[]): string[] {
-  const solutions = (file: string): boolean =>
-    parseShelfFilename(file)?.solutions === true;
-  return [
-    ...files.filter((file) => !solutions(file)),
-    ...files.filter(solutions),
-  ];
-}
-
 function settleable(
   file: string,
   sha256: string,
-  settle: ShelfSettlement,
+  settle: ShelfParkReason,
   note: string,
 ): SweptShelfBook {
   return { file, sha256, settle, note };

@@ -13,10 +13,10 @@ export function createFileShelfRenamer(shelfRoot: string): ShelfRenamer {
     rename: async ({ from, to }) => {
       const source = shelfPath(shelfRoot, from);
       const target = shelfPath(shelfRoot, to);
-      if (!(await isFile(source))) {
+      if ((await entryAt(source)) !== "file") {
         throw refusal(`the book to rename is no longer on the shelf: ${from}`);
       }
-      if (await exists(target)) {
+      if ((await entryAt(target)) !== "absent") {
         throw refusal(`something on the shelf is already named ${to}`);
       }
       await rename(source, target);
@@ -31,20 +31,11 @@ function shelfPath(shelfRoot: string, file: string): string {
   return join(shelfRoot, file);
 }
 
-async function isFile(path: string): Promise<boolean> {
+async function entryAt(path: string): Promise<"file" | "other" | "absent"> {
   try {
-    return (await lstat(path)).isFile();
+    return (await lstat(path)).isFile() ? "file" : "other";
   } catch {
-    return false;
-  }
-}
-
-async function exists(path: string): Promise<boolean> {
-  try {
-    await lstat(path);
-    return true;
-  } catch {
-    return false;
+    return "absent";
   }
 }
 

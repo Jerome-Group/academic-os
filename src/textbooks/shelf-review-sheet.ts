@@ -3,7 +3,12 @@ import { join } from "node:path";
 import { Document, isMap, isSeq, parseDocument } from "yaml";
 
 import { OperationalError } from "../operational-error.js";
-import type { ShelfReview, ShelfSweep, SweptShelfBook } from "./types.js";
+import type {
+  ShelfParkReason,
+  ShelfReview,
+  ShelfSweep,
+  SweptShelfBook,
+} from "./types.js";
 
 export const SHELF_REVIEW_FILENAME = "shelf-review.yaml";
 
@@ -22,9 +27,12 @@ Settle every book carrying a SETTLE comment, then run the migration to apply it:
   academic-os textbooks migrate --config <path>            # preview
   academic-os textbooks migrate --config <path> --apply    # renames, then the index
 
-rename  the filename the book should end up carrying. Blank keeps the name it has.
-key     the Book key the Shelf index will hold it under, and every chapter filename will
-        cite. Blank is unsettled: the migration refuses to run until it is filled.
+rename    the filename the book should end up carrying. Blank keeps the name it has.
+key       the Book key the Shelf index will hold it under, and every chapter filename will
+          cite. Blank is unsettled: the migration refuses to run until it is filled.
+division  the book's own word for how it divides itself — Chapter, Lecture, Part. Nothing
+          asks for it and blank is fine: no filename carries it, and the first cut from a
+          book without one parks until you record it. Fill in the ones you already know.
 
 A key is immutable once a chapter cites it, so this sheet is where a collision is
 qualified once — Isaacs_FGT beside Isaacs_CT — and never again.`;
@@ -43,6 +51,7 @@ export function renderShelfReviewSheet(input: {
       sha256: book.sha256,
       rename: null,
       key: book.key ?? null,
+      division: null,
     })),
   });
   document.commentBefore = commentLines(PREAMBLE);
@@ -50,8 +59,10 @@ export function renderShelfReviewSheet(input: {
   if (isSeq(books)) {
     for (const [position, node] of books.items.entries()) {
       const book = input.sweep.books[position];
-      if (isMap(node) && book?.settle !== undefined) {
-        node.commentBefore = commentLines(settlementQuestion(book));
+      if (isMap(node) && book !== undefined && book.settle !== undefined) {
+        node.commentBefore = commentLines(
+          settlementQuestion({ ...book, settle: book.settle }),
+        );
       }
     }
   }
@@ -79,7 +90,8 @@ function readReviewBook(value: unknown): ShelfReview["books"][number] {
     typeof value.sha256 !== "string" ||
     !SHA256.test(value.sha256) ||
     Object.keys(value).some(
-      (field) => !["file", "sha256", "rename", "key"].includes(field),
+      (field) =>
+        !["file", "sha256", "rename", "key", "division"].includes(field),
     )
   ) {
     throw unreadableSheet();
@@ -89,19 +101,25 @@ function readReviewBook(value: unknown): ShelfReview["books"][number] {
     sha256: value.sha256,
     ...(isBlank(value.rename) ? {} : { rename: readText(value.rename) }),
     ...(isBlank(value.key) ? {} : { key: readText(value.key) }),
+    ...(isBlank(value.division) ? {} : { division: readText(value.division) }),
   };
 }
 
-function settlementQuestion(book: SweptShelfBook): string {
-  const settlements = {
-    "nonconforming-name":
-      "SETTLE — set `rename` to a conforming filename, and `key` to the key it should carry.",
-    "key-collision":
-      "SETTLE — set `key` to a qualifier that tells this book from the one holding the default.",
-    "duplicate-bytes":
-      "SETTLE — archive or remove one of the two copies and sweep again, or set `key` to index this one as its own book.",
-  } as const;
-  return `${book.note ?? ""}\n${settlements[book.settle ?? "nonconforming-name"]}`;
+const SETTLEMENTS: Record<ShelfParkReason, string> = {
+  "unparseable-name":
+    "SETTLE — set `rename` to a conforming filename, and `key` to the key it should carry.",
+  "key-collision":
+    "SETTLE — set `key` to a qualifier that tells this book from the one holding the default.",
+  // Two files of the same bytes are one book, so there is no third resolution that indexes both:
+  // the migration refuses a sheet that tries, and one of the two leaves the shelf.
+  "checksum-duplicate":
+    "SETTLE — archive or remove one of the two copies, then delete this sheet and sweep again.",
+};
+
+function settlementQuestion(
+  book: SweptShelfBook & { settle: ShelfParkReason },
+): string {
+  return `${book.note ?? ""}\n${SETTLEMENTS[book.settle]}`;
 }
 
 function commentLines(text: string): string {

@@ -14,7 +14,6 @@ export { planShelfSweep } from "./plan-shelf-sweep.js";
 export {
   readShelfReviewSheet,
   renderShelfReviewSheet,
-  SHELF_REVIEW_FILENAME,
   shelfReviewSheetPath,
 } from "./shelf-review-sheet.js";
 export type {

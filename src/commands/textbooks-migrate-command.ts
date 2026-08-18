@@ -78,7 +78,8 @@ function parseMigrateArguments(arguments_: string[]): {
 async function readSheet(path: string): Promise<string> {
   try {
     return await readFile(path, "utf8");
-  } catch {
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     throw new OperationalError(
       "missing-target",
       `No settled review sheet at ${path}; run textbooks sweep first.`,

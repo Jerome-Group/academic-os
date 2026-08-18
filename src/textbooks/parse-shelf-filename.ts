@@ -57,3 +57,22 @@ export function parseShelfFilename(file: string): ParsedShelfBook | undefined {
 export function defaultBookKey(book: ParsedShelfBook): string {
   return book.authors[0];
 }
+
+export const UNPARSEABLE_NAME_NOTE =
+  "The filename does not follow <Title> <N>e <Author surnames, comma-separated>.pdf.";
+
+// A solutions manual answers a book and the two share a surname, so the books are considered first
+// and the plain key falls to the book rather than to the manual, whichever order the shelf lists
+// them in. Every pass over the shelf wants that order, and every pass wants each name parsed once.
+export function shelfBooksSolutionsLast(
+  files: readonly string[],
+): Array<{ file: string; book: ParsedShelfBook | undefined }> {
+  const parsed = files.map((file) => ({
+    file,
+    book: parseShelfFilename(file),
+  }));
+  return [
+    ...parsed.filter(({ book }) => book?.solutions !== true),
+    ...parsed.filter(({ book }) => book?.solutions === true),
+  ];
+}

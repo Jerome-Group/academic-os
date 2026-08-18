@@ -18,7 +18,7 @@ const sweep: ShelfSweep = {
     {
       file: "Isaacs - Algebra.pdf",
       sha256: "c".repeat(64),
-      settle: "nonconforming-name",
+      settle: "unparseable-name",
       note: "The filename does not follow the codified naming.",
     },
   ],

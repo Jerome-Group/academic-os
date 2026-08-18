@@ -29,6 +29,15 @@ book by hand and sweeping again costs a minute. Renames run before the index bec
 records final filenames, and each is journalled either side of the call, so a run that dies
 mid-pass leaves the list of books that actually moved rather than the list that was planned.
 
+`docs/agents/safe-drive-testing.md` requires that mutation use Drive IDs rather than paths, and
+this pass has none to use: it runs at the mounted tier the seeder and auditor already run at, where
+Drive for Desktop offers a filesystem and no ID surface. That requirement is not waived so much as
+paid in the currency available — the sheet pins every book's **sha256**, which is a stronger
+identity than an ID because it names the bytes rather than the container, and the plan re-reads
+every one of them against a fresh listing before a single rename. What the ID rule protects against
+is mutating the wrong object; what protects against it here is that a book whose bytes moved, whose
+name moved, or whose neighbours moved refuses the entire run.
+
 ## Consequences
 
 The sweep refuses to overwrite an existing sheet: from the moment it exists the sheet is the
@@ -40,9 +49,14 @@ The sheet names the Owner's own books, so it lives in private state, never in a 
 never in this repository.
 
 `Icon\r` — the file Finder leaves beside a custom folder icon — joins dot-files as something the
-shelf reader does not see. It is the mount's artifact rather than a book the Owner put there, and
-Finder writes it back whenever the icon is set, so parking it would be a park that never ends and
-the shelf could never reach the clean catch-up this migration exists to hand over.
+shelf reader does not see. This narrows one consequence of **ADR-0009**, which has anything on the
+shelf that is not a cleanly named PDF parking on every run "until the Owner deals with it — that is
+the intended pressure". The pressure is well aimed at a book; it cannot land on this file, because
+there is nothing for the Owner to do. Finder writes it back whenever the folder icon is set, so the
+park would never end, and a shelf that can never park nothing can never hand the daily catch-up the
+clean baseline this migration exists to produce. ADR-0009 stands otherwise and is not superseded:
+what changed is the reading of what counts as being on the shelf, which that ADR already drew
+around dot-files for exactly this reason.
 
 ## Revisit when
 

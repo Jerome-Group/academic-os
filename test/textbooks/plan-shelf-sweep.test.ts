@@ -50,7 +50,7 @@ describe("the shelf sweep", () => {
     assert.deepEqual(sweep.counts, { books: 1, indexed: 1, settle: 0 });
   });
 
-  it("flags a nonconforming name for the Owner to rename, and derives no key for it", async () => {
+  it("flags an unparseable name for the Owner to rename, and derives no key for it", async () => {
     const sweep = await planShelfSweep({
       reader: syntheticShelf({ "Isaacs - Algebra.pdf": "c".repeat(64) }),
       index: { books: {} },
@@ -60,7 +60,7 @@ describe("the shelf sweep", () => {
       {
         file: "Isaacs - Algebra.pdf",
         sha256: "c".repeat(64),
-        settle: "nonconforming-name",
+        settle: "unparseable-name",
         note: "The filename does not follow <Title> <N>e <Author surnames, comma-separated>.pdf.",
       },
     ]);
@@ -141,7 +141,7 @@ describe("the shelf sweep", () => {
     });
 
     assert.equal(sweep.books[1]?.file, "Analysis I 4e Terence.pdf");
-    assert.equal(sweep.books[1]?.settle, "duplicate-bytes");
+    assert.equal(sweep.books[1]?.settle, "checksum-duplicate");
     assert.match(sweep.books[1]?.note ?? "", /Analysis I 4e Tao\.pdf/u);
   });
 
@@ -155,8 +155,23 @@ describe("the shelf sweep", () => {
       index: indexedRosen,
     });
 
-    assert.equal(sweep.books[0]?.settle, "duplicate-bytes");
+    assert.equal(sweep.books[0]?.settle, "checksum-duplicate");
     assert.match(sweep.books[0]?.note ?? "", /Rosen/u);
+  });
+
+  it("flags a conforming copy of bytes an unparseable name brought onto the shelf", async () => {
+    const sweep = await planShelfSweep({
+      reader: syntheticShelf({
+        "Algebra - A Graduate Course Isaacs.pdf": "c".repeat(64),
+        "Algebra A Graduate Course Isaacs.pdf": "c".repeat(64),
+      }),
+      index: { books: {} },
+    });
+
+    assert.equal(sweep.books[1]?.file, "Algebra A Graduate Course Isaacs.pdf");
+    assert.equal(sweep.books[1]?.settle, "checksum-duplicate");
+    assert.match(sweep.books[1]?.note ?? "", /Algebra - A Graduate Course/u);
+    assert.equal(sweep.counts.settle, 2);
   });
 
   it("never reads the bytes of a book the index already names", async () => {

@@ -198,6 +198,76 @@ describe("the shelf migration plan", () => {
     ]);
   });
 
+  it("blocks two sheet lines carrying the same bytes, whatever the Owner settled them as", async () => {
+    const plan = await planShelfMigration({
+      reader: syntheticShelf({
+        "Analysis I 4e Tao.pdf": "h".repeat(64),
+        "Analysis I 4e Terence.pdf": "h".repeat(64),
+      }),
+      index: { books: {} },
+      review: {
+        books: [
+          { file: "Analysis I 4e Tao.pdf", sha256: "h".repeat(64), key: "Tao" },
+          {
+            file: "Analysis I 4e Terence.pdf",
+            sha256: "h".repeat(64),
+            key: "Terence",
+          },
+        ],
+      },
+    });
+
+    assert.match(plan.blockers[0] ?? "", /carries the same bytes as/u);
+    assert.equal(plan.appends.length, 1);
+  });
+
+  it("blocks a sheet line carrying bytes an index entry already holds", async () => {
+    const plan = await planShelfMigration({
+      reader: syntheticShelf({
+        "Discrete Mathematics and Its Applications 8e Rosen.pdf": "a".repeat(
+          64,
+        ),
+        "Discrete Mathematics and Its Applications 8e Krantz.pdf": "a".repeat(
+          64,
+        ),
+      }),
+      index: {
+        books: {
+          Rosen: {
+            file: "Discrete Mathematics and Its Applications 8e Rosen.pdf",
+            title: "Discrete Mathematics and Its Applications",
+            edition: "8e",
+            authors: ["Rosen"],
+            sha256: "a".repeat(64),
+          },
+        },
+      },
+      review: reviewOf({
+        file: "Discrete Mathematics and Its Applications 8e Krantz.pdf",
+        sha256: "a".repeat(64),
+        key: "Krantz",
+      }),
+    });
+
+    assert.match(plan.blockers[0] ?? "", /carries the same bytes as/u);
+    assert.deepEqual(plan.appends, []);
+  });
+
+  it("records a Division word the Owner knew without being asked for one", async () => {
+    const plan = await planShelfMigration({
+      reader: syntheticShelf({ [axler]: "b".repeat(64) }),
+      index: { books: {} },
+      review: reviewOf({
+        file: axler,
+        sha256: "b".repeat(64),
+        key: "Axler",
+        division: "Chapter",
+      }),
+    });
+
+    assert.equal(plan.appends[0]?.entry.division, "Chapter");
+  });
+
   it("blocks on a rename that would land on a book the index already names", async () => {
     const older = "Linear Algebra Done Right 3e Axler.pdf";
     const plan = await planShelfMigration({

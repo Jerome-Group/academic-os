@@ -72,22 +72,15 @@ export interface ShelfCatchUpReport {
   parked: ParkedShelfBook[];
 }
 
-// The one-time migration's three settleable problems. They are the catch-up's three parks with
-// the duplicate taken first: a second copy of bytes the shelf already holds is a book the Owner
-// removes rather than keys, so it never claims the key its twin should keep.
-export type ShelfSettlement =
-  | "nonconforming-name"
-  | "key-collision"
-  | "duplicate-bytes";
-
 // One row of the review sheet as the sweep leaves it. `key` is the default the sweep derived and
 // the Owner may override; a settleable book has none, because deriving one would be the sweep
-// answering the question it is asking.
+// answering the question it is asking. What it must settle is one of the catch-up's own three
+// parks — the same three decisions, named the same way, taken here once instead of daily.
 export interface SweptShelfBook {
   file: string;
   sha256: string;
   key?: string;
-  settle?: ShelfSettlement;
+  settle?: ShelfParkReason;
   note?: string;
 }
 
@@ -97,12 +90,16 @@ export interface ShelfSweep {
 }
 
 // The review sheet once the Owner has settled it: the shelf as it stands, the filename each book
-// should end up carrying, and the Book key the index will hold it under.
+// should end up carrying, and the Book key the index will hold it under. `division` is asked of
+// nobody — no filename carries it and reading 59 books is not one review pass (ADR-0009) — but the
+// sheet is the one place the Owner is already looking, so a word they know goes in rather than
+// waiting for the first cut to park.
 export interface ShelfReviewBook {
   file: string;
   sha256: string;
   rename?: string;
   key?: string;
+  division?: string;
 }
 
 export interface ShelfReview {

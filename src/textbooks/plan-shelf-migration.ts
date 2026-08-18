@@ -1,4 +1,5 @@
 import { parseShelfFilename } from "./parse-shelf-filename.js";
+import { shelfIndexEntry } from "./shelf-index-entry.js";
 import type {
   ShelfIndex,
   ShelfIndexAppend,
@@ -24,8 +25,8 @@ export async function planShelfMigration(input: {
   const indexedFiles = new Set(
     Object.values(input.index.books).map(({ file }) => file),
   );
-  const blockers = shelfDisagreements(shelved, indexedFiles, books);
   const reviewed = new Set(books.map(({ file }) => file));
+  const blockers = shelfDisagreements({ shelved, indexedFiles, reviewed });
   blockers.push(
     ...(await staleChecksums(
       input.reader,
@@ -37,19 +38,28 @@ export async function planShelfMigration(input: {
   const appends: ShelfIndexAppend[] = [];
   const finalNames = new Map<string, string>();
   const keys = new Map<string, string>();
+  const filesByChecksum = new Map(
+    Object.values(input.index.books).map(({ sha256, file }) => [sha256, file]),
+  );
   for (const book of books) {
     const to = book.rename ?? book.file;
     const occupant =
       finalNames.get(to) ??
-      standingOccupant(to, book.file, {
-        shelved,
-        reviewed,
-      });
+      standingOccupant({ to, from: book.file, shelved, reviewed });
     if (occupant !== undefined) {
       blockers.push(`Naming ${book.file} ${to} would land on ${occupant}.`);
       continue;
     }
     finalNames.set(to, book.file);
+    // Two files of the same bytes are one book, whatever the Owner settled them as: indexing both
+    // would give one book two entries and leave a checksum resolving to either.
+    const twin = filesByChecksum.get(book.sha256);
+    if (twin !== undefined) {
+      blockers.push(
+        `${book.file} carries the same bytes as ${twin}; one of the two leaves the shelf.`,
+      );
+      continue;
+    }
     const parsed = parseShelfFilename(to);
     if (parsed === undefined) {
       blockers.push(
@@ -73,15 +83,13 @@ export async function planShelfMigration(input: {
       continue;
     }
     keys.set(book.key, to);
+    filesByChecksum.set(book.sha256, to);
     if (to !== book.file) renames.push({ from: book.file, to });
     appends.push({
       key: book.key,
       entry: {
-        file: to,
-        title: parsed.title,
-        ...(parsed.edition === undefined ? {} : { edition: parsed.edition }),
-        authors: [...parsed.authors],
-        sha256: book.sha256,
+        ...shelfIndexEntry({ file: to, book: parsed, sha256: book.sha256 }),
+        ...(book.division === undefined ? {} : { division: book.division }),
       },
     });
   }
@@ -104,30 +112,33 @@ function chainedRenames(renames: ShelfRename[]): string[] {
 
 // What still stands under a name once every approved rename has run: a book the review does not
 // move, whether the index already names it or the sheet leaves its name alone.
-function standingOccupant(
-  to: string,
-  from: string,
-  shelf: { shelved: string[]; reviewed: ReadonlySet<string> },
-): string | undefined {
-  if (to === from || !shelf.shelved.includes(to)) return undefined;
-  return shelf.reviewed.has(to) ? undefined : to;
+function standingOccupant(shelf: {
+  to: string;
+  from: string;
+  shelved: string[];
+  reviewed: ReadonlySet<string>;
+}): string | undefined {
+  if (shelf.to === shelf.from || !shelf.shelved.includes(shelf.to)) {
+    return undefined;
+  }
+  return shelf.reviewed.has(shelf.to) ? undefined : shelf.to;
 }
 
 // Paths are evidence rather than identity, so the sheet is held against a fresh listing before a
 // single book moves: a shelf that has changed under the review is a re-sweep, not a rename.
-function shelfDisagreements(
-  shelved: string[],
-  indexedFiles: ReadonlySet<string>,
-  books: ShelfReviewBook[],
-): string[] {
-  const reviewed = new Set(books.map(({ file }) => file));
+function shelfDisagreements(shelf: {
+  shelved: string[];
+  indexedFiles: ReadonlySet<string>;
+  reviewed: ReadonlySet<string>;
+}): string[] {
   const disagreements = [
-    ...shelved
-      .filter((file) => !reviewed.has(file) && !indexedFiles.has(file))
+    ...shelf.shelved
+      .filter(
+        (file) => !shelf.reviewed.has(file) && !shelf.indexedFiles.has(file),
+      )
       .map((file) => `${file} is on the shelf and not in the review sheet.`),
-    ...books
-      .map(({ file }) => file)
-      .filter((file) => !shelved.includes(file))
+    ...[...shelf.reviewed]
+      .filter((file) => !shelf.shelved.includes(file))
       .map((file) => `${file} is in the review sheet and not on the shelf.`),
   ];
   return disagreements.length > 0

@@ -418,6 +418,14 @@ Settle the sheet. `rename` is the filename the book should end up carrying and i
 keep the name it has; `key` is the Book key the Shelf index will hold it under. A key is immutable
 once a chapter filename cites it, so a collision is qualified here once — `Isaacs_FGT` beside
 `Isaacs_CT` — and never again. A blank key is unsettled and the migration refuses to run.
+`division` — the book's own word for how it divides itself — is asked of nobody and blank is the
+expected answer: no filename carries it and the first cut from a book without one parks until the
+Owner records it (ADR-0009). The sheet takes one where the Owner already knows it, which is the
+only saving on offer without opening the book.
+
+The settled collision keys and the approved renames are what the migration was authorised by, so
+they are recorded on the issue that ordered the migration — the sheet itself never leaves private
+state.
 
 Preview the settled sheet:
 
@@ -474,7 +482,9 @@ first chapter cut from that book parks until they do (ADR-0009).
 The shelf's `Archive/` is invisible to the catch-up, retired books and all — as is any other folder
 on the shelf, so books live directly on it. Everything else sitting directly on the shelf is read as
 a book, so anything there that is not a cleanly named PDF parks on every run until it is renamed or
-archived.
+archived. Two exceptions are the mount's own artifacts rather than anything the Owner put there:
+dot-files, and the `Icon\r` Finder writes back whenever a folder icon is set. Neither is a park the
+Owner could ever clear, so neither is one (ADR-0010).
 
 A book the index already names by filename is left unread, which is what keeps a run from pulling
 the whole shelf down the Drive mount. Replacing a copy in place under its old name therefore leaves

@@ -251,9 +251,11 @@ contract reads none of it.
 and it sits in Module Admin because it is machine-read module state rather than workspace content.
 Its `units` mapping is keyed exactly as the module numbers its Lecture-units — a week or a lecture
 in the module's own words, never a subdivision this system invented — and every unit carries
-`topics`, `lectures`, `textbook` and `tutorials`, each of them a sequence. `topics` names ideas in
-the module's language; the other three hold paths relative to the module folder, which is where
-the module's own material sits rather than the workspace that studies it.
+`topics`, `lectures`, `textbook` and `tutorials`, each of them a sequence, written out even when
+empty — a unit with no textbook chapter says `textbook: []`, so a missing key is a malformed unit
+rather than a quiet nothing. `topics` names ideas in the module's language; the other three hold
+paths relative to the module folder, which is where the module's own material sits rather than the
+workspace that studies it.
 
 ```yaml
 units:

@@ -331,6 +331,11 @@ created on the phone arrives as a new row. A row Google no longer has becomes `c
 than disappearing, and a row with no `task_id` — one an interactive session wrote but has not
 pushed — survives untouched. Provenance is the register's own, and a pull preserves it.
 
+Cancellation reaches the rows the register holds, so it takes two pulls to see: the one that first
+mirrors a task, then the one after it was deleted. A task created and deleted between the same two
+pulls never enters the register at all — a `cancelled` row exists to explain where a tracked task
+went, and inventing one for work the register never saw would say the opposite.
+
 Add `--semester` and `--module` to refresh one module. A nonzero result may still have refreshed
 other modules: the named stale modules kept their last-good register and report why. Reading a
 stale register is fine when its staleness is named; the register is a mirror, so the fix is a

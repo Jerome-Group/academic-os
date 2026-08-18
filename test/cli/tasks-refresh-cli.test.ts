@@ -130,6 +130,83 @@ describe("academic-os tasks refresh", () => {
     );
   });
 
+  it("cancels a row on the pull after the one that first mirrored it", async () => {
+    const fixture = await setupFixture();
+    await writeFile(
+      fixture.registers.MH2100,
+      "list_id: first-list\ntasks: []\n",
+    );
+    await writeFile(
+      fixture.registers.MH2101,
+      "list_id: second-list\ntasks: []\n",
+    );
+
+    const first = await runTasksRefresh(fixture, "--json");
+
+    assert.equal(first.exitCode, 0, JSON.stringify(first));
+    assert.deepEqual(JSON.parse(first.stdout).modules[0].changes, {
+      added: 2,
+      updated: 0,
+      cancelled: 0,
+    });
+    assert.match(
+      await readFile(fixture.registers.MH2100, "utf8"),
+      /task_id: added-on-the-phone/u,
+    );
+
+    const provider = await readProvider(fixture);
+    provider.tasks["first-list"] = [
+      ...(provider.tasks["first-list"] ?? []).filter(
+        ({ id }) => id !== "added-on-the-phone",
+      ),
+      { id: "added-on-the-phone", title: "Buy the textbook", deleted: true },
+    ];
+    await writeProvider(fixture, provider);
+
+    const second = await runTasksRefresh(fixture, "--json");
+
+    assert.equal(second.exitCode, 0, JSON.stringify(second));
+    assert.deepEqual(JSON.parse(second.stdout).modules[0].changes, {
+      added: 0,
+      updated: 0,
+      cancelled: 1,
+    });
+    assert.ok(
+      (await readFile(fixture.registers.MH2100, "utf8")).includes(
+        [
+          "  - task_id: added-on-the-phone",
+          "    title: Buy the textbook",
+          "    do_date: 2026-08-30",
+          "    status: cancelled",
+          "",
+        ].join("\n"),
+      ),
+    );
+  });
+
+  it("invents no row for a task deleted before any pull mirrored it", async () => {
+    const fixture = await setupFixture();
+    await writeFile(
+      fixture.registers.MH2100,
+      "list_id: first-list\ntasks: []\n",
+    );
+    await writeFile(
+      fixture.registers.MH2101,
+      "list_id: second-list\ntasks: []\n",
+    );
+
+    const result = await runTasksRefresh(fixture, "--json");
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.modules[0].counts.tasks, 2);
+    assert.equal(report.modules[0].counts.cancelled, 0);
+    assert.doesNotMatch(
+      await readFile(fixture.registers.MH2100, "utf8"),
+      /removed/u,
+    );
+  });
+
   it("reads every page of a long list", async () => {
     const fixture = await setupFixture();
     await writeFile(
@@ -396,6 +473,7 @@ async function readRegisterOrUndefined(
 }
 
 async function readProvider(fixture: TasksFixture): Promise<{
+  tasks: Record<string, Array<{ id: string; [key: string]: unknown }>>;
   taskPageSizes?: Record<string, number>;
   taskReadFailures?: string[];
   requests: Array<{

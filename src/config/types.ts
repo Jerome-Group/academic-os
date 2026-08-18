@@ -30,6 +30,16 @@ export interface TasksConfig {
   };
 }
 
+// The shelf as the configuration names it: a path relative to the Drive mount.
+export interface TextbooksConfig {
+  shelfRoot: string;
+}
+
+// The shelf as a command uses it: the absolute path that relative one resolved to.
+export interface ResolvedTextbooksConfig {
+  shelfRoot: string;
+}
+
 export interface AcademicConfig {
   driveMount: string;
   stateRoot: string;
@@ -38,6 +48,7 @@ export interface AcademicConfig {
   seedTarget?: ConfiguredModule;
   calendar?: CalendarConfig;
   tasks?: TasksConfig;
+  textbooks?: TextbooksConfig;
   driveApi?: {
     moduleFolderIds: Record<string, Record<string, string>>;
   };

@@ -115,23 +115,36 @@ jobs:
       # in `test` above on every pull request.
       #
       # `--no-install-recommends` is what makes the set installable at all: the recommends of
-      # texlive-latex-extra pull in most of TeX Live. What it does not fix is the download, which
-      # is the half that varies — this job first ran in five minutes and then spent nine still
-      # fetching, so the archives are cached and apt is pointed at the cache. The key names the
-      # package set, so changing the set is a miss and nothing else is.
+      # texlive-latex-extra pull in most of TeX Live.
+      #
+      # The two lines before the update are what keep this job inside its timeout. Twice it spent
+      # the whole nine minutes inside `apt-get update` and never reached the install, both times
+      # still fetching — the runner image carries source lists for Azure CLI, Chrome and Docker
+      # that this job has no use for, and one of them stalling stalls the update. Only Ubuntu's own
+      # `ubuntu.sources` survives, and the acquire timeouts bound what a stall can cost, so a slow
+      # mirror is retried rather than waited on.
+      #
+      # The archives are cached on top, because the install's own download is the other half that
+      # varies. The key names the package set, so changing the set is a miss and nothing else is.
       - name: Cache the TeX Live packages
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/tex-live-archives
           key: tex-live-${{ hashFiles('.github/tex-live-packages.txt') }}
       - name: Install TeX Live
+        env:
+          APT_ACQUIRE: >-
+            -o Acquire::Retries=3
+            -o Acquire::http::Timeout=20
+            -o Acquire::https::Timeout=20
         run: |
           mkdir -p ~/tex-live-archives/partial
           chmod -R 777 ~/tex-live-archives
-          sudo apt-get update
+          sudo find /etc/apt/sources.list.d -type f ! -name ubuntu.sources -delete
+          sudo apt-get update $APT_ACQUIRE
           xargs -a .github/tex-live-packages.txt sudo apt-get install -y \
             --no-install-recommends \
-            -o Acquire::Retries=3 \
+            $APT_ACQUIRE \
             -o Dir::Cache::archives="$HOME/tex-live-archives"
       - name: Compile the seeded LaTeX set
         run: npm run templates:check

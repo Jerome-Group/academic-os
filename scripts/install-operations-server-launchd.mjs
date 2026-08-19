@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
-import { access } from "node:fs/promises";
+import { access, mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
-  CALENDAR_REFRESH_LAUNCHD_JOB_NAME,
-  describeCalendarRefreshLaunchdJob,
-} from "../dist/src/calendar/index.js";
+  describeOperationsServerLaunchdJob,
+  OPERATIONS_SERVER_LAUNCHD_JOB_NAME,
+} from "../dist/src/operations/index.js";
 import {
   installLaunchdJob,
   launchdJobTarget,
@@ -20,15 +20,12 @@ import {
   requireLaunchdUid,
 } from "./launchd-installer-cli.mjs";
 
-const notificationPath = "/usr/bin/osascript";
 const scriptPath = fileURLToPath(import.meta.url);
-const cliPath = fileURLToPath(new URL("../dist/src/cli.js", import.meta.url));
-const runnerModulePath = fileURLToPath(
-  new URL(
-    "../dist/src/calendar/calendar-refresh-launchd-runner.js",
-    import.meta.url,
-  ),
+const serverModulePath = fileURLToPath(
+  new URL("../dist/src/operations/run-operations-server.js", import.meta.url),
 );
+const logDirectory = join(homedir(), "Library", "Logs", "academic-os");
+const logPath = join(logDirectory, "operations-server.log");
 const usage = `Usage: node ${scriptPath} --config <absolute-path> [--dry-run]
        node ${scriptPath} --remove`;
 
@@ -44,10 +41,10 @@ try {
 async function main() {
   const arguments_ = parseInstallerArguments(process.argv.slice(2), usage);
   const homeDirectory = homedir();
-  const uid = requireLaunchdUid("Calendar Refresh");
+  const uid = requireLaunchdUid("Operations server");
   if (arguments_.remove) {
     const target = launchdJobTarget({
-      name: CALENDAR_REFRESH_LAUNCHD_JOB_NAME,
+      name: OPERATIONS_SERVER_LAUNCHD_JOB_NAME,
       homeDirectory,
       uid,
     });
@@ -66,14 +63,11 @@ async function main() {
     process.stdout.write(
       `${JSON.stringify(
         {
-          command: "calendar refresh schedule",
+          command: "operations server schedule",
           outcome: "preview",
           label: plan.label,
-          calendarTimeZone: plan.schedule.timeZone,
-          startCalendarInterval: {
-            Hour: plan.schedule.hour,
-            Minute: plan.schedule.minute,
-          },
+          keepAlive: plan.schedule.kind === "keep-alive",
+          runAtLoad: plan.runAtLoad,
           plistPath: plan.plistPath,
           programArguments: plan.programArguments,
           plist: plan.plist,
@@ -85,14 +79,16 @@ async function main() {
     return;
   }
 
+  await mkdir(logDirectory, { recursive: true });
   await installLaunchdJob(plan);
   process.stdout.write(
     `${[
       `Installed ${plan.label}.`,
-      `Schedule: ${formatDailyTime(plan.schedule)}; launchd catches up after sleep/wake.`,
+      "Resident: launchd starts it at login and restarts it if it stops.",
       `Plist: ${plan.plistPath}`,
+      `Log: ${logPath}`,
       `Inspect: launchctl print ${plan.serviceTarget}`,
-      `Manual run: launchctl kickstart -k ${plan.serviceTarget}`,
+      `Restart: launchctl kickstart -k ${plan.serviceTarget}`,
       `Remove: node ${scriptPath} --remove`,
     ].join("\n")}\n`,
   );
@@ -102,25 +98,16 @@ async function describeJob(configPath) {
   const resolvedConfigPath = resolve(configPath);
   await Promise.all([
     access(resolvedConfigPath),
-    access(cliPath),
-    access(runnerModulePath),
-    access(notificationPath),
+    access(serverModulePath),
   ]).catch(() => {
     throw new Error(
-      "Calendar Refresh config, built CLI, runner, and osascript must all exist.",
+      "The Operations server config and the built server module must both exist.",
     );
   });
-  return describeCalendarRefreshLaunchdJob({
+  return describeOperationsServerLaunchdJob({
     nodePath: process.execPath,
-    runnerModulePath,
-    cliPath,
+    serverModulePath,
     configPath: resolvedConfigPath,
-    notificationPath,
+    logPath,
   });
-}
-
-function formatDailyTime(schedule) {
-  const hour = String(schedule.hour).padStart(2, "0");
-  const minute = String(schedule.minute).padStart(2, "0");
-  return `${hour}:${minute} ${schedule.timeZone}`;
 }

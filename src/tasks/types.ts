@@ -115,6 +115,15 @@ export interface TaskOperationReport {
   };
 }
 
+export interface TaskRegisterReadReport {
+  schemaVersion: 1;
+  command: "tasks read-register";
+  outcome: "read" | "stale";
+  module: ConfiguredModuleIdentity;
+  register: TaskRefreshModuleReport;
+  tasks: TaskRegisterEntry[];
+}
+
 export interface TaskRegisterChanges {
   added: number;
   updated: number;

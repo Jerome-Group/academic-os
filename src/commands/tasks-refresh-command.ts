@@ -1,11 +1,8 @@
-import {
-  planCohortAudit,
-  resolveConfiguredAuditTarget,
-} from "../cohort/index.js";
 import type { AcademicConfig } from "../config/index.js";
 import { OperationalError } from "../mounted/index.js";
 import {
-  createDeferredTaskRegisterStore,
+  cohortTaskTargets,
+  configuredTaskTarget,
   createGoogleTaskRefreshReader,
   refreshTaskRegisters,
   type TaskRefreshModuleReport,
@@ -40,23 +37,13 @@ function refreshTargets(
   parsed: { semester?: string; module?: string },
 ): TaskRefreshTarget[] {
   if (parsed.semester === undefined || parsed.module === undefined) {
-    return planCohortAudit(config).targets.map((target) => ({
-      semester: target.semester,
-      module: target.module,
-      registerStore: createDeferredTaskRegisterStore(target),
-    }));
+    return cohortTaskTargets(config);
   }
-  const target = resolveConfiguredAuditTarget(
-    config,
-    parsed.semester,
-    parsed.module,
-  );
   return [
-    {
-      semester: target.semester,
-      module: target.module,
-      registerStore: createDeferredTaskRegisterStore(target),
-    },
+    configuredTaskTarget(config, {
+      semester: parsed.semester,
+      module: parsed.module,
+    }),
   ];
 }
 

@@ -1,7 +1,9 @@
 # The module folder contract
 
 The normative folder and naming contract every module folder follows. A folder that disagrees
-with an applicable rule here is wrong, and a rule that is not here is not a rule.
+with an applicable rule here is wrong, and a rule that is not here is not a rule. One surface
+outside a module folder is governed too, and it is the only one: the shared Textbook shelf at
+`Modules/Textbooks`, which every module cuts its chapters from.
 
 **Contract version: 3.** Increase it when a normative requirement, applicability rule or allowed
 structure changes. Editorial clarification and repaired citations do not change it. Definition
@@ -48,7 +50,8 @@ MODULE_CODE/
 │   ├── 10 Module Definition.yaml
 │   ├── 20 Curation Register.jsonl
 │   ├── 30 Task Register.yaml
-│   └── 40 Source Map.yaml
+│   ├── 40 Source Map.yaml
+│   └── 50 Textbook Register.yaml
 ├── 10 Learning Materials/
 │   ├── 10 Lecture Materials/
 │   ├── 20 Textbook Chapters/
@@ -307,6 +310,83 @@ Seeding writes an empty `units`, which grows as the module's material lands. A f
 `10 Lectures` is named for a key here, and a Learning record's `unit` is one of them, so which files
 a unit means is a lookup rather than a judgment.
 
+## The Textbook library
+
+This section is the contract's one reach outside a module folder. MF-TEXTBOOK-001 and
+MF-TEXTBOOK-002 govern the shared Textbook shelf; MF-TEXTBOOK-003 and MF-TEXTBOOK-004 govern what a
+module folder holds because of it. A module audit reads a module's own two and never the shelf —
+one shelf serves every module, so it is checked where it is read rather than once per module that
+reads it.
+
+**MF-TEXTBOOK-001 (deterministic).** The Textbook shelf sits beside the semester roots at
+`Modules/Textbooks`, configured like they are. It is the sole source every module cuts chapters
+from, and whole books arrive on it by the Owner's hand alone. A book is named
+`<Title> <N>e <Author surnames, comma-separated>.pdf` — the edition token present only when the
+book has one, `Solutions` trailing a solutions manual — and sits directly on the shelf. `Archive/`
+holds retired books and is not indexed; nor is anything else inside a folder on the shelf.
+
+```text
+Discrete Mathematics and Its Applications 8e Rosen.pdf
+Introduction to Algorithms 4e Cormen, Leiserson, Rivest, Stein.pdf
+Analysis I Tao.pdf
+Linear Algebra Done Right 4e Axler Solutions.pdf
+```
+
+**MF-TEXTBOOK-002 (deterministic).** `00 Index.yaml` on the shelf catalogues it, one entry per book
+under its **Book key** — a YAML mapping key, so uniqueness is structural.
+
+```yaml
+books:
+  Rosen:
+    file: Discrete Mathematics and Its Applications 8e Rosen.pdf
+    title: Discrete Mathematics and Its Applications
+    edition: 8e
+    authors: [Rosen]
+    division: Chapter
+    sha256: <sha-256 of the PDF bytes>
+```
+
+The index owns every book-level fact and nothing below it repeats one. `edition` is absent when the
+book has none, and `division` is the book's own word for how it divides itself — Chapter, Lecture,
+Part — which no filename carries. A key defaults to the first author's surname and is qualified
+where two books would collide (`Isaacs_FGT`, `Tao_I`, `Axler_Solutions`); it is **immutable once any
+chapter filename cites it**. Entries are appended, and renaming or removing one is the Owner's.
+
+**MF-TEXTBOOK-003 (deterministic).** `00 Module Admin/50 Textbook Register.yaml` records the
+chapters this module cut, one entry per cut. Seeding writes `extractions: []`.
+
+```yaml
+extractions:
+  - book: Rosen              # the key, into the Shelf index
+    number: 3                # as the book prints it; roman recorded verbatim
+    title: Algorithms        # the full table-of-contents title
+    pages: [187, 244]        # absolute PDF pages, inclusive
+    file: MODULE_CODE_Rosen_Chapter_03_Algorithms.pdf
+    source_sha256: <the book's checksum at cut time>
+```
+
+An entry carries those six keys and no others: every book-level fact stays in the Shelf index the
+entry cites. `number` is the number the book prints, so a roman numeral stays roman and an appendix
+keeps its letter. `pages` is an inclusive first-and-last range of absolute PDF pages, `file` is the
+MF-TEXTBOOK-004 name of the chapter that came out, and `source_sha256` against the index's current
+checksum is what makes a chapter cut from a superseded copy of the book findable.
+
+**MF-TEXTBOOK-004 (deterministic).** Cut chapters land in `10 Learning Materials/20 Textbook
+Chapters/`, and every file there is one. Their names instantiate MF-NAMING-002 exactly, and so
+stand in place of it there — a Book key the Owner qualified on collision spells capitals the
+general rule's Title Case would refuse:
+
+```text
+MODULE_CODE_Rosen_Chapter_03_Algorithms.pdf
+MODULE_CODE_Tao_I_Chapter_05_The_Real_Numbers.pdf
+MODULE_CODE_Rosen_Appendix_A_Axioms_For_The_Real_Numbers.pdf
+```
+
+The Division word comes from the index, in full. Numbers are two-digit zero-padded arabic even
+where the book prints roman, and appendix letters stay as printed. Titles are the book's own
+table-of-contents titles, Title_Cased, and may be shortened here because the register keeps the
+full one. The edition stays out of the filename — the key resolves it.
+
 ## Context-derived structure
 
 ### Tutorials
@@ -388,7 +468,8 @@ then Title Case underscore-separated tokens. Sequences use two digits, dates `YY
 four digits and extensions lowercase. A sequence number is read from the source's own naming — the
 item's title, or the attachment's own filename — so an importer mirror's `NN ` prefix stays that
 importer's ordering, and a source numbering itself nowhere is an ambiguity to park. Files inside
-importer roots, `.scratch`, `build`, `docs`, `70 Learning`, plus root controls, are exempt.
+importer roots, `.scratch`, `build`, `docs`, `70 Learning`, plus root controls, are exempt, as is
+`10 Learning Materials/20 Textbook Chapters`, whose names MF-TEXTBOOK-004 fixes exactly.
 
 **MF-NAMING-003 (judgment).** Useful qualifiers include `Questions`, `Solutions`, `Draft_01`,
 `Annotated` and `Graded`. A completed file has no `Final` version suffix; `Final` names the final

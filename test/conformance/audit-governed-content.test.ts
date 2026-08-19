@@ -159,6 +159,61 @@ describe("auditModule governed content", () => {
     );
   });
 
+  it("holds every file in the chapter home to the cut-chapter name [MF-TEXTBOOK-004]", () => {
+    const target = inventory();
+    const chapters = "10 Learning Materials/20 Textbook Chapters";
+    for (const name of [
+      "MH2100_Rosen_Chapter_03_Algorithms.pdf",
+      "MH2100_Tao_I_Chapter_05_The_Real_Numbers.pdf",
+      "MH2100_Isaacs_FGT_Chapter_03_Algorithms.pdf",
+      "MH2100_Rosen_Appendix_A_Axioms_For_The_Real_Numbers.pdf",
+      "MH2100_Rosen_Algorithms.pdf",
+      "MH2100_Chapter_03_Algorithms.pdf",
+      "MH2100_Rosen_Chapter_3_Algorithms.pdf",
+      "MH2100_Rosen_Chapter_003_Algorithms.pdf",
+      "MH2100_Rosen_Chapter_03_Algorithms.docx",
+    ]) {
+      add(target, `${chapters}/${name}`, "file");
+    }
+
+    const findings = audit(target).findings.filter(
+      ({ ruleId }) => ruleId === "MF-TEXTBOOK-004",
+    );
+
+    assert.deepEqual(
+      findings.map(({ status, path }) => [status, path]),
+      [
+        ["fail", `${chapters}/MH2100_Rosen_Algorithms.pdf`],
+        ["fail", `${chapters}/MH2100_Chapter_03_Algorithms.pdf`],
+        ["fail", `${chapters}/MH2100_Rosen_Chapter_3_Algorithms.pdf`],
+        ["fail", `${chapters}/MH2100_Rosen_Chapter_003_Algorithms.pdf`],
+        ["fail", `${chapters}/MH2100_Rosen_Chapter_03_Algorithms.docx`],
+      ],
+    );
+    assert.match(
+      findings[0]?.evidence ?? "",
+      /does not match MH2100_<Key>_<Division>_<NN>_<Title>\.pdf/u,
+    );
+    recordFindingEvidence(findings, "MF-TEXTBOOK-004");
+  });
+
+  it("leaves the chapter home to MF-TEXTBOOK-004 rather than reading it twice", () => {
+    const target = inventory();
+    const chapters = "10 Learning Materials/20 Textbook Chapters";
+    for (const name of [
+      "MH2100_Isaacs_FGT_Chapter_03_Algorithms.pdf",
+      "MH2100_Rosen_Algorithms.pdf",
+    ]) {
+      add(target, `${chapters}/${name}`, "file");
+    }
+
+    const findings = audit(target).findings.filter(
+      ({ ruleId, status }) => ruleId === "MF-NAMING-002" && status !== "pass",
+    );
+
+    assert.deepEqual(findings, []);
+  });
+
   it("checks curated filenames only in governed academic homes [MF-NAMING-002] [MF-NAMING-003]", () => {
     const target = inventory();
     for (const path of [

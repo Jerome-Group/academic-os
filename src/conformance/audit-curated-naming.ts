@@ -1,5 +1,6 @@
 import { basename, posix } from "node:path";
 
+import { textbookChaptersPath } from "../contract/textbook-chapters.js";
 import { controlPaths, curatedRoots } from "./contract-paths.js";
 import {
   decisionFinding,
@@ -64,12 +65,15 @@ function isCuratedPath(path: string): boolean {
   return curatedRoots.some((root) => isInsideRoot(path, root));
 }
 
+// The chapter home is exempt because MF-TEXTBOOK-004 fixes its names exactly, down to the Book key
+// an Owner-qualified collision spells in capitals this rule's Title Case would refuse.
 function isExemptPath(
   path: string,
   importerRoots: ReadonlySet<string>,
 ): boolean {
   return (
     [...importerRoots].some((root) => isInsideRoot(path, root)) ||
+    isInsideRoot(path, textbookChaptersPath) ||
     path.split("/").includes("build")
   );
 }

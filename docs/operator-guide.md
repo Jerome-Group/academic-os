@@ -592,7 +592,9 @@ the four activity areas under `70 Learning` with their `records/`, the LaTeX tem
 teaching preferences in `templates/`, and `GLOSSARY.md`, `RESOURCES.md` and `REVISIT.md`. Beside
 them in Module Admin, `40 Source Map.yaml` is seeded declaring no units; the Lecture-units the
 workspace reads it for are filled in from the module research. `30 Task Register.yaml` is seeded
-the same way — `tasks: []` and no list, which `tasks provision` fills. A template is the module's
+the same way — `tasks: []` and no list, which `tasks provision` fills — and `50 Textbook
+Register.yaml` as `extractions: []`, which the Textbook procedure appends to as chapters are cut
+off the shelf. A template is the module's
 to edit where the difference is functional, so audit checks that the workspace's own structure is
 there rather than diffing a template copy back.
 

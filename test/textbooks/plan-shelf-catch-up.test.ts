@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { recordBehaviorEvidence } from "../support/rule-evidence.js";
 import {
   planShelfCatchUp,
   type ShelfIndex,
@@ -85,29 +86,33 @@ describe("the shelf catch-up plan", () => {
     assert.deepEqual(shelf.checksummed, []);
   });
 
-  it("parks a name the codified naming does not accept", async () => {
+  it("parks a name the codified naming does not accept [MF-TEXTBOOK-001]", async () => {
     const shelf = syntheticShelf({
       "Rosen - Discrete Maths.pdf": "d".repeat(64),
     });
 
     const plan = await planShelfCatchUp({ reader: shelf, index: indexedRosen });
 
-    assert.deepEqual(plan.appends, []);
-    assert.equal(plan.parked.length, 1);
-    assert.equal(plan.parked[0]?.file, "Rosen - Discrete Maths.pdf");
-    assert.equal(plan.parked[0]?.reason, "unparseable-name");
+    recordBehaviorEvidence("MF-TEXTBOOK-001", () => {
+      assert.deepEqual(plan.appends, []);
+      assert.equal(plan.parked.length, 1);
+      assert.equal(plan.parked[0]?.file, "Rosen - Discrete Maths.pdf");
+      assert.equal(plan.parked[0]?.reason, "unparseable-name");
+    });
     assert.deepEqual(shelf.checksummed, []);
   });
 
-  it("parks a book whose default key the index already holds", async () => {
+  it("parks a book whose default key the index already holds [MF-TEXTBOOK-002]", async () => {
     const newerRosen = "Discrete Mathematics and Its Applications 9e Rosen.pdf";
     const shelf = syntheticShelf({ [newerRosen]: "e".repeat(64) });
 
     const plan = await planShelfCatchUp({ reader: shelf, index: indexedRosen });
 
-    assert.deepEqual(plan.appends, []);
-    assert.equal(plan.parked[0]?.reason, "key-collision");
-    assert.match(plan.parked[0]?.note ?? "", /Rosen/u);
+    recordBehaviorEvidence("MF-TEXTBOOK-002", () => {
+      assert.deepEqual(plan.appends, []);
+      assert.equal(plan.parked[0]?.reason, "key-collision");
+      assert.match(plan.parked[0]?.note ?? "", /Rosen/u);
+    });
   });
 
   it("parks the second of two shelf books claiming one key", async () => {

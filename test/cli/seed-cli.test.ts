@@ -29,6 +29,7 @@ import {
   seededSourceMap,
 } from "../fixtures/learning-workspace.js";
 import { seededTaskRegister } from "../fixtures/task-register.js";
+import { seededTextbookRegister } from "../fixtures/textbook-register.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 import { runCli } from "../support/run-cli.js";
 import { recordBehaviorEvidence } from "../support/rule-evidence.js";
@@ -279,6 +280,13 @@ describe("academic-os seed", () => {
     recordBehaviorEvidence("MF-TASKS-001", () => {
       assert.equal(seededRegister.includes(seededTaskRegister), true);
       assert.equal(seededRegister.includes("list_id"), false);
+    });
+    const seededCuts = await readFile(
+      join(fixture.moduleRoot, "00 Module Admin/50 Textbook Register.yaml"),
+      "utf8",
+    );
+    recordBehaviorEvidence("MF-TEXTBOOK-003", () => {
+      assert.equal(seededCuts.includes(seededTextbookRegister), true);
     });
   });
 

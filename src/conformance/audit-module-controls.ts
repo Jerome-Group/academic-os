@@ -10,6 +10,7 @@ import { validatePinnedDocuments } from "./validate-pinned-documents.js";
 import { validateProfile } from "./validate-profile.js";
 import { validateSourceMap } from "./validate-source-map.js";
 import { validateTaskRegister } from "./validate-task-register.js";
+import { validateTextbookRegister } from "./validate-textbook-register.js";
 
 export function auditModuleControls(
   { moduleCode, semester, controls }: ModuleControlAuditInput,
@@ -27,6 +28,7 @@ export function auditModuleControls(
     validateCurationRegister(controls.curationRegister),
     validateTaskRegister(controls.taskRegister),
     validateSourceMap(controls.sourceMap),
+    validateTextbookRegister(controls.textbookRegister, moduleCode),
     validateAgents(controls.agents),
     validateClaude(controls.claude),
     validateContext(controls.context, definition.definition),

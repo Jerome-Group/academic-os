@@ -1,7 +1,6 @@
-import { parseDocument } from "yaml";
-
 import { taskProvenanceKeys, taskStatuses } from "../contract/task-register.js";
 import { isDoDate } from "../tasks/do-date.js";
+import { readControlDocument } from "./control-document.js";
 import { controlFinding, failedControl } from "./control-finding.js";
 import { moduleControlPaths } from "./control-paths.js";
 import type { Finding } from "./types.js";
@@ -16,21 +15,11 @@ export function validateTaskRegister(source: string | undefined): Finding {
       `No readable control exists at ${registerPath}.`,
     ]);
   }
-  const document = parseDocument(source, {
-    prettyErrors: false,
-    uniqueKeys: true,
-  });
-  if (document.errors.length > 0) {
-    return failedControl(
-      "MF-TASKS-001",
-      registerPath,
-      document.errors.map(
-        ({ message }) =>
-          `YAML parser reported: ${message.replace(/\s+/gu, " ").trim()}`,
-      ),
-    );
+  const parsed = readControlDocument(source);
+  if ("problems" in parsed) {
+    return failedControl("MF-TASKS-001", registerPath, parsed.problems);
   }
-  const value: unknown = document.toJS();
+  const value = parsed.value;
   if (!isRecord(value) || !Array.isArray(value.tasks)) {
     return failedControl("MF-TASKS-001", registerPath, [
       "Task register requires a tasks sequence, empty at seed.",

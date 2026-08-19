@@ -5,6 +5,7 @@ export const universalPaths = [
   ["00 Module Admin/20 Curation Register.jsonl", "file"],
   ["00 Module Admin/30 Task Register.yaml", "file"],
   ["00 Module Admin/40 Source Map.yaml", "file"],
+  ["00 Module Admin/50 Textbook Register.yaml", "file"],
   ["10 Learning Materials", "directory"],
   ["10 Learning Materials/10 Lecture Materials", "directory"],
   ["10 Learning Materials/20 Textbook Chapters", "directory"],

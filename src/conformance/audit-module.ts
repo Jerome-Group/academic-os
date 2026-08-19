@@ -1,3 +1,4 @@
+import { auditLearningWorkspace } from "./audit-learning-workspace.js";
 import { auditModuleControls } from "./audit-module-controls.js";
 import { auditContextualStructure } from "./audit-contextual-structure.js";
 import { auditGovernedContent } from "./audit-governed-content.js";
@@ -7,15 +8,11 @@ import {
 } from "./audit-universal-structure.js";
 import { deriveContextualStructure } from "./contextual-structure.js";
 import type { AuditResult, ModuleAuditInput } from "./types.js";
-import {
-  applicableRuleIds,
-  currentModuleContract,
-  type ModuleContract,
-} from "./module-contract.js";
+import { applicableRuleIds, type ModuleContract } from "./module-contract.js";
 
 export function auditModule(
   input: ModuleAuditInput,
-  contract: ModuleContract = currentModuleContract,
+  contract: ModuleContract,
 ): AuditResult {
   const contextualExpectation = deriveContextualStructure(
     input.controls.definition,
@@ -25,11 +22,15 @@ export function auditModule(
     contextualExpectation.rootPaths,
     contract.universalStructure,
   );
+  const workspace = auditLearningWorkspace(
+    input.inventory,
+    contract.learningWorkspace,
+  );
   const contextual = auditContextualStructure(
     input.inventory,
     input.controls.definition,
   );
-  const controls = auditModuleControls(input, contract.version);
+  const controls = auditModuleControls(input, contract);
   const governed = auditGovernedContent(
     input.inventory,
     input.controls.definition,
@@ -37,6 +38,7 @@ export function auditModule(
   const applicable = applicableRuleIds(contract);
   const findings = [
     ...structure.findings,
+    ...workspace,
     ...contextual.findings,
     ...controls.findings,
     ...governed.findings,

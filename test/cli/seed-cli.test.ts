@@ -23,9 +23,22 @@ import {
   type LocalConfig,
 } from "../../src/mounted/index.js";
 import { createModuleSeedPlan } from "../../src/seed/index.js";
+import {
+  learningWorkspacePaths,
+  learningWorkspaceTemplatePaths,
+  seededSourceMap,
+} from "../fixtures/learning-workspace.js";
+import { seededTaskRegister } from "../fixtures/task-register.js";
+import { seededTextbookRegister } from "../fixtures/textbook-register.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 import { runCli } from "../support/run-cli.js";
 import { recordBehaviorEvidence } from "../support/rule-evidence.js";
+import { testModuleContract } from "../fixtures/module-contract.js";
+import {
+  interpolateModuleCode,
+  pinnedDocumentNames,
+  pinnedDocumentPaths,
+} from "../../src/contract/pinned-documents.js";
 
 const temporaryRoots: string[] = [];
 
@@ -135,7 +148,11 @@ describe("academic-os seed", () => {
     assert.match(human.stdout, /Outcome: preview/u);
     assert.deepEqual(
       report.operations.map(({ kind, path }) => [path, kind]),
-      universalPaths,
+      [
+        ...universalPaths,
+        ...learningWorkspacePaths,
+        ...learningWorkspaceTemplatePaths.map((path) => [path, "file"]),
+      ],
     );
     await assert.rejects(access(fixture.moduleRoot));
     assert.deepEqual(await readdir(fixture.semesterRoot), []);
@@ -162,7 +179,10 @@ describe("academic-os seed", () => {
 
     assert.equal(result.exitCode, 0);
     assert.equal(JSON.parse(result.stdout).outcome, "completed");
-    for (const [relativePath, kind] of universalPaths) {
+    for (const [relativePath, kind] of [
+      ...universalPaths,
+      ...learningWorkspacePaths,
+    ]) {
       const metadata = await lstat(join(fixture.moduleRoot, relativePath));
       assert.equal(
         kind === "directory" ? metadata.isDirectory() : metadata.isFile(),
@@ -180,9 +200,18 @@ describe("academic-os seed", () => {
     assert.equal(audit.exitCode, 0);
     assert.equal(JSON.parse(audit.stdout).outcome, "conformant");
     recordBehaviorEvidence("MF-DOCS-001", () => {
-      assert.equal(
-        universalPaths.some(([path]) => path === "docs/adr"),
-        true,
+      assert.deepEqual(
+        universalPaths
+          .map(([path]) => path)
+          .filter((path) => path.startsWith("docs")),
+        [
+          "docs",
+          "docs/00 Structure and Naming.md",
+          "docs/10 Curation Procedure.md",
+          "docs/20 Teaching Procedure.md",
+          "docs/30 Textbook Procedure.md",
+          "docs/adr",
+        ],
       );
     });
     const agents = await readFile(
@@ -192,15 +221,73 @@ describe("academic-os seed", () => {
     recordBehaviorEvidence("MF-AGENTS-003", () => {
       assert.equal(
         agents.includes(
-          "Show proposed changes for approval before applying them.",
+          "Propose a change by showing the Owner the exact new wording before",
         ),
         true,
       );
     });
-    assert.match(
-      agents,
-      /## Domain language\nThe glossary is `CONTEXT\.md` and decisions are `docs\/adr\/`\./u,
+    const seededPinnedDocuments = await Promise.all(
+      pinnedDocumentNames.map(async (name) => ({
+        path: pinnedDocumentPaths[name],
+        seeded: await readFile(
+          join(fixture.moduleRoot, pinnedDocumentPaths[name]),
+          "utf8",
+        ),
+        expected: interpolateModuleCode(
+          testModuleContract.pinnedDocuments[name],
+          "MH2100",
+        ),
+      })),
     );
+    recordBehaviorEvidence("MF-AGENTS-004", () => {
+      for (const { path, seeded, expected } of seededPinnedDocuments) {
+        assert.equal(seeded, expected, path);
+        assert.equal(seeded.includes("MODULE_CODE"), false, path);
+      }
+    });
+    const seededWorkspaceFiles = await Promise.all(
+      [
+        "70 Learning/GLOSSARY.md",
+        "70 Learning/RESOURCES.md",
+        "70 Learning/REVISIT.md",
+        ...learningWorkspaceTemplatePaths,
+      ].map(async (path) => ({
+        path,
+        body: await readFile(join(fixture.moduleRoot, path), "utf8"),
+      })),
+    );
+    recordBehaviorEvidence("MF-LEARNING-001", () => {
+      for (const { path, body } of seededWorkspaceFiles) {
+        assert.notEqual(body, "", path);
+        assert.equal(body.includes("MODULE_CODE"), false, path);
+      }
+      assert.equal(
+        seededWorkspaceFiles.some(({ body }) => body.includes("\\ModuleCode")),
+        true,
+      );
+    });
+    const seededMap = await readFile(
+      join(fixture.moduleRoot, "00 Module Admin/40 Source Map.yaml"),
+      "utf8",
+    );
+    recordBehaviorEvidence("MF-LEARNING-002", () => {
+      assert.equal(seededMap.includes(seededSourceMap), true);
+    });
+    const seededRegister = await readFile(
+      join(fixture.moduleRoot, "00 Module Admin/30 Task Register.yaml"),
+      "utf8",
+    );
+    recordBehaviorEvidence("MF-TASKS-001", () => {
+      assert.equal(seededRegister.includes(seededTaskRegister), true);
+      assert.equal(seededRegister.includes("list_id"), false);
+    });
+    const seededCuts = await readFile(
+      join(fixture.moduleRoot, "00 Module Admin/50 Textbook Register.yaml"),
+      "utf8",
+    );
+    recordBehaviorEvidence("MF-TEXTBOOK-003", () => {
+      assert.equal(seededCuts.includes(seededTextbookRegister), true);
+    });
   });
 
   it("refuses an incompatible existing target without changing its content [MF-SEED-002]", async () => {
@@ -571,6 +658,7 @@ describe("academic-os seed", () => {
       semester: "Y2S1",
       profile: await readFile(fixture.profilePath, "utf8"),
       definition: await readFile(fixture.definitionPath, "utf8"),
+      contract: testModuleContract,
     });
     let interrupted = false;
     await assert.rejects(

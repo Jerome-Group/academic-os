@@ -12,7 +12,11 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, it } from "node:test";
 
-import { validModuleControls } from "../fixtures/module-controls.js";
+import {
+  moduleControlContents,
+  validModuleControls,
+} from "../fixtures/module-controls.js";
+import { learningWorkspacePaths } from "../fixtures/learning-workspace.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 import { runCli } from "../support/run-cli.js";
 import { recordBehaviorEvidence } from "../support/rule-evidence.js";
@@ -41,21 +45,16 @@ async function writeConformantModule(
           .replace("semester: 1", "semester: 2")
       : selectedModule;
   };
-  const controlContents = new Map<string, string>([
-    ["00 Module Admin/00 Module Profile.md", forModule(controls.profile ?? "")],
-    [
-      "00 Module Admin/10 Module Definition.yaml",
-      forModule(controls.definition ?? ""),
-    ],
-    [
-      "00 Module Admin/20 Curation Register.jsonl",
-      controls.curationRegister ?? "",
-    ],
-    ["AGENTS.md", forModule(controls.agents ?? "")],
-    ["CLAUDE.md", controls.claude ?? ""],
-    ["CONTEXT.md", forModule(controls.context ?? "")],
-  ]);
-  for (const [relativePath, kind] of universalPaths) {
+  const controlContents = new Map(
+    [...moduleControlContents(controls)].map(([path, contents]) => [
+      path,
+      forModule(contents),
+    ]),
+  );
+  for (const [relativePath, kind] of [
+    ...universalPaths,
+    ...learningWorkspacePaths,
+  ]) {
     const path = join(moduleRoot, relativePath);
     if (kind === "directory") {
       await mkdir(path, { recursive: true });
@@ -117,6 +116,24 @@ async function cohortFixture(): Promise<{
   return { configPath, driveMount };
 }
 
+async function declareContractVersion(
+  moduleRoot: string,
+  version: number,
+): Promise<void> {
+  const definitionPath = join(
+    moduleRoot,
+    "00 Module Admin",
+    "10 Module Definition.yaml",
+  );
+  await writeFile(
+    definitionPath,
+    (await readFile(definitionPath, "utf8")).replace(
+      /^contract_version: \d+$/mu,
+      `contract_version: ${version}`,
+    ),
+  );
+}
+
 async function moduleMetadata(
   root: string,
   relativeRoot = "",
@@ -171,6 +188,30 @@ it("audits only active-semester modules and reports past and future exclusions [
       { semester: "Y2S1", module: "MH2100" },
     ]);
   });
+});
+
+it("queues a lagging cohort module for transition and touches nothing [MF-TRANSITION-001]", async () => {
+  const { configPath, driveMount } = await cohortFixture();
+  const moduleRoot = join(driveMount, "Modules", "Y2S1", "MH2100");
+  await declareContractVersion(moduleRoot, 3);
+  const before = await moduleMetadata(moduleRoot);
+
+  const result = await runCli("audit", "--config", configPath, "--json");
+
+  const module = JSON.parse(result.stdout).modules[0];
+  assert.match(
+    module.findings.find(
+      ({ ruleId }: { ruleId: string }) => ruleId === "MF-DEFINITION-001",
+    )?.evidence ?? "",
+    /contract_version 3 requires upgrade to requested version 4/u,
+  );
+  recordBehaviorEvidence("MF-TRANSITION-001", () => {
+    assert.equal(
+      module.lifecycle.contractRelationship,
+      "contract-version-upgrade",
+    );
+  });
+  assert.deepEqual(await moduleMetadata(moduleRoot), before);
 });
 
 it("reports a missing active module as unresolved", async () => {
@@ -335,25 +376,14 @@ it("audits historical migrations read-only and distinguishes contract relationsh
   );
   assert.deepEqual(await moduleMetadata(moduleRoot), before);
 
-  const definitionPath = join(
-    moduleRoot,
-    "00 Module Admin",
-    "10 Module Definition.yaml",
-  );
-  await writeFile(
-    definitionPath,
-    (await readFile(definitionPath, "utf8")).replace(
-      "contract_version: 3",
-      "contract_version: 1",
-    ),
-  );
+  await declareContractVersion(moduleRoot, 1);
   const upgrade = await runCli(...arguments_);
   assert.equal(
     JSON.parse(upgrade.stdout).lifecycle.contractRelationship,
     "contract-version-upgrade",
   );
 
-  await rm(definitionPath);
+  await rm(join(moduleRoot, "00 Module Admin", "10 Module Definition.yaml"));
   const gap = await runCli(...arguments_);
   assert.equal(
     JSON.parse(gap.stdout).lifecycle.contractRelationship,

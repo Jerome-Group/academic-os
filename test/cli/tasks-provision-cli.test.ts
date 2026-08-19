@@ -156,6 +156,33 @@ describe("academic-os tasks provision", () => {
     assert.equal(await readRegisterText(fixture), existing);
   });
 
+  it("fills the seeded register rather than reading it as already bound", async () => {
+    const fixture = await setupFixture();
+    const provider = await readProvider(fixture);
+    provider.lists = [{ id: "module-list", title: "MH2100" }];
+    await writeProvider(fixture, provider);
+    const seeded = "# Seeded before the list existed.\ntasks: []\n";
+    await writeFile(fixture.registerPath, seeded);
+
+    const preview = await runTasksProvision(fixture, "--json");
+
+    assert.equal(preview.exitCode, 0, JSON.stringify(preview));
+    assert.equal(JSON.parse(preview.stdout).list.action, "would-adopt");
+    assert.equal(await readRegisterText(fixture), seeded);
+
+    const result = await runTasksProvision(fixture, "--apply", "--json");
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.list.action, "adopted");
+    assert.equal(report.list.listId, "module-list");
+    assert.equal(report.register, "written");
+    assert.equal(
+      await readRegisterText(fixture),
+      "list_id: module-list\ntasks: []\n",
+    );
+  });
+
   it("refuses a duplicated title and a register whose list Google no longer has", async () => {
     const fixture = await setupFixture();
     const provider = await readProvider(fixture);

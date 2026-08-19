@@ -1,3 +1,4 @@
+import { pinnedDocumentNames } from "../contract/pinned-documents.js";
 import {
   compareAuditObservations,
   createAuditObservation,
@@ -69,7 +70,11 @@ function assertUsableContract(contract: ModuleContract): void {
     contract.version <= 0 ||
     contract.ruleIds.length === 0 ||
     rules.size !== contract.ruleIds.length ||
-    contract.universalStructure.length === 0
+    contract.universalStructure.length === 0 ||
+    contract.learningWorkspace.length === 0 ||
+    pinnedDocumentNames.some(
+      (name) => contract.pinnedDocuments[name] === undefined,
+    )
   ) {
     throw new TypeError("Conformance planning requires a complete contract.");
   }
@@ -94,6 +99,18 @@ function proposedOperations(input: {
             },
           ],
   );
+  const workspace = input.contract.learningWorkspace.flatMap(
+    ([path, kind]): ProposedConformanceOperation[] =>
+      present.has(path) || !applicable.has("MF-LEARNING-001")
+        ? []
+        : [
+            {
+              kind: kind === "directory" ? "create-directory" : "create-file",
+              path,
+              ruleId: "MF-LEARNING-001",
+            },
+          ],
+  );
   const contextual = deriveContextualStructure(
     input.controls.definition,
   ).paths.flatMap((path): ProposedConformanceOperation[] =>
@@ -101,7 +118,7 @@ function proposedOperations(input: {
       ? []
       : [{ kind: "create-directory", path, ruleId: contextualRule(path) }],
   );
-  return [...universal, ...contextual].sort((left, right) =>
+  return [...universal, ...workspace, ...contextual].sort((left, right) =>
     left.path.localeCompare(right.path),
   );
 }

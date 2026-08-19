@@ -2,9 +2,9 @@
 
 The CLI has `seed`, `audit`, `calendar setup`, pull-only `calendar refresh`, private
 `calendar propose`, explicitly authorised `calendar promote`, `tasks provision`, pull-only
-`tasks refresh`, additive `textbooks catch-up` and separately gated
-`repair` commands. It does not
-schedule weekly LLM work or edit module instructions autonomously.
+`tasks refresh`, in-session `tasks create`, `tasks change`, `tasks complete` and `tasks cancel`,
+additive `textbooks catch-up` and separately gated `repair` commands. It does not orchestrate a
+week of study or evolve a module's instructions on its own.
 
 ## Configure
 
@@ -57,6 +57,9 @@ node scripts/authorize-google-credentials.mjs \
 A refresh token carries the scopes it was granted, so widening a credential means running the
 helper again rather than editing the config. `tasks provision --apply` is the only path that uses
 the write credential.
+
+The Operations server needs no credentials of its own: it runs the same task operations on the
+mini under the same pair.
 
 `textbooks catch-up` needs `textbooks.shelfRoot` — the Textbook shelf relative to the Drive mount,
 beside the semester roots. It reads the shelf and writes only the shelf's own `00 Index.yaml`, so
@@ -315,6 +318,10 @@ The command reports what it would do — `would adopt` for a list titled exactly
 adopts or creates the list and writes `00 Module Admin/30 Task Register.yaml` carrying its exact
 ID.
 
+Seeding writes the register before the list exists, so a register naming no list is one waiting
+for this command: provisioning adopts or creates the list and writes the ID into the skeleton it
+finds, keeping any rows already there.
+
 Rerunning is safe. Once the register names a list, provisioning verifies that list still exists,
 reports `bound` and leaves the register's rows alone — the persisted ID is the module's task-list
 identity from then on, and a retitled list stays the same list. Two lists sharing the module code
@@ -345,6 +352,180 @@ other modules: the named stale modules kept their last-good register and report 
 stale register is fine when its staleness is named; the register is a mirror, so the fix is a
 rerun rather than an edit.
 
+## Tasks operations
+
+Write to a module's live list in session — the pushes an unattended refresh has no authority to
+make:
+
+```sh
+node dist/src/cli.js tasks create --config academic-os.config.json \
+  --semester Y2S1 --module MODULE_CODE --title 'Attempt tutorial 3' --do-date 2026-08-27
+```
+
+```sh
+node dist/src/cli.js tasks change --config academic-os.config.json \
+  --semester Y2S1 --module MODULE_CODE --task TASK_ID --do-date 2026-08-28
+```
+
+`tasks complete` and `tasks cancel` take the same `--task` and nothing more. Every operation
+pushes with the interactive-write credential, reads the live result back, then runs the same pull
+`tasks refresh` runs with the scheduled-read one — so the register only ever mirrors what Google
+accepted, and the Owner's phone has it first.
+
+`create` also takes `--notes` and the provenance flags `--assessment`, `--source` and
+`--milestone`; the returned task ID and that provenance are what the new row carries, and
+provenance never reaches Google. `change` takes any of `--title`, `--do-date` and `--notes`. A
+`--do-date` is a date with no time: Google discards a time and a Do-date is not a deadline, so the
+command refuses one rather than truncating it.
+
+`--task` names a task the register already has a row for. A task created on the phone since the
+last pull parks until `tasks refresh` mirrors it — pushing to an ID the register does not know
+would be writing blind — and a row the register holds as `cancelled` parks too, because Google no
+longer has that task and a cancelled task is never re-pushed. `tasks cancel` deletes the task in
+Google, and the refresh behind it marks the row `cancelled`; the register never drops a task it
+tracked.
+
+Three outcomes, and the difference between them is what Google did:
+
+- `applied` — pushed, verified, register refreshed. A verified push whose refresh then failed also
+  reads `applied`, against a `stale` register a rerun of `tasks refresh` settles.
+- `parked` — Google refused the push. The live list is as it was and the register kept no row for
+  work that does not exist. Nothing queues it: Google's own apps are the manual fallback, and the
+  register catches up at the next pull.
+- `unverified` — Google took the push and the live result then read back as something else. The
+  report names the task ID, because the task is on the phone; `tasks refresh` mirrors whatever
+  Google actually holds.
+
+Anything but `applied` against a fresh register exits nonzero.
+
+Supervise the first live round-trip: `tasks create` against a real module list, tick the task in
+Google Tasks on the phone, then `tasks refresh`. The row should come back `completed` with its
+provenance intact and no other row moved.
+
+## Operations server
+
+The mini serves this repository's task operations to every machine on the Tailnet, so an agent in
+a module folder anywhere reaches them with no clone, no Node and no credential file. Build the
+current CLI, then install the resident per-user LaunchAgent from this checkout:
+
+```sh
+npm run build
+node scripts/install-operations-server-launchd.mjs \
+  --config /private/path/academic-os.config.json
+```
+
+`--dry-run` prints the plist it would install and installs nothing. The job is resident rather
+than scheduled: launchd starts it at login and restarts it whenever it stops, so a rebooted mini
+is reachable again without anyone starting it. It writes only
+`~/Library/LaunchAgents/com.jerome-group.academic-os.operations-server.plist`, and logs to
+`~/Library/Logs/academic-os/operations-server.log`.
+
+The server binds the mini's tailnet addresses and only those, on port `8765`, and serves MCP over
+Streamable HTTP at `/mcp`. A mini signed out of Tailscale has no address to bind and the server
+refuses to start, which is the intended failure:
+reachability on the Tailnet is the whole of the authorisation, and there is no token to add
+(ADR-0011). Second machines register the URL once at user scope — `machine-setup.md` is their
+whole checklist.
+
+Four tools are served, and each one is the operation of the same name run on the mini:
+`tasks_create`, `tasks_change`, `tasks_complete` and `tasks_read_register`. The three writes
+follow the Promotion pattern exactly as the CLI does; `tasks_read_register` pulls the live list
+into the register first and returns the rows with their provenance. Every tool takes `semester`
+and `module`, and a module the config does not map is refused rather than guessed at. An
+operation that did not apply comes back as an MCP error carrying the same report the CLI prints,
+so a parked push is visible to the calling agent without it having to read the report for the bad
+news. A verified push whose refresh then failed is not one of those: the task is on the phone, the
+report names the stale register, and reporting it as an error is what would invite a second push.
+
+Inspect the loaded job, watch it serve, and restart it:
+
+```sh
+launchctl print "gui/$(id -u)/com.jerome-group.academic-os.operations-server"
+```
+
+```sh
+launchctl kickstart -k "gui/$(id -u)/com.jerome-group.academic-os.operations-server"
+```
+
+Verify from a second tailnet machine rather than from the mini — reaching it over the Tailnet is
+the thing being tested:
+
+```sh
+curl -s -X POST http://<mini-magicdns-name>:8765/mcp \
+  -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+Then create a task through the tool surface, watch it appear in Google Tasks on the phone, and
+read the register back: the row should carry the returned task ID and the provenance Google never
+saw.
+
+Remove the exact job and plist:
+
+```sh
+node scripts/install-operations-server-launchd.mjs --remove
+```
+
+## Textbooks shelf migration
+
+The one-time pass that brings an existing shelf into the system, in the order the index depends on:
+sweep, one review, renames, then the index. It is run once, before the first catch-up.
+
+Sweep the shelf into a review sheet:
+
+```sh
+node dist/src/cli.js textbooks sweep --config academic-os.config.json
+```
+
+The sweep reads the shelf and writes nothing but the sheet, at
+`stateRoot/textbooks/shelf-review.yaml`. It refuses to overwrite a sheet that is already there,
+because the second the sheet exists it is the Owner's working copy. Every book the index does not
+already name gets a line carrying its filename, its checksum and the Book key the sweep derived —
+and where the sweep cannot derive one, a `SETTLE` comment saying what to decide. Three things ask:
+a name the codified naming does not accept, a default key another book already holds, and bytes a
+book already on the shelf carries.
+
+Settle the sheet. `rename` is the filename the book should end up carrying and is left blank to
+keep the name it has; `key` is the Book key the Shelf index will hold it under. A key is immutable
+once a chapter filename cites it, so a collision is qualified here once — `Isaacs_FGT` beside
+`Isaacs_CT` — and never again. A blank key is unsettled and the migration refuses to run.
+`division` — the book's own word for how it divides itself — is asked of nobody and blank is the
+expected answer: no filename carries it and the first cut from a book without one parks until the
+Owner records it (ADR-0009). The sheet takes one where the Owner already knows it, which is the
+only saving on offer without opening the book.
+
+The settled collision keys and the approved renames are what the migration was authorised by, so
+they are recorded on the issue that ordered the migration — the sheet itself never leaves private
+state.
+
+Preview the settled sheet:
+
+```sh
+node dist/src/cli.js textbooks migrate --config academic-os.config.json
+```
+
+The preview holds the sheet against a fresh listing and a fresh checksum of every book in it, and
+reports everything left to settle at once rather than one problem per run. A shelf that has moved
+under the sheet — a book arrived, a book left, a copy was replaced — blocks the whole run, and the
+answer is to delete the sheet and sweep again. So does a rename that would land on a book that is
+still there, a rename that still does not follow the codified naming, and a key another book or an
+existing entry already holds. Blocking exits nonzero and touches nothing.
+
+Apply it once the preview is clean:
+
+```sh
+node dist/src/cli.js textbooks migrate --config academic-os.config.json --apply
+```
+
+Renames run first and the index last, because the index records final filenames. Every rename is a
+write to the Owner's own books, so each one refuses a target anything on the shelf already carries
+rather than replacing it, and each is journalled to `stateRoot/journals/textbooks/migration.jsonl`
+before and after it happens — a run that dies mid-pass leaves the exact list of books that moved.
+Nothing outside the sheet is renamed, and no path in the command deletes anything.
+
+Verify with a catch-up: after a clean migration `textbooks catch-up` has nothing to append and
+nothing to park, which is the baseline the daily pass runs against from then on.
+
 ## Textbooks catch-up
 
 Diff the Textbook shelf against its Shelf index. The default is a non-mutating preview:
@@ -372,7 +553,9 @@ first chapter cut from that book parks until they do (ADR-0009).
 The shelf's `Archive/` is invisible to the catch-up, retired books and all — as is any other folder
 on the shelf, so books live directly on it. Everything else sitting directly on the shelf is read as
 a book, so anything there that is not a cleanly named PDF parks on every run until it is renamed or
-archived.
+archived. Two exceptions are the mount's own artifacts rather than anything the Owner put there:
+dot-files, and the `Icon\r` Finder writes back whenever a folder icon is set. Neither is a park the
+Owner could ever clear, so neither is one (ADR-0010).
 
 A book the index already names by filename is left unread, which is what keeps a run from pulling
 the whole shelf down the Drive mount. Replacing a copy in place under its old name therefore leaves
@@ -398,8 +581,22 @@ recheck the target and show completed/remaining operations; continue only when i
 result is settled.
 
 Every seed includes `CONTEXT.md` as the module glossary and an initially empty `docs/adr/` for
-decisions. Generated `AGENTS.md` routes classification, naming and organisation through both; an
-empty ADR directory means no qualifying decision has yet been recorded.
+decisions; an empty ADR directory means no qualifying decision has yet been recorded. It also
+writes the five pinned files — the `AGENTS.md` router and the four `docs/` procedures — from this
+repository's `seed-templates/`, with `MODULE_CODE` replaced by the module's code. They are the
+module's whole instruction set, and audit diffs each copy back against its template, so a module
+that needs to say something of its own says it in `CONTEXT.md`, `docs/adr/` or the Profile.
+
+The Teaching workspace is seeded whole, for every module, whether or not that module will use it:
+the four activity areas under `70 Learning` with their `records/`, the LaTeX template set and
+teaching preferences in `templates/`, and `GLOSSARY.md`, `RESOURCES.md` and `REVISIT.md`. Beside
+them in Module Admin, `40 Source Map.yaml` is seeded declaring no units; the Lecture-units the
+workspace reads it for are filled in from the module research. `30 Task Register.yaml` is seeded
+the same way — `tasks: []` and no list, which `tasks provision` fills — and `50 Textbook
+Register.yaml` as `extractions: []`, which the Textbook procedure appends to as chapters are cut
+off the shelf. A template is the module's
+to edit where the difference is functional, so audit checks that the workspace's own structure is
+there rather than diffing a template copy back.
 
 ## Audit
 
@@ -422,6 +619,24 @@ Every audit appends a complete private observation under `stateRoot`; reports an
 contain metadata and filenames, so do not commit them. Current mismatch is a **deviation**. Only a
 change between compatible observations is **drift**. A historical contract gap or contract-version
 upgrade is migration evidence, not permission to repair or change the contract.
+
+## Transition a module to the current contract
+
+A module folder whose Definition declares an earlier contract version audits as
+`contract-version-upgrade`. That lag is the queue, and working through it is **transition**
+(MF-TRANSITION-001) — the lighter path beside repair, one module at a time in an interactive
+session:
+
+1. Audit the module and read the difference between the current contract's structure and what the
+   folder holds.
+2. Draft where each module-local item the pinned files cannot keep is re-homed — organisational
+   terms to the module `CONTEXT.md`, standing rules to a module ADR, module facts to the Profile.
+3. Show the Owner the difference and the re-homing plan together; their yes on that module is the
+   approval to apply it.
+4. Apply under `docs/agents/safe-drive-testing.md`. Transition writes this repository's control
+   files and moves documents; it reads academic contents and leaves them where they are, so it
+   needs neither the recovery snapshot nor the Drive-ID inventory repair binds.
+5. Move the Definition's `contract_version` last, once the structure it declares is there.
 
 ## Repair one historical module
 
@@ -472,8 +687,12 @@ is mutable and therefore is not itself immutable or WORM storage.
   calendars.
 - Calendar refresh uses only read-only event authority and never mutates Google.
 - Calendar propose uses only read-only authority and writes only private Proposal state.
+- Tasks refresh is pull-only; the task operations are the one Tasks path that writes to Google, and
+  they run in session under the interactive-write credential, never unattended.
 - Audit has no repair path and no write-capable Drive API dependency.
 - A contract change edits `docs/module-folder-contract.md`; repair resolves only an approved
   deviation and cannot change the contract.
+- Transition brings one folder to the current contract version on the Owner's yes and leaves
+  academic contents where they are.
 - Run `npm run check`, `npm run rule-coverage:check` and `npm run privacy:check` before publication.
 - Follow `docs/agents/safe-drive-testing.md` before any Drive write or integration test.

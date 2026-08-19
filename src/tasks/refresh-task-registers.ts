@@ -1,5 +1,7 @@
 import { OperationalError } from "../operational-error.js";
 import { mergeLiveTasks } from "./merge-live-tasks.js";
+import { provisionedList } from "./provisioned-list.js";
+import { taskFailure } from "./task-failure.js";
 import type {
   ConfiguredModuleIdentity,
   LiveTask,
@@ -24,7 +26,7 @@ export async function refreshTaskRegisters(input: {
 }): Promise<TaskRefreshReport> {
   const modules: TaskRefreshModuleReport[] = [];
   for (const target of input.targets) {
-    modules.push(await refreshModule(target, input.reader));
+    modules.push(await refreshTaskRegister(target, input.reader));
   }
   const staleCount = modules.filter(
     ({ freshness }) => freshness === "stale",
@@ -42,29 +44,27 @@ export async function refreshTaskRegisters(input: {
   };
 }
 
-async function refreshModule(
+// One module's pull, and the whole of what a task operation refreshes with once its push is
+// verified: the same merge, the same conflict rules, the same stale report when the list is
+// unreachable.
+export async function refreshTaskRegister(
   target: TaskRefreshTarget,
   reader: TaskRefreshReader,
 ): Promise<TaskRefreshModuleReport> {
   let register: TaskRegister | undefined;
   try {
     register = await target.registerStore.read();
-    if (register === undefined) {
-      throw new OperationalError(
-        "missing-target",
-        `${target.module} has no Task register; run tasks provision first.`,
-      );
-    }
+    const bound = provisionedList(register, target.module);
     const live = validateLiveTasks(
-      await reader.listTasks({ listId: register.listId }),
+      await reader.listTasks({ listId: bound.listId }),
     );
-    const merged = mergeLiveTasks(register, live);
+    const merged = mergeLiveTasks(bound.register, live);
     await target.registerStore.write(merged.register);
     return {
       semester: target.semester,
       module: target.module,
       freshness: "fresh",
-      listId: merged.register.listId,
+      listId: bound.listId,
       counts: countRegister(merged.register),
       changes: merged.changes,
     };
@@ -76,7 +76,7 @@ async function refreshModule(
       listId: register?.listId ?? null,
       counts: countRegister(register),
       changes: { added: 0, updated: 0, cancelled: 0 },
-      failure: failure(error),
+      failure: taskFailure(error, "The Tasks pull failed unexpectedly."),
     };
   }
 }
@@ -108,19 +108,5 @@ function countRegister(register: TaskRegister | undefined): TaskRegisterCounts {
     completed: tasks.filter(({ status }) => status === "completed").length,
     cancelled: tasks.filter(({ status }) => status === "cancelled").length,
     unpushed: tasks.filter(({ taskId }) => taskId === undefined).length,
-  };
-}
-
-function failure(error: unknown): { code: string; message: string } {
-  const operationalError =
-    error instanceof OperationalError
-      ? error
-      : new OperationalError(
-          "operational-failure",
-          "The Tasks pull failed unexpectedly.",
-        );
-  return {
-    code: operationalError.code,
-    message: operationalError.message,
   };
 }

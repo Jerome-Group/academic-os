@@ -4,6 +4,8 @@ import {
   type InventoryEntry,
   type ModuleControls,
 } from "../conformance/index.js";
+import { moduleControlPaths } from "../conformance/control-paths.js";
+import { loadModuleContract } from "../contract/load-module-contract.js";
 import type {
   CompleteRepairInventory,
   RepairInventoryItem,
@@ -11,14 +13,6 @@ import type {
 } from "./types.js";
 
 const folderMimeType = "application/vnd.google-apps.folder";
-const controlPaths = {
-  profile: "00 Module Admin/00 Module Profile.md",
-  definition: "00 Module Admin/10 Module Definition.yaml",
-  curationRegister: "00 Module Admin/20 Curation Register.jsonl",
-  agents: "AGENTS.md",
-  claude: "CLAUDE.md",
-  context: "CONTEXT.md",
-} as const;
 
 export async function verifyRepairConformance(
   plan: RepairPlan,
@@ -27,7 +21,7 @@ export async function verifyRepairConformance(
 ): Promise<string[]> {
   const paths = inventoryPaths(inventory);
   const controls: ModuleControls = {};
-  for (const [field, path] of Object.entries(controlPaths)) {
+  for (const [field, path] of Object.entries(moduleControlPaths)) {
     const item = inventory.items.find(
       (candidate) => paths.get(candidate.id) === path,
     );
@@ -37,12 +31,15 @@ export async function verifyRepairConformance(
       ).toString("utf8");
     }
   }
-  const result = auditModule({
-    moduleCode: plan.module.code,
-    semester: plan.module.semester,
-    controls,
-    inventory: conformanceInventory(plan, inventory, paths),
-  });
+  const result = auditModule(
+    {
+      moduleCode: plan.module.code,
+      semester: plan.module.semester,
+      controls,
+      inventory: conformanceInventory(plan, inventory, paths),
+    },
+    await loadModuleContract(),
+  );
   return result.outcome === "conformant"
     ? []
     : result.findings

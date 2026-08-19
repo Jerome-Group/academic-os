@@ -6,8 +6,10 @@ import {
   contextualModuleDefinition,
   validModuleControls,
 } from "../fixtures/module-controls.js";
+import { learningWorkspacePaths } from "../fixtures/learning-workspace.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 import { recordFindingEvidence } from "../support/rule-evidence.js";
+import { testModuleContract } from "../fixtures/module-contract.js";
 
 const contextualPaths = [
   "20 Tutorials/CC0001",
@@ -45,12 +47,14 @@ function inventory(paths: readonly string[]): Inventory {
 function universalInventory(): Inventory {
   return {
     moduleCode: "MH2100",
-    entries: universalPaths.map(([path, kind]) => ({
-      path,
-      kind,
-      ...(kind === "file" ? { size: 0 } : {}),
-      modifiedAt: "2026-08-11T00:00:00.000Z",
-    })),
+    entries: [...universalPaths, ...learningWorkspacePaths].map(
+      ([path, kind]) => ({
+        path,
+        kind,
+        ...(kind === "file" ? { size: 0 } : {}),
+        modifiedAt: "2026-08-11T00:00:00.000Z",
+      }),
+    ),
   };
 }
 
@@ -61,12 +65,15 @@ describe("auditModule context-derived structure", () => {
     const entries: Inventory["entries"] = universalInventory().entries;
     entries.push(...inventory(contextualPaths).entries);
 
-    const result = auditModule({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      inventory: { moduleCode: "MH2100", entries },
-      controls,
-    });
+    const result = auditModule(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        inventory: { moduleCode: "MH2100", entries },
+        controls,
+      },
+      testModuleContract,
+    );
 
     assert.equal(result.outcome, "conformant");
     for (const path of contextualPaths) {
@@ -91,12 +98,15 @@ describe("auditModule context-derived structure", () => {
   it("reports missing approved structure and leaves absent optional structure absent", () => {
     const contextual = validModuleControls();
     contextual.definition = contextualModuleDefinition();
-    const contextualResult = auditModule({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      inventory: universalInventory(),
-      controls: contextual,
-    });
+    const contextualResult = auditModule(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        inventory: universalInventory(),
+        controls: contextual,
+      },
+      testModuleContract,
+    );
     assert.equal(contextualResult.outcome, "deviation");
     assert.deepEqual(
       contextualResult.findings
@@ -113,12 +123,15 @@ describe("auditModule context-derived structure", () => {
       "quizzes: {enabled: true, evidence: [assessment-profile]}",
       "quizzes: {enabled: false}",
     );
-    const flatResult = auditModule({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      inventory: universalInventory(),
-      controls: flat,
-    });
+    const flatResult = auditModule(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        inventory: universalInventory(),
+        controls: flat,
+      },
+      testModuleContract,
+    );
     assert.equal(flatResult.outcome, "conformant");
     assert.equal(
       flatResult.findings.some(({ path }) =>
@@ -151,12 +164,15 @@ describe("auditModule context-derived structure", () => {
       },
     );
 
-    const result = auditModule({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      inventory: { moduleCode: "MH2100", entries },
-      controls,
-    });
+    const result = auditModule(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        inventory: { moduleCode: "MH2100", entries },
+        controls,
+      },
+      testModuleContract,
+    );
 
     assert.equal(result.outcome, "requires-decision");
     assert.deepEqual(
@@ -186,12 +202,15 @@ describe("auditModule context-derived structure", () => {
       ]).entries,
     );
 
-    const result = auditModule({
-      moduleCode: "MH2100",
-      semester: "Y2S1",
-      inventory: { moduleCode: "MH2100", entries },
-      controls,
-    });
+    const result = auditModule(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        inventory: { moduleCode: "MH2100", entries },
+        controls,
+      },
+      testModuleContract,
+    );
 
     assert.deepEqual(
       result.findings

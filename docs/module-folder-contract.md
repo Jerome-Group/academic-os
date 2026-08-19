@@ -1,9 +1,11 @@
 # The module folder contract
 
 The normative folder and naming contract every module folder follows. A folder that disagrees
-with an applicable rule here is wrong, and a rule that is not here is not a rule.
+with an applicable rule here is wrong, and a rule that is not here is not a rule. One surface
+outside a module folder is governed too, and it is the only one: the shared Textbook shelf at
+`Modules/Textbooks`, which every module cuts its chapters from.
 
-**Contract version: 3.** Increase it when a normative requirement, applicability rule or allowed
+**Contract version: 4.** Increase it when a normative requirement, applicability rule or allowed
 structure changes. Editorial clarification and repaired citations do not change it. Definition
 schema versions advance independently.
 
@@ -46,7 +48,10 @@ MODULE_CODE/
 ├── 00 Module Admin/
 │   ├── 00 Module Profile.md
 │   ├── 10 Module Definition.yaml
-│   └── 20 Curation Register.jsonl
+│   ├── 20 Curation Register.jsonl
+│   ├── 30 Task Register.yaml
+│   ├── 40 Source Map.yaml
+│   └── 50 Textbook Register.yaml
 ├── 10 Learning Materials/
 │   ├── 10 Lecture Materials/
 │   ├── 20 Textbook Chapters/
@@ -57,6 +62,18 @@ MODULE_CODE/
 │   └── 40 Finals/
 ├── 40 Projects and Labs/
 ├── 70 Learning/
+│   ├── 10 Lectures/
+│   │   └── records/
+│   ├── 20 Tutorials/
+│   │   └── records/
+│   ├── 30 Revision/
+│   │   └── records/
+│   ├── 40 Past Papers/
+│   │   └── records/
+│   ├── templates/
+│   ├── GLOSSARY.md
+│   ├── RESOURCES.md
+│   └── REVISIT.md
 ├── 90 Resources/
 │   └── 00 Unclassified/
 ├── .scratch/
@@ -65,6 +82,10 @@ MODULE_CODE/
 ├── CLAUDE.md
 ├── CONTEXT.md
 └── docs/
+    ├── 00 Structure and Naming.md
+    ├── 10 Curation Procedure.md
+    ├── 20 Teaching Procedure.md
+    ├── 30 Textbook Procedure.md
     └── adr/
 ```
 
@@ -109,11 +130,11 @@ schema and contract versions, module identity, offering, applicable context-deri
 declared importer roots and their evidence. It contains module-relative paths only: no absolute
 Drive paths, credentials, deadlines, prose workflows, inventories or learner progress.
 
-The schema version 2 shape for contract version 3 is:
+The schema version 2 shape for contract version 4 is:
 
 ```yaml
 schema_version: 2
-contract_version: 3
+contract_version: 4
 module: {code: MH2100, title: Calculus III}
 offering: {academic_year: 2026-2027, semester: 1, status: active}
 structure:
@@ -150,25 +171,54 @@ distinguished from folder drift.
 
 ### Agent and domain controls
 
-**MF-AGENTS-001 (deterministic).** Seed `AGENTS.md` once as a concise, fully local router with
-these sections: What this folder is; Start here; Routes; Domain language; Safety; Updating these
-instructions. Routes cover Learning, Tutorials, Curation, Assessments, Projects/Labs and
-Maintenance through strong context pointers. Domain language points to `CONTEXT.md` for the
-glossary and `docs/adr/` for decisions before content is classified, named or organised. It
-contains no git, GitHub, pull-request, generic coding-standard or repository workflow.
+**MF-AGENTS-001 (deterministic).** `AGENTS.md` is the module's router, and it is fully local: it
+carries no git, GitHub, pull-request, generic coding-standard or repository workflow. Its sections
+are these six, in this order: What this folder is; Start here; Routes; Domain language; Safety;
+Updating these instructions.
+
+Routes are these eight, each a bullet opening with its area in bold and pointing at the procedure
+or file the work runs by:
+
+```text
+Curation  Teaching  Tutorials  Textbooks  Tasks  Assessments  Projects/Labs  Maintenance
+```
+
+Domain language points at `CONTEXT.md` for the module's organisational terms and `docs/adr/` for
+its standing decisions, both read before content is classified, named or organised.
 
 **MF-AGENTS-002 (deterministic).** `CLAUDE.md` contains exactly a `# Claude Code` heading followed
 by `Read \`AGENTS.md\` completely before working in this module folder.` It never contains an
 independent rule copy. Required AGENTS pointers resolve.
 
-**MF-AGENTS-003 (judgment).** Changes to AGENTS are shown and approved before application.
+**MF-AGENTS-003 (judgment).** A change to a doc agents read here — `AGENTS.md`, the four procedure
+files, `CONTEXT.md`, an ADR — is approved before it is applied, and the gate is who is present.
+With the Owner in the session, the drafted wording is shown in the exchange that raised it, and
+their yes on that exact wording is the approval. Unattended, a run writes `CONTEXT.md` and
+`docs/adr/` directly only with the domain-modeling discipline loaded and its tests applied, and
+surfaces every such write in its report; precedent is its only resolver, and an ambiguity without
+precedent parks.
 
-**MF-CONTEXT-001 (deterministic).** `CONTEXT.md` is a glossary only. Seed its module heading,
-purpose and `## Language`, inventing no terms. Add terms only after ambiguity is resolved.
+**MF-AGENTS-004 (deterministic).** `AGENTS.md` and the four `docs/` procedure files are pinned:
+each module's copy is byte-identical to this repository's canonical seed-source template in
+`seed-templates/`, modulo `MODULE_CODE` interpolation. Seeding writes them from those templates and
+audit diffs them back against the same files, so a copy differing by one byte is a deviation,
+repaired by rewriting the copy rather than by editing it. Module-specific content never enters a
+pinned file; it belongs in `CONTEXT.md`, `docs/adr/` or the Profile.
 
-**MF-DOCS-001 (deterministic).** General documentation belongs in `docs/`. Every module contains
-`docs/adr/`, even when it is empty; add an ADR only when a hard-to-reverse, surprising trade-off
-has actually been decided. Active tasks, deadlines and session journals are not current-state
+**MF-CONTEXT-001 (deterministic).** `CONTEXT.md` is a glossary only, holding the module's
+organisational terms — what its material is called, and how that changes where a file goes or what
+it is named. Seed its module heading, purpose and `## Language`, inventing no terms. Add a term
+only after an ambiguity has been resolved. A new term appends; an existing meaning is amended in
+place as the deliberate point of the change, never as a side effect of other work. The file keeps
+no superseded entry.
+
+**MF-DOCS-001 (deterministic).** General documentation belongs in `docs/`, which holds the four
+pinned procedure files and `docs/adr/`. Every module contains `docs/adr/`, even when it is empty.
+An ADR records a standing rule this contract does not force, whose reversal would strand the
+records built on it; a decision that touches one item once is a register line instead. ADRs are
+numbered module-locally from `0001` and are append-only: an ADR is never edited, and a change of
+mind is a new ADR superseding it. A per-item decision applying one cites it from its register
+line's `evidence` field. Active tasks, deadlines and session journals are not current-state
 authority.
 
 **MF-ADMIN-001 (deterministic).** Module Admin has no subdirectories. Additional flat admin files
@@ -178,14 +228,164 @@ require a decision.
 
 **MF-CURATION-001 (deterministic).** `20 Curation Register.jsonl` is empty at seed. Each later line
 is one append-only curation-decision event recording schema version, stable source identity,
-integration and role, source-relative path and checksum when available, decision, destination when
-curated, evidence, timestamp and any superseded event. Its decisions are curated, source-only or
-requires-decision.
+integration and role, source-relative path and checksum when available, decision, where the item's
+content went, evidence, timestamp and any superseded event.
 
 Version 1 uses `schema_version`, `source_id`, `integration`, `role`, `source_path`, optional
 `checksum`, `decision`, conditional `destination`, `evidence`, `timestamp` and optional
-`supersedes`. Paths are relative, the timestamp is ISO-compatible, and a curated event requires a
-destination.
+`supersedes`. Its decisions are curated, source-only or requires-decision. Paths are relative, the
+timestamp is ISO-compatible, and a curated event requires a destination.
+
+Version 2 adds the fourth decision `rederived`: the item's content reached the module through
+derived artifacts rather than through a copy, and the line names them in `derived` — a non-empty
+sequence of module-relative paths — where a curated line names a `destination`. Both versions are
+valid in one file. A version 1 line stays history exactly as it stands, so nothing migrates it and
+a register mixing the two is conformant.
+
+### Task register
+
+**MF-TASKS-001 (deterministic).** `00 Module Admin/30 Task Register.yaml` mirrors one module's
+Google Tasks list and carries the provenance that list cannot. It is current state rather than
+history: each pull rewrites the rows Google owns.
+
+```yaml
+list_id: <exact Google Tasks list ID>
+tasks:
+  - task_id: <Google task ID; absent until the row is first pushed>
+    title: Read the Week 03 notes
+    do_date: 2026-08-21
+    status: open | completed | cancelled
+    notes: <mirrored Google notes>
+    provenance:
+      assessment: <assessment-category artifact>
+      source: <NTULearn item or Curation-register pointer>
+      milestone: <related Calendar milestone>
+```
+
+Seeding writes `tasks: []` and leaves the header's `list_id` out, because the module's list exists
+only once provisioning creates or adopts it; provisioning then writes that list's exact ID, and a
+register holding any row carries one. Every row states its `title` and its `status`; `task_id`,
+`do_date`, `notes` and each `provenance` key are optional, and a row Google has forgotten reads
+`cancelled` rather than leaving the register. A row carrying a date carries a date-only do-date,
+and the schema reserves no room for a time of day — a deadline is a Calendar milestone owned
+outside the folder.
+
+## The Teaching workspace
+
+**MF-LEARNING-001 (deterministic).** `70 Learning` is the Teaching workspace, and it holds four
+activity areas — `10 Lectures`, `20 Tutorials`, `30 Revision`, `40 Past Papers` — each with its
+own `records/`, beside `templates/`, `GLOSSARY.md`, `RESOURCES.md` and `REVISIT.md`. Seeding
+creates every one of them for every module, whether or not that module will ever use them, and
+writes this repository's LaTeX template set and teaching preferences into `templates/`. A module
+edits a template where the difference is functional; the rendered page stays the same across
+modules.
+
+Enforcement stops at the activity area. What a folder inside one holds — a Lecture-unit, a
+tutorial, a revision topic, a past paper — is the seeded Teaching procedure's business, and this
+contract reads none of it.
+
+**MF-LEARNING-002 (deterministic).** `00 Module Admin/40 Source Map.yaml` is the workspace's spine,
+and it sits in Module Admin because it is machine-read module state rather than workspace content.
+Its `units` mapping is keyed exactly as the module numbers its Lecture-units — a week or a lecture
+in the module's own words, never a subdivision this system invented — and every unit carries
+`topics`, `lectures`, `textbook` and `tutorials`, each of them a sequence, written out even when
+empty — a unit with no textbook chapter says `textbook: []`, so a missing key is a malformed unit
+rather than a quiet nothing. `topics` names ideas in the module's language; the other three hold
+paths relative to the module folder, which is where the module's own material sits rather than the
+workspace that studies it.
+
+```yaml
+units:
+  Week 03:
+    topics: [Partial derivatives, Chain rule]
+    lectures:
+      - 10 Learning Materials/10 Lecture Materials/MH2100_Lecture_03A_Partial_Derivatives.pdf
+    textbook:
+      - 10 Learning Materials/20 Textbook Chapters/MH2100_Stewart_Chapter_14.pdf
+    tutorials:
+      - 20 Tutorials/MH2100_Tutorial_03_Questions.pdf
+```
+
+Seeding writes an empty `units`, which grows as the module's material lands. A folder in
+`10 Lectures` is named for a key here, and a Learning record's `unit` is one of them, so which files
+a unit means is a lookup rather than a judgment.
+
+## The Textbook library
+
+This section is the contract's one reach outside a module folder. MF-TEXTBOOK-001 and
+MF-TEXTBOOK-002 govern the shared Textbook shelf; MF-TEXTBOOK-003 and MF-TEXTBOOK-004 govern what a
+module folder holds because of it. A module audit reads a module's own two and never the shelf —
+one shelf serves every module, so it is checked where it is read rather than once per module that
+reads it.
+
+**MF-TEXTBOOK-001 (deterministic).** The Textbook shelf sits beside the semester roots at
+`Modules/Textbooks`, configured like they are. It is the sole source every module cuts chapters
+from, and whole books arrive on it by the Owner's hand alone. A book is named
+`<Title> <N>e <Author surnames, comma-separated>.pdf` — the edition token present only when the
+book has one, `Solutions` trailing a solutions manual — and sits directly on the shelf. `Archive/`
+holds retired books and is not indexed; nor is anything else inside a folder on the shelf.
+
+```text
+Discrete Mathematics and Its Applications 8e Rosen.pdf
+Introduction to Algorithms 4e Cormen, Leiserson, Rivest, Stein.pdf
+Analysis I Tao.pdf
+Linear Algebra Done Right 4e Axler Solutions.pdf
+```
+
+**MF-TEXTBOOK-002 (deterministic).** `00 Index.yaml` on the shelf catalogues it, one entry per book
+under its **Book key** — a YAML mapping key, so uniqueness is structural.
+
+```yaml
+books:
+  Rosen:
+    file: Discrete Mathematics and Its Applications 8e Rosen.pdf
+    title: Discrete Mathematics and Its Applications
+    edition: 8e
+    authors: [Rosen]
+    division: Chapter
+    sha256: <sha-256 of the PDF bytes>
+```
+
+The index owns every book-level fact and nothing below it repeats one. `edition` is absent when the
+book has none, and `division` is the book's own word for how it divides itself — Chapter, Lecture,
+Part — which no filename carries. A key defaults to the first author's surname and is qualified
+where two books would collide (`Isaacs_FGT`, `Tao_I`, `Axler_Solutions`); it is **immutable once any
+chapter filename cites it**. Entries are appended, and renaming or removing one is the Owner's.
+
+**MF-TEXTBOOK-003 (deterministic).** `00 Module Admin/50 Textbook Register.yaml` records the
+chapters this module cut, one entry per cut. Seeding writes `extractions: []`.
+
+```yaml
+extractions:
+  - book: Rosen              # the key, into the Shelf index
+    number: 3                # as the book prints it; roman recorded verbatim
+    title: Algorithms        # the full table-of-contents title
+    pages: [187, 244]        # absolute PDF pages, inclusive
+    file: MODULE_CODE_Rosen_Chapter_03_Algorithms.pdf
+    source_sha256: <the book's checksum at cut time>
+```
+
+An entry carries those six keys and no others: every book-level fact stays in the Shelf index the
+entry cites. `number` is the number the book prints, so a roman numeral stays roman and an appendix
+keeps its letter. `pages` is an inclusive first-and-last range of absolute PDF pages, `file` is the
+MF-TEXTBOOK-004 name of the chapter that came out, and `source_sha256` against the index's current
+checksum is what makes a chapter cut from a superseded copy of the book findable.
+
+**MF-TEXTBOOK-004 (deterministic).** Cut chapters land in `10 Learning Materials/20 Textbook
+Chapters/`, and every file there is one. Their names instantiate MF-NAMING-002 exactly, and so
+stand in place of it there — a Book key the Owner qualified on collision spells capitals the
+general rule's Title Case would refuse:
+
+```text
+MODULE_CODE_Rosen_Chapter_03_Algorithms.pdf
+MODULE_CODE_Tao_I_Chapter_05_The_Real_Numbers.pdf
+MODULE_CODE_Rosen_Appendix_A_Axioms_For_The_Real_Numbers.pdf
+```
+
+The Division word comes from the index, in full. Numbers are two-digit zero-padded arabic even
+where the book prints roman, and appendix letters stay as printed. Titles are the book's own
+table-of-contents titles, Title_Cased, and may be shortened here because the register keeps the
+full one. The edition stays out of the filename — the key resolves it.
 
 ## Context-derived structure
 
@@ -239,9 +439,10 @@ uses its exact five children; contents beneath them may nest:
 **MF-OPEN-001 (deterministic).** Learning Materials requires its three universal children and
 allows nesting beneath them. Resources requires `00 Unclassified` and allows Definition-declared
 additional categories, each declared by exact `name` with evidence. Projects/Labs workspace
-children allow nesting. The interiors of
-`70 Learning`, `docs`, `.scratch` and every declared importer root are outside structural
-enforcement, except that `.scratch` may not contain a LaTeX `build/`.
+children allow nesting. The interiors of `docs`, `.scratch` and every declared importer root are
+outside structural enforcement, with two exceptions: `docs` holds the pinned procedure files and
+`adr/` that MF-UNIVERSAL-001 names, and `.scratch` may not contain a LaTeX `build/`. `70 Learning`
+is enforced as deep as MF-LEARNING-001 reaches and open below it.
 
 ## Importer roots and curation
 
@@ -264,8 +465,11 @@ names and declared importer roots are the explicit exceptions.
 **MF-NAMING-002 (deterministic).** A file deliberately placed in Learning Materials, Tutorials,
 Assessments, Projects/Labs or Resources is curated. Its name begins with the uppercase module code,
 then Title Case underscore-separated tokens. Sequences use two digits, dates `YYYY-MM-DD`, years
-four digits and extensions lowercase. Files inside importer roots, `.scratch`, `build`, `docs`,
-`70 Learning`, plus root controls, are exempt.
+four digits and extensions lowercase. A sequence number is read from the source's own naming — the
+item's title, or the attachment's own filename — so an importer mirror's `NN ` prefix stays that
+importer's ordering, and a source numbering itself nowhere is an ambiguity to park. Files inside
+importer roots, `.scratch`, `build`, `docs`, `70 Learning`, plus root controls, are exempt, as is
+`10 Learning Materials/20 Textbook Chapters`, whose names MF-TEXTBOOK-004 fixes exactly.
 
 **MF-NAMING-003 (judgment).** Useful qualifiers include `Questions`, `Solutions`, `Draft_01`,
 `Annotated` and `Graded`. A completed file has no `Final` version suffix; `Final` names the final
@@ -302,8 +506,23 @@ continuously. Past and future modules are audited or changed only after a user r
 proposal the user accepts. Historical migration findings are enabled explicitly and never mutate
 their target.
 
+**MF-TRANSITION-001 (judgment).** A folder whose Definition lags the current contract version
+reaches it by **transition**, one module at a time. An agent diffs the current structure against
+what the folder holds and drafts where each module-local item the pinned structure cannot keep is
+re-homed — organisational terms to `CONTEXT.md`, standing rules to `docs/adr/`, module facts to the
+Profile — then shows the Owner the diff and the plan together; their yes on that module is the
+approval to apply it. Transition writes the control files this repository authors and moves
+documents; it reads academic contents and leaves them where they are, so it binds no recovery
+snapshot and no Drive-ID inventory — that evidence is repair's, proportionate to relocating real
+coursework. Every write follows `docs/agents/safe-drive-testing.md`. The Definition's
+`contract_version` moves last, once the structure it declares is there.
+
 ## Deferred work
 
-Teaching-workspace internals, automated curation, weekly LLM orchestration and autonomous
-module-specific instruction evolution remain future work. The contract defines the interfaces
-they must respect; it does not claim they exist.
+Two remainders are future work. **Weekly whole-session study orchestration** — planning a week of
+study across a module's units and driving the sessions that carry it out — is not what the daily
+curation procedure delivers; that procedure places the day's arrivals and stops there. **Autonomous
+module-specific instruction evolution** — a module rewriting the procedures it runs on from what it
+learns — stays outside every agent's authority; a pinned file changes in this repository and
+reaches modules by seeding. The contract defines the interfaces both must respect; it does not
+claim they exist.

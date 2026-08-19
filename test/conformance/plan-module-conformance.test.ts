@@ -2,12 +2,13 @@ import assert from "node:assert/strict";
 import { it } from "node:test";
 
 import {
-  currentModuleContract,
   planModuleConformance,
   type Inventory,
   type ModuleContract,
 } from "../../src/conformance/index.js";
+import { testModuleContract } from "../fixtures/module-contract.js";
 import { validModuleControls } from "../fixtures/module-controls.js";
+import { learningWorkspacePaths } from "../fixtures/learning-workspace.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 
 it("plans findings, operations, and observations through one pure seam", () => {
@@ -18,7 +19,7 @@ it("plans findings, operations, and observations through one pure seam", () => {
   const before = structuredClone(inventory);
 
   const first = planModuleConformance({
-    contract: currentModuleContract,
+    contract: testModuleContract,
     target: {
       moduleCode: "MH2100",
       semester: "Y2S1",
@@ -52,7 +53,7 @@ it("plans findings, operations, and observations through one pure seam", () => {
     kind: "directory",
   });
   const second = planModuleConformance({
-    contract: currentModuleContract,
+    contract: testModuleContract,
     target: first.observation.target,
     controls: validModuleControls(),
     inventory: resolved,
@@ -67,9 +68,9 @@ it("plans findings, operations, and observations through one pure seam", () => {
 
 it("uses contract version and applicability as authoritative inputs", () => {
   const contract: ModuleContract = {
-    ...currentModuleContract,
-    version: 4,
-    ruleIds: currentModuleContract.ruleIds.filter(
+    ...testModuleContract,
+    version: 5,
+    ruleIds: testModuleContract.ruleIds.filter(
       (ruleId) => ruleId !== "MF-UNIVERSAL-001",
     ),
   };
@@ -90,7 +91,7 @@ it("uses contract version and applicability as authoritative inputs", () => {
     observedAt: "2026-08-12T00:00:00.000Z",
   });
 
-  assert.equal(plan.observation.contractVersion, 3);
+  assert.equal(plan.observation.contractVersion, 4);
   assert.equal(
     plan.findings.some(({ ruleId }) => ruleId === "MF-UNIVERSAL-001"),
     false,
@@ -104,7 +105,7 @@ it("uses contract version and applicability as authoritative inputs", () => {
       ({ ruleId, status, evidence }) =>
         ruleId === "MF-DEFINITION-001" &&
         status === "fail" &&
-        evidence.includes("requested version 4"),
+        evidence.includes("requested version 5"),
     ),
     true,
   );
@@ -113,6 +114,8 @@ it("uses contract version and applicability as authoritative inputs", () => {
 function conformantInventory(): Inventory {
   return {
     moduleCode: "MH2100",
-    entries: universalPaths.map(([path, kind]) => ({ path, kind })),
+    entries: [...universalPaths, ...learningWorkspacePaths].map(
+      ([path, kind]) => ({ path, kind }),
+    ),
   };
 }

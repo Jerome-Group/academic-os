@@ -1,19 +1,14 @@
 # Seed-source templates
 
-The canonical bodies of the pinned files a module folder is seeded with. Seeding will write them
-into a new module folder; the auditor will diff each module's copy back against them. These files,
-and never a copy in Drive, are what "pinned" means.
+The canonical bodies of the pinned files a module folder is seeded with. Seeding writes them into a
+new module folder; the auditor diffs each module's copy back against them. These files, and never a
+copy in Drive, are what "pinned" means.
 
-## Ahead of contract v4
+## What reads them
 
-Nothing reads this directory yet, and the bodies here are version 4's. `docs/module-folder-contract.md`
-is still at version 3, and version 3 is what seeded modules are audited against — including the
-`AGENTS.md` shape `src/seed/create-module-seed-plan.ts` writes and `src/conformance/validate-agents.ts`
-checks, which is not the router here. Version 4 brings the readers: the pinning rule
-(MF-AGENTS-004), the tree these bodies describe, MF-AGENTS-001 rewritten around this router, and
-the Curation-register line schema's version 2 — the `rederived` decision the curation procedure
-here already runs on. Until it lands, a module folder that disagrees with a template here is not
-yet a finding.
+`AGENTS.md` and the four `docs/` templates are what `src/seed/create-module-seed-plan.ts` writes
+into a module folder, and what `src/conformance/validate-pinned-documents.ts` diffs each module's
+copy back against under MF-AGENTS-004.
 
 ## The path is the destination
 

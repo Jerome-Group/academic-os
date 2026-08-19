@@ -6,11 +6,13 @@ import {
   contextualModuleDefinition,
   validModuleControls,
 } from "../fixtures/module-controls.js";
+import { learningWorkspacePaths } from "../fixtures/learning-workspace.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 import {
   recordBehaviorEvidence,
   recordFindingEvidence,
 } from "../support/rule-evidence.js";
+import { testModuleContract } from "../fixtures/module-contract.js";
 
 const modifiedAt = "2026-08-11T00:00:00.000Z";
 const vanillaDefinition = (validModuleControls().definition ?? "").replace(
@@ -21,12 +23,14 @@ const vanillaDefinition = (validModuleControls().definition ?? "").replace(
 function inventory(): Inventory {
   return {
     moduleCode: "MH2100",
-    entries: universalPaths.map(([path, kind]) => ({
-      path,
-      kind,
-      ...(kind === "file" ? { size: 0 } : {}),
-      modifiedAt,
-    })),
+    entries: [...universalPaths, ...learningWorkspacePaths].map(
+      ([path, kind]) => ({
+        path,
+        kind,
+        ...(kind === "file" ? { size: 0 } : {}),
+        modifiedAt,
+      }),
+    ),
   };
 }
 
@@ -46,12 +50,15 @@ function add(
 function audit(target: Inventory, definition = vanillaDefinition) {
   const controls = validModuleControls();
   controls.definition = definition;
-  return auditModule({
-    moduleCode: "MH2100",
-    semester: "Y2S1",
-    inventory: target,
-    controls,
-  });
+  return auditModule(
+    {
+      moduleCode: "MH2100",
+      semester: "Y2S1",
+      inventory: target,
+      controls,
+    },
+    testModuleContract,
+  );
 }
 
 describe("auditModule governed content", () => {
@@ -60,6 +67,7 @@ describe("auditModule governed content", () => {
     add(target, "10 Learning Materials/10 lecture materials");
     add(target, "00 Module Admin/Archive");
     add(target, "30 Assessments/30 Midterms/Archive");
+    add(target, "70 Learning/10 lectures");
     add(target, "70 Learning/00 Module Profile.md", "file");
 
     const findings = audit(target).findings.filter(
@@ -70,6 +78,7 @@ describe("auditModule governed content", () => {
       findings.map(({ ruleId, path }) => [ruleId, path]),
       [
         ["MF-NAMING-001", "10 Learning Materials/10 lecture materials"],
+        ["MF-NAMING-001", "70 Learning/10 lectures"],
         ["MF-ADMIN-001", "00 Module Admin/Archive"],
         ["MF-ASSESSMENTS-001", "30 Assessments/30 Midterms/Archive"],
         ["MF-NAMING-001", "70 Learning/00 Module Profile.md"],
@@ -148,6 +157,61 @@ describe("auditModule governed content", () => {
       findings.map(({ ruleId, path }) => [ruleId, path]),
       [["MF-TUTORIALS-001", "20 Tutorials/provider-group_a/Week 01"]],
     );
+  });
+
+  it("holds every file in the chapter home to the cut-chapter name [MF-TEXTBOOK-004]", () => {
+    const target = inventory();
+    const chapters = "10 Learning Materials/20 Textbook Chapters";
+    for (const name of [
+      "MH2100_Rosen_Chapter_03_Algorithms.pdf",
+      "MH2100_Tao_I_Chapter_05_The_Real_Numbers.pdf",
+      "MH2100_Isaacs_FGT_Chapter_03_Algorithms.pdf",
+      "MH2100_Rosen_Appendix_A_Axioms_For_The_Real_Numbers.pdf",
+      "MH2100_Rosen_Algorithms.pdf",
+      "MH2100_Chapter_03_Algorithms.pdf",
+      "MH2100_Rosen_Chapter_3_Algorithms.pdf",
+      "MH2100_Rosen_Chapter_003_Algorithms.pdf",
+      "MH2100_Rosen_Chapter_03_Algorithms.docx",
+    ]) {
+      add(target, `${chapters}/${name}`, "file");
+    }
+
+    const findings = audit(target).findings.filter(
+      ({ ruleId }) => ruleId === "MF-TEXTBOOK-004",
+    );
+
+    assert.deepEqual(
+      findings.map(({ status, path }) => [status, path]),
+      [
+        ["fail", `${chapters}/MH2100_Rosen_Algorithms.pdf`],
+        ["fail", `${chapters}/MH2100_Chapter_03_Algorithms.pdf`],
+        ["fail", `${chapters}/MH2100_Rosen_Chapter_3_Algorithms.pdf`],
+        ["fail", `${chapters}/MH2100_Rosen_Chapter_003_Algorithms.pdf`],
+        ["fail", `${chapters}/MH2100_Rosen_Chapter_03_Algorithms.docx`],
+      ],
+    );
+    assert.match(
+      findings[0]?.evidence ?? "",
+      /does not match MH2100_<Key>_<Division>_<NN>_<Title>\.pdf/u,
+    );
+    recordFindingEvidence(findings, "MF-TEXTBOOK-004");
+  });
+
+  it("leaves the chapter home to MF-TEXTBOOK-004 rather than reading it twice", () => {
+    const target = inventory();
+    const chapters = "10 Learning Materials/20 Textbook Chapters";
+    for (const name of [
+      "MH2100_Isaacs_FGT_Chapter_03_Algorithms.pdf",
+      "MH2100_Rosen_Algorithms.pdf",
+    ]) {
+      add(target, `${chapters}/${name}`, "file");
+    }
+
+    const findings = audit(target).findings.filter(
+      ({ ruleId, status }) => ruleId === "MF-NAMING-002" && status !== "pass",
+    );
+
+    assert.deepEqual(findings, []);
   });
 
   it("checks curated filenames only in governed academic homes [MF-NAMING-002] [MF-NAMING-003]", () => {

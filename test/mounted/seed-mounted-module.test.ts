@@ -18,6 +18,7 @@ import {
 } from "../../src/mounted/index.js";
 import { createModuleSeedPlan } from "../../src/seed/index.js";
 import { validModuleControls } from "../fixtures/module-controls.js";
+import { testModuleContract } from "../fixtures/module-contract.js";
 
 const temporaryRoots: string[] = [];
 
@@ -104,7 +105,7 @@ describe("seedMountedModule", () => {
       assert.equal(journal[0]?.type, "started");
       assert.deepEqual(journal[0]?.plan, fixture.plan);
       assert.equal(journal[0]?.target.module, "MH2100");
-      assert.equal(journal[0]?.preconditions?.contractVersion, 3);
+      assert.equal(journal[0]?.preconditions?.contractVersion, 4);
       assert.equal(journal.at(-1)?.outcome, "completed");
     });
   }
@@ -120,6 +121,7 @@ describe("seedMountedModule", () => {
         "Changed approved scope.",
       ),
       definition: changedControls.definition ?? "",
+      contract: testModuleContract,
     });
     const changedPlanReport = await seedMountedModule(
       changedPlan.config,
@@ -376,6 +378,7 @@ async function mountedSeedFixture() {
       "quizzes: {enabled: true, evidence: [assessment-profile]}",
       "quizzes: {enabled: false}",
     ),
+    contract: testModuleContract,
   });
   return {
     config: {

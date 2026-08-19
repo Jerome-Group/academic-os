@@ -1,7 +1,5 @@
-import {
-  currentModuleContract,
-  planModuleConformance,
-} from "../conformance/index.js";
+import { planModuleConformance } from "../conformance/index.js";
+import { loadModuleContract } from "../contract/load-module-contract.js";
 import type { AcademicConfig } from "../config/index.js";
 import {
   inspectMountedModule,
@@ -31,6 +29,7 @@ export async function runCohortAudit(
     semester: config.activeSemester,
     semesterRoot: activeSemester.root,
   });
+  const contract = await loadModuleContract();
   const modules: CohortAuditReport["modules"] = [];
   for (const targetConfig of plan.targets) {
     try {
@@ -38,7 +37,7 @@ export async function runCohortAudit(
         await inspectMountedModule(targetConfig);
       const history = await readMountedAuditHistory(target);
       const result = planModuleConformance({
-        contract: currentModuleContract,
+        contract,
         target: {
           moduleCode: target.module,
           semester: target.semester,

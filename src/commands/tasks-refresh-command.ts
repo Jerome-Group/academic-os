@@ -1,11 +1,8 @@
-import {
-  planCohortAudit,
-  resolveConfiguredAuditTarget,
-} from "../cohort/index.js";
 import type { AcademicConfig } from "../config/index.js";
 import { OperationalError } from "../mounted/index.js";
 import {
-  createDeferredTaskRegisterStore,
+  cohortTaskTargets,
+  configuredTaskTarget,
   createGoogleTaskRefreshReader,
   refreshTaskRegisters,
   type TaskRefreshModuleReport,
@@ -14,7 +11,7 @@ import {
 } from "../tasks/index.js";
 import { parseArgumentTokens } from "./argument-tokens.js";
 import { loadCohortTasksConfig } from "./load-cohort-tasks-config.js";
-import { quantity } from "./quantity.js";
+import { renderTaskCounts } from "./render-task-counts.js";
 
 const usage =
   "Usage: academic-os tasks refresh --config <path> [--semester <semester> --module <module>] [--json]";
@@ -40,23 +37,13 @@ function refreshTargets(
   parsed: { semester?: string; module?: string },
 ): TaskRefreshTarget[] {
   if (parsed.semester === undefined || parsed.module === undefined) {
-    return planCohortAudit(config).targets.map((target) => ({
-      semester: target.semester,
-      module: target.module,
-      registerStore: createDeferredTaskRegisterStore(target),
-    }));
+    return cohortTaskTargets(config);
   }
-  const target = resolveConfiguredAuditTarget(
-    config,
-    parsed.semester,
-    parsed.module,
-  );
   return [
-    {
-      semester: target.semester,
-      module: target.module,
-      registerStore: createDeferredTaskRegisterStore(target),
-    },
+    configuredTaskTarget(config, {
+      semester: parsed.semester,
+      module: parsed.module,
+    }),
   ];
 }
 
@@ -96,10 +83,9 @@ function renderHuman(report: TaskRefreshReport): string {
 }
 
 function renderModule(module: TaskRefreshModuleReport): string {
-  const { counts, changes } = module;
+  const { changes } = module;
   return [
-    `${module.module} (${module.semester}): ${quantity(counts.tasks, "task")}`,
-    `${counts.open} open, ${counts.completed} completed, ${counts.cancelled} cancelled, ${counts.unpushed} unpushed`,
+    `${module.module} (${module.semester}): ${renderTaskCounts(module.counts)}`,
     `${module.freshness}; ${changes.added} added, ${changes.updated} updated, ${changes.cancelled} newly cancelled`,
     ...(module.failure === undefined
       ? []

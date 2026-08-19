@@ -74,6 +74,16 @@ The increasing identifier for a distinct set of normative folder requirements. I
 which contract a module folder was prepared to follow.
 _Avoid_: repository version, commit
 
+**Transition**:
+The Owner-approved pass that brings one module folder from an earlier contract version to the
+current one — the difference read, a re-homing plan drafted for whatever the pinned files cannot
+keep, and the whole of it applied on the Owner's yes for that module. It writes control files and
+moves documents rather than relocating coursework, which is why it binds none of repair's recovery
+evidence.
+_Avoid_: repair — that relocates real coursework, which is what its recovery evidence is for;
+migration — that is the historical semesters' own track; upgrade — that is the audit's word for the
+lag a transition clears.
+
 **Audit observation**:
 A complete record of a module folder's paths, available metadata and conformance results at one
 audit time. Comparing audit observations reveals drift without recording file contents.
@@ -271,6 +281,15 @@ cannot.
 _Avoid_: task list — that is the live authority the register mirrors; task history — the register
 is current state, not an append-only record like the Curation register.
 
+**Task operation**:
+An in-session create, change, complete or cancel that pushes to a module's live task list, verifies
+the live result, then refreshes the Task register. It carries the Promotion pattern without a
+Proposal — the Owner asked for the change in session, so nothing stages it for approval — and a
+push Google does not take parks, leaving the register with no row for it; one Google takes but
+records as something else is unverified rather than parked, and a pull settles it.
+_Avoid_: task sync — every operation here is asked for in session; Promotion — that word belongs to
+the Calendar, whose Proposals a register can never be a source for.
+
 **Operations server**:
 The MCP server this repository builds and runs on the mini, exposing its operations — task
 operations first, later surfaces joining the same server — to any MCP-speaking agent on the
@@ -346,6 +365,20 @@ The deterministic daily pass that brings the Shelf index level with the shelf: i
 for every new book whose filename parses and whose default Book key is free, and parks the rest for
 the Owner. It appends and never revises, so what it cannot read off a filename it does not write.
 _Avoid_: sync, import — both suggest a two-way settlement the pass refuses; scan.
+
+**Shelf migration**:
+The one-time pass that brings an existing Textbook shelf into the system, strictly ordered — sweep,
+one Owner review, renames, then the Shelf index. Sweeping precedes indexing because the index
+records final filenames, and the migration is what makes a later Shelf catch-up's parks rare.
+_Avoid_: import — nothing arrives; backfill, bootstrap.
+
+**Shelf review sheet**:
+The single artifact the Shelf migration is approved through: one line per unindexed book carrying
+its filename, its checksum and the Book key, with the settling questions as comments beside the
+lines that answer them. The Owner settles it once; the migration holds it against a fresh reading
+of the shelf and refuses every disagreement.
+_Avoid_: proposal — that is the Calendar's, and a Proposal is promoted rather than settled;
+manifest, plan file.
 
 **Book key**:
 The globally unique, filename-safe token that names one shelf book everywhere it is referred to —

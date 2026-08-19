@@ -1,16 +1,23 @@
+import { learningWorkspacePaths } from "../contract/learning-workspace.js";
 import { universalStructurePaths } from "../contract/universal-structure.js";
 
 export const controlPaths = new Map([
   ["00 Module Profile.md", "00 Module Admin/00 Module Profile.md"],
   ["10 Module Definition.yaml", "00 Module Admin/10 Module Definition.yaml"],
   ["20 Curation Register.jsonl", "00 Module Admin/20 Curation Register.jsonl"],
+  ["30 Task Register.yaml", "00 Module Admin/30 Task Register.yaml"],
+  ["40 Source Map.yaml", "00 Module Admin/40 Source Map.yaml"],
+  ["50 Textbook Register.yaml", "00 Module Admin/50 Textbook Register.yaml"],
   ["AGENTS.md", "AGENTS.md"],
   ["CLAUDE.md", "CLAUDE.md"],
   ["CONTEXT.md", "CONTEXT.md"],
 ]);
 
 export const fixedPaths = new Map(
-  universalStructurePaths.map(([path]) => [path.toLowerCase(), path]),
+  [...universalStructurePaths, ...learningWorkspacePaths].map(([path]) => [
+    path.toLowerCase(),
+    path,
+  ]),
 );
 
 export const assessmentHomes = new Set([

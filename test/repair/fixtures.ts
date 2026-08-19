@@ -20,7 +20,7 @@ export function repairPlanDraft(): RepairPlanDraft {
     schemaVersion: 1,
     changeSetId: "11111111-1111-4111-8111-111111111111",
     module: { code: "ZZ9999", semester: "Y9S9", rootId: "module-id" },
-    contractVersion: 3,
+    contractVersion: 4,
     inventory: {
       complete: true,
       observedAt: "2026-08-12T12:00:00.000Z",

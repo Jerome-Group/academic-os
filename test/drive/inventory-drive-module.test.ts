@@ -276,7 +276,7 @@ describe("Drive API inventory", () => {
       inventory,
       findings: [],
       observedAt: "2026-08-12T00:00:00.000Z",
-      contractVersion: 3,
+      contractVersion: 4,
     });
     assert.equal(isAuditObservation(observation), true);
     assert.deepEqual(observation.metadataAvailability, {

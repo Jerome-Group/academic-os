@@ -17,7 +17,11 @@ import type {
 } from "../../src/conformance/index.js";
 import type { ObservationComparison } from "../../src/observation/index.js";
 import type { HistoryDiagnostic } from "../../src/mounted/types.js";
-import { validModuleControls } from "../fixtures/module-controls.js";
+import {
+  moduleControlContents,
+  validModuleControls,
+} from "../fixtures/module-controls.js";
+import { learningWorkspacePaths } from "../fixtures/learning-workspace.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 import { runCli, runCliWithEnvironment } from "../support/run-cli.js";
 import { recordBehaviorEvidence } from "../support/rule-evidence.js";
@@ -80,18 +84,11 @@ async function conformantModule(): Promise<{
   await mkdir(stateRoot, { recursive: true });
   await mkdir(moduleRoot, { recursive: true });
   const controls = validModuleControls();
-  const controlContents = new Map<string, string>([
-    ["00 Module Admin/00 Module Profile.md", controls.profile ?? ""],
-    ["00 Module Admin/10 Module Definition.yaml", controls.definition ?? ""],
-    [
-      "00 Module Admin/20 Curation Register.jsonl",
-      controls.curationRegister ?? "",
-    ],
-    ["AGENTS.md", controls.agents ?? ""],
-    ["CLAUDE.md", controls.claude ?? ""],
-    ["CONTEXT.md", controls.context ?? ""],
-  ]);
-  for (const [relativePath, kind] of universalPaths) {
+  const controlContents = moduleControlContents(controls);
+  for (const [relativePath, kind] of [
+    ...universalPaths,
+    ...learningWorkspacePaths,
+  ]) {
     const path = join(moduleRoot, relativePath);
     if (kind === "directory") {
       await mkdir(path, { recursive: true });
@@ -349,7 +346,7 @@ describe("academic-os audit", () => {
     assert.deepEqual(firstReport.observation, {
       schemaVersion: 1,
       ruleSetVersion: 1,
-      contractVersion: 3,
+      contractVersion: 4,
       reportProvenance: {
         producer: "@jerome-group/academic-os",
         producerVersion: "0.1.0",
@@ -434,8 +431,8 @@ describe("academic-os audit", () => {
     await writeFile(
       definitionPath,
       (validModuleControls().definition ?? "").replace(
-        "contract_version: 3",
         "contract_version: 4",
+        "contract_version: 5",
       ),
     );
     const changedContract = await runCli(
@@ -447,8 +444,8 @@ describe("academic-os audit", () => {
     const changedReport = JSON.parse(changedContract.stdout) as JsonReport;
     assert.equal(changedReport.comparison.basis, "contract-version-changed");
     assert.deepEqual(changedReport.comparison.contractChange, {
-      from: 3,
-      to: 4,
+      from: 4,
+      to: 5,
     });
     assert.deepEqual(changedReport.comparison.new, []);
     assert.deepEqual(changedReport.comparison.resolved, []);

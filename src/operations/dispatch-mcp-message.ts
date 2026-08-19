@@ -1,4 +1,5 @@
 import { OperationalError } from "../operational-error.js";
+import { isJsonObject } from "./json-object.js";
 import { readToolArguments, toolInputSchema } from "./tool-arguments.js";
 import type { JsonRpcResponse, McpServerInfo, OperationTool } from "./types.js";
 
@@ -34,7 +35,7 @@ export function createMcpDispatcher(input: {
 }): McpDispatcher {
   const tools = new Map(input.tools.map((tool) => [tool.name, tool]));
   return async (message) => {
-    if (!isObject(message) || typeof message.method !== "string") {
+    if (!isJsonObject(message) || typeof message.method !== "string") {
       return failure(null, INVALID_REQUEST, "Expected a JSON-RPC 2.0 request.");
     }
     const id = readId(message.id);
@@ -71,7 +72,7 @@ export function createMcpDispatcher(input: {
   }
 
   function initialize(params: unknown): unknown {
-    const requested = isObject(params) ? params.protocolVersion : undefined;
+    const requested = isJsonObject(params) ? params.protocolVersion : undefined;
     return {
       protocolVersion: SUPPORTED_PROTOCOL_VERSIONS.some(
         (version) => version === requested,
@@ -84,7 +85,7 @@ export function createMcpDispatcher(input: {
   }
 
   async function callTool(params: unknown): Promise<unknown> {
-    const name = isObject(params) ? params.name : undefined;
+    const name = isJsonObject(params) ? params.name : undefined;
     const tool = typeof name === "string" ? tools.get(name) : undefined;
     if (tool === undefined) {
       throw new OperationalError(
@@ -94,7 +95,7 @@ export function createMcpDispatcher(input: {
     }
     const values = readToolArguments(
       tool,
-      isObject(params) ? params.arguments : undefined,
+      isJsonObject(params) ? params.arguments : undefined,
     );
     // Everything past the parse is the operation itself, and an operation that fails is a result
     // the calling agent reads rather than a protocol error: the report says what the live list
@@ -147,8 +148,4 @@ function failure(
   message: string,
 ): JsonRpcResponse {
   return { jsonrpc: "2.0", id, error: { code, message } };
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

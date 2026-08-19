@@ -1,4 +1,5 @@
 import { OperationalError } from "../operational-error.js";
+import { isJsonObject } from "./json-object.js";
 import type { OperationTool, OperationToolField } from "./types.js";
 
 export interface ToolInputSchema {
@@ -33,7 +34,7 @@ export function readToolArguments(
   tool: OperationTool,
   arguments_: unknown,
 ): ReadonlyMap<string, string> {
-  if (arguments_ !== undefined && !isObject(arguments_)) {
+  if (arguments_ !== undefined && !isJsonObject(arguments_)) {
     throw new OperationalError(
       "invalid-arguments",
       `${tool.name} takes an arguments object.`,
@@ -71,8 +72,4 @@ export function readToolArguments(
     values.set(field.name, value);
   }
   return values;
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

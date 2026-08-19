@@ -169,11 +169,11 @@ async function operate(
     writer: port.writer,
     reader: port.reader,
   });
-  return {
-    report,
-    failed:
-      report.outcome !== "applied" || report.register?.freshness !== "fresh",
-  };
+  // The push is what the operation was asked to do, so a verified one whose follow-up pull then
+  // failed is applied and not an error: the task is on the Owner's phone, and reporting it as a
+  // failure is what invites the calling agent to push it a second time. The report names the
+  // stale register, which a later read settles.
+  return { report, failed: report.outcome !== "applied" };
 }
 
 function moduleOf(values: ReadonlyMap<string, string>): {

@@ -140,6 +140,22 @@ describe("the served task tools", () => {
     assert.equal(fixture.list.tasks().length, 1);
   });
 
+  it("keeps a verified push applied when the refresh behind it could not pull", async () => {
+    const fixture = setupFixture();
+    fixture.list.refuseReads();
+
+    const { report, failed } = await call(fixture, "tasks_create", {
+      title: "Attempt tutorial 3",
+    });
+
+    assert.equal(failed, false);
+    const operation = report as TaskOperationReport;
+    assert.equal(operation.outcome, "applied");
+    assert.equal(operation.taskId, "created-1");
+    assert.equal(operation.register?.freshness, "stale");
+    assert.equal(fixture.store.current()?.tasks.at(-1)?.taskId, "created-1");
+  });
+
   it("changes a task's do-date on the live list and mirrors it back", async () => {
     const fixture = setupFixture();
 

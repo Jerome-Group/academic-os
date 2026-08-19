@@ -59,7 +59,7 @@ helper again rather than editing the config. `tasks provision --apply` is the on
 the write credential.
 
 The Operations server needs no credentials of its own: it runs the same task operations on the
-mini under the same pair. `operations.port` optionally moves it off its default port.
+mini under the same pair.
 
 `textbooks catch-up` needs `textbooks.shelfRoot` — the Textbook shelf relative to the Drive mount,
 beside the semester roots. It reads the shelf and writes only the shelf's own `00 Index.yaml`, so
@@ -416,9 +416,9 @@ is reachable again without anyone starting it. It writes only
 `~/Library/LaunchAgents/com.jerome-group.academic-os.operations-server.plist`, and logs to
 `~/Library/Logs/academic-os/operations-server.log`.
 
-The server binds the mini's tailnet address and only that one, at `operations.port` from the
-config — `8765` by default — and serves MCP over Streamable HTTP at `/mcp`. A mini signed out of
-Tailscale has no address to bind and the server refuses to start, which is the intended failure:
+The server binds the mini's tailnet addresses and only those, on port `8765`, and serves MCP over
+Streamable HTTP at `/mcp`. A mini signed out of Tailscale has no address to bind and the server
+refuses to start, which is the intended failure:
 reachability on the Tailnet is the whole of the authorisation, and there is no token to add
 (ADR-0011). Second machines register the URL once at user scope — `machine-setup.md` is their
 whole checklist.
@@ -430,7 +430,8 @@ into the register first and returns the rows with their provenance. Every tool t
 and `module`, and a module the config does not map is refused rather than guessed at. An
 operation that did not apply comes back as an MCP error carrying the same report the CLI prints,
 so a parked push is visible to the calling agent without it having to read the report for the bad
-news.
+news. A verified push whose refresh then failed is not one of those: the task is on the phone, the
+report names the stale register, and reporting it as an error is what would invite a second push.
 
 Inspect the loaded job, watch it serve, and restart it:
 

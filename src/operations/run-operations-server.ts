@@ -1,7 +1,6 @@
 import { fileURLToPath } from "node:url";
 
 import { loadCohortTasksConfig } from "../commands/load-cohort-tasks-config.js";
-import { resolveOperationsConfig } from "../config/index.js";
 import {
   configuredTaskTarget,
   createGoogleTaskOperationWriter,
@@ -9,10 +8,11 @@ import {
 } from "../tasks/index.js";
 import { createMcpDispatcher } from "./dispatch-mcp-message.js";
 import {
+  OPERATIONS_PORT,
   startOperationsServer,
   type OperationsServerHandle,
 } from "./serve-operations.js";
-import { resolveTailnetAddress } from "./tailnet-address.js";
+import { resolveTailnetAddresses } from "./tailnet-address.js";
 import { createTaskTools } from "./task-tools.js";
 import type { McpServerInfo } from "./types.js";
 
@@ -36,8 +36,8 @@ export async function runOperationsServer(input: {
     reader: createGoogleTaskRefreshReader(tasks.credentials.scheduledRead),
   });
   return await startOperationsServer({
-    host: resolveTailnetAddress(),
-    port: resolveOperationsConfig(config).port,
+    hosts: resolveTailnetAddresses(),
+    port: OPERATIONS_PORT,
     dispatch: createMcpDispatcher({
       tools,
       serverInfo: OPERATIONS_SERVER_INFO,
@@ -54,7 +54,9 @@ async function runFromCommandLine(): Promise<void> {
   }
   try {
     const server = await runOperationsServer({ configPath });
-    process.stdout.write(`Operations server listening on ${server.url}\n`);
+    process.stdout.write(
+      `Operations server listening on ${server.urls.join(", ")}\n`,
+    );
   } catch (error) {
     process.stderr.write(
       `${error instanceof Error ? error.message : String(error)}\n`,

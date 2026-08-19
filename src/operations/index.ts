@@ -13,10 +13,11 @@ export {
 } from "./run-operations-server.js";
 export {
   OPERATIONS_ENDPOINT_PATH,
+  OPERATIONS_PORT,
   startOperationsServer,
   type OperationsServerHandle,
 } from "./serve-operations.js";
-export { resolveTailnetAddress } from "./tailnet-address.js";
+export { resolveTailnetAddresses } from "./tailnet-address.js";
 export { createTaskTools, type TaskToolPort } from "./task-tools.js";
 export { readToolArguments, toolInputSchema } from "./tool-arguments.js";
 export type {

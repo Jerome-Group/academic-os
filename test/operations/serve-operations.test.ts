@@ -21,12 +21,14 @@ const tool: OperationTool = {
 };
 
 let server: OperationsServerHandle;
+let url: string;
+let origin: string;
 
 before(async () => {
   server = await startOperationsServer({
-    // The mini binds its tailnet address; a test binds loopback, which is the same one-interface
-    // rule with an address a machine with no tailnet has.
-    host: "127.0.0.1",
+    // The mini binds its tailnet addresses; a test binds loopback in both families, which is the
+    // same address-by-address rule on a machine with no tailnet.
+    hosts: ["127.0.0.1", "::1"],
     port: 0,
     dispatch: createMcpDispatcher({
       tools: [tool],
@@ -37,6 +39,8 @@ before(async () => {
       },
     }),
   });
+  url = server.urls[0] ?? "";
+  origin = url.slice(0, url.lastIndexOf(OPERATIONS_ENDPOINT_PATH));
 });
 
 after(async () => {
@@ -47,7 +51,7 @@ async function post(
   body: string,
   headers: Record<string, string> = {},
 ): Promise<Response> {
-  return await fetch(server.url, {
+  return await fetch(url, {
     method: "POST",
     headers: { "content-type": "application/json", ...headers },
     body,
@@ -62,12 +66,18 @@ const initialize = JSON.stringify({
 });
 
 describe("the Operations server over HTTP", () => {
-  it("serves the endpoint at the address it was bound to", () => {
-    assert.equal(server.host, "127.0.0.1");
-    assert.equal(
-      server.url,
-      `http://127.0.0.1:${server.port}${OPERATIONS_ENDPOINT_PATH}`,
-    );
+  it("serves the endpoint on every address it was bound to", async () => {
+    assert.equal(server.urls.length, 2);
+    assert.match(server.urls[0] ?? "", /^http:\/\/127\.0\.0\.1:\d+\/mcp$/u);
+    assert.match(server.urls[1] ?? "", /^http:\/\/\[::1\]:\d+\/mcp$/u);
+
+    const second = await fetch(server.urls[1] ?? "", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: initialize,
+    });
+
+    assert.equal(second.status, 200);
   });
 
   it("answers a JSON-RPC request in the response body", async () => {
@@ -124,7 +134,7 @@ describe("the Operations server over HTTP", () => {
 
   it("refuses a body that is not JSON, and one that is not JSON-typed", async () => {
     const unparseable = await post("not json");
-    const untyped = await fetch(server.url, {
+    const untyped = await fetch(url, {
       method: "POST",
       headers: { "content-type": "text/plain" },
       body: initialize,
@@ -136,8 +146,8 @@ describe("the Operations server over HTTP", () => {
   });
 
   it("refuses another method and another path", async () => {
-    const listening = await fetch(server.url);
-    const elsewhere = await fetch(`http://127.0.0.1:${server.port}/tasks`, {
+    const listening = await fetch(url);
+    const elsewhere = await fetch(`${origin}/tasks`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: initialize,

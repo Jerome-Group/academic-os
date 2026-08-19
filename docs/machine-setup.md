@@ -18,9 +18,8 @@ Two items. Nothing else travels — no Node, no clone of this repository, no cre
 
    Any other MCP client registers the same URL in whatever way it registers an HTTP server.
 
-The MagicDNS name is the mini's, and the port is `operations.port` from the mini's config —
-`8765` unless the Owner changed it. Confirm the registration by listing the tools: four
-`tasks_*` tools mean the machine is done.
+The MagicDNS name is the mini's. Confirm the registration by listing the tools: four `tasks_*`
+tools mean the machine is done.
 
 Reachability on the Tailnet is the whole of the authorisation, which is why there is no third
 item: a machine signed in to Tailscale is one of the Owner's, and one that is not reaches nothing

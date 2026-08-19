@@ -15,6 +15,10 @@ import {
   planLaunchdJob,
   removeLaunchdJob,
 } from "../dist/src/launchd/index.js";
+import {
+  parseInstallerArguments,
+  requireLaunchdUid,
+} from "./launchd-installer-cli.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const serverModulePath = fileURLToPath(
@@ -35,9 +39,9 @@ try {
 }
 
 async function main() {
-  const arguments_ = parseArguments(process.argv.slice(2));
+  const arguments_ = parseInstallerArguments(process.argv.slice(2), usage);
   const homeDirectory = homedir();
-  const uid = requireUid();
+  const uid = requireLaunchdUid("Operations server");
   if (arguments_.remove) {
     const target = launchdJobTarget({
       name: OPERATIONS_SERVER_LAUNCHD_JOB_NAME,
@@ -88,53 +92,6 @@ async function main() {
       `Remove: node ${scriptPath} --remove`,
     ].join("\n")}\n`,
   );
-}
-
-function parseArguments(arguments_) {
-  let configPath;
-  let dryRun = false;
-  let remove = false;
-  for (let index = 0; index < arguments_.length; index += 1) {
-    const argument = arguments_[index];
-    if (argument === "--config") {
-      const value = arguments_[index + 1];
-      if (
-        value === undefined ||
-        value.startsWith("--") ||
-        configPath !== undefined
-      ) {
-        throw new Error(usage);
-      }
-      configPath = value;
-      index += 1;
-    } else if (argument === "--dry-run") {
-      dryRun = true;
-    } else if (argument === "--remove") {
-      remove = true;
-    } else if (argument === "--help") {
-      process.stdout.write(`${usage}\n`);
-      process.exit(0);
-    } else {
-      throw new Error(`Unexpected argument: ${argument}.\n${usage}`);
-    }
-  }
-  if (remove && (dryRun || configPath !== undefined)) {
-    throw new Error("--remove cannot be combined with --config or --dry-run.");
-  }
-  if (!remove && configPath === undefined) {
-    throw new Error(usage);
-  }
-  return { configPath, dryRun, remove };
-}
-
-function requireUid() {
-  const uid = process.getuid?.();
-  if (uid === undefined) {
-    throw new Error(
-      "Operations server scheduling requires a macOS user session.",
-    );
-  }
-  return uid;
 }
 
 async function describeJob(configPath) {

@@ -35,6 +35,7 @@ export const contractRuleEnforcement = {
   "MF-TEXTBOOK-002": "deterministic",
   "MF-TEXTBOOK-003": "deterministic",
   "MF-TEXTBOOK-004": "deterministic",
+  "MF-TRANSITION-001": "judgment",
   "MF-TUTORIALS-001": "deterministic",
   "MF-UNIVERSAL-001": "deterministic",
   "MF-WORKSPACES-001": "deterministic",

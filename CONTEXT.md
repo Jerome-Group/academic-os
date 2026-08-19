@@ -74,6 +74,16 @@ The increasing identifier for a distinct set of normative folder requirements. I
 which contract a module folder was prepared to follow.
 _Avoid_: repository version, commit
 
+**Transition**:
+The Owner-approved pass that brings one module folder from an earlier contract version to the
+current one — the difference read, a re-homing plan drafted for whatever the pinned files cannot
+keep, and the whole of it applied on the Owner's yes for that module. It writes control files and
+moves documents rather than relocating coursework, which is why it binds none of repair's recovery
+evidence.
+_Avoid_: repair — that relocates real coursework, which is what its recovery evidence is for;
+migration — that is the historical semesters' own track; upgrade — that is the audit's word for the
+lag a transition clears.
+
 **Audit observation**:
 A complete record of a module folder's paths, available metadata and conformance results at one
 audit time. Comparing audit observations reveals drift without recording file contents.

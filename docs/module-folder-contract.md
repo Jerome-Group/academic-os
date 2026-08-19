@@ -5,7 +5,7 @@ with an applicable rule here is wrong, and a rule that is not here is not a rule
 outside a module folder is governed too, and it is the only one: the shared Textbook shelf at
 `Modules/Textbooks`, which every module cuts its chapters from.
 
-**Contract version: 3.** Increase it when a normative requirement, applicability rule or allowed
+**Contract version: 4.** Increase it when a normative requirement, applicability rule or allowed
 structure changes. Editorial clarification and repaired citations do not change it. Definition
 schema versions advance independently.
 
@@ -130,11 +130,11 @@ schema and contract versions, module identity, offering, applicable context-deri
 declared importer roots and their evidence. It contains module-relative paths only: no absolute
 Drive paths, credentials, deadlines, prose workflows, inventories or learner progress.
 
-The schema version 2 shape for contract version 3 is:
+The schema version 2 shape for contract version 4 is:
 
 ```yaml
 schema_version: 2
-contract_version: 3
+contract_version: 4
 module: {code: MH2100, title: Calculus III}
 offering: {academic_year: 2026-2027, semester: 1, status: active}
 structure:
@@ -506,8 +506,23 @@ continuously. Past and future modules are audited or changed only after a user r
 proposal the user accepts. Historical migration findings are enabled explicitly and never mutate
 their target.
 
+**MF-TRANSITION-001 (judgment).** A folder whose Definition lags the current contract version
+reaches it by **transition**, one module at a time. An agent diffs the current structure against
+what the folder holds and drafts where each module-local item the pinned structure cannot keep is
+re-homed — organisational terms to `CONTEXT.md`, standing rules to `docs/adr/`, module facts to the
+Profile — then shows the Owner the diff and the plan together; their yes on that module is the
+approval to apply it. Transition writes the control files this repository authors and moves
+documents; it reads academic contents and leaves them where they are, so it binds no recovery
+snapshot and no Drive-ID inventory — that evidence is repair's, proportionate to relocating real
+coursework. Every write follows `docs/agents/safe-drive-testing.md`. The Definition's
+`contract_version` moves last, once the structure it declares is there.
+
 ## Deferred work
 
-Automated curation, weekly LLM orchestration and autonomous module-specific instruction evolution
-remain future work. The contract defines the interfaces they must respect; it does not claim they
-exist.
+Two remainders are future work. **Weekly whole-session study orchestration** — planning a week of
+study across a module's units and driving the sessions that carry it out — is not what the daily
+curation procedure delivers; that procedure places the day's arrivals and stops there. **Autonomous
+module-specific instruction evolution** — a module rewriting the procedures it runs on from what it
+learns — stays outside every agent's authority; a pinned file changes in this repository and
+reaches modules by seeding. The contract defines the interfaces both must respect; it does not
+claim they exist.

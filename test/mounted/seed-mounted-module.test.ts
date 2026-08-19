@@ -105,7 +105,7 @@ describe("seedMountedModule", () => {
       assert.equal(journal[0]?.type, "started");
       assert.deepEqual(journal[0]?.plan, fixture.plan);
       assert.equal(journal[0]?.target.module, "MH2100");
-      assert.equal(journal[0]?.preconditions?.contractVersion, 3);
+      assert.equal(journal[0]?.preconditions?.contractVersion, 4);
       assert.equal(journal.at(-1)?.outcome, "completed");
     });
   }

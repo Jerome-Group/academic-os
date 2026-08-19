@@ -55,7 +55,9 @@ An audit has no write-capable dependency. The repair executor accepts only a ver
 plan whose IDs and preconditions still match a fresh observation. Before any real repair, create
 and verify both an ID-mapped Drive copy and a byte snapshot on separate storage. Module contents
 move to the recovery vault rather than being permanently deleted; Drive Trash is not a recovery
-design.
+design. A transition is the lighter path beside repair: it writes the control files this repository
+authors and moves documents, reads academic contents and leaves them where they are, and so binds
+neither of those recoveries — its writes prove themselves under *Prove a mounted write* instead.
 
 Through the API, paths are human evidence, not mutation identity: inventory and mutation use Drive
 IDs, request every page, reject incomplete results, and treat absent checksums or revisions as

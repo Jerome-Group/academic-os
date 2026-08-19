@@ -3,8 +3,8 @@
 The CLI has `seed`, `audit`, `calendar setup`, pull-only `calendar refresh`, private
 `calendar propose`, explicitly authorised `calendar promote`, `tasks provision`, pull-only
 `tasks refresh`, in-session `tasks create`, `tasks change`, `tasks complete` and `tasks cancel`,
-additive `textbooks catch-up` and separately gated `repair` commands. It does not schedule weekly
-LLM work or edit module instructions autonomously.
+additive `textbooks catch-up` and separately gated `repair` commands. It does not orchestrate a
+week of study or evolve a module's instructions on its own.
 
 ## Configure
 
@@ -620,6 +620,24 @@ contain metadata and filenames, so do not commit them. Current mismatch is a **d
 change between compatible observations is **drift**. A historical contract gap or contract-version
 upgrade is migration evidence, not permission to repair or change the contract.
 
+## Transition a module to the current contract
+
+A module folder whose Definition declares an earlier contract version audits as
+`contract-version-upgrade`. That lag is the queue, and working through it is **transition**
+(MF-TRANSITION-001) — the lighter path beside repair, one module at a time in an interactive
+session:
+
+1. Audit the module and read the difference between the current contract's structure and what the
+   folder holds.
+2. Draft where each module-local item the pinned files cannot keep is re-homed — organisational
+   terms to the module `CONTEXT.md`, standing rules to a module ADR, module facts to the Profile.
+3. Show the Owner the difference and the re-homing plan together; their yes on that module is the
+   approval to apply it.
+4. Apply under `docs/agents/safe-drive-testing.md`. Transition writes this repository's control
+   files and moves documents; it reads academic contents and leaves them where they are, so it
+   needs neither the recovery snapshot nor the Drive-ID inventory repair binds.
+5. Move the Definition's `contract_version` last, once the structure it declares is there.
+
 ## Repair one historical module
 
 Repair accepts a private, versioned plan whose digest binds the approved decisions, complete Drive
@@ -674,5 +692,7 @@ is mutable and therefore is not itself immutable or WORM storage.
 - Audit has no repair path and no write-capable Drive API dependency.
 - A contract change edits `docs/module-folder-contract.md`; repair resolves only an approved
   deviation and cannot change the contract.
+- Transition brings one folder to the current contract version on the Owner's yes and leaves
+  academic contents where they are.
 - Run `npm run check`, `npm run rule-coverage:check` and `npm run privacy:check` before publication.
 - Follow `docs/agents/safe-drive-testing.md` before any Drive write or integration test.

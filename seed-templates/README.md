@@ -4,16 +4,11 @@ The canonical bodies of the pinned files a module folder is seeded with. Seeding
 new module folder; the auditor diffs each module's copy back against them. These files, and never a
 copy in Drive, are what "pinned" means.
 
-## Ahead of the rest of contract v4
+## What reads them
 
-The pinned docs layer is live: `AGENTS.md` and the four `docs/` templates are what
-`src/seed/create-module-seed-plan.ts` writes into a module folder, and what
-`src/conformance/validate-pinned-documents.ts` diffs each module's copy back against under
-MF-AGENTS-004.
-
-One thing here still outruns its readers on `integration/contract-v4`, the branch that layer landed
-on: the contract's version line reads 3 until the chain's last batch flips it, so a cohort module is
-audited against version 3 until then.
+`AGENTS.md` and the four `docs/` templates are what `src/seed/create-module-seed-plan.ts` writes
+into a module folder, and what `src/conformance/validate-pinned-documents.ts` diffs each module's
+copy back against under MF-AGENTS-004.
 
 ## The path is the destination
 

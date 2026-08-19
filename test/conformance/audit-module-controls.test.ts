@@ -379,7 +379,7 @@ describe("auditModuleControls", () => {
     controls.definition =
       controls.definition
         ?.replace("schema_version: 2", "schema_version: 3")
-        .replace("contract_version: 3", "contract_version: 4") ?? "";
+        .replace("contract_version: 4", "contract_version: 5") ?? "";
 
     const result = auditModuleControls(
       {
@@ -399,7 +399,7 @@ describe("auditModuleControls", () => {
     );
     assert.match(
       versionFinding?.evidence ?? "",
-      /Unsupported contract_version 4/u,
+      /Unsupported contract_version 5/u,
     );
     assert.equal(
       result.findings.filter(({ ruleId }) => ruleId === "MF-DEFINITION-001")

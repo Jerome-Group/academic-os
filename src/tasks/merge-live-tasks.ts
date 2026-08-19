@@ -36,7 +36,7 @@ export function mergeLiveTasks(
     tasks.push(mirrorLiveTask(live));
     changes.added += 1;
   }
-  return { register: { listId: register.listId, tasks }, changes };
+  return { register: { ...register, tasks }, changes };
 }
 
 function cancel(

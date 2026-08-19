@@ -30,6 +30,7 @@ export const contractRuleEnforcement = {
   "MF-SEED-001": "judgment",
   "MF-SEED-002": "deterministic",
   "MF-SEED-003": "deterministic",
+  "MF-TASKS-001": "deterministic",
   "MF-TUTORIALS-001": "deterministic",
   "MF-UNIVERSAL-001": "deterministic",
   "MF-WORKSPACES-001": "deterministic",

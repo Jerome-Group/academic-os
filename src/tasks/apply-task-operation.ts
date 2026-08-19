@@ -1,5 +1,6 @@
 import { OperationalError } from "../operational-error.js";
 import { liveDoDate, liveDue } from "./do-date.js";
+import { provisionedList } from "./provisioned-list.js";
 import {
   refreshTaskRegister,
   type TaskRefreshTarget,
@@ -13,7 +14,6 @@ import type {
   TaskOperationWriter,
   TaskRefreshReader,
   TaskRegister,
-  TaskRegisterStore,
 } from "./types.js";
 
 // The live list took the push and then read back as something else. It carries the task ID
@@ -85,8 +85,10 @@ async function pushToLiveList(
   operation: TaskOperation,
   writer: TaskOperationWriter,
 ): Promise<PushedTask> {
-  const register = await readRegister(target.registerStore, target.module);
-  const listId = register.listId;
+  const { register, listId } = provisionedList(
+    await target.registerStore.read(),
+    target.module,
+  );
   if (operation.name === "create") {
     const fields = { title: operation.title, ...writtenFields(operation) };
     const { id } = await writer.createTask({ listId, task: fields });
@@ -109,20 +111,6 @@ async function pushToLiveList(
   await writer.patchTask({ listId, taskId, patch: fields });
   await verifyLiveFields(writer, listId, taskId, fields);
   return { taskId };
-}
-
-async function readRegister(
-  store: TaskRegisterStore,
-  module: string,
-): Promise<TaskRegister> {
-  const register = await store.read();
-  if (register === undefined) {
-    throw new OperationalError(
-      "missing-target",
-      `${module} has no Task register; run tasks provision first.`,
-    );
-  }
-  return register;
 }
 
 // The register names the module's tasks, so an ID it does not hold is one this session has not
@@ -209,7 +197,7 @@ function registerWithCreatedRow(
   operation: TaskOperation & { name: "create" },
 ): TaskRegister {
   return {
-    listId: register.listId,
+    ...register,
     tasks: [
       ...register.tasks,
       {

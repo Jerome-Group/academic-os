@@ -47,6 +47,7 @@ MODULE_CODE/
 │   ├── 00 Module Profile.md
 │   ├── 10 Module Definition.yaml
 │   ├── 20 Curation Register.jsonl
+│   ├── 30 Task Register.yaml
 │   └── 40 Source Map.yaml
 ├── 10 Learning Materials/
 │   ├── 10 Lecture Materials/
@@ -224,14 +225,47 @@ require a decision.
 
 **MF-CURATION-001 (deterministic).** `20 Curation Register.jsonl` is empty at seed. Each later line
 is one append-only curation-decision event recording schema version, stable source identity,
-integration and role, source-relative path and checksum when available, decision, destination when
-curated, evidence, timestamp and any superseded event. Its decisions are curated, source-only or
-requires-decision.
+integration and role, source-relative path and checksum when available, decision, where the item's
+content went, evidence, timestamp and any superseded event.
 
 Version 1 uses `schema_version`, `source_id`, `integration`, `role`, `source_path`, optional
 `checksum`, `decision`, conditional `destination`, `evidence`, `timestamp` and optional
-`supersedes`. Paths are relative, the timestamp is ISO-compatible, and a curated event requires a
-destination.
+`supersedes`. Its decisions are curated, source-only or requires-decision. Paths are relative, the
+timestamp is ISO-compatible, and a curated event requires a destination.
+
+Version 2 adds the fourth decision `rederived`: the item's content reached the module through
+derived artifacts rather than through a copy, and the line names them in `derived` — a non-empty
+sequence of module-relative paths — where a curated line names a `destination`. Both versions are
+valid in one file. A version 1 line stays history exactly as it stands, so nothing migrates it and
+a register mixing the two is conformant.
+
+### Task register
+
+**MF-TASKS-001 (deterministic).** `00 Module Admin/30 Task Register.yaml` mirrors one module's
+Google Tasks list and carries the provenance that list cannot. It is current state rather than
+history: each pull rewrites the rows Google owns.
+
+```yaml
+list_id: <exact Google Tasks list ID>
+tasks:
+  - task_id: <Google task ID; absent until the row is first pushed>
+    title: Read the Week 03 notes
+    do_date: 2026-08-21
+    status: open | completed | cancelled
+    notes: <mirrored Google notes>
+    provenance:
+      assessment: <assessment-category artifact>
+      source: <NTULearn item or Curation-register pointer>
+      milestone: <related Calendar milestone>
+```
+
+Seeding writes `tasks: []` and leaves the header's `list_id` out, because the module's list exists
+only once provisioning creates or adopts it; provisioning then writes that list's exact ID, and a
+register holding any row carries one. Every row states its `title` and its `status`; `task_id`,
+`do_date`, `notes` and each `provenance` key are optional, and a row Google has forgotten reads
+`cancelled` rather than leaving the register. A row carrying a date carries a date-only do-date,
+and the schema reserves no room for a time of day — a deadline is a Calendar milestone owned
+outside the folder.
 
 ## The Teaching workspace
 
@@ -351,8 +385,10 @@ names and declared importer roots are the explicit exceptions.
 **MF-NAMING-002 (deterministic).** A file deliberately placed in Learning Materials, Tutorials,
 Assessments, Projects/Labs or Resources is curated. Its name begins with the uppercase module code,
 then Title Case underscore-separated tokens. Sequences use two digits, dates `YYYY-MM-DD`, years
-four digits and extensions lowercase. Files inside importer roots, `.scratch`, `build`, `docs`,
-`70 Learning`, plus root controls, are exempt.
+four digits and extensions lowercase. A sequence number is read from the source's own naming — the
+item's title, or the attachment's own filename — so an importer mirror's `NN ` prefix stays that
+importer's ordering, and a source numbering itself nowhere is an ambiguity to park. Files inside
+importer roots, `.scratch`, `build`, `docs`, `70 Learning`, plus root controls, are exempt.
 
 **MF-NAMING-003 (judgment).** Useful qualifiers include `Questions`, `Solutions`, `Draft_01`,
 `Annotated` and `Graded`. A completed file has no `Final` version suffix; `Final` names the final

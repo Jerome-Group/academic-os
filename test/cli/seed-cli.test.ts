@@ -28,6 +28,7 @@ import {
   learningWorkspaceTemplatePaths,
   seededSourceMap,
 } from "../fixtures/learning-workspace.js";
+import { seededTaskRegister } from "../fixtures/task-register.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 import { runCli } from "../support/run-cli.js";
 import { recordBehaviorEvidence } from "../support/rule-evidence.js";
@@ -270,6 +271,14 @@ describe("academic-os seed", () => {
     );
     recordBehaviorEvidence("MF-LEARNING-002", () => {
       assert.equal(seededMap.includes(seededSourceMap), true);
+    });
+    const seededRegister = await readFile(
+      join(fixture.moduleRoot, "00 Module Admin/30 Task Register.yaml"),
+      "utf8",
+    );
+    recordBehaviorEvidence("MF-TASKS-001", () => {
+      assert.equal(seededRegister.includes(seededTaskRegister), true);
+      assert.equal(seededRegister.includes("list_id"), false);
     });
   });
 

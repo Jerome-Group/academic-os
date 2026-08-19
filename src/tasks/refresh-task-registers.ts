@@ -1,5 +1,6 @@
 import { OperationalError } from "../operational-error.js";
 import { mergeLiveTasks } from "./merge-live-tasks.js";
+import { provisionedList } from "./provisioned-list.js";
 import { taskFailure } from "./task-failure.js";
 import type {
   ConfiguredModuleIdentity,
@@ -53,22 +54,17 @@ export async function refreshTaskRegister(
   let register: TaskRegister | undefined;
   try {
     register = await target.registerStore.read();
-    if (register === undefined) {
-      throw new OperationalError(
-        "missing-target",
-        `${target.module} has no Task register; run tasks provision first.`,
-      );
-    }
+    const bound = provisionedList(register, target.module);
     const live = validateLiveTasks(
-      await reader.listTasks({ listId: register.listId }),
+      await reader.listTasks({ listId: bound.listId }),
     );
-    const merged = mergeLiveTasks(register, live);
+    const merged = mergeLiveTasks(bound.register, live);
     await target.registerStore.write(merged.register);
     return {
       semester: target.semester,
       module: target.module,
       freshness: "fresh",
-      listId: merged.register.listId,
+      listId: bound.listId,
       counts: countRegister(merged.register),
       changes: merged.changes,
     };

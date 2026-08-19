@@ -4,7 +4,16 @@ import type { Finding } from "./types.js";
 import { isRecord, nonEmptyString } from "./value-shape.js";
 
 const registerPath = moduleControlPaths.curationRegister;
-const decisions = new Set(["curated", "source-only", "requires-decision"]);
+// Version 2 adds `rederived`, whose line names the derived artifacts an item's content reached the
+// module through. A version 1 line stays valid history exactly as it was written, so one file
+// holding both versions is one file holding its own past.
+const version1Decisions = ["curated", "source-only", "requires-decision"];
+const version2Decisions = [...version1Decisions, "rederived"];
+const decisionsByVersion = new Map([
+  [1, version1Decisions],
+  [2, version2Decisions],
+]);
+const supportedVersions = [...decisionsByVersion.keys()];
 
 export function validateCurationRegister(source: string | undefined): Finding {
   if (source === undefined) {
@@ -63,51 +72,32 @@ function validateEvent(value: unknown, line: number): string[] {
     "evidence",
     "timestamp",
   ];
-  if (value.schema_version !== 1) {
+  const declared = readDecisions(value.schema_version);
+  if (declared === undefined) {
     problems.push(
-      `Line ${line} has unsupported schema_version ${JSON.stringify(value.schema_version)}; supported version is 1.`,
+      `Line ${line} has unsupported schema_version ${JSON.stringify(value.schema_version)}; supported versions are ${supportedVersions.join(" and ")}.`,
     );
   }
+  // A line whose version says nothing is still read for its decision, against the newest
+  // vocabulary — so an unsupported version reports what else is wrong with the line beside it.
+  const decisions = declared ?? version2Decisions;
   for (const field of requiredStrings) {
     if (!nonEmptyString(value[field])) {
       problems.push(`Line ${line} requires non-empty ${field}.`);
     }
   }
-  if (
-    nonEmptyString(value.source_path) &&
-    (value.source_path.startsWith("/") ||
-      value.source_path.split("/").includes(".."))
-  ) {
+  if (nonEmptyString(value.source_path) && !isRelative(value.source_path)) {
     problems.push(`Line ${line} source_path must be source-relative.`);
   }
   if (value.checksum !== undefined && !nonEmptyString(value.checksum)) {
     problems.push(`Line ${line} checksum must be non-empty when present.`);
   }
-  if (!nonEmptyString(value.decision) || !decisions.has(value.decision)) {
+  if (!nonEmptyString(value.decision) || !decisions.includes(value.decision)) {
     problems.push(
-      `Line ${line} decision is not curated, source-only, or requires-decision.`,
+      `Line ${line} decision is not one of ${decisions.join(", ")}.`,
     );
   }
-  if (value.decision === "curated" && !nonEmptyString(value.destination)) {
-    problems.push(`Line ${line} curated decision requires destination.`);
-  }
-  if (value.decision !== "curated" && value.destination !== undefined) {
-    problems.push(
-      `Line ${line} destination is allowed only for curated decisions.`,
-    );
-  }
-  if (value.destination !== undefined && !nonEmptyString(value.destination)) {
-    problems.push(
-      `Line ${line} destination must be a non-empty string when present.`,
-    );
-  }
-  if (
-    nonEmptyString(value.destination) &&
-    (value.destination.startsWith("/") ||
-      value.destination.split("/").includes(".."))
-  ) {
-    problems.push(`Line ${line} destination must be module-relative.`);
-  }
+  problems.push(...outcomeProblems(value, line));
   if (
     nonEmptyString(value.timestamp) &&
     (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/u.test(
@@ -121,4 +111,67 @@ function validateEvent(value: unknown, line: number): string[] {
     problems.push(`Line ${line} supersedes must be non-empty when present.`);
   }
   return problems;
+}
+
+// Where the item's content went: a curated line names the copy's destination, a rederived line
+// names every artifact the content reached instead, and the two are never the same line.
+function outcomeProblems(
+  value: Record<string, unknown>,
+  line: number,
+): string[] {
+  const problems: string[] = [];
+  if (value.decision === "curated" && !nonEmptyString(value.destination)) {
+    problems.push(`Line ${line} curated decision requires destination.`);
+  }
+  if (value.decision !== "curated" && value.destination !== undefined) {
+    problems.push(
+      `Line ${line} destination is allowed only for curated decisions.`,
+    );
+  }
+  if (value.destination !== undefined && !nonEmptyString(value.destination)) {
+    problems.push(
+      `Line ${line} destination must be a non-empty string when present.`,
+    );
+  }
+  if (nonEmptyString(value.destination) && !isRelative(value.destination)) {
+    problems.push(`Line ${line} destination must be module-relative.`);
+  }
+  if (value.decision === "rederived") {
+    problems.push(...derivedProblems(value.derived, line));
+  } else if (value.derived !== undefined) {
+    problems.push(
+      `Line ${line} derived is allowed only for rederived decisions.`,
+    );
+  }
+  return problems;
+}
+
+function derivedProblems(derived: unknown, line: number): string[] {
+  if (!Array.isArray(derived) || derived.length === 0) {
+    return [
+      `Line ${line} rederived decision requires a non-empty derived list.`,
+    ];
+  }
+  return derived.flatMap((path) => {
+    if (!nonEmptyString(path)) {
+      return [`Line ${line} derived must hold non-empty paths.`];
+    }
+    return isRelative(path)
+      ? []
+      : [
+          `Line ${line} derived path ${JSON.stringify(path)} must be module-relative.`,
+        ];
+  });
+}
+
+function readDecisions(schemaVersion: unknown): string[] | undefined {
+  return typeof schemaVersion === "number"
+    ? decisionsByVersion.get(schemaVersion)
+    : undefined;
+}
+
+// A path a register line records stays inside the tree it is written against — the importer root
+// for a source, the module folder for everything the decision produced.
+function isRelative(path: string): boolean {
+  return !path.startsWith("/") && !path.split("/").includes("..");
 }

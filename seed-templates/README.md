@@ -11,14 +11,13 @@ The pinned docs layer is live: `AGENTS.md` and the four `docs/` templates are wh
 `src/conformance/validate-pinned-documents.ts` diffs each module's copy back against under
 MF-AGENTS-004.
 
-Three things here still outrun their readers on `integration/contract-v4`, the branch that layer
+Two things here still outrun their readers on `integration/contract-v4`, the branch that layer
 landed on:
 
 - The contract's version line reads 3 until the chain's last batch flips it, so a cohort module is
   audited against version 3 until then.
-- `70 Learning/templates/` reaches no module folder until MF-LEARNING lands the workspace.
-- The curation procedure here runs the `rederived` decision, which the Curation-register line
-  schema does not yet carry.
+- The structure doc's tree names `50 Textbook Register.yaml`, which arrives with the MF-TEXTBOOK
+  family. Seeding creates every other path that tree draws.
 
 ## The path is the destination
 

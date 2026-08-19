@@ -10,6 +10,14 @@ import {
 } from "../contract/pinned-documents.js";
 import type { SeedOperation, SeedPlan } from "./types.js";
 
+// The module's list does not exist until `tasks provision` creates or adopts it, so the skeleton
+// names no list: an absent header is what waiting for provisioning looks like, and provisioning
+// is what writes the exact ID every later pull reads.
+const seededTaskRegister = `# The module's Google Tasks list, mirrored. The live list is the authority; \`tasks provision\`
+# writes its exact ID above these rows, and each pull rewrites what Google owns.
+tasks: []
+`;
+
 // The workspace reads this file for what a unit is made of, so it is seeded declaring nothing
 // rather than guessing units the module research has not confirmed yet.
 const seededSourceMap = `# The module's Lecture-units, keyed exactly as the module numbers them.
@@ -44,6 +52,7 @@ export function createModuleSeedPlan(input: {
     ["00 Module Admin/00 Module Profile.md", input.profile],
     ["00 Module Admin/10 Module Definition.yaml", input.definition],
     ["00 Module Admin/20 Curation Register.jsonl", ""],
+    ["00 Module Admin/30 Task Register.yaml", seededTaskRegister],
     ["00 Module Admin/40 Source Map.yaml", seededSourceMap],
     ["CLAUDE.md", claude],
     ["CONTEXT.md", context],

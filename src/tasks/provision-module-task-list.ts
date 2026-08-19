@@ -4,7 +4,6 @@ import type {
   TaskListReader,
   TaskListWriter,
   TaskProvisionReport,
-  TaskRegister,
   TaskRegisterStore,
 } from "./types.js";
 
@@ -20,23 +19,23 @@ export async function provisionModuleTaskList(input: {
   const title = input.module.module;
   const register = await input.registerStore.read();
   const lists = await input.reader.listTaskLists();
-  const boundList =
-    register === undefined
-      ? undefined
-      : lists.find(({ id }) => id === register.listId);
-  if (register !== undefined && boundList === undefined) {
-    throw new OperationalError(
-      "missing-target",
-      `The Task register for ${title} names a task list Google does not have: ${register.listId}.`,
-    );
-  }
-  if (register !== undefined && boundList !== undefined) {
+  // Seeding writes the register before the list exists, so the header's ID — and never the file —
+  // is what says the module is already bound. Without one, provisioning runs as it does for a
+  // module with no register at all, and fills the skeleton it finds.
+  const boundListId = register?.listId;
+  if (boundListId !== undefined) {
+    if (!lists.some(({ id }) => id === boundListId)) {
+      throw new OperationalError(
+        "missing-target",
+        `The Task register for ${title} names a task list Google does not have: ${boundListId}.`,
+      );
+    }
     return report({
       module: input.module,
       outcome: "provisioned",
       title,
       action: "bound",
-      listId: register.listId,
+      listId: boundListId,
       register: "not-written",
     });
   }
@@ -63,7 +62,7 @@ export async function provisionModuleTaskList(input: {
     adopted === undefined
       ? (await input.writer.createTaskList(title)).id
       : requireListId(adopted, title);
-  await input.registerStore.write(emptyRegister(listId));
+  await input.registerStore.write({ listId, tasks: register?.tasks ?? [] });
   return report({
     module: input.module,
     outcome: "provisioned",
@@ -72,10 +71,6 @@ export async function provisionModuleTaskList(input: {
     listId,
     register: "written",
   });
-}
-
-function emptyRegister(listId: string): TaskRegister {
-  return { listId, tasks: [] };
 }
 
 function requireListId(list: { id?: string }, title: string): string {

@@ -1,0 +1,156 @@
+#!/usr/bin/env node
+
+import { access, mkdir } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import {
+  describeOperationsServerLaunchdJob,
+  OPERATIONS_SERVER_LAUNCHD_JOB_NAME,
+} from "../dist/src/operations/index.js";
+import {
+  installLaunchdJob,
+  launchdJobTarget,
+  planLaunchdJob,
+  removeLaunchdJob,
+} from "../dist/src/launchd/index.js";
+
+const scriptPath = fileURLToPath(import.meta.url);
+const serverModulePath = fileURLToPath(
+  new URL("../dist/src/operations/run-operations-server.js", import.meta.url),
+);
+const logDirectory = join(homedir(), "Library", "Logs", "academic-os");
+const logPath = join(logDirectory, "operations-server.log");
+const usage = `Usage: node ${scriptPath} --config <absolute-path> [--dry-run]
+       node ${scriptPath} --remove`;
+
+try {
+  await main();
+} catch (error) {
+  process.stderr.write(
+    `${error instanceof Error ? error.message : String(error)}\n`,
+  );
+  process.exitCode = 1;
+}
+
+async function main() {
+  const arguments_ = parseArguments(process.argv.slice(2));
+  const homeDirectory = homedir();
+  const uid = requireUid();
+  if (arguments_.remove) {
+    const target = launchdJobTarget({
+      name: OPERATIONS_SERVER_LAUNCHD_JOB_NAME,
+      homeDirectory,
+      uid,
+    });
+    await removeLaunchdJob(target);
+    process.stdout.write(`Removed ${target.label}.\n`);
+    return;
+  }
+
+  const plan = planLaunchdJob({
+    description: await describeJob(arguments_.configPath),
+    hostTimeZone: new Intl.DateTimeFormat().resolvedOptions().timeZone,
+    homeDirectory,
+    uid,
+  });
+  if (arguments_.dryRun) {
+    process.stdout.write(
+      `${JSON.stringify(
+        {
+          command: "operations server schedule",
+          outcome: "preview",
+          label: plan.label,
+          keepAlive: plan.schedule.kind === "keep-alive",
+          runAtLoad: plan.runAtLoad,
+          plistPath: plan.plistPath,
+          programArguments: plan.programArguments,
+          plist: plan.plist,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    return;
+  }
+
+  await mkdir(logDirectory, { recursive: true });
+  await installLaunchdJob(plan);
+  process.stdout.write(
+    `${[
+      `Installed ${plan.label}.`,
+      "Resident: launchd starts it at login and restarts it if it stops.",
+      `Plist: ${plan.plistPath}`,
+      `Log: ${logPath}`,
+      `Inspect: launchctl print ${plan.serviceTarget}`,
+      `Restart: launchctl kickstart -k ${plan.serviceTarget}`,
+      `Remove: node ${scriptPath} --remove`,
+    ].join("\n")}\n`,
+  );
+}
+
+function parseArguments(arguments_) {
+  let configPath;
+  let dryRun = false;
+  let remove = false;
+  for (let index = 0; index < arguments_.length; index += 1) {
+    const argument = arguments_[index];
+    if (argument === "--config") {
+      const value = arguments_[index + 1];
+      if (
+        value === undefined ||
+        value.startsWith("--") ||
+        configPath !== undefined
+      ) {
+        throw new Error(usage);
+      }
+      configPath = value;
+      index += 1;
+    } else if (argument === "--dry-run") {
+      dryRun = true;
+    } else if (argument === "--remove") {
+      remove = true;
+    } else if (argument === "--help") {
+      process.stdout.write(`${usage}\n`);
+      process.exit(0);
+    } else {
+      throw new Error(`Unexpected argument: ${argument}.\n${usage}`);
+    }
+  }
+  if (remove && (dryRun || configPath !== undefined)) {
+    throw new Error("--remove cannot be combined with --config or --dry-run.");
+  }
+  if (!remove && configPath === undefined) {
+    throw new Error(usage);
+  }
+  return { configPath, dryRun, remove };
+}
+
+function requireUid() {
+  const uid = process.getuid?.();
+  if (uid === undefined) {
+    throw new Error(
+      "Operations server scheduling requires a macOS user session.",
+    );
+  }
+  return uid;
+}
+
+async function describeJob(configPath) {
+  const resolvedConfigPath = resolve(configPath);
+  await Promise.all([
+    access(resolvedConfigPath),
+    access(serverModulePath),
+  ]).catch(() => {
+    throw new Error(
+      "The Operations server config and the built server module must both exist.",
+    );
+  });
+  return describeOperationsServerLaunchdJob({
+    nodePath: process.execPath,
+    serverModulePath,
+    configPath: resolvedConfigPath,
+    logPath,
+  });
+}

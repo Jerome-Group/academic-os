@@ -30,6 +30,10 @@ export interface TasksConfig {
   };
 }
 
+export interface OperationsConfig {
+  port: number;
+}
+
 // The Textbook shelf, named relative to the Drive mount as every semester root is.
 export interface TextbooksConfig {
   shelfRoot: string;
@@ -43,6 +47,7 @@ export interface AcademicConfig {
   seedTarget?: ConfiguredModule;
   calendar?: CalendarConfig;
   tasks?: TasksConfig;
+  operations?: OperationsConfig;
   textbooks?: TextbooksConfig;
   driveApi?: {
     moduleFolderIds: Record<string, Record<string, string>>;

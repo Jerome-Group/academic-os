@@ -58,6 +58,9 @@ A refresh token carries the scopes it was granted, so widening a credential mean
 helper again rather than editing the config. `tasks provision --apply` is the only path that uses
 the write credential.
 
+The Operations server needs no credentials of its own: it runs the same task operations on the
+mini under the same pair. `operations.port` optionally moves it off its default port.
+
 `textbooks catch-up` needs `textbooks.shelfRoot` — the Textbook shelf relative to the Drive mount,
 beside the semester roots. It reads the shelf and writes only the shelf's own `00 Index.yaml`, so
 it needs no credentials at all.
@@ -394,6 +397,69 @@ Anything but `applied` against a fresh register exits nonzero.
 Supervise the first live round-trip: `tasks create` against a real module list, tick the task in
 Google Tasks on the phone, then `tasks refresh`. The row should come back `completed` with its
 provenance intact and no other row moved.
+
+## Operations server
+
+The mini serves this repository's task operations to every machine on the Tailnet, so an agent in
+a module folder anywhere reaches them with no clone, no Node and no credential file. Build the
+current CLI, then install the resident per-user LaunchAgent from this checkout:
+
+```sh
+npm run build
+node scripts/install-operations-server-launchd.mjs \
+  --config /private/path/academic-os.config.json
+```
+
+`--dry-run` prints the plist it would install and installs nothing. The job is resident rather
+than scheduled: launchd starts it at login and restarts it whenever it stops, so a rebooted mini
+is reachable again without anyone starting it. It writes only
+`~/Library/LaunchAgents/com.jerome-group.academic-os.operations-server.plist`, and logs to
+`~/Library/Logs/academic-os/operations-server.log`.
+
+The server binds the mini's tailnet address and only that one, at `operations.port` from the
+config — `8765` by default — and serves MCP over Streamable HTTP at `/mcp`. A mini signed out of
+Tailscale has no address to bind and the server refuses to start, which is the intended failure:
+reachability on the Tailnet is the whole of the authorisation, and there is no token to add
+(ADR-0011). Second machines register the URL once at user scope — `machine-setup.md` is their
+whole checklist.
+
+Four tools are served, and each one is the operation of the same name run on the mini:
+`tasks_create`, `tasks_change`, `tasks_complete` and `tasks_read_register`. The three writes
+follow the Promotion pattern exactly as the CLI does; `tasks_read_register` pulls the live list
+into the register first and returns the rows with their provenance. Every tool takes `semester`
+and `module`, and a module the config does not map is refused rather than guessed at. An
+operation that did not apply comes back as an MCP error carrying the same report the CLI prints,
+so a parked push is visible to the calling agent without it having to read the report for the bad
+news.
+
+Inspect the loaded job, watch it serve, and restart it:
+
+```sh
+launchctl print "gui/$(id -u)/com.jerome-group.academic-os.operations-server"
+```
+
+```sh
+launchctl kickstart -k "gui/$(id -u)/com.jerome-group.academic-os.operations-server"
+```
+
+Verify from a second tailnet machine rather than from the mini — reaching it over the Tailnet is
+the thing being tested:
+
+```sh
+curl -s -X POST http://<mini-magicdns-name>:8765/mcp \
+  -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+Then create a task through the tool surface, watch it appear in Google Tasks on the phone, and
+read the register back: the row should carry the returned task ID and the provenance Google never
+saw.
+
+Remove the exact job and plist:
+
+```sh
+node scripts/install-operations-server-launchd.mjs --remove
+```
 
 ## Textbooks shelf migration
 

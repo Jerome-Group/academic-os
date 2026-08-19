@@ -36,6 +36,9 @@
       "interactiveWrite": "/path/to/tasks-write.credentials.json"
     }
   },
+  "operations": {
+    "port": 8765
+  },
   "textbooks": {
     "shelfRoot": "Modules/Textbooks"
   },

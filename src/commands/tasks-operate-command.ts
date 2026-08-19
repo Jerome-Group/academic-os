@@ -1,8 +1,7 @@
-import { resolveConfiguredAuditTarget } from "../cohort/index.js";
 import { OperationalError } from "../mounted/index.js";
 import {
   applyTaskOperation,
-  createDeferredTaskRegisterStore,
+  configuredTaskTarget,
   createGoogleTaskRefreshReader,
   createGoogleTaskOperationWriter,
   isDoDate,
@@ -66,17 +65,11 @@ export async function runTasksOperateCommand(
 ): Promise<void> {
   const parsed = parseOperationArguments(name, arguments_);
   const { config, tasks } = await loadCohortTasksConfig(parsed.configPath);
-  const target = resolveConfiguredAuditTarget(
-    config,
-    parsed.semester,
-    parsed.module,
-  );
   const report = await applyTaskOperation({
-    target: {
-      semester: target.semester,
-      module: target.module,
-      registerStore: createDeferredTaskRegisterStore(target),
-    },
+    target: configuredTaskTarget(config, {
+      semester: parsed.semester,
+      module: parsed.module,
+    }),
     operation: parsed.operation,
     writer: createGoogleTaskOperationWriter(tasks.credentials.interactiveWrite),
     reader: createGoogleTaskRefreshReader(tasks.credentials.scheduledRead),

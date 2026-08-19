@@ -1,4 +1,6 @@
-export type TaskStatus = "open" | "completed" | "cancelled";
+import type { taskStatuses } from "../contract/task-register.js";
+
+export type TaskStatus = (typeof taskStatuses)[number];
 
 export interface TaskProvenance {
   assessment?: string;
@@ -16,7 +18,9 @@ export interface TaskRegisterEntry {
 }
 
 export interface TaskRegister {
-  listId: string;
+  // Absent until provisioning binds the module's list: the register is seeded before the list it
+  // mirrors exists.
+  listId?: string;
   tasks: TaskRegisterEntry[];
 }
 

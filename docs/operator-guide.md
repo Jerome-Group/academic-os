@@ -318,6 +318,10 @@ The command reports what it would do — `would adopt` for a list titled exactly
 adopts or creates the list and writes `00 Module Admin/30 Task Register.yaml` carrying its exact
 ID.
 
+Seeding writes the register before the list exists, so a register naming no list is one waiting
+for this command: provisioning adopts or creates the list and writes the ID into the skeleton it
+finds, keeping any rows already there.
+
 Rerunning is safe. Once the register names a list, provisioning verifies that list still exists,
 reports `bound` and leaves the register's rows alone — the persisted ID is the module's task-list
 identity from then on, and a retitled list stays the same list. Two lists sharing the module code
@@ -587,9 +591,10 @@ The Teaching workspace is seeded whole, for every module, whether or not that mo
 the four activity areas under `70 Learning` with their `records/`, the LaTeX template set and
 teaching preferences in `templates/`, and `GLOSSARY.md`, `RESOURCES.md` and `REVISIT.md`. Beside
 them in Module Admin, `40 Source Map.yaml` is seeded declaring no units; the Lecture-units the
-workspace reads it for are filled in from the module research. A template is the module's to edit
-where the difference is functional, so audit checks that the workspace's own structure is there
-rather than diffing a template copy back.
+workspace reads it for are filled in from the module research. `30 Task Register.yaml` is seeded
+the same way — `tasks: []` and no list, which `tasks provision` fills. A template is the module's
+to edit where the difference is functional, so audit checks that the workspace's own structure is
+there rather than diffing a template copy back.
 
 ## Audit
 

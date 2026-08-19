@@ -3,6 +3,7 @@ export const universalStructurePaths = [
   ["00 Module Admin/00 Module Profile.md", "file"],
   ["00 Module Admin/10 Module Definition.yaml", "file"],
   ["00 Module Admin/20 Curation Register.jsonl", "file"],
+  ["00 Module Admin/30 Task Register.yaml", "file"],
   ["00 Module Admin/40 Source Map.yaml", "file"],
   ["10 Learning Materials", "directory"],
   ["10 Learning Materials/10 Lecture Materials", "directory"],

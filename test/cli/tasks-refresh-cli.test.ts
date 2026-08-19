@@ -295,6 +295,37 @@ describe("academic-os tasks refresh", () => {
     );
   });
 
+  it("reports a seeded register as awaiting provisioning rather than malformed", async () => {
+    const fixture = await setupFixture();
+    const seeded = "# Seeded before the list existed.\ntasks: []\n";
+    await writeFile(fixture.registers.MH2100, seeded);
+    await writeFile(
+      fixture.registers.MH2101,
+      "list_id: second-list\ntasks: []\n",
+    );
+
+    const result = await runTasksRefresh(fixture, "--json");
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.modules[0].freshness, "stale");
+    assert.equal(report.modules[0].listId, null);
+    assert.equal(report.modules[0].failure.code, "missing-target");
+    assert.match(
+      report.modules[0].failure.message,
+      /names no task list yet; run tasks provision first/u,
+    );
+    assert.equal(await readFile(fixture.registers.MH2100, "utf8"), seeded);
+
+    await writeFile(fixture.registers.MH2100, 'list_id: ""\ntasks: []\n');
+    const emptied = await runTasksRefresh(fixture, "--json");
+
+    assert.match(
+      JSON.parse(emptied.stdout).modules[0].failure.message,
+      /is not a readable Task register/u,
+    );
+  });
+
   it("refreshes one named module without touching the rest of the cohort", async () => {
     const fixture = await setupFixture();
     await writeFile(

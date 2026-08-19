@@ -5,6 +5,7 @@ import {
   pinnedDocumentNames,
 } from "../../src/contract/pinned-documents.js";
 import { seededSourceMap } from "./learning-workspace.js";
+import { seededTaskRegister } from "./task-register.js";
 import { testModuleContract } from "./module-contract.js";
 
 export function validModuleControls(): ModuleControls {
@@ -65,6 +66,7 @@ evidence:
 exceptions: []
 `,
     curationRegister: "",
+    taskRegister: seededTaskRegister,
     sourceMap: seededSourceMap,
     claude:
       "# Claude Code\n\nRead `AGENTS.md` completely before working in this module folder.\n",

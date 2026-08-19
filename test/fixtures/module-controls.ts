@@ -6,6 +6,7 @@ import {
 } from "../../src/contract/pinned-documents.js";
 import { seededSourceMap } from "./learning-workspace.js";
 import { seededTaskRegister } from "./task-register.js";
+import { seededTextbookRegister } from "./textbook-register.js";
 import { testModuleContract } from "./module-contract.js";
 
 export function validModuleControls(): ModuleControls {
@@ -68,6 +69,7 @@ exceptions: []
     curationRegister: "",
     taskRegister: seededTaskRegister,
     sourceMap: seededSourceMap,
+    textbookRegister: seededTextbookRegister,
     claude:
       "# Claude Code\n\nRead `AGENTS.md` completely before working in this module folder.\n",
     context: `# MH2100 — Calculus III

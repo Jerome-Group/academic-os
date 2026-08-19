@@ -51,8 +51,8 @@ Five steps, in order. A step that cannot complete parks the request where it sta
    MODULE_CODE_Rosen_Appendix_A_Axioms_For_The_Real_Numbers.pdf
    ```
 
-   The Division word comes from the index, in full. Numbers are zero-padded arabic even where the
-   book prints roman, and appendix letters stay as printed. Titles are the book's own
+   The Division word comes from the index, in full. Numbers are two-digit zero-padded arabic even
+   where the book prints roman, and appendix letters stay as printed. Titles are the book's own
    table-of-contents titles, Title_Cased, and may be shortened here because the register keeps the
    full one. The edition stays out of the filename — the key resolves it.
 5. **Record the cut.** Append to `00 Module Admin/50 Textbook Register.yaml`:

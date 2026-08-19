@@ -7,6 +7,7 @@ export const controlPaths = new Map([
   ["20 Curation Register.jsonl", "00 Module Admin/20 Curation Register.jsonl"],
   ["30 Task Register.yaml", "00 Module Admin/30 Task Register.yaml"],
   ["40 Source Map.yaml", "00 Module Admin/40 Source Map.yaml"],
+  ["50 Textbook Register.yaml", "00 Module Admin/50 Textbook Register.yaml"],
   ["AGENTS.md", "AGENTS.md"],
   ["CLAUDE.md", "CLAUDE.md"],
   ["CONTEXT.md", "CONTEXT.md"],

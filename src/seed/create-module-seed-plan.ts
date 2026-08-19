@@ -25,6 +25,13 @@ const seededSourceMap = `# The module's Lecture-units, keyed exactly as the modu
 units: {}
 `;
 
+// A module that has cut no chapter yet says so, and the shelf the cuts come from is catalogued
+// outside the folder: the register holds what this module took, and nothing about the books.
+const seededTextbookRegister = `# The chapters this module has cut from the Textbook shelf, one entry per cut.
+# Each cites a Book key in the shelf's own index and never repeats what that index holds.
+extractions: []
+`;
+
 export function createModuleSeedPlan(input: {
   module: string;
   semester: string;
@@ -54,6 +61,7 @@ export function createModuleSeedPlan(input: {
     ["00 Module Admin/20 Curation Register.jsonl", ""],
     ["00 Module Admin/30 Task Register.yaml", seededTaskRegister],
     ["00 Module Admin/40 Source Map.yaml", seededSourceMap],
+    ["00 Module Admin/50 Textbook Register.yaml", seededTextbookRegister],
     ["CLAUDE.md", claude],
     ["CONTEXT.md", context],
     ...pinnedDocumentNames.map((name): [string, string] => [

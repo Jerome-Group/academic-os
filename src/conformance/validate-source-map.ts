@@ -1,5 +1,4 @@
-import { parseDocument } from "yaml";
-
+import { readControlDocument } from "./control-document.js";
 import { controlFinding, failedControl } from "./control-finding.js";
 import { moduleControlPaths } from "./control-paths.js";
 import type { Finding } from "./types.js";
@@ -16,21 +15,11 @@ export function validateSourceMap(source: string | undefined): Finding {
       `No readable control exists at ${sourceMapPath}.`,
     ]);
   }
-  const document = parseDocument(source, {
-    prettyErrors: false,
-    uniqueKeys: true,
-  });
-  if (document.errors.length > 0) {
-    return failedControl(
-      "MF-LEARNING-002",
-      sourceMapPath,
-      document.errors.map(
-        ({ message }) =>
-          `YAML parser reported: ${message.replace(/\s+/gu, " ").trim()}`,
-      ),
-    );
+  const parsed = readControlDocument(source);
+  if ("problems" in parsed) {
+    return failedControl("MF-LEARNING-002", sourceMapPath, parsed.problems);
   }
-  const value: unknown = document.toJS();
+  const value = parsed.value;
   if (!isRecord(value) || !isRecord(value.units)) {
     return failedControl("MF-LEARNING-002", sourceMapPath, [
       "Source Map requires a units mapping, empty at seed.",

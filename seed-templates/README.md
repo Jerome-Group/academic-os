@@ -11,13 +11,9 @@ The pinned docs layer is live: `AGENTS.md` and the four `docs/` templates are wh
 `src/conformance/validate-pinned-documents.ts` diffs each module's copy back against under
 MF-AGENTS-004.
 
-Two things here still outrun their readers on `integration/contract-v4`, the branch that layer
-landed on:
-
-- The contract's version line reads 3 until the chain's last batch flips it, so a cohort module is
-  audited against version 3 until then.
-- The structure doc's tree names `50 Textbook Register.yaml`, which arrives with the MF-TEXTBOOK
-  family. Seeding creates every other path that tree draws.
+One thing here still outruns its readers on `integration/contract-v4`, the branch that layer landed
+on: the contract's version line reads 3 until the chain's last batch flips it, so a cohort module is
+audited against version 3 until then.
 
 ## The path is the destination
 

@@ -87,6 +87,30 @@ line placed. Byte-identical — nothing has been done to it — the new bytes re
 superseding line records that. Anything else — annotated, graded, edited, moved away — parks, and
 the placed copy holds its ground.
 
+## Two sources, one item
+
+Two files in the mirror can be the same lecture, sheet or handout. What separates them decides
+whether the module ends up holding one copy or two.
+
+**A clean copy and an annotated copy are two artifacts.** The clean one is what the module issued
+and the annotated one is what happened in the room, so both curate: the annotated copy takes the
+clean one's number and topic and adds `Annotated`, and neither line contests the other's. The
+number and the topic are read from the clean copy, so an annotated copy that arrives before its
+clean counterpart parks.
+
+**Two live paths are two issues of one artifact.** The site reissued the material and left the
+earlier copy standing, so both walk in as new items and both build one curated name. The newer
+issue curates and the earlier is `source-only`, its evidence naming the issue that took the name.
+Which is newer is read from the source — a release date in the filename, a stated revision, one
+text carrying the other's with more added — and that date belongs to the evidence rather than to
+the name, so a Learning record, a `40 Source Map.yaml` entry or a task pointing at the curated copy
+survives the reissue. Where the earlier issue is already placed, the newer replaces it and
+superseding lines record both, under the comparison an update arrival gets: a placed copy that has
+been worked on holds its ground and parks.
+
+Park two sources holding different material — those are two items, not two issues of one — and park
+two sources where nothing says which is newer.
+
 ## Naming and destinations
 
 A `curated` decision takes its destination and its curated name from

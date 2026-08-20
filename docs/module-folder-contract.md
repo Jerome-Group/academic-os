@@ -394,8 +394,13 @@ full one. The edition stays out of the filename — the key resolves it.
 **MF-TUTORIALS-001 (deterministic).** Definition declares `flat` or `grouped`. Flat Tutorials have
 files directly inside `20 Tutorials`; grouped Tutorials may use source-derived subdirectory names
 that are not forced into `Tutorial NN` or Title Case. A grouped declaration records the exact,
-unique names in `groups` and cites evidence for them; a flat declaration has no `groups`. Curated
-files in either layout still follow the file-naming rules.
+unique names in `groups` and cites evidence for them; a flat declaration has no `groups`. `groups`
+covers every session the course's own schedule gives tutorial material, across the whole offering
+rather than the part published so far, so a sheet arriving mid-semester lands in a group that is
+already there. A session that schedule runs without material of its own — a consultation, a
+showcase, a presentation, a week it marks as having no tutorial — gets no group, because a group is
+where curated sheets live and an empty one says a sheet is missing. The numbering keeps the gaps
+those sessions leave. Curated files in either layout still follow the file-naming rules.
 
 ### Assessments
 

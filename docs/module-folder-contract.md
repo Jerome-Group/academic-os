@@ -93,6 +93,14 @@ MODULE_CODE/
 directory requires a decision; it is neither an automatic contract failure nor a contract
 proposal.
 
+**MF-ROOT-003 (deterministic).** What the mount writes into a folder by itself is not module content,
+and an inventory of a mounted folder omits it: a dot-named **file**, and the zero-byte `Icon\r` a
+custom folder icon leaves behind. Finder writes both back into any directory it displays, so a rule
+reaching them would fail on a folder nobody had done anything wrong to, and no deletion would settle
+it. Only a file is ever one of these — `.scratch` is a dot-name MF-UNIVERSAL-001 requires, and an
+`Icon\r` carrying bytes is content under a name Finder happens to use. The Drive API returns
+neither, so this is the mounted reader's rule alone.
+
 ## Module controls
 
 ### Profile

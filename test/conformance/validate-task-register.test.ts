@@ -14,7 +14,7 @@ tasks:
     notes: Chapter 14 first
     provenance:
       assessment: Midterm
-      source: NTULearn/03 Lectures/slides.pdf
+      source: NTULearn/Lectures/slides.pdf
       milestone: Midterm week
   - title: Draft the summary
     status: cancelled
@@ -33,6 +33,18 @@ describe("validateTaskRegister", () => {
     assert.equal(mirrored.status, "pass");
     assert.match(mirrored.evidence, /mirrors 2 tasks of list MDkxMjM0/u);
     recordFindingEvidence([seeded, mirrored], "MF-TASKS-001");
+  });
+
+  it("reports a provenance source carrying the importer's ordering", () => {
+    const numbered = validateTaskRegister(
+      provisioned.replace(
+        "source: NTULearn/Lectures/slides.pdf",
+        "source: NTULearn/03 Lectures/slides.pdf",
+      ),
+    );
+
+    assert.equal(numbered.status, "fail");
+    assert.match(numbered.evidence, /cite NTULearn\/Lectures\/slides\.pdf/u);
   });
 
   it("reports an absent, unparseable, or shapeless register", () => {

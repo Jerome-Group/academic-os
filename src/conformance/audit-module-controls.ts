@@ -26,7 +26,7 @@ export function auditModuleControls(
     ...definition.findings,
     ...validateProfile(controls.profile, definition.definition),
     validateCurationRegister(controls.curationRegister),
-    validateTaskRegister(controls.taskRegister),
+    validateTaskRegister(controls.taskRegister, definition.importerRoots),
     validateSourceMap(controls.sourceMap),
     validateTextbookRegister(controls.textbookRegister, moduleCode),
     validateAgents(controls.agents),

@@ -1,5 +1,6 @@
 import { isAbsolute, win32 } from "node:path";
 
+import { withoutImporterOrdering } from "../contract/importer-citations.js";
 import { isDirectoryName, isRecord, nonEmptyString } from "./value-shape.js";
 import { universalStructurePaths } from "../contract/universal-structure.js";
 
@@ -55,7 +56,7 @@ export function validateDefinitionShape(
     ...validateIdentityAndOffering(value, identity),
     ...validateStructure(value.structure),
     ...validateSources(value.sources),
-    ...validateEvidence(value.evidence),
+    ...validateEvidence(value.evidence, declaredImporterRoots(value.sources)),
     ...validateExceptions(value.exceptions),
   ];
 }
@@ -376,11 +377,7 @@ function validateSources(value: unknown): string[] {
       );
     }
   }
-  const destinations = value.ntulearn.flatMap((root) =>
-    isRecord(root) && nonEmptyString(root.destination)
-      ? [root.destination]
-      : [],
-  );
+  const destinations = declaredDestinations(value);
   if (!destinations.includes("NTULearn")) {
     problems.push("sources.ntulearn must declare the universal NTULearn root.");
   }
@@ -397,7 +394,26 @@ function validateSources(value: unknown): string[] {
   return problems;
 }
 
-function validateEvidence(value: unknown): string[] {
+function declaredDestinations(value: Record<string, unknown>): string[] {
+  return Array.isArray(value.ntulearn)
+    ? value.ntulearn.flatMap((root) =>
+        isRecord(root) && nonEmptyString(root.destination)
+          ? [root.destination]
+          : [],
+      )
+    : [];
+}
+
+export function declaredImporterRoots(value: unknown): string[] {
+  return [
+    ...new Set([
+      "NTULearn",
+      ...(isRecord(value) ? declaredDestinations(value) : []),
+    ]),
+  ];
+}
+
+function validateEvidence(value: unknown, roots: readonly string[]): string[] {
   if (!isRecord(value)) return ["evidence must be a mapping."];
   const problems: string[] = [];
   for (const [name, item] of Object.entries(value)) {
@@ -409,6 +425,13 @@ function validateEvidence(value: unknown): string[] {
     ) {
       problems.push(
         `evidence.${name} requires source and checked_at in YYYY-MM-DD form.`,
+      );
+      continue;
+    }
+    const stable = withoutImporterOrdering(item.source, roots);
+    if (stable !== item.source) {
+      problems.push(
+        `evidence.${name}.source carries the importer's ordering; cite ${stable}.`,
       );
     }
   }

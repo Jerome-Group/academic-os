@@ -27,6 +27,7 @@ describe("auditModuleControls", () => {
         "MF-PROFILE-001",
         "MF-PROFILE-002",
         "MF-PROFILE-003",
+        "MF-IMPORTER-002",
         "MF-CURATION-001",
         "MF-TASKS-001",
         "MF-AGENTS-001",
@@ -481,6 +482,80 @@ describe("auditModuleControls", () => {
     assert.match(
       shapeFinding?.evidence ?? "",
       /non-empty evidence reference list/u,
+    );
+  });
+
+  it("shows an importer-interior citation for review and passes a landmark [MF-IMPORTER-002]", () => {
+    const controls = validModuleControls();
+    controls.definition = (controls.definition ?? "")
+      .replace("source: NTULearn course site", "source: NTULearn/Course.md")
+      .replace(
+        "source: NTULearn assessment profile",
+        "source: NTULearn/Syllabus/Course syllabus.pdf",
+      );
+
+    const result = auditModuleControls(
+      { moduleCode: "MH2100", semester: "Y2S1", controls },
+      testModuleContract,
+    );
+
+    const finding = result.findings.find(
+      ({ ruleId }) => ruleId === "MF-IMPORTER-002",
+    );
+    assert.equal(finding?.status, "manual-review");
+    assert.match(
+      finding?.evidence ?? "",
+      /evidence\.assessment-profile\.source/u,
+    );
+    assert.doesNotMatch(finding?.evidence ?? "", /course-site/u);
+    recordFindingEvidence(result.findings, "MF-IMPORTER-002");
+  });
+
+  it("rejects an evidence source carrying the importer's ordering [MF-DEFINITION-001]", () => {
+    const controls = validModuleControls();
+    controls.definition = (controls.definition ?? "").replace(
+      "source: NTULearn course site",
+      "source: NTULearn/11 Syllabus/01 Course syllabus.pdf",
+    );
+
+    const result = auditModuleControls(
+      { moduleCode: "MH2100", semester: "Y2S1", controls },
+      testModuleContract,
+    );
+
+    const finding = result.findings.find(
+      ({ ruleId, status }) =>
+        ruleId === "MF-DEFINITION-001" && status === "fail",
+    );
+    assert.match(
+      finding?.evidence ?? "",
+      /cite NTULearn\/Syllabus\/Course syllabus\.pdf/u,
+    );
+  });
+
+  it("accepts an unnumbered importer citation and the contract's own numbers", () => {
+    const controls = validModuleControls();
+    controls.definition = (controls.definition ?? "")
+      .replace(
+        "source: NTULearn course site",
+        "source: NTULearn/Syllabus/Course syllabus.pdf",
+      )
+      .replace(
+        "source: NTULearn assessment profile",
+        "source: 00 Module Admin/10 Module Definition.yaml",
+      );
+
+    const result = auditModuleControls(
+      { moduleCode: "MH2100", semester: "Y2S1", controls },
+      testModuleContract,
+    );
+
+    assert.equal(
+      result.findings.filter(
+        ({ ruleId, status }) =>
+          ruleId === "MF-DEFINITION-001" && status !== "pass",
+      ).length,
+      0,
     );
   });
 

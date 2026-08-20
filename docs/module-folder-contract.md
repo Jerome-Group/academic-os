@@ -456,10 +456,25 @@ exact automation-owned roots such as `NTULearn_Tutorial`. Their internal names a
 and exempt from folder and file naming rules. An undeclared `NTULearn_*` root requires a decision.
 
 **MF-CURATION-002 (judgment).** Curation preserves an importer source and creates a renamed copy in
-its canonical destination. Every source item becomes curated, source-only or requires-decision.
-Ambiguous placement is shown with evidence and left uncopied until resolved. A source update never
-silently overwrites an annotated, graded or otherwise modified curated copy; a disappeared source
-does not delete its curated copy and is reported as a discrepancy.
+its canonical destination. Every source item becomes one of the decisions its schema version
+carries. Ambiguous placement is shown with evidence and left uncopied until resolved. A source
+update never silently overwrites a curated copy since annotated, graded or otherwise modified; a
+disappeared source does not delete its curated copy and is reported as a discrepancy.
+
+**MF-CURATION-003 (judgment).** Where a module issues material both clean and annotated, the
+annotated copy is a second curated item, sharing the clean copy's number and topic and
+distinguished by the `Annotated` qualifier. The two are different artifacts with different uses, so
+both lines stand and neither supersedes the other. The clean copy carries the number and the topic,
+so an annotated copy arriving before one is an ambiguity to park.
+
+**MF-CURATION-004 (judgment).** Where the same material stands at two live source paths — a site
+reissuing without removing the earlier copy — the newer issue carries the curated name and the
+earlier is source-only. This is not the source update MF-CURATION-002 governs: there one path's
+bytes changed against a placed copy, and here two paths stand at once and build one curated name,
+which the newer issue takes because it is what the course now means. The name is the material's
+rather than a release's, so it holds across a reissue and a source's revision date belongs to the
+line's evidence. Two sources holding different material are two items, and two sources with nothing
+to say which is newer are an ambiguity to park.
 
 ## Naming
 

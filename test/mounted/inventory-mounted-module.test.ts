@@ -144,6 +144,35 @@ describe("inventoryMountedModule", () => {
     );
   });
 
+  it("omits what the mount writes into a folder by itself [MF-ROOT-003]", async () => {
+    const { config, moduleRoot } = await configuredTree();
+    const notes = join(
+      moduleRoot,
+      "10 Learning Materials",
+      "30 Personal Notes",
+    );
+    await mkdir(notes, { recursive: true });
+    await writeFile(join(notes, "MH2100_Example.txt"), "synthetic contents");
+    // Finder writes these back into any directory it displays, so a delete never settles them.
+    await writeFile(join(moduleRoot, ".DS_Store"), "finder view state");
+    await writeFile(join(notes, ".DS_Store"), "finder view state");
+    await writeFile(join(moduleRoot, "Icon\r"), "");
+    // `.scratch` is a dot-name the contract requires, so the exclusion must not reach it.
+    await mkdir(join(moduleRoot, ".scratch"));
+
+    const { inventory } = await inventoryMountedModule(config);
+    const paths = inventory.entries.map(({ path }) => path);
+
+    recordBehaviorEvidence("MF-ROOT-003", () => {
+      assert.deepEqual(paths, [
+        ".scratch",
+        "10 Learning Materials",
+        "10 Learning Materials/30 Personal Notes",
+        "10 Learning Materials/30 Personal Notes/MH2100_Example.txt",
+      ]);
+    });
+  });
+
   it("rejects a missing target and a case-variant target", async () => {
     const { config, moduleRoot } = await configuredTree();
     await rm(moduleRoot, { recursive: true });

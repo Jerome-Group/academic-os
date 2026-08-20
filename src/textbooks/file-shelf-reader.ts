@@ -1,3 +1,4 @@
+import { isMountArtifact } from "../contract/mount-artifacts.js";
 import { createHash } from "node:crypto";
 import { createReadStream, type Dirent } from "node:fs";
 import { readdir } from "node:fs/promises";
@@ -8,8 +9,6 @@ import { OperationalError } from "../operational-error.js";
 import { SHELF_INDEX_FILENAME } from "./file-shelf-index-store.js";
 import type { ShelfReader } from "./types.js";
 
-const FINDER_ICON_FILENAME = "Icon\r";
-
 export function createFileShelfReader(shelfRoot: string): ShelfReader {
   return {
     listBooks: async () => await listShelfRoot(shelfRoot),
@@ -18,10 +17,8 @@ export function createFileShelfReader(shelfRoot: string): ShelfReader {
 }
 
 // Only what sits directly on the shelf is a book of the shelf's, which is what keeps `Archive/`
-// and its retired books invisible to the catch-up. Dot-files and the `Icon\r` a custom folder
-// icon leaves behind are the mount's own artifacts rather than anything the Owner put there —
-// and Finder writes that one back whenever the icon is set, so parking it would never end.
-// The index is not a book either.
+// and its retired books invisible to the catch-up. The mount's own artifacts are not books, and
+// the index is not one either.
 async function listShelfRoot(shelfRoot: string): Promise<string[]> {
   let entries: Dirent[];
   try {
@@ -36,8 +33,7 @@ async function listShelfRoot(shelfRoot: string): Promise<string[]> {
     .filter(
       (entry) =>
         entry.isFile() &&
-        !entry.name.startsWith(".") &&
-        entry.name !== FINDER_ICON_FILENAME &&
+        !isMountArtifact({ name: entry.name, isFile: true, size: 0 }) &&
         entry.name !== SHELF_INDEX_FILENAME,
     )
     .map(({ name }) => name)

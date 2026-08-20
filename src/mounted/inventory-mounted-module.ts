@@ -1,3 +1,4 @@
+import { isMountArtifact } from "../contract/mount-artifacts.js";
 import { lstat, readdir } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -41,7 +42,13 @@ export async function inventoryDirectory(
     const relativePath =
       relativeRoot === "" ? child.name : `${relativeRoot}/${child.name}`;
     const metadata = await lstat(join(root, relativePath));
-    if (child.name === "Icon\r" && metadata.isFile() && metadata.size === 0) {
+    if (
+      isMountArtifact({
+        name: child.name,
+        isFile: metadata.isFile(),
+        size: metadata.size,
+      })
+    ) {
       continue;
     }
     const kind = metadata.isSymbolicLink()

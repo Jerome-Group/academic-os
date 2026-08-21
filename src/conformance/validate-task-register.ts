@@ -4,12 +4,16 @@ import { readControlDocument } from "./control-document.js";
 import { controlFinding, failedControl } from "./control-finding.js";
 import { moduleControlPaths } from "./control-paths.js";
 import type { Finding } from "./types.js";
+import { withoutImporterOrdering } from "../contract/importer-citations.js";
 import { isRecord, nonEmptyString } from "./value-shape.js";
 
 const registerPath = moduleControlPaths.taskRegister;
 const statuses = new Set<string>(taskStatuses);
 
-export function validateTaskRegister(source: string | undefined): Finding {
+export function validateTaskRegister(
+  source: string | undefined,
+  importerRoots: readonly string[] = ["NTULearn"],
+): Finding {
   if (source === undefined) {
     return failedControl("MF-TASKS-001", registerPath, [
       `No readable control exists at ${registerPath}.`,
@@ -31,7 +35,7 @@ export function validateTaskRegister(source: string | undefined): Finding {
   const listId = value.list_id ?? undefined;
   const problems = [
     ...listIdProblems(listId, rows.length),
-    ...rows.flatMap((row, index) => rowProblems(row, index + 1)),
+    ...rows.flatMap((row, index) => rowProblems(row, index + 1, importerRoots)),
   ];
   return problems.length === 0
     ? controlFinding(
@@ -63,7 +67,11 @@ function listIdEvidence(listId: unknown): string {
     : "a list provisioning has yet to name";
 }
 
-function rowProblems(row: unknown, position: number): string[] {
+function rowProblems(
+  row: unknown,
+  position: number,
+  importerRoots: readonly string[],
+): string[] {
   if (!isRecord(row)) return [`Task ${position} is not a mapping.`];
   const problems: string[] = [];
   // The register mirrors the live list, so an empty title is Google's to fix and never the
@@ -83,7 +91,9 @@ function rowProblems(row: unknown, position: number): string[] {
     }
   }
   if (row.provenance !== undefined) {
-    problems.push(...provenanceProblems(row.provenance, position));
+    problems.push(
+      ...provenanceProblems(row.provenance, position, importerRoots),
+    );
   }
   return problems;
 }
@@ -101,13 +111,27 @@ function doDateProblems(doDate: unknown, position: number): string[] {
       ];
 }
 
-function provenanceProblems(provenance: unknown, position: number): string[] {
+function provenanceProblems(
+  provenance: unknown,
+  position: number,
+  importerRoots: readonly string[],
+): string[] {
   if (!isRecord(provenance)) {
     return [`Task ${position} provenance is not a mapping.`];
   }
-  return taskProvenanceKeys.flatMap((key) =>
+  const problems = taskProvenanceKeys.flatMap((key) =>
     provenance[key] === undefined || nonEmptyString(provenance[key])
       ? []
       : [`Task ${position} provenance ${key} must be a non-empty string.`],
   );
+  const source = provenance.source;
+  if (nonEmptyString(source)) {
+    const stable = withoutImporterOrdering(source, importerRoots);
+    if (stable !== source) {
+      problems.push(
+        `Task ${position} provenance source carries the importer's ordering; cite ${stable}.`,
+      );
+    }
+  }
+  return problems;
 }

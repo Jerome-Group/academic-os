@@ -437,6 +437,30 @@ describe("academic-os calendar promote", () => {
     assert.deepEqual(patches[0]?.body, { summary: "Updated title" });
   });
 
+  it("promotes a recurrence patch when Google reorders recurrence lines", async () => {
+    const recurrence = [
+      "RRULE:FREQ=WEEKLY;UNTIL=20261109T155959Z",
+      "EXDATE;TZID=Asia/Singapore:20260928T093000",
+    ];
+    const fixture = await setupChangeFixture(
+      "Academic",
+      { recurrence },
+      { recurrence },
+    );
+    await mutateProvider(fixture, (provider) => {
+      provider.normalizeRecurrenceOrderOnPatch = ["owned-event"];
+    });
+
+    const result = await runPromote(fixture, "proposal-change", "--json");
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    assert.equal(JSON.parse(result.stdout).outcome, "promoted");
+    const promotedEvent = (await readProvider(fixture)).events[
+      "academic-id"
+    ]?.[0] as { recurrence?: unknown };
+    assert.deepEqual(promotedEvent.recurrence, [...recurrence].reverse());
+  });
+
   it("marks an update Proposal stale when Refresh finds a provider change", async () => {
     const fixture = await setupChangeFixture("Academic");
     await mutateProvider(fixture, (provider) => {
@@ -1082,6 +1106,7 @@ async function setupChangeFixture(
   patch: Record<string, unknown> = targetRole === "Academic"
     ? { summary: "Updated title" }
     : {},
+  eventOverrides: Record<string, unknown> = {},
 ): Promise<Fixture> {
   const fixture = await setupFixture();
   const event = {
@@ -1100,6 +1125,7 @@ async function setupChangeFixture(
       timeZone: "Asia/Singapore",
     },
     end: { dateTime: "2026-08-20T11:00:00+08:00", timeZone: "Asia/Singapore" },
+    ...eventOverrides,
   };
   const academicMirrorPath = join(
     fixture.calendarRoot,
@@ -1513,6 +1539,7 @@ async function readProvider(fixture: Fixture): Promise<{
   events: Record<string, unknown[]>;
   incrementalEvents: Record<string, Record<string, unknown[]>>;
   omitCreatedFromIncremental?: boolean;
+  normalizeRecurrenceOrderOnPatch?: string[];
   patchFailures?: string[];
   requests: Array<{
     body?: unknown;

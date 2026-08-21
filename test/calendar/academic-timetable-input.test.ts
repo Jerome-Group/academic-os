@@ -42,6 +42,7 @@ describe("academic-timetable Proposal input", () => {
     assert.deepEqual(parsed.items[0]?.intendedEvent.recurrence, [
       "RRULE:FREQ=WEEKLY;UNTIL=20261113T155959Z",
       "EXDATE;TZID=Asia/Singapore:20260904T103000",
+      "EXDATE;TZID=Asia/Singapore:20261002T103000",
     ]);
     assert.equal(parsed.items[0]?.occupiedIntervals.length, 12);
     assert.equal(parsed.items[1]?.intendedEvent.recurrence, undefined);

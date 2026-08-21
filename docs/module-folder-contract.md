@@ -14,6 +14,11 @@ must expose their evidence for an agent or person to resolve. The folders live o
 repository — [`docs/adr/0002`](adr/0002-the-contract-lives-here-and-the-coursework-does-not.md).
 Y1S1 and Y1S2 are historical archives and change only through an explicitly approved migration.
 
+**A date is a calendar day in the offering's timezone** — `Asia/Singapore` for an NTU offering —
+written `YYYY-MM-DD` and carrying no zone marker. Every date this contract requires reads that way.
+An instant is the other thing, and the Curation register's `timestamp` is the one this contract
+asks for — [`docs/adr/0012`](adr/0012-a-date-is-a-calendar-day-and-a-stamp-is-cited-unread.md).
+
 ## Seeding a module
 
 **MF-SEED-001 (judgment).** For a requested semester and module code:
@@ -127,7 +132,10 @@ Teaching Structure are concise prose or bullets.
 
 **MF-PROFILE-002 (judgment).** The Profile contains confirmed human-facing facts and explicit
 unknowns. It excludes executable rules, full inventories, per-file curation state, live task
-progress, session history, build commands and durable architectural rationale.
+progress, session history, build commands and durable architectural rationale. Where a fact lives
+in a file some tool rewrites every run, the Profile cites the file rather than a value read out of
+it: an Evidence cell names `NTULearn/Last synced.md`, because a day copied out of it is stale by
+the next sync.
 
 **MF-PROFILE-003 (deterministic).** Profile identity and offering agree with the Definition.
 

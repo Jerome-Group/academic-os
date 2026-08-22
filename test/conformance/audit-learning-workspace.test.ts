@@ -79,6 +79,35 @@ describe("auditLearningWorkspace", () => {
     }
   });
 
+  it("reports a deleted seeded template, which leaves the set incomplete [MF-LEARNING-001]", () => {
+    const inventory = workspaceInventory();
+    inventory.entries = inventory.entries.filter(
+      ({ path }) =>
+        path !== "70 Learning/templates/preferences.md" &&
+        path !== "70 Learning/templates/preamble.tex",
+    );
+
+    const findings = auditLearningWorkspace(inventory);
+
+    assert.deepEqual(
+      findings
+        .filter(({ status }) => status !== "pass")
+        .map(({ ruleId, status, path }) => ({ ruleId, status, path })),
+      [
+        {
+          ruleId: "MF-LEARNING-001",
+          status: "fail",
+          path: "70 Learning/templates/preamble.tex",
+        },
+        {
+          ruleId: "MF-LEARNING-001",
+          status: "fail",
+          path: "70 Learning/templates/preferences.md",
+        },
+      ],
+    );
+  });
+
   it("says nothing about what an activity area's own folders hold", () => {
     const inventory = workspaceInventory();
     for (const path of [

@@ -141,5 +141,7 @@ macros, environments, notation shortcuts. The page it renders to stays the seede
 look identical across every module. A change that would show in a rendered page is a change to the
 seeded set, and so the Owner's.
 
-The preferences file carries how the Owner is taught. It is seeded like the rest, and rarely a
-module's to diverge from.
+The preferences file carries how the Owner is taught, and it is one text across every module: it
+amends at the seeded set, never here. A preference the Owner accepts in a session changes every
+module's copy; a preference true of this module alone is a `CONTEXT.md` entry. The file itself is
+pinned, so an edit made here is a deviation the audit reports and a rewrite repairs.

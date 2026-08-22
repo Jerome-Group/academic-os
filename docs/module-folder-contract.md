@@ -214,12 +214,18 @@ their yes on that exact wording is the approval. Unattended, a run writes `CONTE
 surfaces every such write in its report; precedent is its only resolver, and an ambiguity without
 precedent parks.
 
-**MF-AGENTS-004 (deterministic).** `AGENTS.md` and the four `docs/` procedure files are pinned:
-each module's copy is byte-identical to this repository's canonical seed-source template in
-`seed-templates/`, modulo `MODULE_CODE` interpolation. Seeding writes them from those templates and
-audit diffs them back against the same files, so a copy differing by one byte is a deviation,
-repaired by rewriting the copy rather than by editing it. Module-specific content never enters a
-pinned file; it belongs in `CONTEXT.md`, `docs/adr/` or the Profile.
+**MF-AGENTS-004 (deterministic).** `AGENTS.md`, the four `docs/` procedure files and
+`70 Learning/templates/preferences.md` are pinned: each module's copy is byte-identical to this
+repository's canonical seed-source template in `seed-templates/`, modulo `MODULE_CODE`
+interpolation. Seeding writes them from those templates and audit diffs them back against the same
+files, so a copy differing by one byte is a deviation, repaired by rewriting the copy rather than by
+editing it. The preferences file is pinned because it amends at the seeded set: a preference the
+Owner accepts changes every module's copy at once, and one true of a single module is a `CONTEXT.md`
+entry instead, so no module has its own text to keep —
+[`docs/adr/0015`](adr/0015-teaching-preferences-are-pinned-and-latex-is-not.md).
+
+Module-specific content never enters a pinned file; it belongs in `CONTEXT.md`, `docs/adr/` or the
+Profile.
 
 **MF-CONTEXT-001 (deterministic).** `CONTEXT.md` is a glossary only, holding the module's
 organisational terms — what its material is called, and how that changes where a file goes or what
@@ -292,9 +298,22 @@ outside the folder.
 activity areas — `10 Lectures`, `20 Tutorials`, `30 Revision`, `40 Past Papers` — each with its
 own `records/`, beside `templates/`, `GLOSSARY.md`, `RESOURCES.md` and `REVISIT.md`. Seeding
 creates every one of them for every module, whether or not that module will ever use them, and
-writes this repository's LaTeX template set and teaching preferences into `templates/`. A module
-edits a template where the difference is functional; the rendered page stays the same across
-modules.
+writes this repository's LaTeX template set and teaching preferences into `templates/`.
+
+`templates/` holds exactly these eight, each required by name, so a module keeps the set it was
+seeded rather than holding an empty directory:
+
+```text
+graded-feedback.tex               reference-sheet.tex
+lecture-walkthrough.tex           revision-notes.tex
+preamble.tex                      tutorial-concepts-consolidation.tex
+preferences.md                    tutorial-solution-writeup.tex
+```
+
+The seven `.tex` files are required by name alone and their contents are free: a module edits one
+where the difference is functional, and the rendered page stays the same across modules.
+`preferences.md` is the exception, pinned byte for byte under MF-AGENTS-004, because that argument
+is about how a preference is amended rather than about a rendered page.
 
 Enforcement stops at the activity area. What a folder inside one holds — a Lecture-unit, a
 tutorial, a revision topic, a past paper — is the seeded Teaching procedure's business, and this

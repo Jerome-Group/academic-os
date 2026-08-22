@@ -179,8 +179,7 @@ exceptions: []
 Every evidence entry has a non-empty `source` and a `checked_at` date in `YYYY-MM-DD` form.
 `exceptions` is present even when empty. Each exception records `rule`, `reason` and a non-empty
 list of evidence keys. Importer-root declarations likewise carry a non-empty list of evidence keys.
-An evidence `source` reaching into an importer root is a citation, and MF-IMPORTER-001 says what it
-names.
+An evidence `source` naming a mirror is a citation, and MF-IMPORTER-001 says what form it takes.
 
 **MF-DEFINITION-002 (deterministic).** Enabled contextual structure has evidence. Explicit
 `unknown` is valid; invented certainty is not. Contract-version lag is an upgrade-required error,
@@ -472,19 +471,15 @@ is enforced as deep as MF-LEARNING-001 reaches and open below it.
 exact automation-owned roots such as `NTULearn_Tutorial`. Their internal names are importer-owned
 and exempt from folder and file naming rules. An undeclared `NTULearn_*` root requires a decision.
 
-A control citing a path inside one names the **unnumbered source path** — that path with each
-segment's `NN ` prefix removed, folders included — because the number is the importer's ordering
-and moves when material is inserted upstream. That binds the Profile's Evidence cells, the
-Definition's `evidence.<key>.source` and a Task row's `provenance.source`. The Curation register's
-`source_path` keeps the numbers the walk saw, and its `source_id` carries the unnumbered identity.
-
-**MF-IMPORTER-002 (judgment).** Evidence cites the most durable form the document has, in this
-order: the **official NTU URL**; then the importer's **fixed landmarks**, which are `Course.md`,
-`Last synced.md` and `Announcements/`; then an **unnumbered path into the importer's interior**.
-The interior is last because the importer owns it — unnumbering survives a renumbering and nothing
-survives NTULearn renaming the item — so a citation that lands there is shown with its evidence for
-a reader to confirm no URL covers the document —
-[`docs/adr/0013`](adr/0013-evidence-cites-the-most-durable-form-available.md).
+A control cites a mirror by one of three forms, and never by a path into its interior: an importer
+**landmark**, which is `Course.md`, `Last synced.md`, `Announcements/` or a root itself; the
+document's **file name**, exactly as the mirror writes it; or the document **named in words**, which
+is what the importer's own generic names such as `ultraDocumentBody.md` leave no alternative to. A
+path into the interior records the item's position, and a position moves whenever NTULearn inserts
+above it. This binds the Profile's Evidence cells, the Definition's `evidence.<key>.source` and a
+Task row's `provenance.source`. The Curation register is untouched: its `source_path` records where
+the walk saw an item, which is an observation rather than a pointer —
+[`docs/adr/0014`](adr/0014-evidence-cites-ntulearn-and-never-a-path-into-it.md).
 
 **MF-CURATION-002 (judgment).** Curation preserves an importer source and creates a renamed copy in
 its canonical destination. Every source item becomes one of the decisions its schema version

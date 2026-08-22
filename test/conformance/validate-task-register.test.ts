@@ -14,7 +14,7 @@ tasks:
     notes: Chapter 14 first
     provenance:
       assessment: Midterm
-      source: NTULearn/Lectures/slides.pdf
+      source: NTULearn/Course.md
       milestone: Midterm week
   - title: Draft the summary
     status: cancelled
@@ -35,16 +35,16 @@ describe("validateTaskRegister", () => {
     recordFindingEvidence([seeded, mirrored], "MF-TASKS-001");
   });
 
-  it("reports a provenance source carrying the importer's ordering", () => {
+  it("reports a provenance source that walks into the importer's interior", () => {
     const numbered = validateTaskRegister(
       provisioned.replace(
-        "source: NTULearn/Lectures/slides.pdf",
+        "source: NTULearn/Course.md",
         "source: NTULearn/03 Lectures/slides.pdf",
       ),
     );
 
     assert.equal(numbered.status, "fail");
-    assert.match(numbered.evidence, /cite NTULearn\/Lectures\/slides\.pdf/u);
+    assert.match(numbered.evidence, /cite the file name slides\.pdf/u);
   });
 
   it("reports an absent, unparseable, or shapeless register", () => {

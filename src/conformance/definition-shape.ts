@@ -1,6 +1,6 @@
 import { isAbsolute, win32 } from "node:path";
 
-import { withoutImporterOrdering } from "../contract/importer-citations.js";
+import { citesImporterInterior } from "../contract/importer-citations.js";
 import { isDirectoryName, isRecord, nonEmptyString } from "./value-shape.js";
 import { universalStructurePaths } from "../contract/universal-structure.js";
 
@@ -413,6 +413,16 @@ export function declaredImporterRoots(value: unknown): string[] {
   ];
 }
 
+// The file name is the repair, except where the importer's own name for a thing identifies
+// nothing — `ultraDocumentBody.md` is its name for every folder's page — and there the document has
+// to be named in words instead.
+function citationRepair(source: string): string {
+  const name = source.split("/").at(-1) ?? source;
+  return name.startsWith("ultraDocumentBody")
+    ? "the document by name"
+    : `the file name ${name}`;
+}
+
 function validateEvidence(value: unknown, roots: readonly string[]): string[] {
   if (!isRecord(value)) return ["evidence must be a mapping."];
   const problems: string[] = [];
@@ -428,10 +438,9 @@ function validateEvidence(value: unknown, roots: readonly string[]): string[] {
       );
       continue;
     }
-    const stable = withoutImporterOrdering(item.source, roots);
-    if (stable !== item.source) {
+    if (citesImporterInterior(item.source, roots)) {
       problems.push(
-        `evidence.${name}.source carries the importer's ordering; cite ${stable}.`,
+        `evidence.${name}.source walks into the importer's interior; cite ${citationRepair(item.source)}.`,
       );
     }
   }

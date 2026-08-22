@@ -23,3 +23,12 @@ export const moduleControlPaths = {
   ...writtenControlPaths,
   ...pinnedDocumentPaths,
 } as const;
+
+// Whether a rule keyed on a file name can say anything about a control in this home. `docs/` and
+// the Teaching workspace are outside every curated root and their interiors are their own
+// procedures' business, so a control living there is not one a naming rule reaches — and treating
+// it as one would make a `preferences.md` in `90 Resources/` a misplaced control rather than the
+// badly named resource it is.
+export function isGovernedControlHome(path: string): boolean {
+  return !path.includes("/") || path.startsWith("00 Module Admin/");
+}

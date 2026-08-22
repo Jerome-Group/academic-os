@@ -1,17 +1,17 @@
+import { posix } from "node:path";
+
 import { learningWorkspacePaths } from "../contract/learning-workspace.js";
 import { universalStructurePaths } from "../contract/universal-structure.js";
+import { isGovernedControlHome, moduleControlPaths } from "./control-paths.js";
 
-export const controlPaths = new Map([
-  ["00 Module Profile.md", "00 Module Admin/00 Module Profile.md"],
-  ["10 Module Definition.yaml", "00 Module Admin/10 Module Definition.yaml"],
-  ["20 Curation Register.jsonl", "00 Module Admin/20 Curation Register.jsonl"],
-  ["30 Task Register.yaml", "00 Module Admin/30 Task Register.yaml"],
-  ["40 Source Map.yaml", "00 Module Admin/40 Source Map.yaml"],
-  ["50 Textbook Register.yaml", "00 Module Admin/50 Textbook Register.yaml"],
-  ["AGENTS.md", "AGENTS.md"],
-  ["CLAUDE.md", "CLAUDE.md"],
-  ["CONTEXT.md", "CONTEXT.md"],
-]);
+// Every control a naming rule reaches, keyed by the file name that rule sees. Sorted, so the map
+// does not inherit its order from however `moduleControlPaths` happens to be spelled out.
+export const controlPaths = new Map<string, string>(
+  Object.values<string>(moduleControlPaths)
+    .filter(isGovernedControlHome)
+    .sort()
+    .map((path) => [posix.basename(path), path]),
+);
 
 export const fixedPaths = new Map(
   [...universalStructurePaths, ...learningWorkspacePaths].map(([path]) => [

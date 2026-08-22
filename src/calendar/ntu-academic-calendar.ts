@@ -114,8 +114,8 @@ export function ntuWeeklyClassSchedule(
   if (firstDate === undefined || lastDate === undefined) {
     throw new Error("The NTU timetable selection has no class dates.");
   }
-  const excludedDates = rawDates.filter(
-    (date) => date >= firstDate && !dates.includes(date),
+  const excludedDates = weeklyDatesBetween(firstDate, lastDate).filter(
+    (date) => !dates.includes(date),
   );
   const recurrence = [
     `RRULE:FREQ=WEEKLY;UNTIL=${utcRecurrenceBoundary(lastDate)}`,
@@ -149,6 +149,14 @@ function addDays(date: string, days: number): string {
   const value = new Date(`${date}T00:00:00Z`);
   value.setUTCDate(value.getUTCDate() + days);
   return value.toISOString().slice(0, 10);
+}
+
+function weeklyDatesBetween(start: string, end: string): string[] {
+  const dates: string[] = [];
+  for (let date = start; date <= end; date = addDays(date, 7)) {
+    dates.push(date);
+  }
+  return dates;
 }
 
 function toMinutes(time: string): number {

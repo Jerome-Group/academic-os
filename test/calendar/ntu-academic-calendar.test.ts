@@ -44,6 +44,7 @@ describe("NTU AY2026-27 Semester 1 calendar", () => {
     assert.equal(monday.dates.length, 11);
     assert.deepEqual(monday.recurrence, [
       "RRULE:FREQ=WEEKLY;UNTIL=20261109T155959Z",
+      "EXDATE;TZID=Asia/Singapore:20260928T093000",
       "EXDATE;TZID=Asia/Singapore:20261109T093000",
     ]);
 
@@ -58,7 +59,22 @@ describe("NTU AY2026-27 Semester 1 calendar", () => {
     assert.deepEqual(friday.recurrence, [
       "RRULE:FREQ=WEEKLY;UNTIL=20261113T155959Z",
       "EXDATE;TZID=Asia/Singapore:20260904T103000",
+      "EXDATE;TZID=Asia/Singapore:20261002T103000",
     ]);
+  });
+
+  it("excludes the entire recess week from a recurring class series", () => {
+    const tuesday = ntuWeeklyClassSchedule({
+      weekday: "TU",
+      weeks: { from: 1, to: 13 },
+      startTime: "10:30",
+      endTime: "11:30",
+    });
+
+    assert.equal(tuesday.dates.includes("2026-09-29"), false);
+    assert.ok(
+      tuesday.recurrence.includes("EXDATE;TZID=Asia/Singapore:20260929T103000"),
+    );
   });
 
   it("keeps explicit bounded weeks and single-week events exact", () => {
@@ -72,6 +88,7 @@ describe("NTU AY2026-27 Semester 1 calendar", () => {
     assert.equal(bounded.dates.at(-1), "2026-10-19");
     assert.deepEqual(bounded.recurrence, [
       "RRULE:FREQ=WEEKLY;UNTIL=20261019T155959Z",
+      "EXDATE;TZID=Asia/Singapore:20260928T123000",
     ]);
 
     const oneWeek = ntuWeeklyClassSchedule({

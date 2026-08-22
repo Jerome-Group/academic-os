@@ -617,7 +617,13 @@ async function prepareChangeAvailability(input: {
   projectedEvent: CalendarEvent;
   targetRole: OwnedCalendarRole;
 }) {
-  const interval = intervalFor(input.projectedEvent);
+  const proposedKind = inferItemKind(input.projectedEvent, input.targetRole);
+  // Transparent milestones annotate an existing session; their provider
+  // duration must not turn the annotation into a scheduling conflict.
+  const interval =
+    proposedKind === "timed-milestone"
+      ? null
+      : intervalFor(input.projectedEvent);
   const calendars = await input.reader.listCalendars();
   const availability =
     interval === null
@@ -640,7 +646,7 @@ async function prepareChangeAvailability(input: {
   const overlaps = findCalendarOverlaps({
     availability: items,
     interval,
-    proposedKind: inferItemKind(input.projectedEvent, input.targetRole),
+    proposedKind,
   });
   return {
     items,

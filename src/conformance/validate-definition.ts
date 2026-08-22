@@ -1,6 +1,5 @@
 import { parseDocument } from "yaml";
 
-import { citesImporterInterior } from "../contract/importer-citations.js";
 import { controlFinding, failedControl } from "./control-finding.js";
 import { moduleControlPaths } from "./control-paths.js";
 import {
@@ -143,8 +142,6 @@ export function validateDefinition(
     );
   }
 
-  findings.push(citationDurabilityFinding(value, importerRoots));
-
   const evidenceProblems = validateContextEvidence(value);
   findings.push(
     evidenceProblems.length === 0
@@ -169,38 +166,6 @@ export function validateDefinition(
     importerRoots,
     ...(identity === undefined ? {} : { definition: identity }),
   };
-}
-
-// The tier a citation landed on is decidable here; whether it could have landed higher is not,
-// because nothing in the folder knows which documents NTU publishes a URL for. So the auditor
-// names the fallback and hands the choice to a reader, which is what a judgment rule is for.
-function citationDurabilityFinding(
-  value: Record<string, unknown>,
-  importerRoots: readonly string[],
-): Finding {
-  const evidence = isRecord(value.evidence) ? value.evidence : {};
-  const interior = Object.entries(evidence).flatMap(([name, item]) =>
-    isRecord(item) &&
-    nonEmptyString(item.source) &&
-    citesImporterInterior(item.source, importerRoots)
-      ? [`evidence.${name}.source cites ${item.source}`]
-      : [],
-  );
-  return interior.length === 0
-    ? controlFinding(
-        "MF-IMPORTER-002",
-        definitionPath,
-        "pass",
-        "Every evidence source is an official URL, an importer landmark, or carries no importer path.",
-        "Evidence cites the most durable form available to it.",
-      )
-    : controlFinding(
-        "MF-IMPORTER-002",
-        definitionPath,
-        "manual-review",
-        `${interior.join(" ")}. An importer interior is the last of the three forms; confirm no official URL covers the document.`,
-        "Evidence rests on the importer's interior, which NTULearn reorders and renames.",
-      );
 }
 
 function validateVersions(

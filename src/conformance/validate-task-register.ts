@@ -4,7 +4,7 @@ import { readControlDocument } from "./control-document.js";
 import { controlFinding, failedControl } from "./control-finding.js";
 import { moduleControlPaths } from "./control-paths.js";
 import type { Finding } from "./types.js";
-import { withoutImporterOrdering } from "../contract/importer-citations.js";
+import { citesImporterInterior } from "../contract/importer-citations.js";
 import { isRecord, nonEmptyString } from "./value-shape.js";
 
 const registerPath = moduleControlPaths.taskRegister;
@@ -126,10 +126,9 @@ function provenanceProblems(
   );
   const source = provenance.source;
   if (nonEmptyString(source)) {
-    const stable = withoutImporterOrdering(source, importerRoots);
-    if (stable !== source) {
+    if (citesImporterInterior(source, importerRoots)) {
       problems.push(
-        `Task ${position} provenance source carries the importer's ordering; cite ${stable}.`,
+        `Task ${position} provenance source walks into the importer's interior; cite the file name ${source.split("/").at(-1)}.`,
       );
     }
   }

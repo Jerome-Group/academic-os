@@ -17,7 +17,6 @@ export const contractRuleEnforcement = {
   "MF-DEFINITION-002": "deterministic",
   "MF-DOCS-001": "deterministic",
   "MF-IMPORTER-001": "deterministic",
-  "MF-IMPORTER-002": "judgment",
   "MF-LATEX-001": "deterministic",
   "MF-LEARNING-001": "deterministic",
   "MF-LEARNING-002": "deterministic",

@@ -137,4 +137,7 @@ files. Read that repository's destination handling before touching the universal
 
 **Module folder paths are configuration.** Nothing here hardcodes a path into the Owner's
 coursework — that path is precisely the thing being kept out of a public repository, so an
-automation that needs one reads it from a file the ignore rules cover.
+automation that needs one reads it from a file the ignore rules cover. The `/learn` skill is the
+one exception, and `docs/adr/0017-…` argues it: a skill installed on a machine that holds nothing
+else of this system cannot read the system's configuration, so it discovers the folder instead and
+writes no path down.

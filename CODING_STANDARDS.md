@@ -108,8 +108,9 @@ Production code lives in `src/`, and tests mirror its public seams in `test/`.
 
 Tests use the Node test runner at the public seams the application exposes: pure in-memory
 conformance planning; mounted inventory, seeding and observation adapters against operating-system
-temporary roots; the read-only Drive inventory adapter; the publication-boundary checker; and the
-compiled CLI end to end. Conformance stays pure; filesystem access belongs behind adapters.
+temporary roots; the read-only Drive inventory adapter; the publication-boundary checker; the
+compiled CLI end to end; and the authored documents this repository ships as artefacts of their
+own, where the assertion is over the file's text rather than over a seam. Conformance stays pure; filesystem access belongs behind adapters.
 
 ## 7. Evolution — what is rigid, what moves
 

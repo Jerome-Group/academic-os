@@ -15,10 +15,6 @@ Revisit register — is in the module folder's own pinned documents. You read th
 run the session under them. Where they and this file could be read as disagreeing, they win, and
 this file is the one that is wrong.
 
-**The module folders are the whole of what this needs.** No configuration file, no clone of the
-system that seeded them, no credential, no toolchain. A machine with the folders can run a session;
-a machine without them has nothing to teach from.
-
 ## 1. Find the module folder
 
 A module folder is a directory named exactly the module code the Owner gave, one level inside a

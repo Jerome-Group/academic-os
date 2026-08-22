@@ -103,35 +103,44 @@ instead, and the mini does. The cost is real and accepted: a copy has no `git pu
 edit reaches a machine when someone sends it, and an unsent edit is a machine running the old
 route. That is the trade the checklist already makes for everything else it keeps off a machine.
 
+**User-invoked**, in each harness's own encoding — `disable-model-invocation: true` in the
+frontmatter, `allow_implicit_invocation: false` in `agents/openai.yaml`. `/learn` is a generic
+enough verb to be a magnet in any repository, and a teaching session starts when the Owner says
+so. It costs the description's discoverability, which is the correct trade for a skill with
+exactly one caller.
+
 ## The module folders are the whole of what it needs
 
 The skill reads no configuration file. It finds the module folder by searching the two places
 macOS mounts a Drive for a directory named the module code, one semester folder deep under
 `Modules/`, and everything after that comes out of the folder it found.
 
-This is spec #94's story 25 — a machine gets the capability *"without a clone or a credential
-file"* — applied to the one surface that was about to break it. The first build of this skill read
-`academic-os.config.json` for the Drive mount and the semester roots, which is the sanctioned
-mechanism for **this repository's automations**: they run here, on a machine that has the
-configuration, and `AGENTS.md` keeps a coursework path out of a public repository by making them
-read one. A skill installed on a machine that holds nothing else is not one of those automations.
-Requiring the file there would have meant installing a piece of the system to run something whose
-whole claim is that it needs only the folders.
+**This is the Owner's decision, and the spec establishes the principle rather than this
+application of it.** Spec #94 asks twice that a capability reach a machine without the system
+following it: story 25 wants the task tools *"without a clone or a credential file"*, story 26
+wants a second machine set up so that *"no Node install, clone or key file ever travels"*. Neither
+names a configuration file, and story 25's mechanism — one server on the tailnet — is the opposite
+of searching local disk. What carries is the principle: a machine earns a capability without a
+piece of the system being installed to prop it up. A configuration file is that same category of
+thing, and the Owner extended the principle to it.
 
-Searching costs nothing the rule was protecting. No path into the Owner's coursework is written
+The first build of this skill read `academic-os.config.json` for the Drive mount and the semester
+roots, which is the sanctioned mechanism for **this repository's automations**: they run here, on a
+machine that has the configuration, and `AGENTS.md` keeps a coursework path out of a public
+repository by making them read one. A skill installed on a machine holding nothing else is not one
+of those automations, and requiring the file there meant installing part of the system to run the
+one thing whose whole claim is that the folders are enough.
+
+Searching costs nothing that rule was protecting. No path into the Owner's coursework is written
 down — a Drive mount is discovered, a semester folder is a wildcard, and the module code is what
-the Owner just typed. What *is* written down is that the folders sit under `Modules/`, which the
-public example configuration in this repository has always said.
+the Owner just typed. `Modules/` as the parent is the one piece of layout the search asserts, and
+the public example configuration in this repository has always carried it as a semester root.
 
-The cost is that the skill now knows a shape it did not: two Drive mount points and one level of
-semester folder. A Drive moved somewhere macOS does not mount, or a module folder re-homed outside
-`Modules/`, breaks the search — loudly, at step 1, with nothing found and the Owner asked.
-
-**User-invoked**, in each harness's own encoding — `disable-model-invocation: true` in the
-frontmatter, `allow_implicit_invocation: false` in `agents/openai.yaml`. `/learn` is a generic
-enough verb to be a magnet in any repository, and a teaching session starts when the Owner says
-so. It costs the description's discoverability, which is the correct trade for a skill with
-exactly one caller.
+The costs are two. The skill now knows a shape it did not — the two places macOS mounts a Drive,
+and one level of semester folder — and a Drive mounted somewhere else, or a module folder re-homed
+outside `Modules/`, breaks the search. It breaks loudly, at step 1, with nothing found and the
+Owner asked. The second cost is that `AGENTS.md`'s rule now has an exception, which is why that
+file names this record rather than leaving a reader to find the contradiction.
 
 ## The first-session gap is answered by asking
 
@@ -167,9 +176,10 @@ a pointer in `AGENTS.md`, and `skills/`, whose files are harness-installed and i
 
 ## Revisit when
 
-A second harness needs the same routing. The route stops being a skill's business at that point and
-wants a form both can read — most likely a command in this repository's own CLI, with the skill
-reduced to calling it.
+A harness cannot take the skill file itself. Two harnesses running the same `SKILL.md` is what this
+record already describes and costs only a second manifest; one that needs the routing in some other
+form is the case that reopens it, and the answer then is a command in this repository's own CLI
+with every skill reduced to calling it.
 
 The Teaching procedure grows a rule that cannot be read at run time — one about the session's own
 tooling rather than about the module's material. That is the first rule with a real claim to living

@@ -13,17 +13,24 @@ const compileInvocation = /latexmk|-auxdir|-outdir/u;
 // path reappearing in its text is that promise being withdrawn.
 const systemConfiguration = /academic-os\.config\.json/u;
 
+// Both files, because the Codex manifest carries free text of its own — a short description is as
+// good a place to leak a rule into as the skill body, and it is the file nobody thinks to reread.
+async function readSkillText(): Promise<string> {
+  const parts = await Promise.all(
+    ["skills/learn/SKILL.md", "skills/learn/agents/openai.yaml"].map((path) =>
+      readFile(path, "utf8"),
+    ),
+  );
+  return parts.join("\n");
+}
+
 describe("the learn skill", () => {
   it("reads no configuration of the system that seeded the folders", async () => {
-    const body = await readFile("skills/learn/SKILL.md", "utf8");
-
-    assert.equal(systemConfiguration.test(body), false);
+    assert.equal(systemConfiguration.test(await readSkillText()), false);
   });
 
   it("names no compile invocation", async () => {
-    const body = await readFile("skills/learn/SKILL.md", "utf8");
-
-    assert.equal(compileInvocation.test(body), false);
+    assert.equal(compileInvocation.test(await readSkillText()), false);
   });
 
   // One decision, and each harness spells it in its own file, so a harness added without its

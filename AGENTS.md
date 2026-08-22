@@ -86,8 +86,11 @@ Where a piece of work starts, what hands on to what, and where research and prot
 
 ### `/learn`, the skill this repository authors
 
-A teaching session, routed into a module's own pinned procedure and holding no rule of its own —
-`skills/learn/`, bounded by `docs/adr/0017-…`. Editing it is that record's business first.
+**A request to be taught a module's material is `/learn`, and never a session improvised here.**
+It routes into that module's own pinned procedure and holds no rule of its own. Say so and let the
+Owner invoke it — it fires by their hand alone, which is a decision rather than an oversight.
+
+The source is `skills/learn/`, and editing it is `docs/adr/0017-…`'s business first.
 
 ### Issue tracker
 

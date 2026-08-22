@@ -1,5 +1,11 @@
 # Evidence cites the most durable form available, and a mirror path is the last of three
 
+> **Superseded by [ADR-0014](0014-evidence-cites-ntulearn-and-never-a-path-into-it.md).** Evidence
+> cites NTULearn only, and never a path into a mirror. The durability order below put an official
+> NTU URL first, which this system does not want, and demoted rather than removed the interior
+> path — de-numbering a citation treats the symptom of recording a position at all. What stands is
+> the reasoning that made the second half look sufficient at the time.
+
 Evidence names the most durable form the document has:
 
 1. the **official NTU URL**, where the document is published — a syllabus, an OBTL, a course

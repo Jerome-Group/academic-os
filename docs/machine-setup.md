@@ -51,14 +51,14 @@ step and never something an agent does mid-session.
 
 ## Optional: install the `/learn` skill
 
-`/learn` starts a teaching session from any directory: it resolves the module folder from
-configuration and reads that folder's own pinned Teaching Procedure out of it, so which directory
-the agent started in stops mattering. What it may and may not carry is
-[ADR-0017](adr/0017-the-teaching-skill-routes-and-the-pinned-procedure-rules.md).
+`/learn` starts a teaching session from any directory rather than only from the module folder.
+What it is and what it may carry is
+[ADR-0017](adr/0017-the-teaching-skill-routes-and-the-pinned-procedure-rules.md); this is the
+install.
 
 It needs the two things the checklist above deliberately keeps off a machine — a clone of this
-repository and `academic-os.config.json` — so it is a choice rather than a default. Install it by
-symlinking the authored skill to user scope, so updating it is a `git pull`:
+repository and `academic-os.config.json` — so it is a choice rather than a default. Symlink the
+authored skill to user scope, so updating it is a `git pull`:
 
 ```sh
 ln -s "<clone>/skills/learn" "$HOME/.claude/skills/learn"
@@ -67,6 +67,3 @@ ln -s "<clone>/skills/learn" "$HOME/.claude/skills/learn"
 Any other harness links the same directory wherever it keeps user-scope skills. Keep the
 configuration at `$HOME/.config/academic-os/academic-os.config.json`, which is the path the skill
 reads.
-
-A machine without the skill runs teaching sessions the way they ran before: start the agent in the
-module folder, and its `AGENTS.md` routes the same work.

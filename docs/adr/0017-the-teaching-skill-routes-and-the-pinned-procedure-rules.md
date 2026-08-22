@@ -7,7 +7,8 @@ naming, no Revisit-register entry kinds, no volume rule and no compile invocatio
 documents keep all of those, and the skill's own text is the one place none of them may appear.
 
 The mechanical test, because a boundary nobody can check is a preference: **if the skill names
-`latexmk`, the boundary was drawn wrong.**
+`latexmk`, the boundary was drawn wrong.** A test asserts exactly that, which is as far as a test
+reaches here — see the Consequences.
 
 ## The failures were invocation, never content
 
@@ -114,9 +115,11 @@ The skill can go stale in exactly one way, and it is a narrow one: routing. If a
 renamed or the configuration's shape changes, the skill's reads break — loudly, at the top of a
 session, rather than quietly in an artifact.
 
-Nothing enforces this boundary. MF-AGENTS-004 reaches the module copies and reaches no skill, so
-what holds the line is review, which is why the test above is a single grep-able word rather than a
-principle. A rule that arrives in the skill arrives in a pull request or not at all.
+MF-AGENTS-004 reaches every module's copy of the procedure and reaches no skill, so most of this
+boundary is held by review rather than by a check. One part of it is not, and it is the part the
+record was written about: a test refuses a compile invocation in the skill's text. The rest — a
+record format, an artifact naming rule, a Revisit entry kind, a volume rule — needs judgement to
+recognise, so it arrives in a pull request or not at all.
 
 `/learn` needs `academic-os.config.json` on the machine it runs from, which the second-machine
 checklist in `docs/machine-setup.md` does not otherwise require. A machine without it runs teaching

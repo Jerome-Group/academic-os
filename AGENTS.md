@@ -84,12 +84,10 @@ recorded as one.
 Where a piece of work starts, what hands on to what, and where research and prototypes live. See
 `docs/agents/workflow.md` before inventing a route.
 
-### The skill this repository authors
+### `/learn`, the skill this repository authors
 
-`/learn` runs a teaching session: it resolves a module folder from configuration and routes into
-that folder's own pinned Teaching Procedure, holding no rule of its own. The source is
-`skills/learn/`, the install is in `docs/machine-setup.md`, and the boundary — what may be in it,
-and the `latexmk` test that says when it has been crossed — is `docs/adr/0017-…`.
+A teaching session, routed into a module's own pinned procedure and holding no rule of its own —
+`skills/learn/`, bounded by `docs/adr/0017-…`. Editing it is that record's business first.
 
 ### Issue tracker
 

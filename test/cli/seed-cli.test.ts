@@ -148,11 +148,7 @@ describe("academic-os seed", () => {
     assert.match(human.stdout, /Outcome: preview/u);
     assert.deepEqual(
       report.operations.map(({ kind, path }) => [path, kind]),
-      [
-        ...universalPaths,
-        ...learningWorkspacePaths,
-        ...learningWorkspaceTemplatePaths.map((path) => [path, "file"]),
-      ],
+      [...universalPaths, ...learningWorkspacePaths],
     );
     await assert.rejects(access(fixture.moduleRoot));
     assert.deepEqual(await readdir(fixture.semesterRoot), []);

@@ -581,22 +581,24 @@ recheck the target and show completed/remaining operations; continue only when i
 result is settled.
 
 Every seed includes `CONTEXT.md` as the module glossary and an initially empty `docs/adr/` for
-decisions; an empty ADR directory means no qualifying decision has yet been recorded. It also
-writes the five pinned files — the `AGENTS.md` router and the four `docs/` procedures — from this
-repository's `seed-templates/`, with `MODULE_CODE` replaced by the module's code. They are the
-module's whole instruction set, and audit diffs each copy back against its template, so a module
-that needs to say something of its own says it in `CONTEXT.md`, `docs/adr/` or the Profile.
+decisions; an empty ADR directory means no qualifying decision has yet been recorded. It also writes
+the six pinned files — the `AGENTS.md` router, the four `docs/` procedures and the teaching
+preferences in `70 Learning/templates/` — from this repository's `seed-templates/`, with
+`MODULE_CODE` replaced by the module's code. They are the module's whole instruction set, and audit
+diffs each copy back against its template, so a module that needs to say something of its own says
+it in `CONTEXT.md`, `docs/adr/` or the Profile.
 
 The Teaching workspace is seeded whole, for every module, whether or not that module will use it:
 the four activity areas under `70 Learning` with their `records/`, the LaTeX template set and
 teaching preferences in `templates/`, and `GLOSSARY.md`, `RESOURCES.md` and `REVISIT.md`. Beside
 them in Module Admin, `40 Source Map.yaml` is seeded declaring no units; the Lecture-units the
-workspace reads it for are filled in from the module research. `30 Task Register.yaml` is seeded
-the same way — `tasks: []` and no list, which `tasks provision` fills — and `50 Textbook
-Register.yaml` as `extractions: []`, which the Textbook procedure appends to as chapters are cut
-off the shelf. A template is the module's
-to edit where the difference is functional, so audit checks that the workspace's own structure is
-there rather than diffing a template copy back.
+workspace reads it for are filled in from the module research. `30 Task Register.yaml` is seeded the
+same way — `tasks: []` and no list, which `tasks provision` fills — and `50 Textbook Register.yaml`
+as `extractions: []`, which the Textbook procedure appends to as chapters are cut off the shelf. The
+eight files in `templates/` are required by name, so the set survives; a `.tex` among them is the
+module's to edit where the difference is functional, so audit checks that it is there rather than
+diffing it back. `preferences.md` is the exception and is diffed, under MF-AGENTS-004 with the rest
+of the pinned set.
 
 ## Audit
 

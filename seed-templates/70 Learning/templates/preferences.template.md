@@ -1,9 +1,10 @@
 # Teaching preferences
 
 How the Owner is taught: the standing notes a session reads before it starts, seeded identically
-into every module. `docs/20 Teaching Procedure.md` is the conduct — what a session produces and
-where it goes. This file is the register that conduct runs in, and it is rarely a module's to
-diverge from.
+into every module and pinned, so this copy stays that one text. `docs/20 Teaching Procedure.md` is
+the conduct — what a session produces and where it goes. This file is the register that conduct
+runs in. Where a new preference goes is at the foot of this file; an edit made here instead is a
+deviation the audit reports.
 
 ## The Owner is in the room
 

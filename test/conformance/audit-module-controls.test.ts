@@ -52,6 +52,29 @@ describe("auditModuleControls", () => {
     );
   });
 
+  it("reports a module that edited its teaching preferences [MF-AGENTS-004]", () => {
+    const controls = validModuleControls();
+    controls.teachingPreferences = `${controls.teachingPreferences ?? ""}\nSessions run to a timetable.\n`;
+
+    const result = auditModuleControls(
+      { moduleCode: "MH2100", semester: "Y2S1", controls },
+      testModuleContract,
+    );
+
+    assert.deepEqual(
+      result.findings
+        .filter(({ status }) => status !== "pass")
+        .map(({ ruleId, status, path }) => ({ ruleId, status, path })),
+      [
+        {
+          ruleId: "MF-AGENTS-004",
+          status: "fail",
+          path: "70 Learning/templates/preferences.md",
+        },
+      ],
+    );
+  });
+
   it("reports every missing control with deterministic evidence", () => {
     const first = auditModuleControls(
       {
@@ -89,6 +112,7 @@ describe("auditModuleControls", () => {
         "docs/10 Curation Procedure.md",
         "docs/20 Teaching Procedure.md",
         "docs/30 Textbook Procedure.md",
+        "70 Learning/templates/preferences.md",
       ],
     );
     assert.ok(

@@ -4,10 +4,10 @@ How MODULE_CODE is worked through, in `70 Learning/`. Teaching the subject is th
 it: a session takes one unit's material, produces artifacts a later session can read, and leaves a
 record of what actually landed.
 
-`00 Module Admin/40 Source Map.yaml` is the spine. Every folder and every record here names a
-**unit** by its Source-map key, and the map is what says which files that unit is — so "what are
-we looking at" is a lookup rather than a judgment. Material arriving for a unit the map does not yet
-name extends the map; a key it already names is never re-spelled.
+`00 Module Admin/40 Source Map.yaml` is the spine. Every record here names a **unit** by its
+Source-map key, and the map is what says which files that unit is — so "what are we looking at" is
+a lookup rather than a judgment. Material arriving for a unit the map does not yet name extends the
+map; a key it already names is never re-spelled.
 
 Names inside this workspace are this procedure's — `docs/00 Structure and Naming.md` exempts them
 and governs everything that leaves.
@@ -141,5 +141,7 @@ macros, environments, notation shortcuts. The page it renders to stays the seede
 look identical across every module. A change that would show in a rendered page is a change to the
 seeded set, and so the Owner's.
 
-The preferences file carries how the Owner is taught. It is seeded like the rest, and rarely a
-module's to diverge from.
+The preferences file carries how the Owner is taught, and it is one text across every module: it
+amends at the seeded set, never here. A preference the Owner accepts in a session changes every
+module's copy; a preference true of this module alone is a `CONTEXT.md` entry. The file itself is
+pinned, so an edit made here is a deviation the audit reports and a rewrite repairs.

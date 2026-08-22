@@ -6,6 +6,7 @@ export const pinnedDocumentPaths = {
   curationProcedure: "docs/10 Curation Procedure.md",
   teachingProcedure: "docs/20 Teaching Procedure.md",
   textbookProcedure: "docs/30 Textbook Procedure.md",
+  teachingPreferences: "70 Learning/templates/preferences.md",
 } as const;
 
 export type PinnedDocumentName = keyof typeof pinnedDocumentPaths;

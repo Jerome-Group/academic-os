@@ -52,8 +52,9 @@ async function readPinnedDocuments(): Promise<PinnedDocumentBodies> {
 }
 
 // Read from the directory rather than from a list, so a template added there reaches the next
-// seeded module without a second edit. A module may diverge from its copy afterwards, which is why
-// nothing audits one back — only the files MF-LEARNING-001 names have to be there at all.
+// seeded module without a second edit. A `.tex` a module then edits is not audited back — the
+// files MF-LEARNING-001 names have to be there, and that is all it asks. `preferences.md` is the
+// one that is also read back, which it is as a pinned document rather than as a workspace file.
 async function readLearningWorkspaceFiles(): Promise<LearningWorkspaceFiles> {
   const root = fileURLToPath(
     new URL(`${learningWorkspaceRoot}/`, seedTemplateRoot),

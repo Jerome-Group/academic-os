@@ -7,6 +7,7 @@ import {
   type PinnedDocumentName,
 } from "../contract/pinned-documents.js";
 import { controlFinding, failedControl } from "./control-finding.js";
+import { firstDifference } from "./first-difference.js";
 import type { Finding, ModuleControls } from "./types.js";
 
 export function validatePinnedDocuments(
@@ -46,15 +47,4 @@ function pinnedDocumentFinding(
     `Pinned copy is byte-identical to seed-templates/${seedTemplatePath(name)}.`,
     "The pinned document carries the contract's own text for this module.",
   );
-}
-
-function firstDifference(copy: string, expected: string): string {
-  const copyLines = copy.split("\n");
-  const expectedLines = expected.split("\n");
-  const index = expectedLines.findIndex(
-    (line, position) => copyLines[position] !== line,
-  );
-  return index < 0
-    ? `line ${expectedLines.length + 1}, where the copy continues past the template`
-    : `line ${index + 1}, which reads ${JSON.stringify(copyLines[index] ?? "<end of copy>")} rather than ${JSON.stringify(expectedLines[index] ?? "")}`;
 }

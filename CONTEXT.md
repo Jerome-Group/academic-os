@@ -53,6 +53,18 @@ _Avoid_: drift — drift means a change between observations, not merely a prese
 A change in a module folder's conformance between two observations.
 _Avoid_: deviation, mismatch
 
+**Pinned document**:
+A file seeded byte-identically into every module folder and diffed back against its seed-source
+template: `AGENTS.md`, the four `docs/` procedures, and the teaching preferences. A module's copy
+carries nothing of its own.
+_Avoid_: template, boilerplate — a module may edit neither
+
+**Rewrite**:
+Replacing a module's pinned copy with its seed-source template, which is how MF-AGENTS-004 says a
+differing copy is repaired. Cohort-wide, previewed before it writes, and always toward the module —
+the opposite direction from a Refresh, which only ever reads.
+_Avoid_: refresh, sync, push
+
 **Repair**:
 An approved change to an existing module folder that resolves a deviation without changing the
 contract. Unlike a seed, a repair may rename, move, or remove structure.

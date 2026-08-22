@@ -11,8 +11,9 @@ this file is the binding procedure.
 - **Live acceptance audits** inspect real module folders read-only.
 - **Drive integration tests** are opt-in and write only inside the configured test-root Drive ID.
 - **Mounted writes** change the Owner's real content through Drive for Desktop rather than the
-  API — seeding, the repair executor's staging and publication, the shelf migration's renames.
-  They are the one tier with no Drive ID to hold, and *Prove a mounted write* below is their rule.
+  API — seeding, the repair executor's staging and publication, the shelf migration's renames, and
+  the pinned rewrite's replacement of a module's copy. They are the one tier with no Drive ID to
+  hold, and *Prove a mounted write* below is their rule.
 
 Real module folders are never integration-test fixtures. A test run is correctly scoped when its
 tier is explicit and every possible write resolves inside that tier's disposable root.
@@ -59,16 +60,25 @@ design. A transition is the lighter path beside repair: it writes the control fi
 authors and moves documents, reads academic contents and leaves them where they are, and so binds
 neither of those recoveries — its writes prove themselves under *Prove a mounted write* instead.
 
+The pinned rewrite is the fourth writer and binds neither recovery, for the same reason a
+transition does not: what it overwrites is a file this repository authored and still holds, so the
+seed source **is** the recovery. It writes nothing else — a module's academic contents are not its
+to touch. A copy that cannot prove itself refuses the whole run before anything is written, which is
+what keeps a half-written cohort rare rather than impossible: a write that fails after earlier ones
+have landed stops the run and reports itself as partially rewritten, because no rollback can unwrite
+a file without holding its original. The journal is what says how far a run got. Its authority is
+MF-AGENTS-004, the rule saying a differing copy is repaired by rewriting rather than by editing.
+
 Through the API, paths are human evidence, not mutation identity: inventory and mutation use Drive
 IDs, request every page, reject incomplete results, and treat absent checksums or revisions as
 unavailable rather than equal.
 
 ## Prove a mounted write before it happens
 
-Drive for Desktop hands the seeder, the repair staging and the shelf renamer a filesystem and no ID
-surface, so the identity above is one none of them can hold. Content stands in its place: a Drive
-ID names the container a file arrived in, and a sha256 names the file. A mounted write that needs
-to know it has the right target holds a checksum and reads it again.
+Drive for Desktop hands the seeder, the repair staging, the shelf renamer and the pinned rewrite a
+filesystem and no ID surface, so the identity above is one none of them can hold. Content stands in
+its place: a Drive ID names the container a file arrived in, and a sha256 names the file. A mounted
+write that needs to know it has the right target holds a checksum and reads it again.
 
 Each write proves all four before it happens:
 

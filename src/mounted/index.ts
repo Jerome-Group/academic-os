@@ -4,6 +4,7 @@ export {
   OperationalError,
   type OperationalErrorCode,
 } from "../operational-error.js";
+export { readModuleControls } from "./read-module-controls.js";
 export { resolveTarget } from "./resolve-target.js";
 export {
   appendMountedAuditObservation,

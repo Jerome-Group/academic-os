@@ -51,9 +51,10 @@ file — loses two things.
 **The procedure travels with the folder and the skill does not.** A module folder is worked from
 whatever harness is in front of the Owner, and the pinned copy is picked up by any of them because
 it sits in the folder being worked. A skill reaches a harness only by being installed into it, in
-that harness's own layout — this one ships two manifests and two symlinks to cover the two the
-Owner runs. Inlining the conduct makes the good session the one that happened to start through
-`/learn`, which is precisely the fragility the router already refuses.
+that harness's own layout — this one ships two manifests to cover the two the Owner runs, and is
+copied into each machine's harness directories. Inlining the conduct makes the good session the one
+that happened to start through `/learn`, which is precisely the fragility the router already
+refuses.
 
 **Contract-versioned text stops being contract-versioned when it is copied.** The procedure changes
 by changing `seed-templates/`, and the cohort is brought level by `pinned refresh`. A skill is
@@ -76,10 +77,10 @@ a skill that fires wrong. One sentence buys that; a second one would be the skil
 `teach` collides with the cached upstream `mattpocock-skills` productivity skill, which is on this
 machine and visibly the ancestor of this workspace — learning records, a glossary, a resources
 file, its `NOTES.md` becoming `preferences.md`. That one is general-purpose, with a mission
-document, HTML lessons and printable reference pages; this system is LaTeX artifacts on a Source-map
-spine with module-owned unit keys. Same lineage, different shape, so this is a local skill and not
-an adoption — and the collision is real rather than hypothetical, because enabling the upstream one
-later must not be a decision about this skill's name.
+document, HTML lessons and printable reference pages; this system is LaTeX artifacts on a
+Source-map spine with module-owned unit keys. Same lineage, different shape, so this is a local
+skill and not an adoption — and the collision is real rather than hypothetical, because enabling
+the upstream one later must not be a decision about this skill's name.
 
 `learn` also matches what is on the tin. The workspace folder is `70 Learning`, its artifact is a
 Learning record, and `/learn MODULE_CODE` reads as an instruction where `learn-unit` reads as the
@@ -87,13 +88,20 @@ agent doing the learning. `teaching-session` is the glossary's phrasing and lose
 
 ## Where it lives and how it fires
 
-The source is `skills/learn/` in this repository, installed at user scope by symlink. Two
-consequences follow from that and both are the point.
+The source is `skills/learn/` in this repository, installed at user scope. Three consequences follow
+from that, and each is the point rather than a detail of packaging.
 
 **Not `.claude/skills/`.** A project-scoped skill is discovered only when the working directory is
 this repository, and the working directory not mattering is the defect being fixed. User scope is
 what makes `/learn` reach from anywhere; the repository is what makes it reviewed, versioned and
 public with the rest of the system.
+
+**Copied to a machine, not symlinked out of a clone.** The skill is two files with no build step,
+so it travels alone — which keeps the second-machine checklist's promise that a clone of this
+repository does not travel. A machine that holds the repository for other reasons may symlink
+instead, and the mini does. The cost is real and accepted: a copy has no `git pull`, so a skill
+edit reaches a machine when someone sends it, and an unsent edit is a machine running the old
+route. That is the trade the checklist already makes for everything else it keeps off a machine.
 
 **User-invoked**, in each harness's own encoding — `disable-model-invocation: true` in the
 frontmatter, `allow_implicit_invocation: false` in `agents/openai.yaml`. `/learn` is a generic

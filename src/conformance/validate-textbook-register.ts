@@ -9,11 +9,11 @@ import {
 } from "../contract/textbook-register.js";
 import { readControlDocument } from "./control-document.js";
 import { controlFinding, failedControl } from "./control-finding.js";
-import { moduleControlPaths } from "./control-paths.js";
+import { writtenControlPaths } from "./control-paths.js";
 import type { Finding } from "./types.js";
 import { isRecord, nonEmptyString } from "./value-shape.js";
 
-const registerPath = moduleControlPaths.textbookRegister;
+const registerPath = writtenControlPaths.textbookRegister;
 const shelfOwned = new Set(shelfOwnedKeys);
 const recordedKeys = new Set<string>(extractionKeys);
 // A number is recorded as the book prints it, so a roman numeral stays roman and an appendix keeps

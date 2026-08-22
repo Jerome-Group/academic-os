@@ -1,7 +1,7 @@
 import { parseDocument } from "yaml";
 
 import { controlFinding, failedControl } from "./control-finding.js";
-import { moduleControlPaths } from "./control-paths.js";
+import { writtenControlPaths } from "./control-paths.js";
 import {
   contextualAssessments,
   contextualWorkspaces,
@@ -13,7 +13,7 @@ import {
 import { isRecord, nonEmptyString } from "./value-shape.js";
 import type { Finding } from "./types.js";
 
-const definitionPath = moduleControlPaths.definition;
+const definitionPath = writtenControlPaths.definition;
 export const supportedContractVersion = 4 as const;
 export type { ValidatedDefinition } from "./definition-shape.js";
 

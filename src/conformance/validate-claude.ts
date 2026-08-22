@@ -1,8 +1,8 @@
 import { controlFinding, failedControl } from "./control-finding.js";
-import { moduleControlPaths } from "./control-paths.js";
+import { writtenControlPaths } from "./control-paths.js";
 import type { Finding } from "./types.js";
 
-const claudePath = moduleControlPaths.claude;
+const claudePath = writtenControlPaths.claude;
 
 export function validateClaude(source: string | undefined): Finding {
   const expected =

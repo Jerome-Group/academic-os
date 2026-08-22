@@ -2,12 +2,12 @@ import { taskProvenanceKeys, taskStatuses } from "../contract/task-register.js";
 import { isDoDate } from "../tasks/do-date.js";
 import { readControlDocument } from "./control-document.js";
 import { controlFinding, failedControl } from "./control-finding.js";
-import { moduleControlPaths } from "./control-paths.js";
+import { writtenControlPaths } from "./control-paths.js";
 import type { Finding } from "./types.js";
 import { citesImporterInterior } from "../contract/importer-citations.js";
 import { isRecord, nonEmptyString } from "./value-shape.js";
 
-const registerPath = moduleControlPaths.taskRegister;
+const registerPath = writtenControlPaths.taskRegister;
 const statuses = new Set<string>(taskStatuses);
 
 export function validateTaskRegister(

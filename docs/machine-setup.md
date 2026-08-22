@@ -48,3 +48,28 @@ A machine without it still runs teaching sessions: the session writes the `.tex`
 and notes the parked PDF in the Learning record. The next session on a capable machine compiles
 the stragglers when it opens the unit folder. Making a machine teaching-capable is this setup
 step and never something an agent does mid-session.
+
+## Optional: install the `/learn` skill
+
+`/learn` starts a teaching session from any directory rather than only from the module folder.
+What it is and what it may carry is
+[ADR-0017](adr/0017-the-teaching-skill-routes-and-the-pinned-procedure-rules.md); this is the
+install.
+
+**It adds nothing to the checklist above.** The skill is two files, and it reads the module folders
+and nothing else — no clone of this repository, no configuration, no credential. A machine that
+syncs the folders is already able to run it. Copy the skill into each harness's user-scope skills
+directory:
+
+```sh
+for harness in .claude .codex; do
+  rsync -a "<clone>/skills/learn/" "<machine>:~/$harness/skills/learn/"
+done
+```
+
+Updating it is the same command again — a copy has no `git pull`, so a skill edit reaches a machine
+when someone sends it. A machine that holds the repository for other reasons may symlink
+`skills/learn` into those directories instead, and the mini does.
+
+Any further harness takes the same directory wherever it keeps user-scope skills, and gets its own
+manifest beside `SKILL.md` if it needs one to know the skill fires only when the Owner says so.

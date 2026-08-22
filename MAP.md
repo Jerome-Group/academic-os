@@ -16,7 +16,7 @@ Start here: `README.md`, then `AGENTS.md`.
 | Textbook shelf | The shared shelf's index, the one-time sweep/review/rename migration that brings an existing shelf into it, and the deterministic daily catch-up that appends every cleanly named new book and parks the rest | `src/textbooks/`, `src/commands/textbooks-catch-up-command.ts`, `src/commands/textbooks-sweep-command.ts`, `src/commands/textbooks-migrate-command.ts`, `docs/operator-guide.md` |
 | Operations server | The MCP surface the mini serves on the Tailnet — the served task tools, the Streamable-HTTP entry point bound to the tailnet address, and its resident LaunchAgent | `src/operations/`, `scripts/install-operations-server-launchd.mjs`, `docs/machine-setup.md` |
 | Scheduling | The one LaunchAgent installer every scheduled job goes through — a job description in, a timezone-pinned plist and an atomic bootout-first install out | `src/launchd/` |
-| Tests | Public-seam tests using synthetic temporary module trees | `test/` |
+| Tests | Public-seam tests using synthetic temporary module trees, plus checks over the documents this repository ships | `test/` |
 | The boundary | Why the folders it describes are not in this repository, and what keeps them out | `docs/adr/0002-…`, `.gitignore` |
 | Issue tracker | The semester's work and this repository's own — GitHub Issues, not a file | the issue tracker |
 | Working here | Agent + contributor conventions, commit/attribution rules | `AGENTS.md` (= `CLAUDE.md`) |
@@ -24,7 +24,8 @@ Start here: `README.md`, then `AGENTS.md`.
 | Code standards | How code is written and reviewed | `CODING_STANDARDS.md` |
 | Domain language | The glossary — this repository's ubiquitous language | `CONTEXT.md` |
 | Decisions | Architecture decision records | `docs/adr/` |
-| Agent skills | The routines an agent follows here, one file per skill | `docs/agents/` |
+| Agent skills | The routines an agent follows here, one file per skill, reached by a pointer in `AGENTS.md` | `docs/agents/` |
+| Installed skills | Harness skills this repository authors and a machine installs at user scope, invoked by name from any directory — today, `/learn` routing a teaching session into a module's own pinned procedure | `skills/`, `docs/adr/0017-…`, `docs/machine-setup.md` |
 | Research | Primary-source evidence that informs contracts, decisions and agent procedures | `docs/research/` |
 | Automation | The workflows that run on a pull request or on a new issue, and dependency updates | `.github/` |
 | Quality gates | Cross-file rule coverage, publication checks, and the seeded LaTeX set's compile check — all invoked by package scripts and CI | `scripts/check-contract-rule-coverage.mjs`, `src/privacy/`, `scripts/compile-seed-templates.mjs` |

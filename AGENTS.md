@@ -84,6 +84,14 @@ recorded as one.
 Where a piece of work starts, what hands on to what, and where research and prototypes live. See
 `docs/agents/workflow.md` before inventing a route.
 
+### `/learn`, the skill this repository authors
+
+**A request to be taught a module's material is `/learn`, and never a session improvised here.**
+It routes into that module's own pinned procedure and holds no rule of its own. Say so and let the
+Owner invoke it — it fires by their hand alone, which is a decision rather than an oversight.
+
+The source is `skills/learn/`, and editing it is `docs/adr/0017-…`'s business first.
+
 ### Issue tracker
 
 GitHub Issues on this repository, via the `gh` CLI. `docs/agents/issue-tracker.md` carries the
@@ -129,4 +137,7 @@ files. Read that repository's destination handling before touching the universal
 
 **Module folder paths are configuration.** Nothing here hardcodes a path into the Owner's
 coursework — that path is precisely the thing being kept out of a public repository, so an
-automation that needs one reads it from a file the ignore rules cover.
+automation that needs one reads it from a file the ignore rules cover. The `/learn` skill is the
+one exception, and `docs/adr/0017-…` argues it: a skill installed on a machine that holds nothing
+else of this system cannot read the system's configuration, so it discovers the folder instead and
+writes no path down.

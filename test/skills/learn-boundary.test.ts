@@ -8,7 +8,18 @@ import { describe, it } from "node:test";
 // see, which is why the record states the test in exactly this form.
 const compileInvocation = /latexmk|-auxdir|-outdir/u;
 
+// ADR-0017: the skill reads the module folders and nothing else, so a machine that syncs them can
+// run it with no clone, no configuration and no credential — spec #94's story 25. A configuration
+// path reappearing in its text is that promise being withdrawn.
+const systemConfiguration = /academic-os\.config\.json/u;
+
 describe("the learn skill", () => {
+  it("reads no configuration of the system that seeded the folders", async () => {
+    const body = await readFile("skills/learn/SKILL.md", "utf8");
+
+    assert.equal(systemConfiguration.test(body), false);
+  });
+
   it("names no compile invocation", async () => {
     const body = await readFile("skills/learn/SKILL.md", "utf8");
 

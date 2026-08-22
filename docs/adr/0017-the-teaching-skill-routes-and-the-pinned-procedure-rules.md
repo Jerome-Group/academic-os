@@ -1,6 +1,6 @@
 # The teaching skill routes, and the pinned procedure keeps every rule
 
-`/learn` is a skill that resolves a module folder, reads that folder's own
+`/learn` is a skill that finds a module folder on the Owner's Drive, reads that folder's own
 `docs/20 Teaching Procedure.md` and `70 Learning/templates/preferences.md`, proposes which unit is
 next, and runs the session under what it just read. It carries no record format, no artifact
 naming, no Revisit-register entry kinds, no volume rule and no compile invocation. The pinned
@@ -103,6 +103,30 @@ instead, and the mini does. The cost is real and accepted: a copy has no `git pu
 edit reaches a machine when someone sends it, and an unsent edit is a machine running the old
 route. That is the trade the checklist already makes for everything else it keeps off a machine.
 
+## The module folders are the whole of what it needs
+
+The skill reads no configuration file. It finds the module folder by searching the two places
+macOS mounts a Drive for a directory named the module code, one semester folder deep under
+`Modules/`, and everything after that comes out of the folder it found.
+
+This is spec #94's story 25 — a machine gets the capability *"without a clone or a credential
+file"* — applied to the one surface that was about to break it. The first build of this skill read
+`academic-os.config.json` for the Drive mount and the semester roots, which is the sanctioned
+mechanism for **this repository's automations**: they run here, on a machine that has the
+configuration, and `AGENTS.md` keeps a coursework path out of a public repository by making them
+read one. A skill installed on a machine that holds nothing else is not one of those automations.
+Requiring the file there would have meant installing a piece of the system to run something whose
+whole claim is that it needs only the folders.
+
+Searching costs nothing the rule was protecting. No path into the Owner's coursework is written
+down — a Drive mount is discovered, a semester folder is a wildcard, and the module code is what
+the Owner just typed. What *is* written down is that the folders sit under `Modules/`, which the
+public example configuration in this repository has always said.
+
+The cost is that the skill now knows a shape it did not: two Drive mount points and one level of
+semester folder. A Drive moved somewhere macOS does not mount, or a module folder re-homed outside
+`Modules/`, breaks the search — loudly, at step 1, with nothing found and the Owner asked.
+
 **User-invoked**, in each harness's own encoding — `disable-model-invocation: true` in the
 frontmatter, `allow_implicit_invocation: false` in `agents/openai.yaml`. `/learn` is a generic
 enough verb to be a magnet in any repository, and a teaching session starts when the Owner says
@@ -123,7 +147,7 @@ that happens once per area. The Owner is in the room for a teaching session anyw
 ## Consequences
 
 The skill can go stale in exactly one way, and it is a narrow one: routing. If a pinned document is
-renamed or the configuration's shape changes, the skill's reads break — loudly, at the top of a
+renamed or the folders move out from under the search, its reads break — loudly, at the top of a
 session, rather than quietly in an artifact.
 
 MF-AGENTS-004 reaches every module's copy of the procedure and reaches no skill, so most of this
@@ -132,10 +156,10 @@ record was written about: a test refuses a compile invocation in the skill's tex
 record format, an artifact naming rule, a Revisit entry kind, a volume rule — needs judgement to
 recognise, so it arrives in a pull request or not at all.
 
-`/learn` needs `academic-os.config.json` on the machine it runs from, which the second-machine
-checklist in `docs/machine-setup.md` does not otherwise require. A machine without it runs teaching
-sessions the way they ran before — from the module folder, through the router — and that path is
-not withdrawn.
+A machine that syncs the module folders can run `/learn` with the two skill files on it and nothing
+else — no clone, no configuration, no credential, and `docs/machine-setup.md`'s checklist keeps its
+promise. A machine without the folders runs teaching sessions the way they ran before, from the
+module folder through the router, and that path is not withdrawn.
 
 There are now two homes for agent-facing routines: `docs/agents/`, whose files are prose reached by
 a pointer in `AGENTS.md`, and `skills/`, whose files are harness-installed and invoked by name.

@@ -56,11 +56,10 @@ What it is and what it may carry is
 [ADR-0017](adr/0017-the-teaching-skill-routes-and-the-pinned-procedure-rules.md); this is the
 install.
 
-**The skill travels, and a clone of this repository does not.** It is two files with no build step
-and no dependency on the rest of the tree, so it is copied into each harness's user-scope skills
-directory rather than symlinked out of a working copy — the checklist above keeps a clone off a
-machine, and a skill worth 4 kB is no reason to reopen that. From a machine that has the
-repository:
+**It adds nothing to the checklist above.** The skill is two files, and it reads the module folders
+and nothing else — no clone of this repository, no configuration, no credential. A machine that
+syncs the folders is already able to run it. Copy the skill into each harness's user-scope skills
+directory:
 
 ```sh
 for harness in .claude .codex; do
@@ -68,13 +67,9 @@ for harness in .claude .codex; do
 done
 ```
 
-Updating it is the same command again. Two copies on a machine that has the repository anyway may
-be symlinks to `skills/learn` instead; the mini is set up that way.
+Updating it is the same command again — a copy has no `git pull`, so a skill edit reaches a machine
+when someone sends it. A machine that holds the repository for other reasons may symlink
+`skills/learn` into those directories instead, and the mini does.
 
 Any further harness takes the same directory wherever it keeps user-scope skills, and gets its own
 manifest beside `SKILL.md` if it needs one to know the skill fires only when the Owner says so.
-
-**The configuration does have to be there.** `/learn` reads
-`$HOME/.config/academic-os/academic-os.config.json` to resolve the module folder, so a machine
-running it needs that file — its own Drive mount and state root, and no credential paths, since
-those never travel.

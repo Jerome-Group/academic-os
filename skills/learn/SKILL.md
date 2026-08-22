@@ -15,19 +15,30 @@ Revisit register — is in the module folder's own pinned documents. You read th
 run the session under them. Where they and this file could be read as disagreeing, they win, and
 this file is the one that is wrong.
 
-## 1. Resolve the module folder
+**The module folders are the whole of what this needs.** No configuration file, no clone of the
+system that seeded them, no credential, no toolchain. A machine with the folders can run a session;
+a machine without them has nothing to teach from.
 
-Read `$HOME/.config/academic-os/academic-os.config.json`. The module folder is `driveMount`, then
-the `root` of the semester whose `modules` list holds the module code, then the module code
-itself.
+## 1. Find the module folder
 
-The code comes from the Owner's invocation; the path comes from that file. The working directory
-is not part of this — `/learn` runs the same from anywhere, including from inside a different
-module.
+A module folder is a directory named exactly the module code the Owner gave, one level inside a
+semester folder, inside `Modules/` on their Drive. Search both places macOS mounts a Drive:
 
-Stop and ask when the code is in no semester's list, in more than one, or the resolved folder is
-not there. Then say the resolved path once, so the Owner sees which folder the session is in
-before it starts.
+```sh
+"$HOME"/Library/CloudStorage/GoogleDrive-*/My\ Drive/Modules/*/<module code>
+/Volumes/*/My\ Drive/Modules/*/<module code>
+```
+
+A machine can have both, pointing at one Drive, so compare the paths **resolved** rather than as
+written — one folder reached two ways is one folder.
+
+The code comes from the Owner's invocation; the folder comes from the search. The working
+directory is not part of this — `/learn` runs the same from anywhere, including from inside a
+different module.
+
+Stop and ask when the search finds nothing, or finds two folders that are genuinely different.
+Then say the folder it found once, so the Owner sees which one the session is in before it
+starts.
 
 ## 2. Read the folder's own instructions
 

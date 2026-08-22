@@ -1,5 +1,11 @@
 # A control is written or pinned, and the map that lists them all is the union
 
+The duplication this record leaves standing in its Consequences — `controlPaths` listing nine
+control paths a third time — was resolved afterwards, in
+[#167](https://github.com/Jerome-Group/academic-os/issues/167): that map is now derived from
+`moduleControlPaths` through `isGovernedControlHome`, which is the property of a path this record
+was describing without naming. Nothing here is superseded; the argument below stands whole.
+
 `writtenControlPaths` holds the controls this system writes and reads back. `pinnedDocumentPaths`
 holds the ones this repository authors and seeds. `moduleControlPaths` is the union, and it is what
 the contract's `## Module controls` section names.

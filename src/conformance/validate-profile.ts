@@ -1,5 +1,5 @@
 import { controlFinding, failedControl } from "./control-finding.js";
-import { moduleControlPaths } from "./control-paths.js";
+import { writtenControlPaths } from "./control-paths.js";
 import {
   renderColumns,
   rowsForTable,
@@ -10,7 +10,7 @@ import {
 import type { Finding } from "./types.js";
 import type { ValidatedDefinition } from "./validate-definition.js";
 
-const profilePath = moduleControlPaths.profile;
+const profilePath = writtenControlPaths.profile;
 const profileSections = [
   "Offering",
   "Scope",

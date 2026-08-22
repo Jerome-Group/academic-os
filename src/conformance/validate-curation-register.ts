@@ -1,9 +1,9 @@
 import { controlFinding, failedControl } from "./control-finding.js";
-import { moduleControlPaths } from "./control-paths.js";
+import { writtenControlPaths } from "./control-paths.js";
 import type { Finding } from "./types.js";
 import { isRecord, nonEmptyString } from "./value-shape.js";
 
-const registerPath = moduleControlPaths.curationRegister;
+const registerPath = writtenControlPaths.curationRegister;
 // Version 2 adds `rederived`, whose line names the derived artifacts an item's content reached the
 // module through. A version 1 line stays valid history exactly as it was written, so one file
 // holding both versions is one file holding its own past.

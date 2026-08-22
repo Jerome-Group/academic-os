@@ -56,7 +56,10 @@ _Avoid_: deviation, mismatch
 **Pinned document**:
 A file seeded byte-identically into every module folder and diffed back against its seed-source
 template: `AGENTS.md`, the four `docs/` procedures, and the teaching preferences. A module's copy
-carries nothing of its own.
+carries nothing of its own. These are module controls like the Profile and the registers — the
+contract's Module controls section holds both — and what separates them is how a valid one is
+recognised: a pinned control against its template, a written control against its own shape
+([`docs/adr/0016`](docs/adr/0016-a-control-is-written-or-pinned.md)).
 _Avoid_: template, boilerplate — a module may edit neither
 
 **Rewrite**:

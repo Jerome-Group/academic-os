@@ -1,10 +1,10 @@
 import { readControlDocument } from "./control-document.js";
 import { controlFinding, failedControl } from "./control-finding.js";
-import { moduleControlPaths } from "./control-paths.js";
+import { writtenControlPaths } from "./control-paths.js";
 import type { Finding } from "./types.js";
 import { isRecord, nonEmptyString } from "./value-shape.js";
 
-const sourceMapPath = moduleControlPaths.sourceMap;
+const sourceMapPath = writtenControlPaths.sourceMap;
 const unitKeys = ["topics", "lectures", "textbook", "tutorials"] as const;
 // `topics` names ideas in the module's language; every other key holds module-relative paths.
 const pathKeys = new Set<string>(unitKeys.filter((key) => key !== "topics"));

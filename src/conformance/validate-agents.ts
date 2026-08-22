@@ -1,9 +1,9 @@
 import { controlFinding, failedControl } from "./control-finding.js";
-import { moduleControlPaths } from "./control-paths.js";
+import { pinnedDocumentPaths } from "../contract/pinned-documents.js";
 import { escapeRegex, sectionBody } from "./markdown-control-helpers.js";
 import type { Finding } from "./types.js";
 
-const agentsPath = moduleControlPaths.agents;
+const agentsPath = pinnedDocumentPaths.agents;
 const agentSections = [
   "What this folder is",
   "Start here",

@@ -1,9 +1,9 @@
 import { controlFinding, failedControl } from "./control-finding.js";
-import { moduleControlPaths } from "./control-paths.js";
+import { writtenControlPaths } from "./control-paths.js";
 import type { Finding } from "./types.js";
 import type { ValidatedDefinition } from "./validate-definition.js";
 
-const contextPath = moduleControlPaths.context;
+const contextPath = writtenControlPaths.context;
 
 export function validateContext(
   source: string | undefined,

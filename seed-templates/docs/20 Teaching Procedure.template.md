@@ -75,8 +75,12 @@ than copied section for section.
 Compile beside the source, one invocation:
 
 ```bash
-latexmk -pdf -outdir=build
+latexmk -pdf -auxdir=build
 ```
+
+`-auxdir` rather than `-outdir`, because the walkthrough is a `.tex` beside its PDF: `-auxdir`
+leaves the PDF where the `.tex` is and gives `build/` the aux output alone, where `-outdir` would
+put the PDF in `build/` too and the artifact would not be where this procedure just said it is.
 
 The templates were cut against TeX Live 2026, and anything newer is fine. A machine that runs
 teaching sessions has `latexmk` on PATH. When a session finds it missing, say so in the session,

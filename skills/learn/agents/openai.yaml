@@ -1,0 +1,5 @@
+interface:
+  display_name: "Learn"
+  short_description: "Teach the Owner one unit of a module"
+policy:
+  allow_implicit_invocation: false

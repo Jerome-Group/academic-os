@@ -58,12 +58,14 @@ install.
 
 It needs the two things the checklist above deliberately keeps off a machine — a clone of this
 repository and `academic-os.config.json` — so it is a choice rather than a default. Symlink the
-authored skill to user scope, so updating it is a `git pull`:
+authored skill into each harness's user-scope skills directory, so updating it is a `git pull`:
 
 ```sh
 ln -s "<clone>/skills/learn" "$HOME/.claude/skills/learn"
+ln -s "<clone>/skills/learn" "$HOME/.codex/skills/learn"
 ```
 
-Any other harness links the same directory wherever it keeps user-scope skills. Keep the
-configuration at `$HOME/.config/academic-os/academic-os.config.json`, which is the path the skill
-reads.
+Any further harness links the same directory wherever it keeps user-scope skills, and gets its own
+manifest beside `SKILL.md` if it needs one to know the skill fires only when the Owner says so.
+Keep the configuration at `$HOME/.config/academic-os/academic-os.config.json`, which is the path
+the skill reads.

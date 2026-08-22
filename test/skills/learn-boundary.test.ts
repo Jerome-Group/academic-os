@@ -15,9 +15,15 @@ describe("the learn skill", () => {
     assert.equal(compileInvocation.test(body), false);
   });
 
-  it("fires only when the Owner invokes it", async () => {
-    const body = await readFile("skills/learn/SKILL.md", "utf8");
+  // One decision, and each harness spells it in its own file, so a harness added without its
+  // encoding is a skill that quietly starts firing on its own there.
+  it("fires only when the Owner invokes it, in every harness it is installed into", async () => {
+    const [skill, openai] = await Promise.all([
+      readFile("skills/learn/SKILL.md", "utf8"),
+      readFile("skills/learn/agents/openai.yaml", "utf8"),
+    ]);
 
-    assert.match(body, /^disable-model-invocation: true$/mu);
+    assert.match(skill, /^disable-model-invocation: true$/mu);
+    assert.match(openai, /^ {2}allow_implicit_invocation: false$/mu);
   });
 });

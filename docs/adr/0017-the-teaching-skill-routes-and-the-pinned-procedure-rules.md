@@ -50,9 +50,10 @@ file — loses two things.
 
 **The procedure travels with the folder and the skill does not.** A module folder is worked from
 whatever harness is in front of the Owner, and the pinned copy is picked up by any of them because
-it sits in the folder being worked. A skill is one harness's artifact. Inlining the conduct makes
-the good session the one that happened to start through `/learn`, which is precisely the fragility
-the router already refuses.
+it sits in the folder being worked. A skill reaches a harness only by being installed into it, in
+that harness's own layout — this one ships two manifests and two symlinks to cover the two the
+Owner runs. Inlining the conduct makes the good session the one that happened to start through
+`/learn`, which is precisely the fragility the router already refuses.
 
 **Contract-versioned text stops being contract-versioned when it is copied.** The procedure changes
 by changing `seed-templates/`, and the cohort is brought level by `pinned refresh`. A skill is
@@ -94,9 +95,11 @@ this repository, and the working directory not mattering is the defect being fix
 what makes `/learn` reach from anywhere; the repository is what makes it reviewed, versioned and
 public with the rest of the system.
 
-**User-invoked** — `disable-model-invocation: true`. `/learn` is a generic enough verb to be a
-magnet in any repository, and a teaching session starts when the Owner says so. It costs the
-description's discoverability, which is the correct trade for a skill with exactly one caller.
+**User-invoked**, in each harness's own encoding — `disable-model-invocation: true` in the
+frontmatter, `allow_implicit_invocation: false` in `agents/openai.yaml`. `/learn` is a generic
+enough verb to be a magnet in any repository, and a teaching session starts when the Owner says
+so. It costs the description's discoverability, which is the correct trade for a skill with
+exactly one caller.
 
 ## The first-session gap is answered by asking
 

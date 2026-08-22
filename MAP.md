@@ -24,7 +24,8 @@ Start here: `README.md`, then `AGENTS.md`.
 | Code standards | How code is written and reviewed | `CODING_STANDARDS.md` |
 | Domain language | The glossary — this repository's ubiquitous language | `CONTEXT.md` |
 | Decisions | Architecture decision records | `docs/adr/` |
-| Agent skills | The routines an agent follows here, one file per skill | `docs/agents/` |
+| Agent skills | The routines an agent follows here, one file per skill, reached by a pointer in `AGENTS.md` | `docs/agents/` |
+| Installed skills | Harness skills this repository authors and a machine installs at user scope, invoked by name from any directory — today, `/learn` routing a teaching session into a module's own pinned procedure | `skills/`, `docs/adr/0017-…`, `docs/machine-setup.md` |
 | Research | Primary-source evidence that informs contracts, decisions and agent procedures | `docs/research/` |
 | Automation | The workflows that run on a pull request or on a new issue, and dependency updates | `.github/` |
 | Quality gates | Cross-file rule coverage, publication checks, and the seeded LaTeX set's compile check — all invoked by package scripts and CI | `scripts/check-contract-rule-coverage.mjs`, `src/privacy/`, `scripts/compile-seed-templates.mjs` |

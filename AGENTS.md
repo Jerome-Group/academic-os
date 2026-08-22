@@ -84,6 +84,13 @@ recorded as one.
 Where a piece of work starts, what hands on to what, and where research and prototypes live. See
 `docs/agents/workflow.md` before inventing a route.
 
+### The skill this repository authors
+
+`/learn` runs a teaching session: it resolves a module folder from configuration and routes into
+that folder's own pinned Teaching Procedure, holding no rule of its own. The source is
+`skills/learn/`, the install is in `docs/machine-setup.md`, and the boundary — what may be in it,
+and the `latexmk` test that says when it has been crossed — is `docs/adr/0017-…`.
+
 ### Issue tracker
 
 GitHub Issues on this repository, via the `gh` CLI. `docs/agents/issue-tracker.md` carries the

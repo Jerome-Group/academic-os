@@ -1,10 +1,10 @@
 # Operator guide
 
-The CLI has `seed`, `audit`, `calendar setup`, pull-only `calendar refresh`, private
-`calendar propose`, explicitly authorised `calendar promote`, `tasks provision`, pull-only
-`tasks refresh`, in-session `tasks create`, `tasks change`, `tasks complete` and `tasks cancel`,
-additive `textbooks catch-up` and separately gated `repair` commands. It does not orchestrate a
-week of study or evolve a module's instructions on its own.
+The CLI has `seed`, `audit`, `calendar setup`, pull-only `calendar refresh`, private `calendar
+propose`, explicitly authorised `calendar promote`, `tasks provision`, pull-only `tasks refresh`,
+in-session `tasks create`, `tasks change`, `tasks complete` and `tasks cancel`, additive `textbooks
+catch-up`, previewed `pinned refresh` and separately gated `repair` commands. It does not
+orchestrate a week of study or evolve a module's instructions on its own.
 
 ## Configure
 
@@ -621,6 +621,49 @@ Every audit appends a complete private observation under `stateRoot`; reports an
 contain metadata and filenames, so do not commit them. Current mismatch is a **deviation**. Only a
 change between compatible observations is **drift**. A historical contract gap or contract-version
 upgrade is migration evidence, not permission to repair or change the contract.
+
+## Pinned refresh
+
+A change to any file under `seed-templates/` leaves every module's copy stale, which audit reports
+as MF-AGENTS-004. `pinned refresh` is the repair that rule names, over the active cohort audit
+already selects:
+
+```bash
+node dist/src/cli.js pinned refresh --config academic-os.config.json
+```
+
+That previews. It says, for every module and pinned document, whether the copy is current, stale or
+missing, and for a stale one it names the first differing line — the same words the audit's own
+finding uses. Read it before applying: a module's local edit to a pinned file is exactly what this
+discards, and MF-AGENTS-004 is why that is right, but the preview is what stops it being silent.
+Whatever a module needed to say belongs in `CONTEXT.md`, `docs/adr/` or the Profile.
+
+```bash
+node dist/src/cli.js pinned refresh --config academic-os.config.json --apply
+```
+
+| Exit | Meaning |
+|---:|---|
+| 0 | Every pinned copy is current |
+| 1 | A copy is stale or missing, and `--apply` would rewrite it |
+| 2 | The run was refused, stopped part-way, or a module could not be read |
+
+Each write proves itself before it happens, under `docs/agents/safe-drive-testing.md`: the target
+resolves inside the Drive mount, it is an ordinary file rather than a symlink, it holds real bytes
+rather than a dataless placeholder, and its checksum still matches what the preview read. A target
+that disagrees refuses the **run**, not the one file, and the whole proving pass finishes before
+anything is written. A copy that is there arrives through a temporary and one rename, so no reader
+meets it half-written; one that is missing is created exclusively, so a name that filled in since
+the preview is never clobbered.
+
+Should a write still fail after earlier ones have landed — an unwritable folder, a full disk — the
+run stops and reports `partially-rewritten`. Nothing can unwrite the copies already replaced, so the
+journal is the record of exactly how far it got. A module the cohort names but that cannot be read
+is listed as `Unresolved` and does not stop the others; the run exits 2 to say so.
+
+Every rewrite is journalled under `stateRoot` at `journals/pinned-documents/<run>.jsonl`, carrying
+the checksum replaced and the checksum written. A cohort that was already current writes no journal
+at all.
 
 ## Transition a module to the current contract
 

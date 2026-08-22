@@ -53,6 +53,18 @@ _Avoid_: drift — drift means a change between observations, not merely a prese
 A change in a module folder's conformance between two observations.
 _Avoid_: deviation, mismatch
 
+**Pinned document**:
+A file seeded byte-identically into every module folder and diffed back against its seed-source
+template: `AGENTS.md`, the four `docs/` procedures, and the teaching preferences. A module's copy
+carries nothing of its own.
+_Avoid_: template, boilerplate — a module may edit neither
+
+**Rewrite**:
+Replacing one module's Pinned document with its seed-source template, which is how MF-AGENTS-004
+says a differing copy is repaired: by rewriting the copy rather than by editing it. A Refresh of the
+cohort's pinned documents is made of these, one per copy that is stale or missing.
+_Avoid_: edit, merge — a rewrite keeps nothing of what was there
+
 **Repair**:
 An approved change to an existing module folder that resolves a deviation without changing the
 contract. Unlike a seed, a repair may rename, move, or remove structure.
@@ -205,10 +217,14 @@ time busy.
 _Avoid_: task, fixed commitment
 
 **Refresh**:
-An unattended, pull-only update from the Live calendar into the Calendar workspace. It never
-changes the Live calendar and preserves unpromoted Proposals; it runs daily, before an interactive
-calendar session and after every Promotion.
-_Avoid_: synchronisation, promotion
+Bringing a mirror back into line with its authority, and never the other way round — a Refresh
+changes no authority. Which is which depends on what is refreshed. The Calendar workspace and the
+Task register are mirrors of the Live calendar and of a Google Tasks list, so refreshing them reads
+only; a module's Pinned documents are mirrors of this repository's seed-source templates, so
+refreshing them writes into the module folder. `calendar refresh` runs unattended, daily, before an
+interactive calendar session and after every Promotion, and preserves unpromoted Proposals;
+`pinned refresh` is previewed and writes only when applied.
+_Avoid_: synchronisation, promotion — and two-way, which no Refresh is
 
 **Proposal**:
 An agent-authored Calendar item change in the Calendar workspace that has not entered the Live

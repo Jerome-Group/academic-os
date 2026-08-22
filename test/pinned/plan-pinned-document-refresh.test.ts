@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { planPinnedDocumentRewrite } from "../../src/pinned/index.js";
+import { planPinnedDocumentRefresh } from "../../src/pinned/index.js";
 import {
   interpolateModuleCode,
   pinnedDocumentPaths,
@@ -23,9 +23,9 @@ function observedModule(module: string) {
   return { module, semester: "Y2S1", controls: seededControls(module) };
 }
 
-describe("planPinnedDocumentRewrite", () => {
+describe("planPinnedDocumentRefresh", () => {
   it("reports a fully seeded cohort as current and plans no rewrite", () => {
-    const plan = planPinnedDocumentRewrite({
+    const plan = planPinnedDocumentRefresh({
       modules: [observedModule("MH2100"), observedModule("MH3210")],
       pinnedDocuments: testModuleContract.pinnedDocuments,
     });
@@ -41,7 +41,7 @@ describe("planPinnedDocumentRewrite", () => {
       observed.controls.teachingProcedure ?? ""
     ).replace("# Teaching Procedure", "# How MH2100 Is Taught");
 
-    const plan = planPinnedDocumentRewrite({
+    const plan = planPinnedDocumentRefresh({
       modules: [observed],
       pinnedDocuments: testModuleContract.pinnedDocuments,
     });
@@ -62,7 +62,7 @@ describe("planPinnedDocumentRewrite", () => {
     const observed = observedModule("MH2100");
     delete observed.controls.teachingProcedure;
 
-    const plan = planPinnedDocumentRewrite({
+    const plan = planPinnedDocumentRefresh({
       modules: [observed],
       pinnedDocuments: testModuleContract.pinnedDocuments,
     });
@@ -80,7 +80,7 @@ describe("planPinnedDocumentRewrite", () => {
     const stale = observedModule("MH3210");
     stale.controls.agents = "# Replaced\n";
 
-    const plan = planPinnedDocumentRewrite({
+    const plan = planPinnedDocumentRefresh({
       modules: [stale],
       pinnedDocuments: testModuleContract.pinnedDocuments,
     });
@@ -91,7 +91,7 @@ describe("planPinnedDocumentRewrite", () => {
   });
 
   it("orders rewrites by module then by document, so two runs read the same", () => {
-    const first = planPinnedDocumentRewrite({
+    const first = planPinnedDocumentRefresh({
       modules: [observedModule("MH3210"), observedModule("CC0006")].map(
         (m) => ({
           ...m,

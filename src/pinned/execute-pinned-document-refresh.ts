@@ -14,8 +14,8 @@ import {
 import type {
   CohortPinnedCopies,
   PinnedCopyRewrite,
-  PinnedRewritePlan,
-  PinnedRewriteReport,
+  PinnedRefreshPlan,
+  PinnedRefreshReport,
 } from "./types.js";
 
 interface ProvenRewrite {
@@ -23,14 +23,14 @@ interface ProvenRewrite {
   target: string;
 }
 
-export async function executePinnedDocumentRewrite(input: {
-  plan: PinnedRewritePlan;
+export async function executePinnedDocumentRefresh(input: {
+  plan: PinnedRefreshPlan;
   cohort: CohortPinnedCopies;
   mode: "preview" | "apply";
-}): Promise<PinnedRewriteReport> {
+}): Promise<PinnedRefreshReport> {
   const summary = {
     schemaVersion: 1,
-    command: "pinned rewrite",
+    command: "pinned refresh",
     mode: input.mode,
     counts: input.plan.counts,
     rewrites: input.plan.rewrites.map(publicRewrite),
@@ -188,6 +188,6 @@ function publicRewrite(rewrite: PinnedCopyRewrite) {
   return rest;
 }
 
-function totalCopies(plan: PinnedRewritePlan): number {
+function totalCopies(plan: PinnedRefreshPlan): number {
   return plan.counts.current + plan.counts.stale + plan.counts.missing;
 }

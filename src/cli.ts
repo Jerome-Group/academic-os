@@ -6,7 +6,7 @@ import { runCalendarRefreshCommand } from "./commands/calendar-refresh-command.j
 import { runCalendarProposeCommand } from "./commands/calendar-propose-command.js";
 import { runCalendarPromoteCommand } from "./commands/calendar-promote-command.js";
 import { writeOperationalError } from "./commands/operational-error-output.js";
-import { runPinnedRewriteCommand } from "./commands/pinned-rewrite-command.js";
+import { runPinnedRefreshCommand } from "./commands/pinned-refresh-command.js";
 import { runSeedCommand } from "./commands/seed-command.js";
 import {
   isTaskOperation,
@@ -27,8 +27,8 @@ try {
     await runSeedCommand(arguments_, json);
   } else if (arguments_[0] === "repair") {
     await runRepairCommand(arguments_, json);
-  } else if (arguments_[0] === "pinned" && arguments_[1] === "rewrite") {
-    await runPinnedRewriteCommand(arguments_.slice(1), json);
+  } else if (arguments_[0] === "pinned" && arguments_[1] === "refresh") {
+    await runPinnedRefreshCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "calendar" && arguments_[1] === "setup") {
     await runCalendarSetupCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "calendar" && arguments_[1] === "refresh") {

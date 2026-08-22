@@ -1,11 +1,11 @@
-export { executePinnedDocumentRewrite } from "./execute-pinned-document-rewrite.js";
+export { executePinnedDocumentRefresh } from "./execute-pinned-document-refresh.js";
 export { observeCohortPinnedCopies } from "./observe-cohort-pinned-copies.js";
-export { planPinnedDocumentRewrite } from "./plan-pinned-document-rewrite.js";
+export { planPinnedDocumentRefresh } from "./plan-pinned-document-refresh.js";
 export type {
   CohortPinnedCopies,
   ObservedModuleCopies,
   PinnedCopyRewrite,
   PinnedCopyState,
-  PinnedRewritePlan,
-  PinnedRewriteReport,
+  PinnedRefreshPlan,
+  PinnedRefreshReport,
 } from "./types.js";

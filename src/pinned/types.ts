@@ -25,7 +25,7 @@ export interface PinnedCopyRewrite {
 // `refused` means the run stopped before writing anything. `partially-rewritten` means a write
 // failed after earlier ones had landed — the proving pass makes it unlikely, not impossible, and
 // the journal is what says how far the run got.
-export type PinnedRewriteOutcome =
+export type PinnedRefreshOutcome =
   | PinnedCopyState
   | "refused"
   | "partially-rewritten";
@@ -36,11 +36,11 @@ export interface UnresolvedModule {
   reason: string;
 }
 
-export interface PinnedRewriteReport {
+export interface PinnedRefreshReport {
   schemaVersion: 1;
-  command: "pinned rewrite";
+  command: "pinned refresh";
   mode: "preview" | "apply";
-  outcome: PinnedRewriteOutcome;
+  outcome: PinnedRefreshOutcome;
   counts: Record<PinnedCopyState, number>;
   rewrites: Array<Omit<PinnedCopyRewrite, "expected" | "observedSha256">>;
   unresolved: UnresolvedModule[];
@@ -49,7 +49,7 @@ export interface PinnedRewriteReport {
   journal?: string;
 }
 
-export interface PinnedRewritePlan {
+export interface PinnedRefreshPlan {
   outcome: PinnedCopyState;
   counts: Record<PinnedCopyState, number>;
   rewrites: PinnedCopyRewrite[];

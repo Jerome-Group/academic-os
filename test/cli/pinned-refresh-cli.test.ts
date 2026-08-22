@@ -72,13 +72,13 @@ async function cohortFixture(): Promise<{
   return { configPath, stateRoot, moduleRoots };
 }
 
-describe("academic-os pinned rewrite", () => {
+describe("academic-os pinned refresh", () => {
   it("reports a current cohort and exits zero", async () => {
     const fixture = await cohortFixture();
 
     const result = await runCli(
       "pinned",
-      "rewrite",
+      "refresh",
       "--config",
       fixture.configPath,
       "--json",
@@ -86,7 +86,7 @@ describe("academic-os pinned rewrite", () => {
 
     assert.equal(result.exitCode, 0, JSON.stringify(result));
     const report = JSON.parse(result.stdout);
-    assert.equal(report.command, "pinned rewrite");
+    assert.equal(report.command, "pinned refresh");
     assert.equal(report.outcome, "current");
     assert.deepEqual(report.counts, { current: 12, stale: 0, missing: 0 });
     assert.deepEqual(await readdir(fixture.stateRoot), []);
@@ -102,7 +102,7 @@ describe("academic-os pinned rewrite", () => {
 
     const preview = await runCli(
       "pinned",
-      "rewrite",
+      "refresh",
       "--config",
       fixture.configPath,
       "--json",
@@ -120,7 +120,7 @@ describe("academic-os pinned rewrite", () => {
 
     const applied = await runCli(
       "pinned",
-      "rewrite",
+      "refresh",
       "--config",
       fixture.configPath,
       "--apply",
@@ -151,13 +151,13 @@ describe("academic-os pinned rewrite", () => {
 
     const result = await runCli(
       "pinned",
-      "rewrite",
+      "refresh",
       "--config",
       fixture.configPath,
     );
 
     assert.equal(result.exitCode, 1, JSON.stringify(result));
-    assert.match(result.stdout, /Pinned document rewrite: stale \(preview\)/u);
+    assert.match(result.stdout, /Pinned document refresh: stale \(preview\)/u);
     assert.match(
       result.stdout,
       /Rewrite CC0006 docs\/20 Teaching Procedure\.md/u,
@@ -176,7 +176,7 @@ describe("academic-os pinned rewrite", () => {
 
     const result = await runCli(
       "pinned",
-      "rewrite",
+      "refresh",
       "--config",
       fixture.configPath,
       "--json",
@@ -196,7 +196,7 @@ describe("academic-os pinned rewrite", () => {
 
     const result = await runCli(
       "pinned",
-      "rewrite",
+      "refresh",
       "--config",
       fixture.configPath,
       "--force",

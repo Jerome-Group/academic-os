@@ -15,9 +15,9 @@ import { dirname, join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 
 import {
-  executePinnedDocumentRewrite,
-  planPinnedDocumentRewrite,
-  type PinnedRewritePlan,
+  executePinnedDocumentRefresh,
+  planPinnedDocumentRefresh,
+  type PinnedRefreshPlan,
 } from "../../src/pinned/index.js";
 import {
   interpolateModuleCode,
@@ -79,7 +79,7 @@ function cohortOf(tree: {
 
 async function planFor(
   moduleRoots: ReadonlyMap<string, string>,
-): Promise<PinnedRewritePlan> {
+): Promise<PinnedRefreshPlan> {
   const modules = await Promise.all(
     [...moduleRoots.keys()].map(async (module) => ({
       module,
@@ -97,13 +97,13 @@ async function planFor(
       ),
     })),
   );
-  return planPinnedDocumentRewrite({
+  return planPinnedDocumentRefresh({
     modules,
     pinnedDocuments: testModuleContract.pinnedDocuments,
   });
 }
 
-describe("executePinnedDocumentRewrite", () => {
+describe("executePinnedDocumentRefresh", () => {
   it("writes nothing in preview, and rewrites the stale copy on apply", async () => {
     const tree = await cohortTree();
     const target = join(
@@ -112,7 +112,7 @@ describe("executePinnedDocumentRewrite", () => {
     );
     await writeFile(target, "# Edited in the module\n", "utf8");
 
-    const preview = await executePinnedDocumentRewrite({
+    const preview = await executePinnedDocumentRefresh({
       plan: await planFor(tree.moduleRoots),
       cohort: cohortOf(tree),
       mode: "preview",
@@ -123,7 +123,7 @@ describe("executePinnedDocumentRewrite", () => {
     assert.equal(await readFile(target, "utf8"), "# Edited in the module\n");
     assert.equal(preview.journal, undefined);
 
-    const applied = await executePinnedDocumentRewrite({
+    const applied = await executePinnedDocumentRefresh({
       plan: await planFor(tree.moduleRoots),
       cohort: cohortOf(tree),
       mode: "apply",
@@ -145,7 +145,7 @@ describe("executePinnedDocumentRewrite", () => {
     );
     await writeFile(target, "# Edited in the module\n", "utf8");
 
-    const report = await executePinnedDocumentRewrite({
+    const report = await executePinnedDocumentRefresh({
       plan: await planFor(tree.moduleRoots),
       cohort: cohortOf(tree),
       mode: "apply",
@@ -181,7 +181,7 @@ describe("executePinnedDocumentRewrite", () => {
     );
     await rm(target);
 
-    const report = await executePinnedDocumentRewrite({
+    const report = await executePinnedDocumentRefresh({
       plan: await planFor(tree.moduleRoots),
       cohort: cohortOf(tree),
       mode: "apply",
@@ -211,7 +211,7 @@ describe("executePinnedDocumentRewrite", () => {
     const moved = join(tree.moduleRoots.get("MH2100") ?? "", teachingProcedure);
     await writeFile(moved, "# Edited again, after the plan\n", "utf8");
 
-    const report = await executePinnedDocumentRewrite({
+    const report = await executePinnedDocumentRefresh({
       plan,
       cohort: cohortOf(tree),
       mode: "apply",
@@ -245,7 +245,7 @@ describe("executePinnedDocumentRewrite", () => {
     await rm(target);
     await symlink(outside, target);
 
-    const report = await executePinnedDocumentRewrite({
+    const report = await executePinnedDocumentRefresh({
       plan: await planFor(tree.moduleRoots),
       cohort: cohortOf(tree),
       mode: "apply",
@@ -261,7 +261,7 @@ describe("executePinnedDocumentRewrite", () => {
     const moduleRoot = tree.moduleRoots.get("MH2100") ?? "";
     await rm(join(moduleRoot, "docs"), { recursive: true });
 
-    const report = await executePinnedDocumentRewrite({
+    const report = await executePinnedDocumentRefresh({
       plan: await planFor(tree.moduleRoots),
       cohort: cohortOf(tree),
       mode: "apply",
@@ -294,7 +294,7 @@ describe("executePinnedDocumentRewrite", () => {
     await chmod(blocked, 0o555);
 
     try {
-      const report = await executePinnedDocumentRewrite({
+      const report = await executePinnedDocumentRefresh({
         plan,
         cohort: cohortOf(tree),
         mode: "apply",
@@ -330,7 +330,7 @@ describe("executePinnedDocumentRewrite", () => {
   it("leaves a cohort that is already current untouched and writes no journal", async () => {
     const tree = await cohortTree(["CC0006", "MH2100"]);
 
-    const report = await executePinnedDocumentRewrite({
+    const report = await executePinnedDocumentRefresh({
       plan: await planFor(tree.moduleRoots),
       cohort: cohortOf(tree),
       mode: "apply",

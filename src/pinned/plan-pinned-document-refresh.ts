@@ -12,15 +12,15 @@ import type {
   ObservedModuleCopies,
   PinnedCopyRewrite,
   PinnedCopyState,
-  PinnedRewritePlan,
+  PinnedRefreshPlan,
 } from "./types.js";
 
 // What every module of a cohort owes each pinned document, decided from bytes already read. Pure,
 // so the preview a run shows and the rewrites it would make are the same object.
-export function planPinnedDocumentRewrite(input: {
+export function planPinnedDocumentRefresh(input: {
   modules: readonly ObservedModuleCopies[];
   pinnedDocuments: PinnedDocumentBodies;
-}): PinnedRewritePlan {
+}): PinnedRefreshPlan {
   const counts: Record<PinnedCopyState, number> = {
     current: 0,
     stale: 0,

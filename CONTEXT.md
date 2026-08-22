@@ -60,10 +60,10 @@ carries nothing of its own.
 _Avoid_: template, boilerplate — a module may edit neither
 
 **Rewrite**:
-Replacing a module's pinned copy with its seed-source template, which is how MF-AGENTS-004 says a
-differing copy is repaired. Cohort-wide, previewed before it writes, and always toward the module —
-the opposite direction from a Refresh, which only ever reads.
-_Avoid_: refresh, sync, push
+Replacing one module's Pinned document with its seed-source template, which is how MF-AGENTS-004
+says a differing copy is repaired: by rewriting the copy rather than by editing it. A Refresh of the
+cohort's pinned documents is made of these, one per copy that is stale or missing.
+_Avoid_: edit, merge — a rewrite keeps nothing of what was there
 
 **Repair**:
 An approved change to an existing module folder that resolves a deviation without changing the
@@ -217,10 +217,14 @@ time busy.
 _Avoid_: task, fixed commitment
 
 **Refresh**:
-An unattended, pull-only update from the Live calendar into the Calendar workspace. It never
-changes the Live calendar and preserves unpromoted Proposals; it runs daily, before an interactive
-calendar session and after every Promotion.
-_Avoid_: synchronisation, promotion
+Bringing a mirror back into line with its authority, and never the other way round — a Refresh
+changes no authority. Which is which depends on what is refreshed. The Calendar workspace and the
+Task register are mirrors of the Live calendar and of a Google Tasks list, so refreshing them reads
+only; a module's Pinned documents are mirrors of this repository's seed-source templates, so
+refreshing them writes into the module folder. `calendar refresh` runs unattended, daily, before an
+interactive calendar session and after every Promotion, and preserves unpromoted Proposals;
+`pinned refresh` is previewed and writes only when applied.
+_Avoid_: synchronisation, promotion — and two-way, which no Refresh is
 
 **Proposal**:
 An agent-authored Calendar item change in the Calendar workspace that has not entered the Live

@@ -3,7 +3,7 @@
 The CLI has `seed`, `audit`, `calendar setup`, pull-only `calendar refresh`, private `calendar
 propose`, explicitly authorised `calendar promote`, `tasks provision`, pull-only `tasks refresh`,
 in-session `tasks create`, `tasks change`, `tasks complete` and `tasks cancel`, additive `textbooks
-catch-up`, previewed `pinned rewrite` and separately gated `repair` commands. It does not
+catch-up`, previewed `pinned refresh` and separately gated `repair` commands. It does not
 orchestrate a week of study or evolve a module's instructions on its own.
 
 ## Configure
@@ -622,14 +622,14 @@ contain metadata and filenames, so do not commit them. Current mismatch is a **d
 change between compatible observations is **drift**. A historical contract gap or contract-version
 upgrade is migration evidence, not permission to repair or change the contract.
 
-## Rewrite the cohort's pinned copies
+## Pinned refresh
 
 A change to any file under `seed-templates/` leaves every module's copy stale, which audit reports
-as MF-AGENTS-004. `pinned rewrite` is the repair that rule names, over the active cohort audit
+as MF-AGENTS-004. `pinned refresh` is the repair that rule names, over the active cohort audit
 already selects:
 
 ```bash
-node dist/src/cli.js pinned rewrite --config academic-os.config.json
+node dist/src/cli.js pinned refresh --config academic-os.config.json
 ```
 
 That previews. It says, for every module and pinned document, whether the copy is current, stale or
@@ -639,7 +639,7 @@ discards, and MF-AGENTS-004 is why that is right, but the preview is what stops 
 Whatever a module needed to say belongs in `CONTEXT.md`, `docs/adr/` or the Profile.
 
 ```bash
-node dist/src/cli.js pinned rewrite --config academic-os.config.json --apply
+node dist/src/cli.js pinned refresh --config academic-os.config.json --apply
 ```
 
 | Exit | Meaning |

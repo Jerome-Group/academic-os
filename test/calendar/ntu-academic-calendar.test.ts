@@ -38,7 +38,12 @@ function calendarDate(line: string | undefined): string {
   if (stamp === null) {
     throw new Error(`No calendar date in: ${line ?? "(missing line)"}`);
   }
-  return `${stamp[1] ?? ""}-${stamp[2] ?? ""}-${stamp[3] ?? ""}`;
+  return stamp.slice(1).join("-");
+}
+
+function daysBetween(from: string, to: string): number {
+  const span = Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`);
+  return span / (24 * 60 * 60 * 1000);
 }
 
 function addWeek(date: string): string {
@@ -58,6 +63,43 @@ describe("NTU AY2026-27 Semester 1 calendar", () => {
       });
 
       assert.deepEqual(occurrencesOf(series), series.dates, weekday);
+    }
+  });
+
+  // The test above is an identity over whatever the generator emits, so it catches a revert and
+  // nothing else. This one names the week the term actually skips, read off the declared window.
+  it("puts no class inside the recess week, whatever the series", () => {
+    const { recess } = NTU_AY2026_27_SEMESTER_1;
+
+    for (const weekday of ["MO", "TU", "WE", "TH", "FR"] as const) {
+      const series = ntuWeeklyClassSchedule({
+        weekday,
+        weeks: { from: 1, to: 13 },
+        startTime: "10:30",
+        endTime: "12:20",
+      });
+
+      assert.deepEqual(
+        occurrencesOf(series).filter(
+          (date) => date >= recess.start && date <= recess.end,
+        ),
+        [],
+        weekday,
+      );
+    }
+  });
+
+  // A weekly rule steps seven days from the first class, so it lands on a later teaching week only
+  // while the map's weeks stay a whole number of weeks apart. A gap of any other length would put
+  // real classes off the rule's grid, where no exclusion can reach them either.
+  it("keeps every teaching week a whole number of weeks from the first", () => {
+    const [first, ...rest] = NTU_AY2026_27_SEMESTER_1.teachingWeeks;
+    if (first === undefined) {
+      throw new Error("The teaching-week map is empty.");
+    }
+
+    for (const { week, start } of rest) {
+      assert.equal(daysBetween(first.start, start) % 7, 0, `week ${week}`);
     }
   });
 

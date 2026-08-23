@@ -141,10 +141,8 @@ function isExcluded(date: string, startTime: string, endTime: string): boolean {
   );
 }
 
-// Every date a weekly rule produces across the term, which is what the exclusions are taken from.
-// Taking them from the term's own class dates instead is the bug this replaced: recess is a gap in
-// the teaching-week map, so a recess week is absent from those dates rather than excluded by them,
-// and a filter over them could never name the occurrence the rule was about to invent.
+// Recess is a gap in the teaching-week map rather than a same-day exception, so the exclusions
+// cannot come from the class dates: a recess week is absent from those, never excluded by them.
 function weeklyOccurrences(firstDate: string, lastDate: string): string[] {
   const occurrences: string[] = [];
   for (let date = firstDate; date <= lastDate; date = addDays(date, 7)) {

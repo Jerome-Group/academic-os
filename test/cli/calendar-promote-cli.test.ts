@@ -437,6 +437,50 @@ describe("academic-os calendar promote", () => {
     assert.deepEqual(patches[0]?.body, { summary: "Updated title" });
   });
 
+  it("promotes a recurrence patch when Google reorders recurrence lines", async () => {
+    const recurrence = [
+      "RRULE:FREQ=WEEKLY;UNTIL=20261109T155959Z",
+      "EXDATE;TZID=Asia/Singapore:20260928T093000",
+    ];
+    const fixture = await setupChangeFixture(
+      "Academic",
+      { recurrence },
+      { recurrence },
+    );
+    await mutateProvider(fixture, (provider) => {
+      provider.reverseRecurrenceOnPatch = ["owned-event"];
+    });
+
+    const result = await runPromote(fixture, "proposal-change", "--json");
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    assert.equal(JSON.parse(result.stdout).outcome, "promoted");
+    const promotedEvent = (await readProvider(fixture)).events[
+      "academic-id"
+    ]?.[0] as { recurrence?: unknown };
+    assert.deepEqual(promotedEvent.recurrence, [...recurrence].reverse());
+  });
+
+  it("verifies a migrated series when Google reorders its recurrence lines", async () => {
+    const recurrence = [
+      "RRULE:FREQ=DAILY;UNTIL=20261109T155959Z",
+      "EXDATE;TZID=Asia/Singapore:20260928T230000",
+    ];
+    const fixture = await setupRoutineMigrationFixture(recurrence);
+    await mutateProvider(fixture, (provider) => {
+      provider.reverseRecurrenceOnPatch = ["sleep-series"];
+    });
+
+    const result = await runPromote(
+      fixture,
+      "proposal-routine-migration",
+      "--json",
+    );
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    assert.equal(JSON.parse(result.stdout).outcome, "promoted");
+  });
+
   it("marks an update Proposal stale when Refresh finds a provider change", async () => {
     const fixture = await setupChangeFixture("Academic");
     await mutateProvider(fixture, (provider) => {
@@ -1082,6 +1126,7 @@ async function setupChangeFixture(
   patch: Record<string, unknown> = targetRole === "Academic"
     ? { summary: "Updated title" }
     : {},
+  eventOverrides: Record<string, unknown> = {},
 ): Promise<Fixture> {
   const fixture = await setupFixture();
   const event = {
@@ -1100,6 +1145,7 @@ async function setupChangeFixture(
       timeZone: "Asia/Singapore",
     },
     end: { dateTime: "2026-08-20T11:00:00+08:00", timeZone: "Asia/Singapore" },
+    ...eventOverrides,
   };
   const academicMirrorPath = join(
     fixture.calendarRoot,
@@ -1315,13 +1361,15 @@ async function setupRecurringChangeFixture(
   return fixture;
 }
 
-async function setupRoutineMigrationFixture(): Promise<Fixture> {
+async function setupRoutineMigrationFixture(
+  masterRecurrence: string[] = ["RRULE:FREQ=DAILY"],
+): Promise<Fixture> {
   const fixture = await setupFixture();
   const master = {
     id: "sleep-series",
     summary: "Sleep",
     description: "Preserved series description",
-    recurrence: ["RRULE:FREQ=DAILY"],
+    recurrence: masterRecurrence,
     transparency: "opaque",
     reminders: {
       useDefault: false,
@@ -1513,6 +1561,7 @@ async function readProvider(fixture: Fixture): Promise<{
   events: Record<string, unknown[]>;
   incrementalEvents: Record<string, Record<string, unknown[]>>;
   omitCreatedFromIncremental?: boolean;
+  reverseRecurrenceOnPatch?: string[];
   patchFailures?: string[];
   requests: Array<{
     body?: unknown;

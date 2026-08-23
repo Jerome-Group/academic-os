@@ -1,23 +1,17 @@
 #!/usr/bin/env node
 
 import { access } from "node:fs/promises";
-import { homedir } from "node:os";
-import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import {
-  installLaunchdJob,
-  launchdJobTarget,
-  planLaunchdJob,
-  removeLaunchdJob,
-} from "../dist/src/launchd/index.js";
+import { installLaunchdJob } from "../dist/src/launchd/index.js";
 import {
   describeMorningRoutineLaunchdJob,
   MORNING_ROUTINE_LAUNCHD_JOB_NAME,
 } from "../dist/src/routine/index.js";
 import {
-  parseInstallerArguments,
-  requireLaunchdUid,
+  formatDailyTime,
+  planOrRemoveLaunchdJob,
+  writeLaunchdJobPreview,
 } from "./launchd-installer-cli.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
@@ -41,46 +35,24 @@ try {
 }
 
 async function main() {
-  const arguments_ = parseInstallerArguments(process.argv.slice(2), usage);
-  const homeDirectory = homedir();
-  const uid = requireLaunchdUid("Morning routine");
-  if (arguments_.remove) {
-    const target = launchdJobTarget({
-      name: MORNING_ROUTINE_LAUNCHD_JOB_NAME,
-      homeDirectory,
-      uid,
-    });
-    await removeLaunchdJob(target);
-    process.stdout.write(`Removed ${target.label}.\n`);
+  const { removed, dryRun, plan } = await planOrRemoveLaunchdJob({
+    surface: "Morning routine",
+    jobName: MORNING_ROUTINE_LAUNCHD_JOB_NAME,
+    usage,
+    describeJob,
+  });
+  if (removed !== undefined) {
+    process.stdout.write(`Removed ${removed.label}.\n`);
     return;
   }
-
-  const plan = planLaunchdJob({
-    description: await describeJob(arguments_.configPath),
-    hostTimeZone: new Intl.DateTimeFormat().resolvedOptions().timeZone,
-    homeDirectory,
-    uid,
-  });
-  if (arguments_.dryRun) {
-    process.stdout.write(
-      `${JSON.stringify(
-        {
-          command: "routine morning schedule",
-          outcome: "preview",
-          label: plan.label,
-          offeringTimeZone: plan.schedule.timeZone,
-          startCalendarInterval: {
-            Hour: plan.schedule.hour,
-            Minute: plan.schedule.minute,
-          },
-          plistPath: plan.plistPath,
-          programArguments: plan.programArguments,
-          plist: plan.plist,
-        },
-        null,
-        2,
-      )}\n`,
-    );
+  if (dryRun) {
+    writeLaunchdJobPreview("routine morning schedule", plan, {
+      offeringTimeZone: plan.schedule.timeZone,
+      startCalendarInterval: {
+        Hour: plan.schedule.hour,
+        Minute: plan.schedule.minute,
+      },
+    });
     return;
   }
 
@@ -99,9 +71,8 @@ async function main() {
 }
 
 async function describeJob(configPath) {
-  const resolvedConfigPath = resolve(configPath);
   await Promise.all([
-    access(resolvedConfigPath),
+    access(configPath),
     access(cliPath),
     access(runnerModulePath),
   ]).catch(() => {
@@ -113,12 +84,6 @@ async function describeJob(configPath) {
     nodePath: process.execPath,
     runnerModulePath,
     cliPath,
-    configPath: resolvedConfigPath,
+    configPath,
   });
-}
-
-function formatDailyTime(schedule) {
-  const hour = String(schedule.hour).padStart(2, "0");
-  const minute = String(schedule.minute).padStart(2, "0");
-  return `${hour}:${minute} ${schedule.timeZone}`;
 }

@@ -56,8 +56,9 @@ describe("the module session's prompt", () => {
   it("leaves tasks and compilation to the surfaces that own them", () => {
     assert.match(
       prompt,
-      /leave the register and the live list as the pull left them/u,
+      /Leave the register and the live list exactly as it left them/u,
     );
+    assert.match(prompt, /created in a session with the Owner present/u);
     assert.match(
       prompt,
       /Leave every `\.tex` for a teaching session to compile/u,

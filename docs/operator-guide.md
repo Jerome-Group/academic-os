@@ -586,6 +586,11 @@ or hangs past twenty minutes becomes a failure line and the next module starts; 
 retry, because tomorrow's pass is idempotent and self-heals. The routine never compiles LaTeX, never
 creates a task, and never writes to Google.
 
+Each session runs on `gpt-5.6-luna` at maximum reasoning effort, with the sandbox stated on the
+command line rather than taken from the machine's Codex configuration — a pass writes into its
+module folder on the Drive mount and its result under `stateRoot`, which the config forces outside
+that mount, so it runs with full access and the routine says so out loud instead of inheriting it.
+
 Then the routine purges its own exhaust — session directories older than seven days, reports older
 than thirty — and writes the day's report.
 

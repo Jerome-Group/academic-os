@@ -35,7 +35,7 @@ Every key is present; an empty morning is six empty arrays. \`item\` is the sour
 
 ## Bounds
 
-- The morning's Task-register pull has already run. Report what you found and leave the register and the live list as the pull left them.
+- The morning's Task-register pull has already run. Leave the register and the live list exactly as it left them: a task this morning implies is reported in \`parked\`, and created in a session with the Owner present.
 - Leave every \`.tex\` for a teaching session to compile.
 - Reach only this module's folder. Importer roots are read to be curated out of, and keep their own names and layout.
 `;

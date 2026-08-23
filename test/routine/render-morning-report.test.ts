@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { renderMorningReport } from "../../src/routine/index.js";
+import {
+  type PreludeStepReport,
+  renderMorningReport,
+} from "../../src/routine/index.js";
 
-const prelude = [
+const prelude: PreludeStepReport[] = [
   {
-    step: "textbook-shelf-catch-up" as const,
+    step: "textbook-shelf-catch-up",
     outcome: "requires-decision",
     parked: 1,
     detail: [
@@ -14,7 +17,7 @@ const prelude = [
     ],
   },
   {
-    step: "task-register-pull" as const,
+    step: "task-register-pull",
     outcome: "refreshed",
     parked: 0,
     detail: ["AB1234 (Y2S1): fresh; 1 added, 0 updated, 0 newly cancelled"],

@@ -6,9 +6,13 @@ import type { MorningIssuePort } from "./types.js";
 
 const ISSUE_URL_PATTERN = /\/(\d+)\s*$/u;
 
-// `gh` infers the repository from the clone it runs in, so the routine reaches the tracker the same
-// way a session does. Searching by title before creating is what makes the day's issue at most one:
-// a second firing finds the first morning's issue rather than raising a second.
+// Newest-first, and deep enough that a morning's own issue is always in reach. The listing is read
+// rather than the search index because the index lags creation by minutes — long enough for a
+// second firing an hour later to miss the issue the first one raised and raise another.
+const RECENT_ISSUE_LIMIT = "100";
+
+// `gh` infers the repository from the clone it runs in, which is the clone this built CLI sits in:
+// the same three levels up from `dist/src/routine/` that every root resolution here counts.
 export function createGhMorningIssue(ghPath: string): MorningIssuePort {
   const repositoryRoot = fileURLToPath(new URL("../../../", import.meta.url));
   const gh = (arguments_: string[], input?: string): string =>
@@ -27,9 +31,7 @@ export function createGhMorningIssue(ghPath: string): MorningIssuePort {
           "--state",
           "all",
           "--limit",
-          "100",
-          "--search",
-          `"${title}" in:title`,
+          RECENT_ISSUE_LIMIT,
           "--json",
           "number,title",
         ]),

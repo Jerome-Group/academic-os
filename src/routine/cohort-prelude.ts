@@ -7,6 +7,7 @@ import {
   cohortTaskTargets,
   createGoogleTaskRefreshReader,
   refreshTaskRegisters,
+  type TaskRefreshModuleReport,
 } from "../tasks/index.js";
 import {
   createFileShelfIndexStore,
@@ -54,8 +55,8 @@ export function createCohortPrelude(
           resolveTasksConfig(config).credentials.scheduledRead,
         ),
       });
-      const stale = report.modules.filter(
-        (module) => module.freshness === "stale",
+      const failed = report.modules.filter(
+        (module) => module.failure !== undefined,
       );
       return {
         step: "task-register-pull",
@@ -65,21 +66,25 @@ export function createCohortPrelude(
           (module) =>
             `${module.module} (${module.semester}): ${module.freshness}; ${module.changes.added} added, ${module.changes.updated} updated, ${module.changes.cancelled} newly cancelled`,
         ),
-        ...staleFailure(stale.map((module) => module.module)),
+        ...pullFailure(failed),
       } satisfies PreludeStepReport;
     },
   };
 }
 
-function staleFailure(
-  modules: readonly string[],
+// A module only reads stale when its own pull threw, so it always carries the reason: the prelude
+// hands the Owner that reason rather than the word "stale", which says nothing they can act on.
+function pullFailure(
+  failed: readonly TaskRefreshModuleReport[],
 ): Pick<PreludeStepReport, "failure"> {
-  return modules.length === 0
+  return failed.length === 0
     ? {}
     : {
         failure: {
           code: "stale-task-register",
-          message: `The live list did not reach ${modules.join(", ")}.`,
+          message: failed
+            .map((module) => `${module.module}: ${module.failure?.message}`)
+            .join("; "),
         },
       };
 }

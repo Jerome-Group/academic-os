@@ -77,7 +77,7 @@ function renderHuman(report: MorningRoutineReport): string {
     ...report.prelude.map(renderPreludeStep),
     ...report.modules.map(renderModule),
     `Purged ${report.purge.sessions.length} session days and ${report.purge.reports.length} reports`,
-    `Report: ${report.report}`,
+    `Report: ${report.report ?? "not written"}`,
     `Issue: ${report.issue.outcome}${report.issue.number === null ? "" : ` (#${report.issue.number})`}`,
   ].join("\n");
 }

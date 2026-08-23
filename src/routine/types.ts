@@ -1,4 +1,6 @@
 import type { ConfiguredModule } from "../config/index.js";
+import type { TaskRefreshReport } from "../tasks/index.js";
+import type { ShelfCatchUpReport } from "../textbooks/index.js";
 
 export interface RoutineFailure {
   code: string;
@@ -9,9 +11,16 @@ export interface RoutineFailure {
 // wrapper decides on them identically: what it did, what it left for the Owner, why it stopped.
 export type PreludeStepName = "textbook-shelf-catch-up" | "task-register-pull";
 
+// The step keeps its own word for how it went — the two commands behind the prelude already have
+// one each — and `failed` is the wrapper's, for the step that never got far enough to have one.
+export type PreludeStepOutcome =
+  | ShelfCatchUpReport["outcome"]
+  | TaskRefreshReport["outcome"]
+  | "failed";
+
 export interface PreludeStepReport {
   step: PreludeStepName;
-  outcome: string;
+  outcome: PreludeStepOutcome;
   parked: number;
   detail: string[];
   failure?: RoutineFailure;
@@ -78,7 +87,7 @@ export interface MorningRoutineReport {
   prelude: PreludeStepReport[];
   modules: ModulePassReport[];
   purge: RetentionPurge;
-  report: string;
+  report: string | null;
   issue: MorningIssueReport;
 }
 

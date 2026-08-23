@@ -1,8 +1,8 @@
 import { calendarDaysBetween } from "./offering-calendar-day.js";
 import type { RetentionPurge } from "./types.js";
 
-export const SESSION_RETENTION_DAYS = 7;
-export const REPORT_RETENTION_DAYS = 30;
+const SESSION_RETENTION_DAYS = 7;
+const REPORT_RETENTION_DAYS = 30;
 
 // The routine keeps its own exhaust off the mini, and only its own: the store hands over the dates
 // it named, so a window can never reach anything the routine did not write.

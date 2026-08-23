@@ -1,6 +1,7 @@
 import type { ConfiguredModule } from "../config/index.js";
 import { planRetentionPurge } from "./plan-retention-purge.js";
 import { renderMorningReport } from "./render-morning-report.js";
+import { failedModulePass, routineFailure } from "./routine-failure.js";
 import type {
   ModulePassReport,
   ModuleSessionPort,
@@ -12,12 +13,11 @@ import type {
   PreludeStepReport,
   RetentionPurge,
   RoutineArtifactStore,
-  RoutineFailure,
 } from "./types.js";
 
 export const MORNING_ISSUE_LABELS = ["ready-for-human", "decision"] as const;
 
-export function morningIssueTitle(date: string): string {
+function morningIssueTitle(date: string): string {
   return `Morning report ${date}`;
 }
 
@@ -51,10 +51,11 @@ export async function runMorningRoutine(input: {
     modules,
     purge,
   });
-  const report = await input.artifacts.writeReport({ date: input.date, text });
-  const issue = morningNeedsOwner(prelude, modules)
-    ? await raiseMorningIssue(input.issue, input.date, text)
-    : { outcome: "not-needed" as const, number: null };
+  const report = await writtenReport(input.artifacts, input.date, text);
+  const issue =
+    report === null || morningNeedsOwner(prelude, modules)
+      ? await raiseMorningIssue(input.issue, input.date, text)
+      : { outcome: "not-needed" as const, number: null };
   return {
     schemaVersion: 1,
     command: "routine morning",
@@ -80,7 +81,7 @@ async function preludeStep(
       outcome: "failed",
       parked: 0,
       detail: [],
-      failure: routineFailure(error),
+      failure: routineFailure(error, "prelude-failed"),
     };
   }
 }
@@ -95,13 +96,22 @@ async function modulePass(
     return {
       ...module,
       artifacts: "none",
-      curated: [],
-      rederived: [],
-      superseded: [],
-      parked: [],
-      docWrites: [],
-      failures: [routineFailure(error)],
+      ...failedModulePass(error, "session-failed"),
     };
+  }
+}
+
+// The mini's copy is the record a quiet morning leaves, so losing it is itself something to raise:
+// the text is already in hand, and the issue carries the morning whether or not the disk took it.
+async function writtenReport(
+  artifacts: RoutineArtifactStore,
+  date: string,
+  text: string,
+): Promise<string | null> {
+  try {
+    return await artifacts.writeReport({ date, text });
+  } catch {
+    return null;
   }
 }
 
@@ -181,7 +191,11 @@ async function raiseMorningIssue(
       number: await issue.raise({ title, body, labels: MORNING_ISSUE_LABELS }),
     };
   } catch (error) {
-    return { outcome: "failed", number: null, failure: routineFailure(error) };
+    return {
+      outcome: "failed",
+      number: null,
+      failure: routineFailure(error, "issue-failed"),
+    };
   }
 }
 
@@ -190,14 +204,4 @@ function morningOutcome(
 ): MorningRoutineReport["outcome"] {
   if (issue.outcome === "not-needed") return "quiet";
   return issue.outcome === "failed" ? "unreported" : "reported";
-}
-
-function routineFailure(error: unknown): RoutineFailure {
-  if (error instanceof Error && "code" in error) {
-    return { code: String(error.code), message: error.message };
-  }
-  return {
-    code: "session-failed",
-    message: error instanceof Error ? error.message : String(error),
-  };
 }

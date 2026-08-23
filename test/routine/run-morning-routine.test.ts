@@ -37,10 +37,11 @@ function syntheticMorning(overrides: {
   passes?: Record<string, ModulePassOutcome | (() => never)>;
   sessionDates?: string[];
   reportDates?: string[];
+  artifacts?: Partial<RoutineArtifactStore>;
   issue?: Partial<MorningIssuePort>;
 }) {
   const calls = overrides.calls ?? [];
-  const written: string[] = [];
+  const rendered: string[] = [];
   const removed: string[] = [];
   const raised: Array<{
     title: string;
@@ -70,10 +71,13 @@ function syntheticMorning(overrides: {
     },
   };
   const artifacts: RoutineArtifactStore = {
-    writeReport: async ({ date: day, text }) => {
+    writeReport: async (input) => {
       calls.push("report");
-      written.push(text);
-      return `/state/routine/reports/${day}.md`;
+      rendered.push(input.text);
+      if (overrides.artifacts?.writeReport !== undefined) {
+        return await overrides.artifacts.writeReport(input);
+      }
+      return `/state/routine/reports/${input.date}.md`;
     },
     listSessionDates: async () => overrides.sessionDates ?? [],
     listReportDates: async () => overrides.reportDates ?? [],
@@ -103,7 +107,7 @@ function syntheticMorning(overrides: {
   };
   return {
     calls,
-    written,
+    rendered,
     removed,
     raised,
     prelude,
@@ -121,7 +125,7 @@ function step(
   return (
     override ?? {
       step: name,
-      outcome: "clean",
+      outcome: "caught-up",
       parked: 0,
       detail: [`${name} had nothing to do`],
     }
@@ -210,7 +214,7 @@ describe("one firing of the morning routine", () => {
       report.prelude[0]?.failure?.message,
       "the shelf is unreadable",
     );
-    assert.equal(report.prelude[1]?.outcome, "clean");
+    assert.equal(report.prelude[1]?.outcome, "caught-up");
     assert.equal(report.modules.length, 3);
   });
 
@@ -251,7 +255,7 @@ describe("the morning's issue policy", () => {
     assert.equal(morning.raised.length, 1);
     assert.equal(morning.raised[0]?.title, "Morning report 2026-08-23");
     assert.deepEqual(morning.raised[0]?.labels, MORNING_ISSUE_LABELS);
-    assert.equal(morning.raised[0]?.body, morning.written[0]);
+    assert.equal(morning.raised[0]?.body, morning.rendered[0]);
   });
 
   it("stays silent on a quiet morning, and still lands the report", async () => {
@@ -266,7 +270,7 @@ describe("the morning's issue policy", () => {
     assert.equal(report.outcome, "quiet");
     assert.deepEqual(report.issue, { outcome: "not-needed", number: null });
     assert.equal(morning.raised.length, 0);
-    assert.equal(morning.written.length, 1);
+    assert.equal(morning.rendered.length, 1);
   });
 
   it("raises for a doc write nobody watched, and for a failure", async () => {
@@ -334,6 +338,26 @@ describe("the morning's issue policy", () => {
     assert.equal(morning.calls.includes("issue:raise"), false);
   });
 
+  it("raises even a quiet morning the mini could not write down", async () => {
+    const morning = syntheticMorning({
+      artifacts: {
+        writeReport: async () => {
+          throw new Error("the state root is read-only");
+        },
+      },
+    });
+
+    const report = await runMorningRoutine({
+      date,
+      modules: cohort,
+      ...morning,
+    });
+
+    assert.equal(report.report, null);
+    assert.equal(report.issue.outcome, "created");
+    assert.equal(morning.raised[0]?.body, morning.rendered[0]);
+  });
+
   it("leaves the report on the mini when the tracker cannot be reached", async () => {
     const morning = syntheticMorning({
       passes: { CD5678: parkedPass },
@@ -353,6 +377,6 @@ describe("the morning's issue policy", () => {
     assert.equal(report.outcome, "unreported");
     assert.equal(report.issue.outcome, "failed");
     assert.equal(report.issue.failure?.message, "github is unreachable");
-    assert.equal(morning.written.length, 1);
+    assert.equal(morning.rendered.length, 1);
   });
 });

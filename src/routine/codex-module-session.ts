@@ -12,11 +12,11 @@ import {
   morningSessionPrompt,
 } from "./morning-session-prompt.js";
 import { readModulePassOutcome } from "./read-module-pass-outcome.js";
+import { failedModulePass } from "./routine-failure.js";
 import type {
   ModulePassOutcome,
   ModulePassReport,
   ModuleSessionPort,
-  RoutineFailure,
 } from "./types.js";
 
 // `luna max` as the Owner names it — passed explicitly rather than left to the machine's Codex
@@ -24,10 +24,15 @@ import type {
 export const MORNING_SESSION_MODEL = "gpt-5.6-luna";
 export const MORNING_SESSION_REASONING_EFFORT = "max";
 
+// A pass curates across the Drive mount and writes its result under the private state root, which
+// is required to sit outside that mount — two roots no workspace sandbox spans. Stating the escape
+// here rather than inheriting it means a narrowed Codex config cannot silently fail every pass.
+export const MORNING_SESSION_SANDBOX = "danger-full-access";
+
 // A hung session would hold the whole cohort behind it until the Owner woke, which is the one
 // failure the morning cannot absorb. The bound is generous for a morning's arrivals and short
 // enough that a full cohort of hangs still finishes before breakfast.
-export const MORNING_SESSION_TIMEOUT_MS = 20 * 60 * 1000;
+const MORNING_SESSION_TIMEOUT_MS = 20 * 60 * 1000;
 
 const SESSION_LOG_FILENAME = "session.log";
 
@@ -38,6 +43,8 @@ export function codexSessionArguments(prompt: string): string[] {
     MORNING_SESSION_MODEL,
     "--config",
     `model_reasoning_effort="${MORNING_SESSION_REASONING_EFFORT}"`,
+    "--sandbox",
+    MORNING_SESSION_SANDBOX,
     "--skip-git-repo-check",
     prompt,
   ];
@@ -65,7 +72,11 @@ export function createCodexModuleSession(input: {
           ...(await runSession({ ...input, module, artifacts })),
         };
       } catch (error) {
-        return { ...module, artifacts, ...failedPass(error) };
+        return {
+          ...module,
+          artifacts,
+          ...failedModulePass(error, "session-failed"),
+        };
       }
     },
   };
@@ -141,25 +152,4 @@ function spawnCodex(input: {
       resolve(code ?? 1);
     });
   });
-}
-
-function failedPass(error: unknown): ModulePassOutcome {
-  return {
-    curated: [],
-    rederived: [],
-    superseded: [],
-    parked: [],
-    docWrites: [],
-    failures: [sessionFailure(error)],
-  };
-}
-
-function sessionFailure(error: unknown): RoutineFailure {
-  if (error instanceof Error && "code" in error) {
-    return { code: String(error.code), message: error.message };
-  }
-  return {
-    code: "session-failed",
-    message: error instanceof Error ? error.message : String(error),
-  };
 }

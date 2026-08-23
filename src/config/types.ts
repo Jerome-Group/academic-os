@@ -30,6 +30,14 @@ export interface TasksConfig {
   };
 }
 
+// The two command-line tools the morning routine reaches for, named because both install outside
+// the minimal PATH a LaunchAgent runs with — the Codex CLI its module sessions run under, and the
+// `gh` CLI it raises the morning's issue through.
+export interface RoutineConfig {
+  codexPath: string;
+  ghPath: string;
+}
+
 // The Textbook shelf, named relative to the Drive mount as every semester root is.
 export interface TextbooksConfig {
   shelfRoot: string;
@@ -44,6 +52,7 @@ export interface AcademicConfig {
   calendar?: CalendarConfig;
   tasks?: TasksConfig;
   textbooks?: TextbooksConfig;
+  routine?: RoutineConfig;
   driveApi?: {
     moduleFolderIds: Record<string, Record<string, string>>;
   };

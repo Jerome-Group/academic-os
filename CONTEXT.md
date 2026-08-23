@@ -448,6 +448,29 @@ and a per-item decision applying one cites it from the Curation register's evide
 _Avoid_: curation decision — that classifies one item; repository ADR — a module ADR's numbering
 and authority stop at its module folder.
 
+**Morning routine**:
+The 06:00 pass on the mini: the deterministic prelude — Shelf catch-up, then the cohort's Task
+registers pulled — followed by one headless session per cohort module in sequence, then one dated
+Morning report. It reads Google and writes nothing back to it, compiles no LaTeX and creates no
+task; a module whose session fails is a line in the report rather than the end of the morning.
+_Avoid_: Routine event — that is a Calendar series; the daily Refresh — the 05:00 Calendar Refresh
+is this job's untouched sibling; cron job, nightly build.
+
+**Module pass**:
+One module's share of a morning: a single headless session in that module folder, running the
+module's own seeded curation procedure and reporting what it curated, rederived, superseded and
+parked, the module docs it wrote, and what failed. Unattended, precedent is its only resolver — no
+precedent parks.
+_Avoid_: run, session — both name the whole morning or the process rather than the module's share.
+
+**Morning report**:
+What the Morning routine writes on the mini every day, in one fixed format, dated by the offering's
+calendar day: the prelude's results, each Module pass's six buckets, and the purge summary. It lands
+whether or not anything asks the Owner for a decision. The same text becomes the day's issue when
+the morning parked something, wrote a module doc or hit a failure; a morning with none of those is a
+**quiet morning** and raises nothing.
+_Avoid_: log — the session transcripts beside it are the log; digest, summary.
+
 Two terms are Organisation-wide and mean the same thing in every repository:
 
 **Organisation**:

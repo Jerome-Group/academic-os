@@ -114,8 +114,8 @@ export function ntuWeeklyClassSchedule(
   if (firstDate === undefined || lastDate === undefined) {
     throw new Error("The NTU timetable selection has no class dates.");
   }
-  const excludedDates = rawDates.filter(
-    (date) => date >= firstDate && !dates.includes(date),
+  const excludedDates = weeklyOccurrences(firstDate, lastDate).filter(
+    (date) => !dates.includes(date),
   );
   const recurrence = [
     `RRULE:FREQ=WEEKLY;UNTIL=${utcRecurrenceBoundary(lastDate)}`,
@@ -139,6 +139,18 @@ function isExcluded(date: string, startTime: string, endTime: string): boolean {
       toMinutes(startTime) < toMinutes(exception.endTime) &&
       toMinutes(endTime) > toMinutes(exception.startTime),
   );
+}
+
+// Every date a weekly rule produces across the term, which is what the exclusions are taken from.
+// Taking them from the term's own class dates instead is the bug this replaced: recess is a gap in
+// the teaching-week map, so a recess week is absent from those dates rather than excluded by them,
+// and a filter over them could never name the occurrence the rule was about to invent.
+function weeklyOccurrences(firstDate: string, lastDate: string): string[] {
+  const occurrences: string[] = [];
+  for (let date = firstDate; date <= lastDate; date = addDays(date, 7)) {
+    occurrences.push(date);
+  }
+  return occurrences;
 }
 
 function weekdayOffset(weekday: NtuWeekday): number {

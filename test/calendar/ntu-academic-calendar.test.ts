@@ -3,10 +3,64 @@ import { describe, it } from "node:test";
 
 import {
   NTU_AY2026_27_SEMESTER_1,
+  type NtuWeeklyClassSchedule,
   ntuWeeklyClassSchedule,
 } from "../../src/calendar/ntu-academic-calendar.js";
 
+// What a calendar client actually shows: the weekly rule expanded across the term, minus the dates
+// the series excludes. The generator is right only when that equals the class dates it reports —
+// an occurrence the rule invents and no EXDATE removes is a class in the Owner's calendar that the
+// term does not have.
+function occurrencesOf({
+  startDate,
+  recurrence,
+}: NtuWeeklyClassSchedule): string[] {
+  const until = calendarDate(
+    recurrence.find((line) => line.startsWith("RRULE:")),
+  );
+  const excluded = new Set(
+    recurrence
+      .filter((line) => line.startsWith("EXDATE"))
+      .map((line) => calendarDate(line)),
+  );
+  const occurrences: string[] = [];
+  for (let date = startDate; date <= until; date = addWeek(date)) {
+    if (!excluded.has(date)) {
+      occurrences.push(date);
+    }
+  }
+  return occurrences;
+}
+
+// Both an `UNTIL=` and an `EXDATE:` carry the same `YYYYMMDD` stamp, so one reader serves both.
+function calendarDate(line: string | undefined): string {
+  const stamp = /(\d{4})(\d{2})(\d{2})T/u.exec(line ?? "");
+  if (stamp === null) {
+    throw new Error(`No calendar date in: ${line ?? "(missing line)"}`);
+  }
+  return `${stamp[1] ?? ""}-${stamp[2] ?? ""}-${stamp[3] ?? ""}`;
+}
+
+function addWeek(date: string): string {
+  const next = new Date(`${date}T00:00:00Z`);
+  next.setUTCDate(next.getUTCDate() + 7);
+  return next.toISOString().slice(0, 10);
+}
+
 describe("NTU AY2026-27 Semester 1 calendar", () => {
+  it("excludes every week the rule invents and the term does not have", () => {
+    for (const weekday of ["MO", "TU", "WE", "TH", "FR"] as const) {
+      const series = ntuWeeklyClassSchedule({
+        weekday,
+        weeks: { from: 1, to: 13 },
+        startTime: "10:30",
+        endTime: "12:20",
+      });
+
+      assert.deepEqual(occurrencesOf(series), series.dates, weekday);
+    }
+  });
+
   it("keeps the official teaching-week map", () => {
     assert.deepEqual(
       NTU_AY2026_27_SEMESTER_1.teachingWeeks.map(({ week, start, end }) => ({
@@ -44,6 +98,7 @@ describe("NTU AY2026-27 Semester 1 calendar", () => {
     assert.equal(monday.dates.length, 11);
     assert.deepEqual(monday.recurrence, [
       "RRULE:FREQ=WEEKLY;UNTIL=20261109T155959Z",
+      "EXDATE;TZID=Asia/Singapore:20260928T093000",
       "EXDATE;TZID=Asia/Singapore:20261109T093000",
     ]);
 
@@ -58,6 +113,7 @@ describe("NTU AY2026-27 Semester 1 calendar", () => {
     assert.deepEqual(friday.recurrence, [
       "RRULE:FREQ=WEEKLY;UNTIL=20261113T155959Z",
       "EXDATE;TZID=Asia/Singapore:20260904T103000",
+      "EXDATE;TZID=Asia/Singapore:20261002T103000",
     ]);
   });
 
@@ -72,6 +128,7 @@ describe("NTU AY2026-27 Semester 1 calendar", () => {
     assert.equal(bounded.dates.at(-1), "2026-10-19");
     assert.deepEqual(bounded.recurrence, [
       "RRULE:FREQ=WEEKLY;UNTIL=20261019T155959Z",
+      "EXDATE;TZID=Asia/Singapore:20260928T123000",
     ]);
 
     const oneWeek = ntuWeeklyClassSchedule({

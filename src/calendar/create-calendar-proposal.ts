@@ -617,7 +617,8 @@ async function prepareChangeAvailability(input: {
   projectedEvent: CalendarEvent;
   targetRole: OwnedCalendarRole;
 }) {
-  const interval = intervalFor(input.projectedEvent);
+  const proposedKind = inferItemKind(input.projectedEvent, input.targetRole);
+  const interval = occupiedIntervalFor(proposedKind, input.projectedEvent);
   const calendars = await input.reader.listCalendars();
   const availability =
     interval === null
@@ -640,7 +641,7 @@ async function prepareChangeAvailability(input: {
   const overlaps = findCalendarOverlaps({
     availability: items,
     interval,
-    proposedKind: inferItemKind(input.projectedEvent, input.targetRole),
+    proposedKind,
   });
   return {
     items,
@@ -712,6 +713,16 @@ function recurringFutureState(
         : {}),
     })),
   };
+}
+
+// A milestone never occupies time (`CONTEXT.md`), which is why the create path parses one with a
+// null occupied interval. Saying so here too keeps an annotation out of the conflict check it
+// would otherwise raise against the very session it annotates.
+function occupiedIntervalFor(
+  kind: ReturnType<typeof inferItemKind>,
+  event: CalendarEvent,
+): CalendarInterval | null {
+  return kind === "timed-milestone" ? null : intervalFor(event);
 }
 
 function intervalFor(event: CalendarEvent): CalendarInterval | null {

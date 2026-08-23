@@ -3,15 +3,11 @@ import { describe, it } from "node:test";
 
 import {
   isCalendarDay,
-  MORNING_SESSION_RESULT_FILENAME,
   morningSessionPrompt,
   offeringCalendarDay,
 } from "../../src/routine/index.js";
 
-const prompt = morningSessionPrompt({
-  module: "AB1234",
-  resultPath: `/state/routine/sessions/2026-08-23/AB1234/${MORNING_SESSION_RESULT_FILENAME}`,
-});
+const prompt = morningSessionPrompt("AB1234");
 
 describe("the module session's prompt", () => {
   it("routes into the module's own router and procedure rather than restating them", () => {
@@ -32,14 +28,10 @@ describe("the module session's prompt", () => {
   it("bounds the derived-docs mandate to what the morning touched, and surfaces every write", () => {
     assert.match(prompt, /to what step 1 touched, and to nothing else/u);
     assert.match(prompt, /domain-modeling discipline/u);
-    assert.match(prompt, /appears in `docWrites`/u);
+    assert.match(prompt, /belongs in `docWrites`/u);
   });
 
-  it("names the result file, its six buckets, and where to write it", () => {
-    assert.match(
-      prompt,
-      /\/state\/routine\/sessions\/2026-08-23\/AB1234\/result\.json/u,
-    );
+  it("names the six lists the final message carries, without restating their schema", () => {
     for (const bucket of [
       "curated",
       "rederived",
@@ -48,9 +40,10 @@ describe("the module session's prompt", () => {
       "docWrites",
       "failures",
     ]) {
-      assert.match(prompt, new RegExp(`"${bucket}"`, "u"));
+      assert.match(prompt, new RegExp(`\`${bucket}\``, "u"));
     }
-    assert.match(prompt, /six empty arrays/u);
+    assert.match(prompt, /Your final message is the report/u);
+    assert.doesNotMatch(prompt, /```json/u);
   });
 
   it("leaves tasks and compilation to the surfaces that own them", () => {

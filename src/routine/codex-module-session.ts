@@ -1,33 +1,28 @@
 import { spawn } from "node:child_process";
 import { createWriteStream } from "node:fs";
-import { mkdir, readFile, rm } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { delimiter, dirname, join } from "node:path";
 
 import type { AcademicConfig, ConfiguredModule } from "../config/index.js";
 import { resolveConfiguredAuditTarget } from "../cohort/index.js";
 import { resolveTarget } from "../mounted/index.js";
 import { moduleSessionDirectory } from "./file-routine-artifacts.js";
-import {
-  MORNING_SESSION_RESULT_FILENAME,
-  morningSessionPrompt,
-} from "./morning-session-prompt.js";
+import { MODULE_PASS_SCHEMA } from "./module-pass-schema.js";
+import { morningSessionPrompt } from "./morning-session-prompt.js";
 import { readModulePassOutcome } from "./read-module-pass-outcome.js";
 import { failedModulePass } from "./routine-failure.js";
-import type {
-  ModulePassOutcome,
-  ModulePassReport,
-  ModuleSessionPort,
-} from "./types.js";
+import type { ModulePassOutcome, ModuleSessionPort } from "./types.js";
 
 // `luna max` as the Owner names it — passed explicitly rather than left to the machine's Codex
 // defaults, so an edit to that file cannot quietly change what curates the degree.
 export const MORNING_SESSION_MODEL = "gpt-5.6-luna";
 export const MORNING_SESSION_REASONING_EFFORT = "max";
 
-// A pass curates across the Drive mount and writes its result under the private state root, which
-// is required to sit outside that mount — two roots no workspace sandbox spans. Stating the escape
-// here rather than inheriting it means a narrowed Codex config cannot silently fail every pass.
-export const MORNING_SESSION_SANDBOX = "danger-full-access";
+// Everything a pass writes is inside the module folder it was pointed at — importer roots are
+// interior to it, and the result is written by the CLI rather than by the model. So the morning's
+// unattended agent gets the workspace and nothing else, stated here rather than inherited from a
+// machine's Codex configuration.
+export const MORNING_SESSION_SANDBOX = "workspace-write";
 
 // A hung session would hold the whole cohort behind it until the Owner woke, which is the one
 // failure the morning cannot absorb. The bound is generous for a morning's arrivals and short
@@ -35,8 +30,14 @@ export const MORNING_SESSION_SANDBOX = "danger-full-access";
 const MORNING_SESSION_TIMEOUT_MS = 20 * 60 * 1000;
 
 const SESSION_LOG_FILENAME = "session.log";
+const SESSION_SCHEMA_FILENAME = "result-schema.json";
+export const MORNING_SESSION_RESULT_FILENAME = "result.json";
 
-export function codexSessionArguments(prompt: string): string[] {
+export function codexSessionArguments(input: {
+  prompt: string;
+  schemaPath: string;
+  resultPath: string;
+}): string[] {
   return [
     "exec",
     "--model",
@@ -46,7 +47,11 @@ export function codexSessionArguments(prompt: string): string[] {
     "--sandbox",
     MORNING_SESSION_SANDBOX,
     "--skip-git-repo-check",
-    prompt,
+    "--output-schema",
+    input.schemaPath,
+    "--output-last-message",
+    input.resultPath,
+    input.prompt,
   ];
 }
 
@@ -96,13 +101,22 @@ async function runSession(input: {
     ),
   );
   const resultPath = join(input.artifacts, MORNING_SESSION_RESULT_FILENAME);
+  const schemaPath = join(input.artifacts, SESSION_SCHEMA_FILENAME);
   await mkdir(input.artifacts, { recursive: true });
   await rm(resultPath, { force: true });
+  await writeFile(
+    schemaPath,
+    `${JSON.stringify(MODULE_PASS_SCHEMA, null, 2)}\n`,
+  );
   const exitCode = await spawnCodex({
     codexPath: input.codexPath,
     moduleRoot: target.moduleRoot,
     logPath: join(input.artifacts, SESSION_LOG_FILENAME),
-    prompt: morningSessionPrompt({ module: input.module.module, resultPath }),
+    arguments: codexSessionArguments({
+      prompt: morningSessionPrompt(input.module.module),
+      schemaPath,
+      resultPath,
+    }),
   });
   const outcome = readModulePassOutcome(await readFile(resultPath, "utf8"));
   return exitCode === 0
@@ -119,23 +133,21 @@ async function runSession(input: {
       };
 }
 
+// Stdin is closed rather than inherited: `codex exec` reads it for extra instructions, and an open
+// pipe with nothing coming holds the session — and behind it, the cohort — until the timeout.
 function spawnCodex(input: {
   codexPath: string;
   moduleRoot: string;
   logPath: string;
-  prompt: string;
+  arguments: string[];
 }): Promise<number> {
   return new Promise((resolve, reject) => {
     const log = createWriteStream(input.logPath);
-    const session = spawn(
-      input.codexPath,
-      codexSessionArguments(input.prompt),
-      {
-        cwd: input.moduleRoot,
-        stdio: ["ignore", "pipe", "pipe"],
-        timeout: MORNING_SESSION_TIMEOUT_MS,
-      },
-    );
+    const session = spawn(input.codexPath, input.arguments, {
+      cwd: input.moduleRoot,
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: MORNING_SESSION_TIMEOUT_MS,
+    });
     session.stdout.pipe(log);
     session.stderr.pipe(log);
     session.on("error", reject);
@@ -152,4 +164,16 @@ function spawnCodex(input: {
       resolve(code ?? 1);
     });
   });
+}
+
+// A LaunchAgent runs with a minimal PATH, so a scheduled pass would search without the ripgrep its
+// own installation ships — and quietly do worse work at 06:00 than the same pass does by hand. The
+// tools beside the Codex binary are the ones it expects to find, so they go on the front.
+function sessionEnvironment(codexPath: string): NodeJS.ProcessEnv {
+  return {
+    ...process.env,
+    PATH: [dirname(codexPath), process.env.PATH]
+      .filter((entry) => entry !== undefined && entry !== "")
+      .join(delimiter),
+  };
 }

@@ -3,12 +3,21 @@ import { describe, it } from "node:test";
 
 import {
   codexSessionArguments,
+  MODULE_PASS_SCHEMA,
   MORNING_SESSION_MODEL,
   MORNING_SESSION_REASONING_EFFORT,
   MORNING_SESSION_SANDBOX,
 } from "../../src/routine/index.js";
 
-const arguments_ = codexSessionArguments("the morning's prompt");
+const arguments_ = codexSessionArguments({
+  prompt: "the morning's prompt",
+  schemaPath: "/state/routine/sessions/2026-08-23/AB1234/result-schema.json",
+  resultPath: "/state/routine/sessions/2026-08-23/AB1234/result.json",
+});
+
+function flagValue(flag: string): string | undefined {
+  return arguments_[arguments_.indexOf(flag) + 1];
+}
 
 describe("the Codex invocation a module pass runs under", () => {
   it("runs headless, on the named model at the named effort", () => {
@@ -28,12 +37,28 @@ describe("the Codex invocation a module pass runs under", () => {
     );
   });
 
-  it("states the sandbox rather than inheriting whatever the machine is set to", () => {
-    assert.equal(MORNING_SESSION_SANDBOX, "danger-full-access");
+  it("gets the module folder to write in and nothing wider", () => {
+    assert.equal(MORNING_SESSION_SANDBOX, "workspace-write");
+    assert.equal(flagValue("--sandbox"), MORNING_SESSION_SANDBOX);
+  });
+
+  it("has the harness enforce the report's shape and write it down", () => {
     assert.equal(
-      arguments_[arguments_.indexOf("--sandbox") + 1],
-      MORNING_SESSION_SANDBOX,
+      flagValue("--output-schema"),
+      "/state/routine/sessions/2026-08-23/AB1234/result-schema.json",
     );
+    assert.equal(
+      flagValue("--output-last-message"),
+      "/state/routine/sessions/2026-08-23/AB1234/result.json",
+    );
+    assert.deepEqual(MODULE_PASS_SCHEMA.required, [
+      "curated",
+      "rederived",
+      "superseded",
+      "parked",
+      "docWrites",
+      "failures",
+    ]);
   });
 
   it("expects a module folder rather than a checkout, and ends on the prompt", () => {

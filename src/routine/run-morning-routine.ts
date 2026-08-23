@@ -153,9 +153,7 @@ async function removed(
     try {
       await remove(date);
       purged.push(date);
-    } catch {
-      continue;
-    }
+    } catch {}
   }
   return purged;
 }

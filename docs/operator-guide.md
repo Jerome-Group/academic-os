@@ -69,7 +69,9 @@ it needs no credentials at all.
 `routine morning` needs `routine.codexPath` and `routine.ghPath` — absolute paths to the Codex CLI
 it runs each Module pass under and to the `gh` CLI it raises the morning's issue through. Both are
 paths rather than names because a LaunchAgent runs with a minimal `PATH` and would find neither at
-06:00. It uses the Tasks scheduled-read credential and nothing else of its own; `gh` uses whatever
+06:00. The Codex CLI ships inside the ChatGPT desktop app, at
+`/Applications/ChatGPT.app/Contents/Resources/codex`; `~/.local/bin/codex` may still point at a
+standalone `Codex.app` that no longer exists, so name the binary rather than the symlink. It uses the Tasks scheduled-read credential and nothing else of its own; `gh` uses whatever
 login `gh auth status` reports on the mini.
 
 This checkout includes `scripts/setup-calendar-local.sh`, which walks through the two sequential
@@ -586,10 +588,12 @@ or hangs past twenty minutes becomes a failure line and the next module starts; 
 retry, because tomorrow's pass is idempotent and self-heals. The routine never compiles LaTeX, never
 creates a task, and never writes to Google.
 
-Each session runs on `gpt-5.6-luna` at maximum reasoning effort, with the sandbox stated on the
-command line rather than taken from the machine's Codex configuration — a pass writes into its
-module folder on the Drive mount and its result under `stateRoot`, which the config forces outside
-that mount, so it runs with full access and the routine says so out loud instead of inheriting it.
+Each session runs on `gpt-5.6-luna` at maximum reasoning effort, sandboxed to the module folder it
+was pointed at and nothing wider. Model, effort and sandbox are all stated on the command line
+rather than taken from the machine's `~/.codex/config.toml`, so retuning Codex for something else on
+the mini cannot change what curates the degree. The pass reports through its final message, which
+the CLI validates against a schema and writes to `result.json` itself — the model is never asked to
+remember a file (ADR-0018).
 
 Then the routine purges its own exhaust — session directories older than seven days, reports older
 than thirty — and writes the day's report.
@@ -601,8 +605,9 @@ Under `stateRoot`, both named by the offering's calendar day:
 - `routine/reports/<date>.md` — the morning's full report, every day, in one fixed format: the
   prelude's two steps, then per module its curated, rederived, superseded, parked, doc writes and
   failures, then what the purge removed.
-- `routine/sessions/<date>/<module>/` — that pass's `result.json` and its `session.log`. The report
-  is built from the result; the log is there for the morning the result is the argument (ADR-0018).
+- `routine/sessions/<date>/<module>/` — that pass's `result.json`, the `result-schema.json` it was
+  held to, and its `session.log`. The report is built from the result; the log is there for the
+  morning the result is the argument (ADR-0018).
 
 Nothing outside those two directories is ever purged, and inside them only entries named for a
 calendar day are (ADR-0018).

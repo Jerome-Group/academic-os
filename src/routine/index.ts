@@ -4,6 +4,7 @@ export {
   createCodexModuleSession,
   MORNING_SESSION_MODEL,
   MORNING_SESSION_REASONING_EFFORT,
+  MORNING_SESSION_RESULT_FILENAME,
   MORNING_SESSION_SANDBOX,
 } from "./codex-module-session.js";
 export {
@@ -16,10 +17,8 @@ export {
   describeMorningRoutineLaunchdJob,
   MORNING_ROUTINE_LAUNCHD_JOB_NAME,
 } from "./morning-routine-launchd.js";
-export {
-  MORNING_SESSION_RESULT_FILENAME,
-  morningSessionPrompt,
-} from "./morning-session-prompt.js";
+export { MODULE_PASS_SCHEMA } from "./module-pass-schema.js";
+export { morningSessionPrompt } from "./morning-session-prompt.js";
 export {
   isCalendarDay,
   OFFERING_TIMEZONE,

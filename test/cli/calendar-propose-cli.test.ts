@@ -890,6 +890,63 @@ describe("academic-os calendar propose", () => {
     );
   });
 
+  it("allows a transparent milestone duration update over its owning session", async () => {
+    const milestone = {
+      id: "assessment-milestone",
+      summary: "Assessment",
+      transparency: "transparent",
+      start: {
+        dateTime: "2026-08-20T10:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+      end: {
+        dateTime: "2026-08-20T10:01:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+    };
+    const session = {
+      id: "owning-session",
+      summary: "Tutorial",
+      start: {
+        dateTime: "2026-08-20T10:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+      end: {
+        dateTime: "2026-08-20T12:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+    };
+    const fixture = await setupFixture({
+      academicEvents: [milestone, session],
+    });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "instruction", reference: "duration-milestone" },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: milestone.id,
+        patch: {
+          end: {
+            dateTime: "2026-08-20T12:00:00+08:00",
+            timeZone: "Asia/Singapore",
+          },
+        },
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.outcome, "ready");
+    assert.equal(report.proposal.itemKind, "timed-milestone");
+    assert.equal(report.proposal.relevantAvailabilityVersion.interval, null);
+    assert.deepEqual(report.conflicts, []);
+    // Pinned alongside the conflicts, so a conflict demoted to a warning still fails this.
+    assert.deepEqual(report.warnings, []);
+  });
+
   it("previews one exact-ID Routine migration with decisions and no provider mutation", async () => {
     const sleep = {
       id: "sleep-series",

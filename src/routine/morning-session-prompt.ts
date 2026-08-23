@@ -16,6 +16,8 @@ Nobody is awake to answer a question. Precedent is your only resolver: where the
 
 It is the morning's only record of this pass, and the Owner reads it. Six lists, empty where the morning was: what you \`curated\` and where each landed, what you \`rederived\` and into which artifacts, what you \`superseded\`, what you \`parked\` with the evidence that lets the Owner settle it, the \`docWrites\` you made to \`CONTEXT.md\` or an ADR, and the \`failures\` you hit. Name an item by the source path the Curation register identifies it by.
 
+A \`destination\` is a module-relative path to a file that is now there. A superseded line carries one only when the decision it replaced placed a copy; a supersession of a \`source-only\` decision has no path to give, so it gives none.
+
 Every module doc you wrote belongs in \`docWrites\` — that list is how a write nobody watched gets reviewed.
 
 \`failures\` is work this morning could not do: an importer root that would not read, a copy that would not land, a register that would not parse. A pass that got its work done reports none, whatever it routed around on the way — which tools were on hand, and what the environment did or did not offer, are not the Owner's morning. Every entry here wakes them to a decision, so an empty \`failures\` is the ordinary result.

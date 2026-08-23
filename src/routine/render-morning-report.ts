@@ -62,7 +62,11 @@ function renderModulePass(module: ModulePassReport): string[] {
       module.rederived,
       (item) => `${item.item} → ${item.derived.join(", ")}`,
     ),
-    ...bucket("Superseded", module.superseded, renderPlacement),
+    ...bucket("Superseded", module.superseded, (item) =>
+      item.destination === undefined
+        ? item.item
+        : `${item.item} → ${item.destination}`,
+    ),
     ...bucket(
       "Parked",
       module.parked,

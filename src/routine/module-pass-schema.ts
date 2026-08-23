@@ -1,18 +1,21 @@
 // The shape a pass's final message must take, handed to the Codex CLI as a JSON Schema so the
-// harness enforces it rather than the model remembering it. One source of truth: the prompt shows
-// this shape, the CLI validates the final message against it, and `readModulePassOutcome` checks it
-// again on the way in — a wrapper that believes an unattended agent checks what it was handed.
-const items = (properties: Record<string, unknown>) => ({
+// harness enforces it rather than the model remembering it. It states exactly what
+// `readModulePassOutcome` demands — `minLength` included — because a schema looser than the parser
+// is a morning the CLI accepts and the wrapper then throws away whole.
+const text = { type: "string", minLength: 1 } as const;
+
+const entries = (
+  properties: Record<string, unknown>,
+  required: readonly string[],
+) => ({
   type: "array",
   items: {
     type: "object",
     additionalProperties: false,
-    required: Object.keys(properties),
+    required,
     properties,
   },
 });
-
-const text = { type: "string" };
 
 export const MODULE_PASS_SCHEMA = {
   type: "object",
@@ -26,11 +29,24 @@ export const MODULE_PASS_SCHEMA = {
     "failures",
   ],
   properties: {
-    curated: items({ item: text, destination: text }),
-    rederived: items({ item: text, derived: { type: "array", items: text } }),
-    superseded: items({ item: text, destination: text }),
-    parked: items({ item: text, reason: text, evidence: text }),
-    docWrites: items({ file: text, summary: text }),
-    failures: items({ code: text, message: text }),
+    curated: entries({ item: text, destination: text }, [
+      "item",
+      "destination",
+    ]),
+    rederived: entries(
+      { item: text, derived: { type: "array", items: text, minItems: 1 } },
+      ["item", "derived"],
+    ),
+    // A supersession replaces a decision, and only a `curated` one named a destination: the line
+    // superseding a `source-only` decision has no path to give, and demanding one gets a sentence
+    // written where a path goes.
+    superseded: entries({ item: text, destination: text }, ["item"]),
+    parked: entries({ item: text, reason: text, evidence: text }, [
+      "item",
+      "reason",
+      "evidence",
+    ]),
+    docWrites: entries({ file: text, summary: text }, ["file", "summary"]),
+    failures: entries({ code: text, message: text }, ["code", "message"]),
   },
 } as const;

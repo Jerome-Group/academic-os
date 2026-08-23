@@ -49,4 +49,5 @@ export type {
   RetentionPurge,
   RoutineArtifactStore,
   RoutineFailure,
+  SupersededItem,
 } from "./types.js";

@@ -31,6 +31,12 @@ export interface CuratedItem {
   destination: string;
 }
 
+// Only a `curated` decision named a destination, so only a line superseding one can repeat it.
+export interface SupersededItem {
+  item: string;
+  destination?: string;
+}
+
 export interface RederivedItem {
   item: string;
   derived: string[];
@@ -52,7 +58,7 @@ export interface DocWrite {
 export interface ModulePassOutcome {
   curated: CuratedItem[];
   rederived: RederivedItem[];
-  superseded: CuratedItem[];
+  superseded: SupersededItem[];
   parked: ParkedItem[];
   docWrites: DocWrite[];
   failures: RoutineFailure[];

@@ -6,6 +6,7 @@ import type {
   ParkedItem,
   RederivedItem,
   RoutineFailure,
+  SupersededItem,
 } from "./types.js";
 
 // The result file is the only thing the wrapper believes about a session, so a file it cannot read
@@ -25,7 +26,7 @@ export function readModulePassOutcome(contents: string): ModulePassOutcome {
   return {
     curated: entries(result.curated, "curated", placement),
     rederived: entries(result.rederived, "rederived", rederivation),
-    superseded: entries(result.superseded, "superseded", placement),
+    superseded: entries(result.superseded, "superseded", supersession),
     parked: entries(result.parked, "parked", parked),
     docWrites: entries(result.docWrites, "docWrites", docWrite),
     failures: entries(result.failures, "failures", failure),
@@ -50,6 +51,18 @@ function placement(entry: Record<string, unknown>, key: string): CuratedItem {
   return {
     item: text(entry.item, key, "item"),
     destination: text(entry.destination, key, "destination"),
+  };
+}
+
+function supersession(
+  entry: Record<string, unknown>,
+  key: string,
+): SupersededItem {
+  return {
+    item: text(entry.item, key, "item"),
+    ...(entry.destination === undefined
+      ? {}
+      : { destination: text(entry.destination, key, "destination") }),
   };
 }
 

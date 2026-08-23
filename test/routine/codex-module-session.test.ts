@@ -61,6 +61,30 @@ describe("the Codex invocation a module pass runs under", () => {
     ]);
   });
 
+  it("demands of the harness exactly what the parser demands, so neither can accept what the other refuses", () => {
+    const schema = JSON.parse(JSON.stringify(MODULE_PASS_SCHEMA));
+
+    assert.deepEqual(schema.properties.superseded.items.required, ["item"]);
+    assert.deepEqual(schema.properties.curated.items.required, [
+      "item",
+      "destination",
+    ]);
+    const nonEmptyFields: Array<[string, string]> = [
+      ["curated", "item"],
+      ["curated", "destination"],
+      ["parked", "evidence"],
+      ["docWrites", "summary"],
+      ["failures", "message"],
+    ];
+    for (const [bucket, field] of nonEmptyFields) {
+      assert.equal(
+        schema.properties[bucket].items.properties[field].minLength,
+        1,
+        `${bucket}.${field} must refuse the empty string`,
+      );
+    }
+  });
+
   it("expects a module folder rather than a checkout, and ends on the prompt", () => {
     assert.ok(arguments_.includes("--skip-git-repo-check"));
     assert.equal(arguments_.at(-1), "the morning's prompt");

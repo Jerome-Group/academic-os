@@ -44,6 +44,21 @@ describe("reading a module pass's result", () => {
     ]);
   });
 
+  it("reads a supersession that replaced a decision placing no copy", () => {
+    const outcome = readModulePassOutcome(
+      JSON.stringify({
+        curated: [],
+        rederived: [],
+        superseded: [{ item: "source/notice.html" }],
+        parked: [],
+        docWrites: [],
+        failures: [],
+      }),
+    );
+
+    assert.deepEqual(outcome.superseded, [{ item: "source/notice.html" }]);
+  });
+
   it("reads a quiet morning as six empty buckets", () => {
     assert.deepEqual(readModulePassOutcome(emptyMorning), {
       curated: [],

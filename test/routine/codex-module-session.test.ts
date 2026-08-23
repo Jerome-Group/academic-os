@@ -61,10 +61,49 @@ describe("the Codex invocation a module pass runs under", () => {
     ]);
   });
 
+  it("names every property in `required`, which structured-output mode insists on", () => {
+    const unsatisfied: string[] = [];
+    const walk = (node: unknown, path: string): void => {
+      if (typeof node !== "object" || node === null) return;
+      const schema = node as Record<string, unknown>;
+      if (schema.type === "object" && typeof schema.properties === "object") {
+        const properties = Object.keys(
+          schema.properties as Record<string, unknown>,
+        );
+        const required = Array.isArray(schema.required) ? schema.required : [];
+        for (const property of properties) {
+          if (!required.includes(property)) {
+            unsatisfied.push(`${path}.${property}`);
+          }
+        }
+      }
+      for (const [key, value] of Object.entries(schema)) {
+        walk(value, `${path}.${key}`);
+      }
+    };
+
+    walk(JSON.parse(JSON.stringify(MODULE_PASS_SCHEMA)), "schema");
+
+    assert.deepEqual(
+      unsatisfied,
+      [],
+      "an optional field is offered as null and listed in `required`, never omitted",
+    );
+  });
+
   it("demands of the harness exactly what the parser demands, so neither can accept what the other refuses", () => {
     const schema = JSON.parse(JSON.stringify(MODULE_PASS_SCHEMA));
 
-    assert.deepEqual(schema.properties.superseded.items.required, ["item"]);
+    // Structured-output mode requires every property to be listed, so an absent destination is
+    // offered as null rather than omitted.
+    assert.deepEqual(schema.properties.superseded.items.required, [
+      "item",
+      "destination",
+    ]);
+    assert.deepEqual(
+      schema.properties.superseded.items.properties.destination.type,
+      ["string", "null"],
+    );
     assert.deepEqual(schema.properties.curated.items.required, [
       "item",
       "destination",

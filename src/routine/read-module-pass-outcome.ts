@@ -60,7 +60,7 @@ function supersession(
 ): SupersededItem {
   return {
     item: text(entry.item, key, "item"),
-    ...(entry.destination === undefined
+    ...(entry.destination === undefined || entry.destination === null
       ? {}
       : { destination: text(entry.destination, key, "destination") }),
   };

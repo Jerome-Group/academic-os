@@ -4,6 +4,10 @@
 // is a morning the CLI accepts and the wrapper then throws away whole.
 const text = { type: "string", minLength: 1 } as const;
 
+// Structured-output mode requires `required` to name every property, so a field a pass may have no
+// value for cannot be left out — it is offered as null and the parser reads null as absent.
+const optionalText = { type: ["string", "null"], minLength: 1 } as const;
+
 const entries = (
   properties: Record<string, unknown>,
   required: readonly string[],
@@ -40,7 +44,10 @@ export const MODULE_PASS_SCHEMA = {
     // A supersession replaces a decision, and only a `curated` one named a destination: the line
     // superseding a `source-only` decision has no path to give, and demanding one gets a sentence
     // written where a path goes.
-    superseded: entries({ item: text, destination: text }, ["item"]),
+    superseded: entries({ item: text, destination: optionalText }, [
+      "item",
+      "destination",
+    ]),
     parked: entries({ item: text, reason: text, evidence: text }, [
       "item",
       "reason",

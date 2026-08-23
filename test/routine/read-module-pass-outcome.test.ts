@@ -49,7 +49,7 @@ describe("reading a module pass's result", () => {
       JSON.stringify({
         curated: [],
         rederived: [],
-        superseded: [{ item: "source/notice.html" }],
+        superseded: [{ item: "source/notice.html", destination: null }],
         parked: [],
         docWrites: [],
         failures: [],

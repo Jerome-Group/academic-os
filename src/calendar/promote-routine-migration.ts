@@ -1,6 +1,8 @@
 import { OperationalError } from "../operational-error.js";
 import {
   eventContainsPatch,
+  recurrenceMatches,
+  sortedRecurrence,
   isRecurringMaster,
 } from "./calendar-event-helpers.js";
 import { calendarStateDigest } from "./calendar-state-digest.js";
@@ -286,8 +288,7 @@ function isVerifiedMigrationMaster(
   return (
     isRecurringMaster(event) &&
     eventContainsPatch(event, move.patch) &&
-    calendarStateDigest(event.recurrence) ===
-      calendarStateDigest(move.recurringMaster.recurrence) &&
+    recurrenceMatches(event.recurrence, move.recurringMaster.recurrence) &&
     migrationEventDigest(event) ===
       migrationEventDigest({ ...move.recurringMaster, ...move.patch })
   );
@@ -382,8 +383,7 @@ function migrationTargetMatchesSource(
     delete actual[key];
   }
   return (
-    calendarStateDigest(actual.recurrence) ===
-      calendarStateDigest(expected.recurrence) &&
+    recurrenceMatches(actual.recurrence, expected.recurrence) &&
     migrationEventDigest(actual) === migrationEventDigest(expected)
   );
 }
@@ -399,6 +399,9 @@ function migrationEventDigest(event: CalendarEvent): string {
     "sequence",
   ]) {
     delete value[key];
+  }
+  if (Array.isArray(value.recurrence)) {
+    value.recurrence = sortedRecurrence(value.recurrence);
   }
   return calendarStateDigest(value);
 }

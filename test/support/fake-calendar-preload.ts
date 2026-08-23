@@ -22,6 +22,7 @@ interface FakeCalendarState {
   nextId?: number;
   omitCreatedFromIncremental?: boolean;
   patchFailures?: string[];
+  reverseRecurrenceOnPatch?: string[];
   requests?: Array<{
     body?: unknown;
     credential?: string;
@@ -191,6 +192,12 @@ prototype.request = async function (options) {
       ...(events[index] as Record<string, unknown>),
       ...(options.data as Record<string, unknown>),
     };
+    if (
+      state.reverseRecurrenceOnPatch?.includes(eventId) === true &&
+      Array.isArray(event.recurrence)
+    ) {
+      event.recurrence = [...event.recurrence].reverse();
+    }
     events[index] = event;
     publishIncremental(state, calendarId, [event]);
     await writeFile(statePath, `${JSON.stringify(state)}\n`);

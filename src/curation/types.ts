@@ -26,6 +26,9 @@ export interface ObservedCurationSource {
   // Inside the importer root, as found in the mirror now — which is not the path the standing line
   // recorded whenever the importer has renumbered a folder since.
   sourcePath: string;
+  // Module-relative, so it names the destination folder rather than the integration key: this is
+  // the one of the two that a reader can open.
+  location: string;
   sha256: string;
   md5: string;
 }
@@ -34,7 +37,9 @@ export interface ObservedModuleRegister {
   module: string;
   semester: string;
   register: string;
-  importerRoots: readonly string[];
+  // The integration keys a register line records, which is what an item is matched on. The folders
+  // those sources write into are a different vocabulary and belong to the mirror walk alone.
+  integrations: readonly string[];
   // Keyed by contract-v4 identity's path half, which is what the mirror is indexed by.
   sources: ReadonlyMap<string, ObservedCurationSource>;
   // A key two files in the mirror both answer to. Which one a standing line decided cannot be told,
@@ -72,6 +77,9 @@ export interface PlannedCurationMigration {
   // the write can find it again.
   sourcePath: string;
   sourceLocation: string;
+  // What the appended line records as `source_id` — the unnumbered path, with no integration on
+  // the front, so the report names the identity the register will actually carry.
+  becomes: string;
   supersedes: string;
   recordedChecksum: string;
   // What the appended line asserts, and what the write reads the source again to prove.

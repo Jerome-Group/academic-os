@@ -6,6 +6,8 @@ import {
   contextualAssessments,
   contextualWorkspaces,
   declaredImporterRoots,
+  declaredImporterSources,
+  type DeclaredImporterSource,
   readDefinitionIdentity,
   type ValidatedDefinition,
   validateDefinitionShape,
@@ -16,6 +18,7 @@ import type { Finding } from "./types.js";
 const definitionPath = writtenControlPaths.definition;
 export const supportedContractVersion = 4 as const;
 export type { ValidatedDefinition } from "./definition-shape.js";
+export type { DeclaredImporterSource } from "./definition-shape.js";
 
 export interface DefinitionValidation {
   findings: Finding[];
@@ -47,6 +50,17 @@ export function readDefinitionImporterRoots(
   if (source === undefined) return declaredImporterRoots(undefined);
   const parsed = parseDefinitionSource(source);
   return declaredImporterRoots(
+    isRecord(parsed.value) ? parsed.value.sources : undefined,
+  );
+}
+
+// The integration key a register line records, paired with the folders that source writes into.
+export function readDefinitionImporterSources(
+  source: string | undefined,
+): DeclaredImporterSource[] {
+  if (source === undefined) return declaredImporterSources(undefined);
+  const parsed = parseDefinitionSource(source);
+  return declaredImporterSources(
     isRecord(parsed.value) ? parsed.value.sources : undefined,
   );
 }

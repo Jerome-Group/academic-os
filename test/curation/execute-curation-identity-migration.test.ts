@@ -34,7 +34,7 @@ afterEach(async () => {
 const legacyRegister = `${JSON.stringify({
   schema_version: 1,
   source_id: "1DriveFileIdentifier",
-  integration: "NTULearn",
+  integration: "ntulearn",
   role: "handout",
   source_path: sourcePath,
   checksum: `md5:${md5Bytes(placedBytes)}`,
@@ -49,12 +49,13 @@ function observation(register: string): ObservedModuleRegister {
     module: "CC0006",
     semester: "Y2S1",
     register,
-    importerRoots: ["NTULearn"],
+    integrations: ["ntulearn"],
     sources: new Map([
       [
-        "NTULearn/Materials/Graph Theory/handout.pdf",
+        "ntulearn/Materials/Graph Theory/handout.pdf",
         {
           sourcePath,
+          location: `NTULearn/${sourcePath}`,
           sha256: sha256Bytes(placedBytes),
           md5: md5Bytes(placedBytes),
         },

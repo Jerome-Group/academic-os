@@ -78,7 +78,7 @@ function planModule(
   }
   const walked = walkedCurationItems(
     readCurationRegisterEvents(observed.register),
-    observed.importerRoots,
+    observed.integrations,
   );
   const items = standingCurationItems(walked);
   const notation = registerNotation(items);
@@ -194,7 +194,8 @@ function migration(
     key: item.key,
     integration: item.integration,
     sourcePath: item.sourcePath,
-    sourceLocation: `${item.integration}/${decided.source.sourcePath}`,
+    sourceLocation: decided.source.location,
+    becomes: item.unnumberedPath,
     supersedes: item.sourceId,
     recordedChecksum: decided.recorded.value,
     sha256: decided.source.sha256,

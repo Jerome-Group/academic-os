@@ -394,6 +394,8 @@ function validateSources(value: unknown): string[] {
   return problems;
 }
 
+const NTULEARN_INTEGRATION = "ntulearn";
+
 function declaredDestinations(value: Record<string, unknown>): string[] {
   return Array.isArray(value.ntulearn)
     ? value.ntulearn.flatMap((root) =>
@@ -410,6 +412,27 @@ export function declaredImporterRoots(value: unknown): string[] {
       "NTULearn",
       ...(isRecord(value) ? declaredDestinations(value) : []),
     ]),
+  ];
+}
+
+// A Definition's `sources` maps an **integration key** to the roots it writes into, and the two are
+// different vocabularies: a Curation-register line records the key (`ntulearn`), while the folder a
+// walk opens is the destination (`NTULearn`). Reading one where the other belongs matches nothing,
+// so callers that need both take them paired rather than deriving one from the other.
+export interface DeclaredImporterSource {
+  integration: string;
+  destinations: string[];
+}
+
+export function declaredImporterSources(
+  value: unknown,
+): DeclaredImporterSource[] {
+  const destinations = isRecord(value) ? declaredDestinations(value) : [];
+  return [
+    {
+      integration: NTULEARN_INTEGRATION,
+      destinations: [...new Set(["NTULearn", ...destinations])],
+    },
   ];
 }
 

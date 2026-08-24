@@ -16,13 +16,13 @@ const unchangedMd5 = "b".repeat(32);
 const workedSha256 = "c".repeat(64);
 const workedMd5 = "d".repeat(32);
 const recordedPath = "03 Materials/02 Graph Theory/handout.pdf";
-const itemKey = "NTULearn/Materials/Graph Theory/handout.pdf";
+const itemKey = "ntulearn/Materials/Graph Theory/handout.pdf";
 
 function legacyLine(overrides: Record<string, unknown> = {}): string {
   return JSON.stringify({
     schema_version: 1,
     source_id: "1DriveFileIdentifier",
-    integration: "NTULearn",
+    integration: "ntulearn",
     role: "handout",
     source_path: recordedPath,
     checksum: `md5:${unchangedMd5}`,
@@ -44,6 +44,7 @@ function mirror(
       key,
       {
         sourcePath: source.sourcePath ?? recordedPath,
+        location: `NTULearn/${source.sourcePath ?? recordedPath}`,
         sha256: source.sha256,
         md5: source.md5,
       },
@@ -64,7 +65,7 @@ function observed(input: {
     module: "AA1001",
     semester: "Y2S1",
     register: input.lines.length === 0 ? "" : `${input.lines.join("\n")}\n`,
-    importerRoots: ["NTULearn"],
+    integrations: ["ntulearn"],
     sources: input.sources ?? new Map(),
     ambiguousSources: new Set(input.ambiguous ?? []),
   };
@@ -368,7 +369,7 @@ describe("planCurationIdentityMigration", () => {
 
     const standing = standingCurationItems(
       walkedCurationItems(readCurationRegisterEvents(migrated.register), [
-        "NTULearn",
+        "ntulearn",
       ]),
     );
 

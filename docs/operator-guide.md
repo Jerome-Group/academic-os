@@ -554,7 +554,7 @@ The shelf's `Archive/` is invisible to the catch-up, retired books and all — a
 on the shelf, so books live directly on it. Everything else sitting directly on the shelf is read as
 a book, so anything there that is not a cleanly named PDF parks on every run until it is renamed or
 archived. Two exceptions are the mount's own artifacts rather than anything the Owner put there:
-dot-files, and the `Icon\r` Finder writes back whenever a folder icon is set. Neither is a park the
+dot-files, and the `Icon\r` that whatever set a folder's icon writes back. Neither is a park the
 Owner could ever clear, so neither is one (ADR-0010).
 
 A book the index already names by filename is left unread, which is what keeps a run from pulling
@@ -626,7 +626,9 @@ upgrade is migration evidence, not permission to repair or change the contract.
 
 A change to any file under `seed-templates/` leaves every module's copy stale, which audit reports
 as MF-AGENTS-004. `pinned refresh` is the repair that rule names, over the active cohort audit
-already selects:
+already selects. It reads the templates from the checkout it runs in, so run it once the change is
+merged: a module's agents follow the copy in their own `docs/`, and an amended procedure governs
+nothing in the cohort until this has rewritten them.
 
 ```bash
 node dist/src/cli.js pinned refresh --config academic-os.config.json

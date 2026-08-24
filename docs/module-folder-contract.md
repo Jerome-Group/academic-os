@@ -99,12 +99,17 @@ directory requires a decision; it is neither an automatic contract failure nor a
 proposal.
 
 **MF-ROOT-003 (deterministic).** What the mount writes into a folder by itself is not module content,
-and an inventory of a mounted folder omits it: a dot-named **file**, and the zero-byte `Icon\r` a
-custom folder icon leaves behind. Finder writes both back into any directory it displays, so a rule
-reaching them would fail on a folder nobody had done anything wrong to, and no deletion would settle
-it. Only a file is ever one of these — `.scratch` is a dot-name MF-UNIVERSAL-001 requires, and an
-`Icon\r` carrying bytes is content under a name Finder happens to use. The Drive API returns
-neither, so this is the mounted reader's rule alone.
+and a walk that judges what it finds omits it — an inventory this contract is audited against, and
+the arrival walk MF-CURATION-002 governs: a dot-named **file**, and the zero-byte `Icon\r` a custom
+folder icon leaves behind. Finder writes a `.DS_Store` into any directory it displays and whatever
+set a folder's icon writes its `Icon\r` back, so a rule reaching them would fail on a folder nobody
+had done anything wrong to, and no deletion would settle it. Deletion is wrong on its own terms as
+well: an `Icon\r` is a rendered icon rather than debris, so removing one takes a folder's appearance
+away with it. Only a file is ever one of these — `.scratch` is a dot-name MF-UNIVERSAL-001 requires,
+and an `Icon\r` carrying bytes is content under a name Finder happens to use. A walk that only
+accounts for bytes is a different question and is unbound by this rule: repair inventories every
+local-only artifact precisely so a recovery snapshot is complete. The Drive API returns none of
+them, so this rule is the mount's alone.
 
 ## Module controls
 
@@ -502,9 +507,14 @@ the walk saw an item, which is an observation rather than a pointer —
 
 **MF-CURATION-002 (judgment).** Curation preserves an importer source and creates a renamed copy in
 its canonical destination. Every source item becomes one of the decisions its schema version
-carries. Ambiguous placement is shown with evidence and left uncopied until resolved. A source
-update never silently overwrites a curated copy since annotated, graded or otherwise modified; a
-disappeared source does not delete its curated copy and is reported as a discrepancy.
+carries. What the mount writes into an importer root by itself is not a source item: the arrival
+walk passes over what MF-ROOT-003 names, so a mount artifact is neither curated nor parked and
+nothing deletes one. A park nobody could ever clear is not a park —
+[`docs/adr/0010`](adr/0010-the-shelf-migration-is-one-settled-sheet.md) settled that for the
+Textbook shelf, and an importer root asks the same question. Ambiguous placement is shown with
+evidence and left uncopied until resolved. A source update never silently overwrites a curated copy
+since annotated, graded or otherwise modified; a disappeared source does not delete its curated copy
+and is reported as a discrepancy.
 
 **MF-CURATION-003 (judgment).** Where a module issues material both clean and annotated, the
 annotated copy is a second curated item, sharing the clean copy's number and topic and

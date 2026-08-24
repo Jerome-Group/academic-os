@@ -29,6 +29,14 @@ The folder on the RAID0 that is synchronised with Google Drive. It is one local 
 not a second copy to reconcile with the cloud.
 _Avoid_: RAID0 copy, local replica
 
+**Mount artifact**:
+A file that is in a folder because of how the Mac shows the folder rather than because anyone put
+content there — a dot-named file, and the zero-byte `Icon\r` a custom folder icon leaves behind. A
+walk that judges what it finds passes over one wherever it sits, an importer root included, and
+nothing deletes one: whatever wrote it writes it back, and an `Icon\r` is a rendered icon rather
+than debris (MF-ROOT-003). A walk that only accounts for bytes, such as repair's, does collect them.
+_Avoid_: junk, cruft, stray file. Each invites a tidy-up, which is the one response that is wrong.
+
 **The contract**:
 `docs/module-folder-contract.md`, normative. A module folder that disagrees with it is wrong, and
 a rule that is not in it is not a rule.

@@ -173,6 +173,34 @@ describe("inventoryMountedModule", () => {
     });
   });
 
+  it("hands an arrival walk no importer-root mount artifact to decide [MF-CURATION-002]", async () => {
+    const { config, moduleRoot } = await configuredTree();
+    const mirrorRoot = join(moduleRoot, "NTULearn");
+    const lectures = join(mirrorRoot, "03 Lectures");
+    await mkdir(lectures, { recursive: true });
+    await writeFile(join(lectures, "week 1 slides.pdf"), "synthetic fixture");
+    await writeFile(join(mirrorRoot, ".DS_Store"), "finder view state");
+    await writeFile(join(lectures, "Icon\r"), "");
+    const metadataBefore = await metadataSnapshot(moduleRoot);
+
+    const { inventory } = await inventoryMountedModule(config);
+
+    // An importer root is where the artifacts actually are — 1,357 `Icon\r` across the cohort —
+    // and a walk that hands one on is a pass that parks it every morning (#179).
+    recordBehaviorEvidence("MF-CURATION-002", () => {
+      assert.deepEqual(
+        inventory.entries.map(({ path }) => path),
+        [
+          "NTULearn",
+          "NTULearn/03 Lectures",
+          "NTULearn/03 Lectures/week 1 slides.pdf",
+        ],
+      );
+    });
+    // Exempting is the whole of it: an `Icon\r` is a rendered icon, so a delete takes one away.
+    assert.deepEqual(await metadataSnapshot(moduleRoot), metadataBefore);
+  });
+
   it("rejects a missing target and a case-variant target", async () => {
     const { config, moduleRoot } = await configuredTree();
     await rm(moduleRoot, { recursive: true });

@@ -14,7 +14,7 @@ import { afterEach, describe, it } from "node:test";
 import { md5Bytes, sha256Bytes } from "../../src/checksum.js";
 import { writtenControlPaths } from "../../src/conformance/control-paths.js";
 import {
-  readCurationRegisterLines,
+  readCurationRegisterEvents,
   standingCurationItems,
 } from "../../src/curation/index.js";
 import { runCli } from "../support/run-cli.js";
@@ -179,7 +179,7 @@ describe("academic-os curation migrate", () => {
     assert.match(String(report.journal), /journals\/curation-identity\//u);
     const after = await registerOf(fixture, "CC0006");
     assert.ok(after.startsWith(before));
-    const items = standingCurationItems(readCurationRegisterLines(after), [
+    const items = standingCurationItems(readCurationRegisterEvents(after), [
       "NTULearn",
     ]);
     assert.equal(items.length, 1);
@@ -190,7 +190,7 @@ describe("academic-os curation migrate", () => {
       sha256Bytes(Buffer.from(placedBytes, "utf8")),
     );
     assert.equal(
-      items[0]?.standing.event.destination,
+      items[0]?.standing.destination,
       "10 Learning Materials/handout.pdf",
     );
   });

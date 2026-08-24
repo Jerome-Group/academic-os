@@ -1,17 +1,15 @@
 import type { RecordedChecksum } from "./recorded-checksum.js";
 
-export interface CurationRegisterLine {
-  lineNumber: number;
-  text: string;
-  event: Record<string, unknown>;
-}
+// One curation-decision event, read but never re-derived: a superseding line is this object with
+// its identity fields replaced, so a field this pass does not understand still crosses unchanged.
+export type CurationRegisterEvent = Record<string, unknown>;
 
 // Contract v4 identifies an item by its unnumbered source path and the sha-256 of its bytes. A
 // legacy line carries neither half — a Drive file ID and an md5 — so it joins against an arrival
 // walk on nothing and the item reads as new every morning.
 export type CurationIdentity = "contract-v4" | "legacy";
 
-// One item the arrival walk can meet, and the line that currently stands for it. Items are keyed
+// One item the arrival walk can meet, and the event that currently stands for it. Items are keyed
 // by contract-v4 identity's path half, which is the one thing both conventions can be read for.
 export interface CurationItem {
   key: string;
@@ -21,7 +19,7 @@ export interface CurationItem {
   unnumberedPath: string;
   identity: CurationIdentity;
   checksum: RecordedChecksum | undefined;
-  standing: CurationRegisterLine;
+  standing: CurationRegisterEvent;
 }
 
 export interface ObservedCurationSource {

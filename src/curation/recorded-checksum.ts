@@ -4,11 +4,17 @@ export type ChecksumAlgorithm = "sha256" | "md5";
 // `md5:<hex>`, and the seeded Curation Procedure's own example writes the digest alone. Both are
 // read, and a line written back uses the notation its own register already carries, because the
 // arrival walk joins on the recorded string rather than on a parsed digest.
-export interface RecordedChecksum {
-  algorithm: ChecksumAlgorithm | "unrecognised";
+export interface ProvenChecksum {
+  algorithm: ChecksumAlgorithm;
   value: string;
   notation: "bare" | "prefixed";
 }
+
+// A digest in a shape this pass cannot name is read back for its report and never compared: a
+// comparison it cannot make is what makes the line's decision unprovable.
+export type RecordedChecksum =
+  | ProvenChecksum
+  | (Omit<ProvenChecksum, "algorithm"> & { algorithm: "unrecognised" });
 
 const digestLengths = new Map<number, ChecksumAlgorithm>([
   [64, "sha256"],

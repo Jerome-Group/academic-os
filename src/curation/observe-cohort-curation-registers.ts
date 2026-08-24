@@ -17,7 +17,7 @@ import {
   resolveTarget,
 } from "../mounted/index.js";
 import {
-  readCurationRegisterLines,
+  readCurationRegisterEvents,
   standingCurationItems,
 } from "./read-curation-register.js";
 import type {
@@ -130,7 +130,7 @@ function legacyItems(
 ): CurationItem[] {
   try {
     return standingCurationItems(
-      readCurationRegisterLines(register),
+      readCurationRegisterEvents(register),
       importerRoots,
     ).filter(({ identity }) => identity === "legacy");
   } catch {

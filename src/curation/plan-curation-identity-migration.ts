@@ -1,10 +1,14 @@
 import { sha256 } from "../checksum.js";
 import { validateCurationRegister } from "../conformance/validate-curation-register.js";
 import {
-  readCurationRegisterLines,
+  readCurationRegisterEvents,
   standingCurationItems,
 } from "./read-curation-register.js";
-import { type RecordedChecksum, renderChecksum } from "./recorded-checksum.js";
+import {
+  type ProvenChecksum,
+  type RecordedChecksum,
+  renderChecksum,
+} from "./recorded-checksum.js";
 import type {
   CurationDiscrepancy,
   CurationIdentityCounts,
@@ -71,7 +75,7 @@ function planModule(
     return { ...empty, blockers: [finding.evidence] };
   }
   const items = standingCurationItems(
-    readCurationRegisterLines(observed.register),
+    readCurationRegisterEvents(observed.register),
     observed.importerRoots,
   );
   const notation = registerNotation(items);
@@ -82,7 +86,7 @@ function planModule(
     const decided = decideItem(item, observed.sources.get(sourceKey(item)));
     counts[decided.state] += 1;
     if (decided.state === "migrating") {
-      migrations.push(migration(item, decided.source, notation, now));
+      migrations.push(migration(item, decided, notation, now));
     } else if (decided.state !== "contract-v4") {
       discrepancies.push({
         key: item.key,
@@ -102,7 +106,11 @@ function sourceKey(item: CurationItem): string {
 
 type DecidedItem =
   | { state: "contract-v4" }
-  | { state: "migrating"; source: ObservedCurationSource }
+  | {
+      state: "migrating";
+      source: ObservedCurationSource;
+      recorded: ProvenChecksum;
+    }
   | {
       state: "changed" | "unprovable" | "missing-source";
       evidence: string;
@@ -132,7 +140,7 @@ function decideItem(
     };
   }
   return observedDigest(recorded, source) === recorded.value
-    ? { state: "migrating", source }
+    ? { state: "migrating", source, recorded }
     : {
         state: "changed",
         evidence: `The source bytes no longer match the ${recorded.algorithm} the standing line recorded, so this is an update arrival for the curation pass to decide rather than an identity to carry forward.`,
@@ -140,27 +148,27 @@ function decideItem(
 }
 
 function observedDigest(
-  recorded: RecordedChecksum,
+  recorded: ProvenChecksum,
   source: ObservedCurationSource,
 ): string {
   return recorded.algorithm === "md5" ? source.md5 : source.sha256;
 }
 
-// The superseding line is the standing one with its identity fields replaced, so the decision, the
-// destination and every other field the module settled are carried forward exactly rather than
+// The superseding line is the standing event with its identity fields replaced, so the decision,
+// the destination and every other field the module settled are carried forward exactly rather than
 // re-derived. The register stays append-only: nothing already written is touched.
 function migration(
   item: CurationItem,
-  source: ObservedCurationSource,
+  decided: Extract<DecidedItem, { state: "migrating" }>,
   notation: RecordedChecksum["notation"],
   now: string,
 ): PlannedCurationMigration {
-  const checksum = renderChecksum("sha256", source.sha256, notation);
+  const checksum = renderChecksum("sha256", decided.source.sha256, notation);
   const event = {
-    ...item.standing.event,
+    ...item.standing,
     source_id: item.unnumberedPath,
     checksum,
-    evidence: `Identity migration to contract v4: the unnumbered source path and the sha-256 of the source bytes. The ${item.checksum?.algorithm} the superseded line recorded still matches those bytes, so its decision stands and is carried forward unchanged.`,
+    evidence: `Identity migration to contract v4: the unnumbered source path and the sha-256 of the source bytes. The ${decided.recorded.algorithm} the superseded line recorded still matches those bytes, so its decision stands and is carried forward unchanged.`,
     timestamp: now,
     supersedes: item.sourceId,
   };
@@ -169,7 +177,7 @@ function migration(
     integration: item.integration,
     sourcePath: item.sourcePath,
     supersedes: item.sourceId,
-    from: item.checksum === undefined ? "" : item.checksum.value,
+    from: decided.recorded.value,
     to: checksum,
     line: JSON.stringify(event),
   };

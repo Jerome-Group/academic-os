@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   planCurationIdentityMigration,
-  readCurationRegisterLines,
+  readCurationRegisterEvents,
   standingCurationItems,
   unnumberedSourcePath,
   type ObservedCurationSource,
@@ -95,6 +95,35 @@ describe("planCurationIdentityMigration", () => {
     );
     assert.equal(appended.timestamp, now);
     assert.equal(appended.supersedes, "1DriveFileIdentifier");
+  });
+
+  it("carries a rederived line's derived artifacts across untouched", () => {
+    const { module } = planFor(
+      observed(
+        [
+          legacyLine({
+            schema_version: 2,
+            decision: "rederived",
+            destination: undefined,
+            derived: ["docs/adr/0002-graph-conventions.md"],
+          }),
+        ],
+        {
+          "NTULearn/03 Materials/02 Graph Theory/handout.pdf": {
+            sha256: unchangedSha256,
+            md5: unchangedMd5,
+          },
+        },
+      ),
+    );
+
+    const appended: Record<string, unknown> = JSON.parse(
+      module.migrations[0]?.line ?? "{}",
+    );
+    assert.equal(appended.schema_version, 2);
+    assert.equal(appended.decision, "rederived");
+    assert.equal(appended.destination, undefined);
+    assert.deepEqual(appended.derived, ["docs/adr/0002-graph-conventions.md"]);
   });
 
   it("leaves a legacy line whose source bytes differ for the curation walk to decide", () => {
@@ -265,7 +294,7 @@ describe("planCurationIdentityMigration", () => {
     );
 
     const standing = standingCurationItems(
-      readCurationRegisterLines(migrated.register),
+      readCurationRegisterEvents(migrated.register),
       ["NTULearn"],
     );
 

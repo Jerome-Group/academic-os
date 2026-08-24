@@ -15,6 +15,7 @@ export { auditModuleControls } from "./audit-module-controls.js";
 export { auditUniversalStructure } from "./audit-universal-structure.js";
 export {
   readDefinitionContractVersion,
+  readDefinitionImporterRoots,
   supportedContractVersion,
 } from "./validate-definition.js";
 export type {

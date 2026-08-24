@@ -171,6 +171,19 @@ The append-only history of decisions that connect importer items to curated copi
 `00 Module Admin/20 Curation Register.jsonl`.
 _Avoid_: NTULearn state, file inventory
 
+**Register identity**:
+What a curation-register line names its item by, under contract v4: the **unnumbered source path**
+— the item's path inside its importer root with the `NN ` ordering prefix stripped from every
+segment — together with the sha-256 of the source bytes. Both halves are what an arrival walk joins
+a file it finds against.
+_Avoid_: source ID, file ID — a Drive file ID is what a pre-v4 line carried instead
+
+**Identity migration**:
+Bringing a register's pre-v4 lines onto register identity by appending a superseding line to each,
+carrying the decision it supersedes forward unchanged. It decides nothing: an item whose source
+bytes have changed is left for the curation walk to decide as an update arrival.
+_Avoid_: rewrite, backfill — nothing already written is edited
+
 **Monitoring cohort**:
 The modules in the active semester, which are checked continuously. Past and future modules sit
 outside the cohort and change only after a user request or an agent proposal the user accepts.

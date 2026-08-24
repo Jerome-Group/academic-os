@@ -52,14 +52,22 @@ function observation(register: string): ObservedModuleRegister {
     importerRoots: ["NTULearn"],
     sources: new Map([
       [
-        `NTULearn/${sourcePath}`,
-        { sha256: sha256Bytes(placedBytes), md5: md5Bytes(placedBytes) },
+        "NTULearn/Materials/Graph Theory/handout.pdf",
+        {
+          sourcePath,
+          sha256: sha256Bytes(placedBytes),
+          md5: md5Bytes(placedBytes),
+        },
       ],
     ]),
+    ambiguousSources: new Set(),
   };
 }
 
-async function cohort(onDisk: string): Promise<CohortCurationRegisters> {
+async function cohort(
+  onDisk: string,
+  sourceOnDisk: Buffer = placedBytes,
+): Promise<CohortCurationRegisters> {
   // Resolved, because a mounted write proves containment against `realpath` and macOS puts a
   // temporary directory behind a symlink.
   const root = await realpath(
@@ -73,6 +81,9 @@ async function cohort(onDisk: string): Promise<CohortCurationRegisters> {
   const target = join(moduleRoot, registerPath);
   await mkdir(dirname(target), { recursive: true });
   await writeFile(target, onDisk, "utf8");
+  const source = join(moduleRoot, "NTULearn", sourcePath);
+  await mkdir(dirname(source), { recursive: true });
+  await writeFile(source, sourceOnDisk);
   return {
     driveMount,
     stateRoot,
@@ -104,6 +115,33 @@ describe("executeCurationIdentityMigration", () => {
         "utf8",
       ),
       "Something else entirely wrote here.\n",
+    );
+  });
+
+  it("refuses the run when the source moved after the preview hashed it", async () => {
+    const observed = await cohort(
+      legacyRegister,
+      Buffer.from("The handout, reissued between preview and apply.\n", "utf8"),
+    );
+
+    const report = await executeCurationIdentityMigration({
+      plan: planCurationIdentityMigration({
+        modules: [observation(legacyRegister)],
+        now: "2026-08-24T06:00:00.000Z",
+      }),
+      cohort: observed,
+      mode: "apply",
+    });
+
+    assert.equal(report.outcome, "refused");
+    assert.equal(report.appended, 0);
+    assert.match(report.refusals[0] ?? "", /the source changed/u);
+    assert.equal(
+      await readFile(
+        join(observed.moduleRoots.get("CC0006") ?? "", registerPath),
+        "utf8",
+      ),
+      legacyRegister,
     );
   });
 

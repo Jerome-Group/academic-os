@@ -22,6 +22,13 @@ they share, the source path with the importer's `NN ` ordering stripped from eve
 that path is the key items are grouped by. This is what makes a second run over a migrated register
 plan nothing: the standing line is now the appended one, and it already carries v4 identity.
 
+**The mirror is looked up by that same key, not by the path a line recorded.** The number in front
+of a folder is exactly what shifts when material is inserted or renumbered upstream — which is why
+v4 identity strips it — so an item filed under `03` and now sitting under `04` would otherwise
+resolve to nothing and be reported as a missing source for ever. Each importer root is indexed by
+unnumbered path, the superseding line records where the file actually is, and a key two files both
+answer to is reported rather than guessed at.
+
 **Identity is carried forward only where the bytes prove the decision still stands.** The pass
 re-reads each source and compares it against the digest the standing line recorded, in that line's
 own algorithm. Matching bytes mean the decision was made about the material still on the mount, so
@@ -41,6 +48,11 @@ goes looking for.
 recorded string, so a register whose v4 lines are prefixed gets a prefixed line, and one with no v4
 line yet gets the bare digest its procedure documents.
 
+**A new line carries today's schema version.** A version 1 line stays history exactly as it stands
+— that is a rule about not rewriting it, and not a licence to write new ones under a version the
+decision vocabulary has moved past. Everything else on the line crosses untouched, including a
+field this pass does not understand.
+
 ## Consequences
 
 The register grows by one line per migrated item, once. That is the trade this record makes
@@ -52,10 +64,13 @@ that has nothing left to migrate but is still holding such items says so with it
 rather than reporting itself clean.
 
 Every write proves itself under `docs/agents/safe-drive-testing.md` at the mounted tier: the
-register resolves inside the Drive mount, it is an ordinary file, its bytes still hash to what the
-preview read, and the whole proving pass finishes before anything is written. The sources are read
-after the module is materialized, because an undownloaded Drive file reads as empty and hashing
-that would record the checksum of nothing as an item's identity.
+register resolves inside its own module folder on the Drive mount, it is an ordinary file, and its
+bytes still hash to what the preview read — **and so does every source the run is about to name**,
+because the digest a superseding line asserts is the item's identity from then on, and one recorded
+from bytes that have since moved would be re-decided by the very next walk. The whole proving pass
+finishes before anything is written. The sources are read after the module is materialized, because
+an undownloaded Drive file reads as empty and hashing that would record the checksum of nothing as
+an item's identity.
 
 ## Revisit when
 

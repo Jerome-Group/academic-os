@@ -16,6 +16,7 @@ import { writtenControlPaths } from "../../src/conformance/control-paths.js";
 import {
   readCurationRegisterEvents,
   standingCurationItems,
+  walkedCurationItems,
 } from "../../src/curation/index.js";
 import { runCli } from "../support/run-cli.js";
 
@@ -179,9 +180,9 @@ describe("academic-os curation migrate", () => {
     assert.match(String(report.journal), /journals\/curation-identity\//u);
     const after = await registerOf(fixture, "CC0006");
     assert.ok(after.startsWith(before));
-    const items = standingCurationItems(readCurationRegisterEvents(after), [
-      "NTULearn",
-    ]);
+    const items = standingCurationItems(
+      walkedCurationItems(readCurationRegisterEvents(after), ["NTULearn"]),
+    );
     assert.equal(items.length, 1);
     assert.equal(items[0]?.identity, "contract-v4");
     assert.equal(items[0]?.sourceId, unnumberedPath);

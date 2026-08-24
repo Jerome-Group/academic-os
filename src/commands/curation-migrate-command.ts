@@ -93,16 +93,20 @@ function renderHuman(report: CurationIdentityReport): string {
 
 function renderModule(module: CurationIdentityReport["modules"][number]) {
   return [
-    `${module.module}: ${quantity(module.counts.migrating, "legacy line")} to migrate of ${module.counts["contract-v4"] + module.counts.migrating + module.counts.changed + module.counts.unprovable + module.counts["missing-source"]}`,
+    `${module.module}: ${quantity(module.legacyLines, "line")} on legacy identity, ${quantity(module.counts.migrating, "item")} to migrate of ${itemsSeen(module.counts)}`,
     ...module.migrations.map(
-      ({ key, supersedes, to }) =>
-        `  Migrate ${module.module} ${key}: supersedes ${supersedes}, becomes ${key} + ${to}`,
+      ({ key, supersedes, sha256 }) =>
+        `  Migrate ${module.module} ${key}: supersedes ${supersedes}, becomes ${key} + ${sha256}`,
     ),
     ...module.discrepancies.map(
       ({ key, state, evidence }) => `  ${state} ${key}: ${evidence}`,
     ),
     ...module.blockers.map((blocker) => `  Blocked: ${blocker}`),
   ];
+}
+
+function itemsSeen(counts: CurationIdentityReport["counts"]): number {
+  return Object.values(counts).reduce((total, count) => total + count, 0);
 }
 
 function closingLine(report: CurationIdentityReport): string {

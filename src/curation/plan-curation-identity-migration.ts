@@ -3,6 +3,7 @@ import { validateCurationRegister } from "../conformance/validate-curation-regis
 import {
   readCurationRegisterEvents,
   standingCurationItems,
+  walkedCurationItems,
 } from "./read-curation-register.js";
 import {
   type ProvenChecksum,
@@ -62,9 +63,10 @@ function planModule(
   observed: ObservedModuleRegister,
   now: string,
 ): ModuleCurationIdentityPlan {
-  const empty = {
+  const base = {
     module: observed.module,
     semester: observed.semester,
+    legacyLines: 0,
     counts: emptyCounts(),
     migrations: [],
     discrepancies: [],
@@ -72,18 +74,19 @@ function planModule(
   };
   const finding = validateCurationRegister(observed.register);
   if (finding.status !== "pass") {
-    return { ...empty, blockers: [finding.evidence] };
+    return { ...base, blockers: [finding.evidence] };
   }
-  const items = standingCurationItems(
+  const walked = walkedCurationItems(
     readCurationRegisterEvents(observed.register),
     observed.importerRoots,
   );
+  const items = standingCurationItems(walked);
   const notation = registerNotation(items);
   const counts = emptyCounts();
   const migrations: PlannedCurationMigration[] = [];
   const discrepancies: CurationDiscrepancy[] = [];
   for (const item of items) {
-    const decided = decideItem(item, observed.sources.get(sourceKey(item)));
+    const decided = decideItem(item, observed);
     counts[decided.state] += 1;
     if (decided.state === "migrating") {
       migrations.push(migration(item, decided, notation, now));
@@ -97,11 +100,14 @@ function planModule(
       });
     }
   }
-  return { ...empty, counts, migrations, discrepancies, blockers: [] };
-}
-
-function sourceKey(item: CurationItem): string {
-  return `${item.integration}/${item.sourcePath}`;
+  return {
+    ...base,
+    legacyLines: walked.filter(({ identity }) => identity === "legacy").length,
+    counts,
+    migrations,
+    discrepancies,
+    blockers: [],
+  };
 }
 
 type DecidedItem =
@@ -122,13 +128,20 @@ type DecidedItem =
 // leaves the line alone so the curation walk decides it once, in the open.
 function decideItem(
   item: CurationItem,
-  source: ObservedCurationSource | undefined,
+  observed: ObservedModuleRegister,
 ): DecidedItem {
   if (item.identity === "contract-v4") return { state: "contract-v4" };
+  if (observed.ambiguousSources.has(item.key)) {
+    return {
+      state: "unprovable",
+      evidence: `Two files in the mirror answer to ${item.key}, so which of them the standing line decided cannot be told from the register.`,
+    };
+  }
+  const source = observed.sources.get(item.key);
   if (source === undefined) {
     return {
       state: "missing-source",
-      evidence: `No source is at ${sourceKey(item)}, so this pass can compute no sha-256 for it; the standing line and whatever it placed are left exactly as they are.`,
+      evidence: `Nothing in the mirror answers to ${item.key}, so this pass can compute no sha-256 for it; the standing line and whatever it placed are left exactly as they are.`,
     };
   }
   const recorded = item.checksum;
@@ -166,7 +179,12 @@ function migration(
   const checksum = renderChecksum("sha256", decided.source.sha256, notation);
   const event = {
     ...item.standing,
+    // Today's schema, because this is an event written today. Version 1 lines stay history exactly
+    // as they stand; that is a rule about not rewriting them, not a licence to write new ones under
+    // a version the vocabulary has moved past.
+    schema_version: 2,
     source_id: item.unnumberedPath,
+    source_path: decided.source.sourcePath,
     checksum,
     evidence: `Identity migration to contract v4: the unnumbered source path and the sha-256 of the source bytes. The ${decided.recorded.algorithm} the superseded line recorded still matches those bytes, so its decision stands and is carried forward unchanged.`,
     timestamp: now,
@@ -176,9 +194,10 @@ function migration(
     key: item.key,
     integration: item.integration,
     sourcePath: item.sourcePath,
+    sourceLocation: `${item.integration}/${decided.source.sourcePath}`,
     supersedes: item.sourceId,
-    from: decided.recorded.value,
-    to: checksum,
+    recordedChecksum: decided.recorded.value,
+    sha256: decided.source.sha256,
     line: JSON.stringify(event),
   };
 }

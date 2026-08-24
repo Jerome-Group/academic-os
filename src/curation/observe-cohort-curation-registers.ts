@@ -1,13 +1,11 @@
-import { lstat, readFile, realpath } from "node:fs/promises";
-import { join } from "node:path";
+import { readdir } from "node:fs/promises";
+import { join, relative, sep } from "node:path";
 
-import { md5Bytes, sha256Bytes } from "../checksum.js";
 import { planCohortAudit } from "../cohort/index.js";
 import type { AcademicConfig } from "../config/index.js";
 import { writtenControlPaths } from "../conformance/control-paths.js";
 import { readDefinitionImporterRoots } from "../conformance/index.js";
 import { ensureMaterialized } from "../mounted/ensure-materialized.js";
-import { isContainedBy } from "../mounted/is-contained-by.js";
 import {
   type LocalConfig,
   OperationalError,
@@ -16,10 +14,13 @@ import {
   type ResolvedTarget,
   resolveTarget,
 } from "../mounted/index.js";
+import { hashSource } from "./hash-source.js";
 import {
   readCurationRegisterEvents,
   standingCurationItems,
+  walkedCurationItems,
 } from "./read-curation-register.js";
+import { unnumberedSourcePath } from "./unnumbered-source-path.js";
 import type {
   CohortCurationRegisters,
   CurationItem,
@@ -90,6 +91,7 @@ async function observeModule(
     };
   }
   const importerRoots = readDefinitionImporterRoots(controls.definition);
+  const mirror = await indexMirror(resolved.moduleRoot, importerRoots);
   return {
     module: resolved.module,
     moduleRoot: resolved.moduleRoot,
@@ -98,11 +100,10 @@ async function observeModule(
       semester: resolved.semester,
       register,
       importerRoots,
-      sources: await observeSources(
-        resolved.moduleRoot,
-        register,
-        importerRoots,
-      ),
+      ...(await observeSources(resolved.moduleRoot, {
+        mirror,
+        items: legacyItems(register, importerRoots),
+      })),
     },
   };
 }
@@ -112,16 +113,61 @@ async function observeModule(
 // material for no decision it can reach.
 async function observeSources(
   moduleRoot: string,
-  register: string,
-  importerRoots: readonly string[],
-): Promise<Map<string, ObservedCurationSource>> {
+  input: { mirror: MirrorIndex; items: readonly CurationItem[] },
+): Promise<{
+  sources: Map<string, ObservedCurationSource>;
+  ambiguousSources: Set<string>;
+}> {
   const sources = new Map<string, ObservedCurationSource>();
-  for (const item of legacyItems(register, importerRoots)) {
-    const key = `${item.integration}/${item.sourcePath}`;
-    const observed = await hashSource(moduleRoot, key);
-    if (observed !== undefined) sources.set(key, observed);
+  const ambiguousSources = new Set<string>();
+  for (const item of input.items) {
+    const found = input.mirror.get(item.key);
+    if (found === undefined) continue;
+    if (found === ambiguous) {
+      ambiguousSources.add(item.key);
+      continue;
+    }
+    const digests = await hashSource(join(moduleRoot, found.location));
+    if (digests !== undefined) {
+      sources.set(item.key, { sourcePath: found.sourcePath, ...digests });
+    }
   }
-  return sources;
+  return { sources, ambiguousSources };
+}
+
+const ambiguous = Symbol("two files answer to one unnumbered path");
+type MirrorEntry = { sourcePath: string; location: string };
+type MirrorIndex = Map<string, MirrorEntry | typeof ambiguous>;
+
+// The mirror keyed the way contract-v4 identity names it, because the `NN ` prefix a standing line
+// recorded is exactly what shifts when material is inserted or renumbered upstream. Looking an item
+// up by the path it was filed under would miss the files legacy identity fails hardest for.
+async function indexMirror(
+  moduleRoot: string,
+  importerRoots: readonly string[],
+): Promise<MirrorIndex> {
+  const index: MirrorIndex = new Map();
+  for (const integration of importerRoots) {
+    const root = join(moduleRoot, integration);
+    const entries = await readdir(root, {
+      recursive: true,
+      withFileTypes: true,
+    }).catch(() => []);
+    for (const entry of entries) {
+      if (!entry.isFile()) continue;
+      const sourcePath = relative(root, join(entry.parentPath, entry.name))
+        .split(sep)
+        .join("/");
+      const key = `${integration}/${unnumberedSourcePath(sourcePath)}`;
+      index.set(
+        key,
+        index.has(key)
+          ? ambiguous
+          : { sourcePath, location: `${integration}/${sourcePath}` },
+      );
+    }
+  }
+  return index;
 }
 
 function legacyItems(
@@ -130,29 +176,10 @@ function legacyItems(
 ): CurationItem[] {
   try {
     return standingCurationItems(
-      readCurationRegisterEvents(register),
-      importerRoots,
+      walkedCurationItems(readCurationRegisterEvents(register), importerRoots),
     ).filter(({ identity }) => identity === "legacy");
   } catch {
     // A register that will not parse is a blocker the plan reports; nothing is hashed for it.
     return [];
   }
-}
-
-async function hashSource(
-  moduleRoot: string,
-  relativePath: string,
-): Promise<ObservedCurationSource | undefined> {
-  const path = join(moduleRoot, relativePath);
-  if (!isContainedBy(moduleRoot, path)) return undefined;
-  const metadata = await lstat(path).catch(() => undefined);
-  if (metadata === undefined || metadata.isSymbolicLink() || !metadata.isFile())
-    return undefined;
-  const resolvedPath = await realpath(path).catch(() => undefined);
-  if (resolvedPath === undefined || !isContainedBy(moduleRoot, resolvedPath)) {
-    return undefined;
-  }
-  const bytes = await readFile(path).catch(() => undefined);
-  if (bytes === undefined) return undefined;
-  return { sha256: sha256Bytes(bytes), md5: md5Bytes(bytes) };
 }

@@ -9,6 +9,7 @@ import {
   type CurationIdentityJournalSubject,
   openCurationIdentityJournal,
 } from "./curation-identity-journal.js";
+import { hashSource } from "./hash-source.js";
 import type {
   CohortCurationRegisters,
   CurationIdentityPlan,
@@ -50,8 +51,8 @@ export async function executeCurationIdentityMigration(input: {
     };
   }
 
-  // Nothing is written until every register has proved itself, so one file that moved under the
-  // preview refuses the run rather than leaving a cohort half-migrated.
+  // Nothing is written until every register and every source it will name has proved itself, so one
+  // file that moved under the preview refuses the run rather than leaving a cohort half-migrated.
   const proven: ProvenAppend[] = [];
   const refusals: string[] = [];
   for (const module of pending) {
@@ -60,6 +61,7 @@ export async function executeCurationIdentityMigration(input: {
       refusals.push(provedRegister.refusal);
       continue;
     }
+    refusals.push(...(await unprovedSources(module, input.cohort)));
     proven.push({
       module,
       target: provedRegister.target,
@@ -71,6 +73,7 @@ export async function executeCurationIdentityMigration(input: {
   }
 
   const journal = await openCurationIdentityJournal(input.cohort.stateRoot);
+  const migrated = new Set<string>();
   let appended = 0;
   for (const { module, target, contents } of proven) {
     const subject: CurationIdentityJournalSubject = {
@@ -94,12 +97,22 @@ export async function executeCurationIdentityMigration(input: {
         // Earlier registers in this run already carry their new lines, and no rollback can unwrite
         // them without holding every original. The journal is the record of how far it got.
         outcome: appended === 0 ? "refused" : "partially-migrated",
+        counts: partiallyMigratedCounts(input.plan, migrated),
+        modules: input.plan.modules.map((planned) =>
+          migrated.has(planned.module)
+            ? {
+                ...publicModule(planned),
+                counts: migratedModuleCounts(planned),
+              }
+            : publicModule(planned),
+        ),
         appended,
         refusals: [`${module.module} ${registerPath}: ${evidence}`],
         journal: journal.path,
       };
     }
     await journal.append({ ...subject, type: "result", outcome: "appended" });
+    migrated.add(module.module);
     appended += module.migrations.length;
   }
   return {
@@ -109,12 +122,37 @@ export async function executeCurationIdentityMigration(input: {
     modules: input.plan.modules.map((module) => ({
       ...publicModule(module),
       counts: migratedModuleCounts(module),
-      migrations: [],
     })),
     appended,
     refusals: [],
     journal: journal.path,
   };
+}
+
+// Rule 4 of a mounted write: what the plan was built against is read again immediately before the
+// write. The digest a superseding line asserts is the item's identity from then on, so a source
+// that has taken new bytes since the preview would be recorded under a checksum already wrong —
+// and the next arrival walk would re-decide it, which is the loop this pass exists to close.
+async function unprovedSources(
+  module: ModuleCurationIdentityPlan,
+  cohort: CohortCurationRegisters,
+): Promise<string[]> {
+  const moduleRoot = cohort.moduleRoots.get(module.module);
+  if (moduleRoot === undefined) {
+    return [`${module.module}: no module root is configured.`];
+  }
+  const refusals: string[] = [];
+  for (const migration of module.migrations) {
+    const digests = await hashSource(
+      join(moduleRoot, migration.sourceLocation),
+    );
+    if (digests?.sha256 !== migration.sha256) {
+      refusals.push(
+        `${module.module} ${migration.sourceLocation}: the source changed after it was read for this run.`,
+      );
+    }
+  }
+  return refusals;
 }
 
 // The append, and the reading that proves it landed. A register whose bytes are not the ones
@@ -159,9 +197,13 @@ async function proveRegister(
     return { refusal: `${where}: the target is not an ordinary file.` };
   }
   const resolved = await realpath(target).catch(() => undefined);
-  if (resolved === undefined || !isContainedBy(cohort.driveMount, resolved)) {
+  if (
+    resolved === undefined ||
+    !isContainedBy(cohort.driveMount, resolved) ||
+    !isContainedBy(moduleRoot, resolved)
+  ) {
     return {
-      refusal: `${where}: the target resolves outside the Drive mount.`,
+      refusal: `${where}: the target resolves outside its own module folder on the Drive mount.`,
     };
   }
   const current = await readOptional(target);
@@ -173,9 +215,10 @@ async function proveRegister(
   return { target, current };
 }
 
-// Append-only: every line already in the register is reproduced byte for byte, and the superseding
-// lines follow it. A file whose last line was never terminated gets its newline here, so the append
-// starts a line rather than extending one.
+// Append-only: every line already in the register is reproduced exactly as it was read, and the
+// superseding lines follow it. A file whose last line was never terminated gets its newline here,
+// so the append starts a line rather than extending one; a file already using CRLF keeps its own
+// endings and gains LF ones, which every reader of this format splits on either way.
 function appendedRegister(
   current: string,
   module: ModuleCurationIdentityPlan,
@@ -214,5 +257,22 @@ function migratedCounts(
     ...plan.counts,
     "contract-v4": plan.counts["contract-v4"] + plan.counts.migrating,
     migrating: 0,
+  };
+}
+
+// After a run that stopped part-way, `migrating` has to mean what is still owed rather than what
+// the plan started with — the modules already appended to are counted as the contract-v4 they now
+// carry, and a reader can tell how much is left.
+function partiallyMigratedCounts(
+  plan: CurationIdentityPlan,
+  migrated: ReadonlySet<string>,
+): CurationIdentityPlan["counts"] {
+  const done = plan.modules
+    .filter(({ module }) => migrated.has(module))
+    .reduce((total, { counts }) => total + counts.migrating, 0);
+  return {
+    ...plan.counts,
+    "contract-v4": plan.counts["contract-v4"] + done,
+    migrating: plan.counts.migrating - done,
   };
 }

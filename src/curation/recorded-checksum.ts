@@ -32,11 +32,15 @@ export function readRecordedChecksum(
   const algorithm = prefix?.[1];
   const digest = prefix?.[2];
   if (algorithm !== undefined && digest !== undefined) {
-    return {
-      algorithm: algorithm === "md5" ? "md5" : "sha256",
-      value: digest,
-      notation: "prefixed",
-    };
+    // A digest of the wrong length for the algorithm it claims is not a digest this pass can
+    // compare — reporting it as a mismatch would call a truncated record an update arrival.
+    return digestLengths.get(digest.length) === algorithm
+      ? {
+          algorithm: algorithm === "md5" ? "md5" : "sha256",
+          value: digest,
+          notation: "prefixed",
+        }
+      : { algorithm: "unrecognised", value: digest, notation: "prefixed" };
   }
   const named = bareDigest.test(value)
     ? digestLengths.get(value.length)

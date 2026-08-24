@@ -4,6 +4,7 @@ export { planCurationIdentityMigration } from "./plan-curation-identity-migratio
 export {
   readCurationRegisterEvents,
   standingCurationItems,
+  walkedCurationItems,
 } from "./read-curation-register.js";
 export { unnumberedSourcePath } from "./unnumbered-source-path.js";
 export type {

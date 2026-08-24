@@ -794,8 +794,8 @@ of item are reported and deliberately left alone:
 | Reported | The item | Who settles it |
 |---|---|---|
 | `changed` | Its source bytes differ from the checksum the standing line recorded | The curation walk, as an update arrival |
-| `missing-source` | Its source has left the mirror | The Owner, as a discrepancy |
-| `unprovable` | Its standing line records no checksum this pass can compare | The Owner |
+| `missing-source` | Nothing in the mirror answers to its unnumbered path | The Owner, as a discrepancy |
+| `unprovable` | Its standing line records no comparable checksum, or two files answer to its path | The Owner |
 
 | Exit | Meaning |
 |---:|---|
@@ -804,13 +804,18 @@ of item are reported and deliberately left alone:
 | 2 | The run was refused, stopped part-way, a module could not be read, or a register is malformed |
 | 3 | Nothing left to migrate, and items only a decision or a walk can settle remain |
 
+Sources are looked up by their unnumbered path rather than by the path the standing line recorded,
+because that number is exactly what shifts when an importer renumbers a folder — an item filed under
+`03` and now under `04` still migrates, and the new line records where it actually is.
+
 Each write proves itself before it happens, under `docs/agents/safe-drive-testing.md`: the module is
-materialized before any source is hashed, the register resolves inside the Drive mount, it is an
-ordinary file, and its checksum still matches what the preview read. A register that disagrees
-refuses the **run**, not the one module, and the whole proving pass finishes before anything is
-written; the new contents arrive through a temporary and one rename, so no reader meets the file
-half-written. Every append is journalled under `stateRoot` at
-`journals/curation-identity/<run>.jsonl`, carrying the checksum replaced and the checksum written.
+materialized before any source is hashed, the register resolves inside its own module folder on the
+Drive mount, it is an ordinary file, and its checksum still matches what the preview read — as does
+every source the run is about to name. Anything that disagrees refuses the **run**, not the one
+module, and the whole proving pass finishes before anything is written; the new contents arrive
+through a temporary and one rename, so no reader meets the file half-written. Every append is
+journalled under `stateRoot` at `journals/curation-identity/<run>.jsonl`, carrying the checksum
+replaced and the checksum written.
 
 ## Transition a module to the current contract
 

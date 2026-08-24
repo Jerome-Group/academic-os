@@ -23,6 +23,9 @@ export interface CurationItem {
 }
 
 export interface ObservedCurationSource {
+  // Inside the importer root, as found in the mirror now — which is not the path the standing line
+  // recorded whenever the importer has renumbered a folder since.
+  sourcePath: string;
   sha256: string;
   md5: string;
 }
@@ -32,8 +35,11 @@ export interface ObservedModuleRegister {
   semester: string;
   register: string;
   importerRoots: readonly string[];
-  // Keyed as the register records the source: `${integration}/${source_path}`.
+  // Keyed by contract-v4 identity's path half, which is what the mirror is indexed by.
   sources: ReadonlyMap<string, ObservedCurationSource>;
+  // A key two files in the mirror both answer to. Which one a standing line decided cannot be told,
+  // so nothing is written for it.
+  ambiguousSources: ReadonlySet<string>;
 }
 
 export interface UnresolvedCurationModule {
@@ -62,10 +68,14 @@ export type CurationIdentityCounts = Record<CurationIdentityState, number>;
 export interface PlannedCurationMigration {
   key: string;
   integration: string;
+  // As the standing line recorded it, beside where the file actually is now — module-relative, so
+  // the write can find it again.
   sourcePath: string;
+  sourceLocation: string;
   supersedes: string;
-  from: string;
-  to: string;
+  recordedChecksum: string;
+  // What the appended line asserts, and what the write reads the source again to prove.
+  sha256: string;
   // The exact JSON the register gains, so preview and apply are the same bytes.
   line: string;
 }
@@ -81,6 +91,9 @@ export interface CurationDiscrepancy {
 export interface ModuleCurationIdentityPlan {
   module: string;
   semester: string;
+  // Counts are per item, because one item can hold several lines of its own history. This is the
+  // one figure that is per line, so a superseded legacy line is never invisible.
+  legacyLines: number;
   counts: CurationIdentityCounts;
   migrations: PlannedCurationMigration[];
   discrepancies: CurationDiscrepancy[];

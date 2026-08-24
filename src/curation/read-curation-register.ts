@@ -22,24 +22,27 @@ export function readCurationRegisterEvents(
   });
 }
 
+// Every event an arrival walk could meet, in the order the register holds them. An event whose
+// integration is not a declared importer root — `historical-migration`, say — names something no
+// walk goes looking for, so it can never be rediscovered as an arrival and is not one of these.
+export function walkedCurationItems(
+  events: readonly CurationRegisterEvent[],
+  importerRoots: readonly string[],
+): CurationItem[] {
+  return events
+    .map((event) => walkedItem(event, importerRoots))
+    .filter((item): item is CurationItem => item !== undefined);
+}
+
 // One item per contract-v4 path, carrying the event that currently stands for it. The register is
 // append-only history read top to bottom, so the last event about an item is its standing decision
 // and every earlier one is the past that produced it.
 export function standingCurationItems(
-  events: readonly CurationRegisterEvent[],
-  importerRoots: readonly string[],
+  items: readonly CurationItem[],
 ): CurationItem[] {
-  const standing = new Map<string, CurationItem>();
-  for (const event of events) {
-    const item = walkedItem(event, importerRoots);
-    if (item !== undefined) standing.set(item.key, item);
-  }
-  return [...standing.values()];
+  return [...new Map(items.map((item) => [item.key, item])).values()];
 }
 
-// Only what an arrival walk can meet is this pass's business. An event whose integration is not a
-// declared importer root — `historical-migration`, say — names something no walk goes looking for,
-// so it can never be rediscovered as an arrival and is left exactly as it stands.
 function walkedItem(
   event: CurationRegisterEvent,
   importerRoots: readonly string[],

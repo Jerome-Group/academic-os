@@ -38,6 +38,19 @@ export function readDefinitionContractVersion(
     : "unavailable";
 }
 
+// The importer roots a module declares, for a caller that needs where the mirrors are rather than
+// whether the Definition is conformant. An unreadable Definition still yields the root every module
+// has, so a mirror is never missed because its declaration is malformed.
+export function readDefinitionImporterRoots(
+  source: string | undefined,
+): string[] {
+  if (source === undefined) return declaredImporterRoots(undefined);
+  const parsed = parseDefinitionSource(source);
+  return declaredImporterRoots(
+    isRecord(parsed.value) ? parsed.value.sources : undefined,
+  );
+}
+
 export function validateDefinition(
   source: string | undefined,
   expectedCode: string,

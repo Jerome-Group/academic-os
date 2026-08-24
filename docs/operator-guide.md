@@ -3,9 +3,9 @@
 The CLI has `seed`, `audit`, `calendar setup`, pull-only `calendar refresh`, private `calendar
 propose`, explicitly authorised `calendar promote`, `tasks provision`, pull-only `tasks refresh`,
 in-session `tasks create`, `tasks change`, `tasks complete` and `tasks cancel`, additive `textbooks
-catch-up`, the unattended `routine morning`, previewed `pinned refresh` and separately gated
-`repair` commands. It does not
-orchestrate a week of study or evolve a module's instructions on its own.
+catch-up`, the unattended `routine morning`, previewed `pinned refresh`, previewed
+`curation migrate` and separately gated `repair` commands. It does not orchestrate a week of
+study or evolve a module's instructions on its own.
 
 ## Configure
 
@@ -762,6 +762,61 @@ Every rewrite is journalled under `stateRoot` at `journals/pinned-documents/<run
 the checksum replaced and the checksum written. A cohort that was already current writes no journal
 at all.
 
+## Curation register identity
+
+A register line written before contract v4 is keyed by a Drive file ID and an md5. Contract-v4
+identity is the **unnumbered source path** — the item's path inside its importer root with the `NN `
+ordering stripped from every segment — and a **sha-256** the pass computes. A legacy line matches an
+arrival walk on neither half, so the item reads as a fresh arrival every morning and is decided
+again. `curation migrate` is the reviewed pass that finishes that migration once, over the same
+active cohort audit already selects:
+
+```bash
+node dist/src/cli.js curation migrate --config academic-os.config.json
+```
+
+That previews. It says, per module, how many standing lines still carry legacy identity, what each
+one becomes, and which ones it will not touch. Read it before applying — the register is history,
+and what this appends to it is permanent.
+
+```bash
+node dist/src/cli.js curation migrate --config academic-os.config.json --apply
+```
+
+Applying **appends**: each migrated item gains a line carrying contract-v4 identity, the decision
+and destination of the line it supersedes, and that line's identifier in `supersedes`. Nothing
+already written is edited, so the register stays append-only history and a second run over it plans
+nothing further — [`docs/adr/0019-…`](adr/0019-register-identity-migrates-by-superseding-and-decides-nothing-else.md).
+
+Identity moves forward only where the recorded checksum still matches the source bytes. Three kinds
+of item are reported and deliberately left alone:
+
+| Reported | The item | Who settles it |
+|---|---|---|
+| `changed` | Its source bytes differ from the checksum the standing line recorded | The curation walk, as an update arrival |
+| `missing-source` | Nothing in the mirror answers to its unnumbered path | The Owner, as a discrepancy |
+| `unprovable` | Its standing line records no comparable checksum, or two files answer to its path | The Owner |
+
+| Exit | Meaning |
+|---:|---|
+| 0 | Every line an arrival walk can meet carries contract-v4 identity |
+| 1 | Legacy lines remain, and `--apply` would migrate them |
+| 2 | The run was refused, stopped part-way, a module could not be read, or a register is malformed |
+| 3 | Nothing left to migrate, and items only a decision or a walk can settle remain |
+
+Sources are looked up by their unnumbered path rather than by the path the standing line recorded,
+because that number is exactly what shifts when an importer renumbers a folder — an item filed under
+`03` and now under `04` still migrates, and the new line records where it actually is.
+
+Each write proves itself before it happens, under `docs/agents/safe-drive-testing.md`: the module is
+materialized before any source is hashed, the register resolves inside its own module folder on the
+Drive mount, it is an ordinary file, and its checksum still matches what the preview read — as does
+every source the run is about to name. Anything that disagrees refuses the **run**, not the one
+module, and the whole proving pass finishes before anything is written; the new contents arrive
+through a temporary and one rename, so no reader meets the file half-written. Every append is
+journalled under `stateRoot` at `journals/curation-identity/<run>.jsonl`, carrying the checksum
+replaced and the checksum written.
+
 ## Transition a module to the current contract
 
 A module folder whose Definition declares an earlier contract version audits as
@@ -836,5 +891,7 @@ is mutable and therefore is not itself immutable or WORM storage.
   deviation and cannot change the contract.
 - Transition brings one folder to the current contract version on the Owner's yes and leaves
   academic contents where they are.
+- Curation migrate only appends to a register, and never decides an item whose source bytes have
+  changed — that is an update arrival for the curation walk.
 - Run `npm run check`, `npm run rule-coverage:check` and `npm run privacy:check` before publication.
 - Follow `docs/agents/safe-drive-testing.md` before any Drive write or integration test.

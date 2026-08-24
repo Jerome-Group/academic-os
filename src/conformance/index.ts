@@ -16,8 +16,10 @@ export { auditUniversalStructure } from "./audit-universal-structure.js";
 export {
   readDefinitionContractVersion,
   readDefinitionImporterRoots,
+  readDefinitionImporterSources,
   supportedContractVersion,
 } from "./validate-definition.js";
+export type { DeclaredImporterSource } from "./definition-shape.js";
 export type {
   AuditResult,
   ContractRuleId,

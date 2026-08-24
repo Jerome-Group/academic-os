@@ -4,7 +4,10 @@ import { join, relative, sep } from "node:path";
 import { planCohortAudit } from "../cohort/index.js";
 import type { AcademicConfig } from "../config/index.js";
 import { writtenControlPaths } from "../conformance/control-paths.js";
-import { readDefinitionImporterRoots } from "../conformance/index.js";
+import {
+  type DeclaredImporterSource,
+  readDefinitionImporterSources,
+} from "../conformance/index.js";
 import { ensureMaterialized } from "../mounted/ensure-materialized.js";
 import {
   type LocalConfig,
@@ -90,8 +93,9 @@ async function observeModule(
       reason: `No readable control exists at ${writtenControlPaths.curationRegister}.`,
     };
   }
-  const importerRoots = readDefinitionImporterRoots(controls.definition);
-  const mirror = await indexMirror(resolved.moduleRoot, importerRoots);
+  const sources = readDefinitionImporterSources(controls.definition);
+  const integrations = sources.map(({ integration }) => integration);
+  const mirror = await indexMirror(resolved.moduleRoot, sources);
   return {
     module: resolved.module,
     moduleRoot: resolved.moduleRoot,
@@ -99,10 +103,10 @@ async function observeModule(
       module: resolved.module,
       semester: resolved.semester,
       register,
-      importerRoots,
+      integrations,
       ...(await observeSources(resolved.moduleRoot, {
         mirror,
-        items: legacyItems(register, importerRoots),
+        items: legacyItems(register, integrations),
       })),
     },
   };
@@ -129,7 +133,11 @@ async function observeSources(
     }
     const digests = await hashSource(join(moduleRoot, found.location));
     if (digests !== undefined) {
-      sources.set(item.key, { sourcePath: found.sourcePath, ...digests });
+      sources.set(item.key, {
+        sourcePath: found.sourcePath,
+        location: found.location,
+        ...digests,
+      });
     }
   }
   return { sources, ambiguousSources };
@@ -144,27 +152,31 @@ type MirrorIndex = Map<string, MirrorEntry | typeof ambiguous>;
 // up by the path it was filed under would miss the files legacy identity fails hardest for.
 async function indexMirror(
   moduleRoot: string,
-  importerRoots: readonly string[],
+  sources: readonly DeclaredImporterSource[],
 ): Promise<MirrorIndex> {
   const index: MirrorIndex = new Map();
-  for (const integration of importerRoots) {
-    const root = join(moduleRoot, integration);
-    const entries = await readdir(root, {
-      recursive: true,
-      withFileTypes: true,
-    }).catch(() => []);
-    for (const entry of entries) {
-      if (!entry.isFile()) continue;
-      const sourcePath = relative(root, join(entry.parentPath, entry.name))
-        .split(sep)
-        .join("/");
-      const key = `${integration}/${unnumberedSourcePath(sourcePath)}`;
-      index.set(
-        key,
-        index.has(key)
-          ? ambiguous
-          : { sourcePath, location: `${integration}/${sourcePath}` },
-      );
+  for (const { integration, destinations } of sources) {
+    for (const destination of destinations) {
+      const root = join(moduleRoot, destination);
+      const entries = await readdir(root, {
+        recursive: true,
+        withFileTypes: true,
+      }).catch(() => []);
+      for (const entry of entries) {
+        if (!entry.isFile()) continue;
+        const sourcePath = relative(root, join(entry.parentPath, entry.name))
+          .split(sep)
+          .join("/");
+        // Keyed by the integration a register line records, so a mirror entry and the line naming
+        // the same source meet; the location keeps the destination, which is where it actually is.
+        const key = `${integration}/${unnumberedSourcePath(sourcePath)}`;
+        index.set(
+          key,
+          index.has(key)
+            ? ambiguous
+            : { sourcePath, location: `${destination}/${sourcePath}` },
+        );
+      }
     }
   }
   return index;
@@ -172,11 +184,11 @@ async function indexMirror(
 
 function legacyItems(
   register: string,
-  importerRoots: readonly string[],
+  integrations: readonly string[],
 ): CurationItem[] {
   try {
     return standingCurationItems(
-      walkedCurationItems(readCurationRegisterEvents(register), importerRoots),
+      walkedCurationItems(readCurationRegisterEvents(register), integrations),
     ).filter(({ identity }) => identity === "legacy");
   } catch {
     // A register that will not parse is a blocker the plan reports; nothing is hashed for it.

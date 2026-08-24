@@ -95,8 +95,8 @@ function renderModule(module: CurationIdentityReport["modules"][number]) {
   return [
     `${module.module}: ${quantity(module.legacyLines, "line")} on legacy identity, ${quantity(module.counts.migrating, "item")} to migrate of ${itemsSeen(module.counts)}`,
     ...module.migrations.map(
-      ({ key, supersedes, sha256 }) =>
-        `  Migrate ${module.module} ${key}: supersedes ${supersedes}, becomes ${key} + ${sha256}`,
+      ({ sourceLocation, supersedes, becomes, sha256 }) =>
+        `  Migrate ${module.module} ${sourceLocation}: supersedes ${supersedes}, becomes ${becomes} + ${sha256}`,
     ),
     ...module.discrepancies.map(
       ({ key, state, evidence }) => `  ${state} ${key}: ${evidence}`,

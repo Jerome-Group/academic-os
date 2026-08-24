@@ -23,14 +23,18 @@ export function readCurationRegisterEvents(
 }
 
 // Every event an arrival walk could meet, in the order the register holds them. An event whose
-// integration is not a declared importer root — `historical-migration`, say — names something no
-// walk goes looking for, so it can never be rediscovered as an arrival and is not one of these.
+// integration is not a declared one — `historical-migration`, say — names something no walk goes
+// looking for, so it can never be rediscovered as an arrival and is not one of these.
+//
+// The match is against the Definition's **integration keys**, which is what a register line records
+// in `integration`. The destination folders those sources write into are a different vocabulary —
+// `ntulearn` writes into `NTULearn` — and matching a line against one of those keeps nothing.
 export function walkedCurationItems(
   events: readonly CurationRegisterEvent[],
-  importerRoots: readonly string[],
+  integrations: readonly string[],
 ): CurationItem[] {
   return events
-    .map((event) => walkedItem(event, importerRoots))
+    .map((event) => walkedItem(event, integrations))
     .filter((item): item is CurationItem => item !== undefined);
 }
 
@@ -45,7 +49,7 @@ export function standingCurationItems(
 
 function walkedItem(
   event: CurationRegisterEvent,
-  importerRoots: readonly string[],
+  integrations: readonly string[],
 ): CurationItem | undefined {
   const { integration, source_path: sourcePath, source_id: sourceId } = event;
   if (
@@ -54,7 +58,7 @@ function walkedItem(
     typeof sourceId !== "string" ||
     sourcePath === "" ||
     sourceId === "" ||
-    !importerRoots.includes(integration)
+    !integrations.includes(integration)
   ) {
     return undefined;
   }

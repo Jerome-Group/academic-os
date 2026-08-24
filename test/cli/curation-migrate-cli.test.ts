@@ -37,7 +37,7 @@ function legacyLine(overrides: Record<string, unknown> = {}): string {
   return JSON.stringify({
     schema_version: 1,
     source_id: "1DriveFileIdentifier",
-    integration: "NTULearn",
+    integration: "ntulearn",
     role: "handout",
     source_path: sourcePath,
     checksum: `md5:${md5Bytes(Buffer.from(placedBytes, "utf8"))}`,
@@ -153,7 +153,7 @@ describe("academic-os curation migrate", () => {
       ({ module }: { module: string }) => module === "CC0006",
     );
     assert.equal(migrating.counts.migrating, 1);
-    assert.equal(migrating.migrations[0].key, `NTULearn/${unnumberedPath}`);
+    assert.equal(migrating.migrations[0].key, `ntulearn/${unnumberedPath}`);
     assert.equal(migrating.migrations[0].supersedes, "1DriveFileIdentifier");
     assert.equal(migrating.migrations[0].line, undefined);
     assert.equal(await registerOf(fixture, "CC0006"), before);
@@ -181,7 +181,7 @@ describe("academic-os curation migrate", () => {
     const after = await registerOf(fixture, "CC0006");
     assert.ok(after.startsWith(before));
     const items = standingCurationItems(
-      walkedCurationItems(readCurationRegisterEvents(after), ["NTULearn"]),
+      walkedCurationItems(readCurationRegisterEvents(after), ["ntulearn"]),
     );
     assert.equal(items.length, 1);
     assert.equal(items[0]?.identity, "contract-v4");
@@ -260,7 +260,7 @@ describe("academic-os curation migrate", () => {
     );
     assert.match(
       result.stdout,
-      /Migrate CC0006 NTULearn\/Materials\/Graph Theory\/handout\.pdf/u,
+      /Migrate CC0006 NTULearn\/03 Materials\/02 Graph Theory\/handout\.pdf: supersedes 1DriveFileIdentifier, becomes Materials\/Graph Theory\/handout\.pdf/u,
     );
     assert.match(result.stdout, /Preview only\. Re-run with --apply\./u);
   });

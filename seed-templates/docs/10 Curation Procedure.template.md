@@ -1,7 +1,7 @@
 # Curation Procedure
 
 Everything an importer has left for MODULE_CODE, decided and recorded. One pass walks each importer
-root in full, gives every file it finds a line in `00 Module Admin/20 Curation Register.jsonl`, and
+root in full, gives every item it finds a line in `00 Module Admin/20 Curation Register.jsonl`, and
 copies out the files that belong in the module's own directories under their curated names.
 
 One procedure, whatever invoked it: an unattended morning pass and an ad-hoc "curate" run the same
@@ -30,7 +30,11 @@ touches what changed, so the mirror is the complete picture of what has arrived;
 newest timestamp may narrow the walk by modification time, and where the two disagree the walk
 decides.
 
-Join each file found against the register on both halves of its identity:
+**A mount artifact is not an item.** A dot-named file and a zero-byte `Icon\r` are the mount's own,
+never the importer's — `docs/00 Structure and Naming.md` says why. The walk passes over them, so
+each takes no line, is neither curated nor parked, and is left exactly as it is.
+
+Join each item found against the register on both halves of its identity:
 
 | The join | What it means | What the pass does |
 | --- | --- | --- |
@@ -39,7 +43,7 @@ Join each file found against the register on both halves of its identity:
 | Checksum known, path new | Known bytes, filed twice upstream | `source-only`, its evidence naming the original decision |
 | Neither known | A new item | Classify it |
 
-Every file the mirror holds ends the pass carrying a line. A line whose source is no longer in the
+Every item the mirror holds ends the pass carrying a line. A line whose source is no longer in the
 mirror is the join running the other way: the curated copy stays exactly where it is, and the
 missing source is surfaced as a discrepancy.
 

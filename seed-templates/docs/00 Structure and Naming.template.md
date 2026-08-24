@@ -68,6 +68,15 @@ MODULE_CODE/
 
 Module root holds the three control files and nothing loose beside them.
 
+**A mount artifact is not module content.** Finder leaves a `.DS_Store` in any folder it displays,
+and a folder given a custom icon holds a zero-byte `Icon\r` — inside an importer root as much as
+anywhere else. Neither the Owner nor an importer put one there, so no rule here reaches a dot-named
+file or a zero-byte `Icon\r`, no route sees one, and both are left exactly as they are: whatever
+wrote one writes it back, and an `Icon\r` is a rendered folder icon rather than debris, so deleting
+one takes the icon away with it. Only a file is ever a mount artifact — `.scratch/` is a dot-name
+this tree requires, and an `Icon\r` with bytes in it is content under a name the mount happens to
+use.
+
 ## What the Module Definition adds
 
 `00 Module Admin/10 Module Definition.yaml` is the authority for everything the tree above leaves

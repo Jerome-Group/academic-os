@@ -3,23 +3,22 @@
 import { access } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
-import {
-  CALENDAR_REFRESH_LAUNCHD_JOB_NAME,
-  describeCalendarRefreshLaunchdJob,
-} from "../dist/src/calendar/index.js";
 import { installLaunchdJob } from "../dist/src/launchd/index.js";
+import {
+  describeMorningRoutineLaunchdJob,
+  MORNING_ROUTINE_LAUNCHD_JOB_NAME,
+} from "../dist/src/routine/index.js";
 import {
   formatDailyTime,
   planOrRemoveLaunchdJob,
   writeLaunchdJobPreview,
 } from "./launchd-installer-cli.mjs";
 
-const notificationPath = "/usr/bin/osascript";
 const scriptPath = fileURLToPath(import.meta.url);
 const cliPath = fileURLToPath(new URL("../dist/src/cli.js", import.meta.url));
 const runnerModulePath = fileURLToPath(
   new URL(
-    "../dist/src/calendar/calendar-refresh-launchd-runner.js",
+    "../dist/src/routine/morning-routine-launchd-runner.js",
     import.meta.url,
   ),
 );
@@ -37,8 +36,8 @@ try {
 
 async function main() {
   const { removed, dryRun, plan } = await planOrRemoveLaunchdJob({
-    surface: "Calendar Refresh",
-    jobName: CALENDAR_REFRESH_LAUNCHD_JOB_NAME,
+    surface: "Morning routine",
+    jobName: MORNING_ROUTINE_LAUNCHD_JOB_NAME,
     usage,
     describeJob,
   });
@@ -47,8 +46,8 @@ async function main() {
     return;
   }
   if (dryRun) {
-    writeLaunchdJobPreview("calendar refresh schedule", plan, {
-      calendarTimeZone: plan.schedule.timeZone,
+    writeLaunchdJobPreview("routine morning schedule", plan, {
+      offeringTimeZone: plan.schedule.timeZone,
       startCalendarInterval: {
         Hour: plan.schedule.hour,
         Minute: plan.schedule.minute,
@@ -62,6 +61,7 @@ async function main() {
     `${[
       `Installed ${plan.label}.`,
       `Schedule: ${formatDailyTime(plan.schedule)}; launchd catches up after sleep/wake.`,
+      "Sibling: the 05:00 Calendar Refresh is a separate job and is untouched.",
       `Plist: ${plan.plistPath}`,
       `Inspect: launchctl print ${plan.serviceTarget}`,
       `Manual run: launchctl kickstart -k ${plan.serviceTarget}`,
@@ -75,17 +75,15 @@ async function describeJob(configPath) {
     access(configPath),
     access(cliPath),
     access(runnerModulePath),
-    access(notificationPath),
   ]).catch(() => {
     throw new Error(
-      "Calendar Refresh config, built CLI, runner, and osascript must all exist.",
+      "The morning routine's config, built CLI, and runner must all exist.",
     );
   });
-  return describeCalendarRefreshLaunchdJob({
+  return describeMorningRoutineLaunchdJob({
     nodePath: process.execPath,
     runnerModulePath,
     cliPath,
     configPath,
-    notificationPath,
   });
 }

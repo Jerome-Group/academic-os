@@ -16,6 +16,7 @@ Start here: `README.md`, then `AGENTS.md`.
 | Textbook shelf | The shared shelf's index, the one-time sweep/review/rename migration that brings an existing shelf into it, and the deterministic daily catch-up that appends every cleanly named new book and parks the rest | `src/textbooks/`, `src/commands/textbooks-catch-up-command.ts`, `src/commands/textbooks-sweep-command.ts`, `src/commands/textbooks-migrate-command.ts`, `docs/operator-guide.md` |
 | Operations server | The MCP surface the mini serves on the Tailnet — the served task tools, the Streamable-HTTP entry point bound to the tailnet address, and its resident LaunchAgent | `src/operations/`, `scripts/install-operations-server-launchd.mjs`, `docs/machine-setup.md` |
 | Scheduling | The one LaunchAgent installer every scheduled job goes through — a job description in, a timezone-pinned plist and an atomic bootout-first install out | `src/launchd/` |
+| Morning routine | The 06:00 pass on the mini — the deterministic prelude, one headless session per cohort module, the fixed-format dated report, and the day's single issue | `src/routine/`, `scripts/install-morning-routine-launchd.mjs`, `docs/operator-guide.md` |
 | Tests | Public-seam tests using synthetic temporary module trees, plus checks over the documents this repository ships | `test/` |
 | The boundary | Why the folders it describes are not in this repository, and what keeps them out | `docs/adr/0002-…`, `.gitignore` |
 | Issue tracker | The semester's work and this repository's own — GitHub Issues, not a file | the issue tracker |

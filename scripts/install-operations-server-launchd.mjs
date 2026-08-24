@@ -2,22 +2,17 @@
 
 import { access, mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { installLaunchdJob } from "../dist/src/launchd/index.js";
 import {
   describeOperationsServerLaunchdJob,
   OPERATIONS_SERVER_LAUNCHD_JOB_NAME,
 } from "../dist/src/operations/index.js";
 import {
-  installLaunchdJob,
-  launchdJobTarget,
-  planLaunchdJob,
-  removeLaunchdJob,
-} from "../dist/src/launchd/index.js";
-import {
-  parseInstallerArguments,
-  requireLaunchdUid,
+  planOrRemoveLaunchdJob,
+  writeLaunchdJobPreview,
 } from "./launchd-installer-cli.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
@@ -39,43 +34,21 @@ try {
 }
 
 async function main() {
-  const arguments_ = parseInstallerArguments(process.argv.slice(2), usage);
-  const homeDirectory = homedir();
-  const uid = requireLaunchdUid("Operations server");
-  if (arguments_.remove) {
-    const target = launchdJobTarget({
-      name: OPERATIONS_SERVER_LAUNCHD_JOB_NAME,
-      homeDirectory,
-      uid,
-    });
-    await removeLaunchdJob(target);
-    process.stdout.write(`Removed ${target.label}.\n`);
+  const { removed, dryRun, plan } = await planOrRemoveLaunchdJob({
+    surface: "Operations server",
+    jobName: OPERATIONS_SERVER_LAUNCHD_JOB_NAME,
+    usage,
+    describeJob,
+  });
+  if (removed !== undefined) {
+    process.stdout.write(`Removed ${removed.label}.\n`);
     return;
   }
-
-  const plan = planLaunchdJob({
-    description: await describeJob(arguments_.configPath),
-    hostTimeZone: new Intl.DateTimeFormat().resolvedOptions().timeZone,
-    homeDirectory,
-    uid,
-  });
-  if (arguments_.dryRun) {
-    process.stdout.write(
-      `${JSON.stringify(
-        {
-          command: "operations server schedule",
-          outcome: "preview",
-          label: plan.label,
-          keepAlive: plan.schedule.kind === "keep-alive",
-          runAtLoad: plan.runAtLoad,
-          plistPath: plan.plistPath,
-          programArguments: plan.programArguments,
-          plist: plan.plist,
-        },
-        null,
-        2,
-      )}\n`,
-    );
+  if (dryRun) {
+    writeLaunchdJobPreview("operations server schedule", plan, {
+      keepAlive: plan.schedule.kind === "keep-alive",
+      runAtLoad: plan.runAtLoad,
+    });
     return;
   }
 
@@ -95,19 +68,17 @@ async function main() {
 }
 
 async function describeJob(configPath) {
-  const resolvedConfigPath = resolve(configPath);
-  await Promise.all([
-    access(resolvedConfigPath),
-    access(serverModulePath),
-  ]).catch(() => {
-    throw new Error(
-      "The Operations server config and the built server module must both exist.",
-    );
-  });
+  await Promise.all([access(configPath), access(serverModulePath)]).catch(
+    () => {
+      throw new Error(
+        "The Operations server config and the built server module must both exist.",
+      );
+    },
+  );
   return describeOperationsServerLaunchdJob({
     nodePath: process.execPath,
     serverModulePath,
-    configPath: resolvedConfigPath,
+    configPath,
     logPath,
   });
 }

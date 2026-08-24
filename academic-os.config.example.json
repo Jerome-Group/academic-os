@@ -39,6 +39,10 @@
   "textbooks": {
     "shelfRoot": "Modules/Textbooks"
   },
+  "routine": {
+    "codexPath": "/path/to/codex",
+    "ghPath": "/path/to/gh"
+  },
   "driveApi": {
     "moduleFolderIds": {
       "Y2S1": {

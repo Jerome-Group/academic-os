@@ -3,7 +3,8 @@
 The CLI has `seed`, `audit`, `calendar setup`, pull-only `calendar refresh`, private `calendar
 propose`, explicitly authorised `calendar promote`, `tasks provision`, pull-only `tasks refresh`,
 in-session `tasks create`, `tasks change`, `tasks complete` and `tasks cancel`, additive `textbooks
-catch-up`, previewed `pinned refresh` and separately gated `repair` commands. It does not
+catch-up`, the unattended `routine morning`, previewed `pinned refresh` and separately gated
+`repair` commands. It does not
 orchestrate a week of study or evolve a module's instructions on its own.
 
 ## Configure
@@ -64,6 +65,14 @@ mini under the same pair.
 `textbooks catch-up` needs `textbooks.shelfRoot` — the Textbook shelf relative to the Drive mount,
 beside the semester roots. It reads the shelf and writes only the shelf's own `00 Index.yaml`, so
 it needs no credentials at all.
+
+`routine morning` needs `routine.codexPath` and `routine.ghPath` — absolute paths to the Codex CLI
+it runs each Module pass under and to the `gh` CLI it raises the morning's issue through. Both are
+paths rather than names because a LaunchAgent runs with a minimal `PATH` and would find neither at
+06:00. The Codex CLI ships inside the ChatGPT desktop app, at
+`/Applications/ChatGPT.app/Contents/Resources/codex`; `~/.local/bin/codex` may still point at a
+standalone `Codex.app` that no longer exists, so name the binary rather than the symlink. It uses the Tasks scheduled-read credential and nothing else of its own; `gh` uses whatever
+login `gh auth status` reports on the mini.
 
 This checkout includes `scripts/setup-calendar-local.sh`, which walks through the two sequential
 Google approvals, private config update, setup preview, explicit setup apply, initial Refresh and
@@ -561,6 +570,92 @@ A book the index already names by filename is left unread, which is what keeps a
 the whole shelf down the Drive mount. Replacing a copy in place under its old name therefore leaves
 its entry and its old checksum standing; the disagreement surfaces at the next cut from that book,
 where the Textbook procedure verifies the checksum before it cuts.
+
+## Morning routine
+
+One firing curates overnight arrivals across the monitoring cohort and leaves the Owner either
+silence or a single issue. Run it by hand on the mini to watch it:
+
+```sh
+node dist/src/cli.js routine morning --config academic-os.config.json
+```
+
+The order is fixed and every step is isolated from the next. First the deterministic prelude: the
+Shelf catch-up applies its clean appends and parks the rest, then every cohort module's Task
+register is pulled from its live list. Then one headless Codex session per module, in sequence, each
+running that module's own seeded curation procedure in its own folder. A session that fails, breaks
+or hangs past twenty minutes becomes a failure line and the next module starts; there is no same-day
+retry, because tomorrow's pass is idempotent and self-heals. The routine never compiles LaTeX, never
+creates a task, and never writes to Google.
+
+Each session runs on `gpt-5.6-luna` at maximum reasoning effort, sandboxed to the module folder it
+was pointed at and nothing wider. Model, effort and sandbox are all stated on the command line
+rather than taken from the machine's `~/.codex/config.toml`, so retuning Codex for something else on
+the mini cannot change what curates the degree. The pass reports through its final message, which
+the CLI validates against a schema and writes to `result.json` itself — the model is never asked to
+remember a file (ADR-0018).
+
+Then the routine purges its own exhaust — session directories older than seven days, reports older
+than thirty — and writes the day's report.
+
+### What lands where
+
+Under `stateRoot`, both named by the offering's calendar day:
+
+- `routine/reports/<date>.md` — the morning's full report, every day, in one fixed format: the
+  prelude's two steps, then per module its curated, rederived, superseded, parked, doc writes and
+  failures, then what the purge removed.
+- `routine/sessions/<date>/<module>/` — that pass's `result.json`, the `result-schema.json` it was
+  held to, and its `session.log`. The report is built from the result; the log is there for the
+  morning the result is the argument (ADR-0018).
+
+Nothing outside those two directories is ever purged, and inside them only entries named for a
+calendar day are (ADR-0018).
+
+### The morning's issue
+
+When the morning parked something, wrote a module `CONTEXT.md` or ADR, or hit a failure, the routine
+raises **one** issue on this tracker titled `Morning report <date>`, labelled `ready-for-human` and
+`decision`, carrying the same report text as its body. It searches for that title before creating,
+so a second firing on the same day finds the first issue rather than raising another. A morning with
+none of those three raises nothing — silence is the good outcome, and the report still lands.
+
+A run that never fired, or one that could not reach GitHub, looks from the Owner's side exactly like
+a quiet morning. That ambiguity is accepted for now; the report on the mini is what distinguishes
+them, and the exit code is nonzero when the morning had something to say and no issue carries it.
+
+### Install the 06:00 LaunchAgent (macOS)
+
+Build first, then preview the job:
+
+```sh
+node scripts/install-morning-routine-launchd.mjs --config "$PWD/academic-os.config.json" --dry-run
+```
+
+Then install it. The Mac's timezone must be `Asia/Singapore`; the installer refuses otherwise, since
+the schedule is pinned to the offering's clock:
+
+```sh
+node scripts/install-morning-routine-launchd.mjs --config "$PWD/academic-os.config.json"
+```
+
+It writes `com.jerome-group.academic-os.morning-routine` into `~/Library/LaunchAgents`, boots out any
+running copy first, and bootstraps the new plist into the user's GUI domain. `StartCalendarInterval`
+at 06:00, `RunAtLoad` false, both streams to `/dev/null` — the dated report is the record. launchd's
+stock coalescing applies: a slept-through 06:00 runs once on wake, and time powered off or logged
+out is not made up.
+
+The 05:00 Calendar Refresh is a separate LaunchAgent and this installer never touches it.
+
+```sh
+node scripts/install-morning-routine-launchd.mjs --remove
+```
+
+Force a run without waiting for tomorrow:
+
+```sh
+launchctl kickstart -k gui/$(id -u)/com.jerome-group.academic-os.morning-routine
+```
 
 ## Seed
 

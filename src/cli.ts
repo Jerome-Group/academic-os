@@ -18,6 +18,7 @@ import { runTextbooksCatchUpCommand } from "./commands/textbooks-catch-up-comman
 import { runTextbooksMigrateCommand } from "./commands/textbooks-migrate-command.js";
 import { runTextbooksSweepCommand } from "./commands/textbooks-sweep-command.js";
 import { runRepairCommand } from "./commands/repair-command.js";
+import { runRoutineMorningCommand } from "./commands/routine-morning-command.js";
 
 const arguments_ = process.argv.slice(2);
 const json = arguments_.includes("--json");
@@ -49,6 +50,8 @@ try {
     await runTextbooksSweepCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "textbooks" && arguments_[1] === "migrate") {
     await runTextbooksMigrateCommand(arguments_.slice(1), json);
+  } else if (arguments_[0] === "routine" && arguments_[1] === "morning") {
+    await runRoutineMorningCommand(arguments_.slice(1), json);
   } else {
     await runAuditCommand(arguments_, json);
   }

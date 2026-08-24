@@ -786,7 +786,7 @@ node dist/src/cli.js curation migrate --config academic-os.config.json --apply
 Applying **appends**: each migrated item gains a line carrying contract-v4 identity, the decision
 and destination of the line it supersedes, and that line's identifier in `supersedes`. Nothing
 already written is edited, so the register stays append-only history and a second run over it plans
-nothing further — [`docs/adr/0018-…`](adr/0018-register-identity-migrates-by-superseding-and-decides-nothing-else.md).
+nothing further — [`docs/adr/0019-…`](adr/0019-register-identity-migrates-by-superseding-and-decides-nothing-else.md).
 
 Identity moves forward only where the recorded checksum still matches the source bytes. Three kinds
 of item are reported and deliberately left alone:

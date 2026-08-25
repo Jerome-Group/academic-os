@@ -96,11 +96,12 @@ the placed copy holds its ground.
 
 ## When a source has left
 
-A standing line whose source the walk did not meet gets a `withdrawn` line: the source is gone from
-the mirror and the item is closed. That line says that and only that. Whatever the item already
-placed stays exactly where it is, and a `withdrawn` line supersedes nothing, so the line that
-placed the copy remains the record of where the item went. A withdrawn item is settled for every
-later pass, which is how a source that is never coming back stops being reported every morning.
+An open item whose source the walk did not meet gets a `withdrawn` line: the source is gone from the
+mirror and the item is closed. That line says that and only that. Whatever the item already placed
+stays exactly where it is, and a `withdrawn` line supersedes nothing, so the line that placed the
+copy remains the record of where the item went. A withdrawn item is settled for every later pass, so
+a pass that still finds nothing leaves it alone — which is how a source that is never coming back
+stops being reported every morning.
 
 **Withdraw only from a walk that completed.** Every importer root the Module Definition declares was
 read end to end, or there is no withdrawal to write. A root that would not read, or an importer that

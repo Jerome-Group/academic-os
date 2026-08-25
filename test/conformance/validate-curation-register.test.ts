@@ -116,6 +116,9 @@ describe("validateCurationRegister", () => {
     const superseding = validateCurationRegister(
       withdrawn({ supersedes: "Lectures/Graph Theory/slides.pdf" }),
     );
+    const hashing = validateCurationRegister(
+      withdrawn({ checksum: "a".repeat(64) }),
+    );
 
     assert.match(
       placing.evidence,
@@ -129,7 +132,11 @@ describe("validateCurationRegister", () => {
       superseding.evidence,
       /Line 1 withdrawn decision supersedes nothing: the line that placed the copy stays the record of where the item went\./u,
     );
-    for (const finding of [placing, deriving, superseding]) {
+    assert.match(
+      hashing.evidence,
+      /Line 1 withdrawn decision records no checksum: its source is not there to hash\./u,
+    );
+    for (const finding of [placing, deriving, superseding, hashing]) {
       assert.equal(finding.status, "fail");
     }
   });

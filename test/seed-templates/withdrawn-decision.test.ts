@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { describe, it } from "node:test";
 
+import { recordBehaviorEvidence } from "../support/rule-evidence.js";
+
 // The arrival walk is a procedure an agent follows rather than code this repository runs, so the
 // pinned text is where a withdrawal's safety is either held or lost. #186 is what losing the
 // decision cost: one standing line whose source upstream had renamed away parked identically every
@@ -24,11 +26,25 @@ describe("the seeded procedure's withdrawn decision", () => {
     assert.equal(/surfaced as a discrepancy/u.test(text), false);
   });
 
-  it("leaves the copy the item placed exactly where it is", async () => {
+  it("leaves the copy the item placed exactly where it is [MF-CURATION-002]", async () => {
     const text = await procedure();
 
-    assert.match(text, /Whatever the item already\s+placed stays exactly/u);
-    assert.match(text, /a `withdrawn` line supersedes nothing/u);
+    recordBehaviorEvidence("MF-CURATION-002", () => {
+      assert.match(text, /Whatever the item already placed\s+stays exactly/u);
+      assert.match(text, /a `withdrawn` line supersedes nothing/u);
+    });
+  });
+
+  // The clause that ends the daily report: a withdrawn item is decided, so the next pass that still
+  // finds nothing writes no second line about it.
+  it("closes the item against every later pass", async () => {
+    const text = await procedure();
+
+    assert.match(text, /An open item whose source the walk did not meet/u);
+    assert.match(
+      text,
+      /A withdrawn item is settled for every later pass, so\s+a pass that still finds nothing leaves it alone/u,
+    );
   });
 
   // The two safeties, and the reason the decision is safe to take unattended: a mirror missing many

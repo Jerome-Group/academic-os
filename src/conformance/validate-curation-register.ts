@@ -79,7 +79,7 @@ function validateEvent(value: unknown, line: number): string[] {
   const declared = readDecisions(value.schema_version);
   if (declared === undefined) {
     problems.push(
-      `Line ${line} has unsupported schema_version ${JSON.stringify(value.schema_version)}; supported versions are ${listed(supportedVersions)}.`,
+      `Line ${line} has unsupported schema_version ${JSON.stringify(value.schema_version)}; supported versions are ${joinedWithAnd(supportedVersions)}.`,
     );
   }
   // A line whose version says nothing is still read for its decision, against the newest
@@ -150,10 +150,17 @@ function outcomeProblems(
   // A withdrawal closes the item's source and settles nothing about the copy that source produced.
   // Superseding the line that placed the copy would take the record of where the item went off the
   // top of the register, which reads as the deletion MF-CURATION-002 promises never happens.
-  if (value.decision === "withdrawn" && value.supersedes !== undefined) {
-    problems.push(
-      `Line ${line} withdrawn decision supersedes nothing: the line that placed the copy stays the record of where the item went.`,
-    );
+  if (value.decision === "withdrawn") {
+    if (value.supersedes !== undefined) {
+      problems.push(
+        `Line ${line} withdrawn decision supersedes nothing: the line that placed the copy stays the record of where the item went.`,
+      );
+    }
+    if (value.checksum !== undefined) {
+      problems.push(
+        `Line ${line} withdrawn decision records no checksum: its source is not there to hash.`,
+      );
+    }
   }
   return problems;
 }
@@ -176,10 +183,8 @@ function derivedProblems(derived: unknown, line: number): string[] {
   });
 }
 
-function listed(versions: readonly number[]): string {
-  return versions.length < 2
-    ? versions.join("")
-    : `${versions.slice(0, -1).join(", ")} and ${versions.at(-1)}`;
+function joinedWithAnd(versions: readonly number[]): string {
+  return `${versions.slice(0, -1).join(", ")} and ${versions.at(-1)}`;
 }
 
 function readDecisions(schemaVersion: unknown): string[] | undefined {

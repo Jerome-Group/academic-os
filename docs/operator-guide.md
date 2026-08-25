@@ -794,8 +794,11 @@ of item are reported and deliberately left alone:
 | Reported | The item | Who settles it |
 |---|---|---|
 | `changed` | Its source bytes differ from the checksum the standing line recorded | The curation walk, as an update arrival |
-| `missing-source` | Nothing in the mirror answers to its unnumbered path | The Owner, as a discrepancy |
+| `missing-source` | Nothing in the mirror answers to its unnumbered path | The curation walk, as a withdrawal |
 | `unprovable` | Its standing line records no comparable checksum, or two files answer to its path | The Owner |
+
+An item the walk has already withdrawn is closed and drops out of these counts altogether, legacy
+lines and all — [`docs/adr/0020-…`](adr/0020-a-source-that-has-left-the-mirror-is-withdrawn.md).
 
 | Exit | Meaning |
 |---:|---|

@@ -10,8 +10,9 @@ MF-CURATION-002 quotes it for.
 Unnumbered identity does not rescue it.
 [`0019`](0019-register-identity-migrates-by-superseding-and-decides-nothing-else.md) strips the
 `NN ` ordering prefix so an item that moved from one position to the next is not "reported as a
-missing source for ever", and it names that phrase as the failure mode to design against. A rename changes the words behind the number, so both halves of the identity differ and the
-join fails anyway. The gap was never the key; it was that the vocabulary had no decision for a
+missing source for ever", and it names that phrase as the failure mode to design against. A rename
+changes the words behind the number, so both halves of the identity differ and the join fails
+anyway. The gap was never the key; it was that the vocabulary had no decision for a
 source that is gone.
 
 `withdrawn` is that decision, at register `schema_version` 3.
@@ -64,6 +65,10 @@ carry 3 from this record forward.
 The identity migration stops planning anything for a withdrawn item, including counting the legacy
 lines behind it. Those lines are closed history: reporting them would have the run claim work
 nothing will ever do, and exit clean while saying so.
+
+Every module's copy of the Curation Procedure is stale until `pinned refresh` rewrites it, so the
+cohort follows the four decisions until that has run — `docs/operator-guide.md` § **Pinned refresh**
+is the step.
 
 ## Revisit when
 

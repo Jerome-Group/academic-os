@@ -10,13 +10,13 @@ import {
   createCohortPrelude,
   createFileRoutineArtifactStore,
   createGhMorningIssue,
-  type ModulePassReport,
   type MorningRoutineReport,
   offeringCalendarDay,
   type PreludeStepReport,
   runMorningRoutine,
 } from "../routine/index.js";
 import { parseArgumentTokens } from "./argument-tokens.js";
+import { renderModulePassSummary } from "./render-module-pass-summary.js";
 
 const usage = "Usage: academic-os routine morning --config <path> [--json]";
 
@@ -75,7 +75,7 @@ function renderHuman(report: MorningRoutineReport): string {
   return [
     `Morning routine ${report.date}: ${report.outcome}`,
     ...report.prelude.map(renderPreludeStep),
-    ...report.modules.map(renderModule),
+    ...report.modules.map(renderModulePassSummary),
     `Purged ${report.purge.sessions.length} session days and ${report.purge.reports.length} reports`,
     `Report: ${report.report ?? "not written"}`,
     `Issue: ${report.issue.outcome}${report.issue.number === null ? "" : ` (#${report.issue.number})`}`,
@@ -86,8 +86,4 @@ function renderPreludeStep(step: PreludeStepReport): string {
   return `${step.step}: ${step.outcome}; ${step.parked} parked${
     step.failure === undefined ? "" : `; ${step.failure.code}`
   }`;
-}
-
-function renderModule(module: ModulePassReport): string {
-  return `${module.module} (${module.semester}): ${module.curated.length} curated, ${module.rederived.length} rederived, ${module.superseded.length} superseded, ${module.parked.length} parked, ${module.docWrites.length} doc writes, ${module.failures.length} failures`;
 }

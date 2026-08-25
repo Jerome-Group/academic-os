@@ -6,8 +6,9 @@ outside a module folder is governed too, and it is the only one: the shared Text
 `Modules/Textbooks`, which every module cuts its chapters from.
 
 **Contract version: 4.** Increase it when a normative requirement, applicability rule or allowed
-structure changes. Editorial clarification and repaired citations do not change it. Definition
-schema versions advance independently.
+structure changes. Editorial clarification and repaired citations do not change it. Definition and
+Curation-register schema versions advance independently, which is how the register reached version 2
+while this contract stayed at 4.
 
 Rules have stable IDs. **Deterministic** rules are decided without judgment; **judgment** rules
 must expose their evidence for an agent or person to resolve. The folders live outside this
@@ -271,8 +272,8 @@ Version 3 adds the fifth decision `withdrawn`: the item's source has left the im
 the item is closed. It records what became of the **source** and settles nothing about the copy —
 whatever the item already placed stays exactly where it is, which is MF-CURATION-002's standing
 rule rather than an exception to it. A `withdrawn` line therefore names no `destination`, no
-`derived` and no `supersedes`, so the line that placed the copy remains the register's record of
-where the item went.
+`derived`, no `checksum` — its source is not there to hash — and no `supersedes`, so the line that
+placed the copy remains the register's record of where the item went.
 
 Every version is valid in one file. A version 1 or version 2 line stays history exactly as it
 stands, so nothing migrates one and a register mixing versions is conformant.
@@ -532,7 +533,8 @@ read, or an importer that half-ran, leaves a mirror missing sources the site sti
 that could not finish reports a failure and withdraws nothing, and a walk finding many standing
 sources gone at once is an ambiguity to park rather than a run of withdrawals. Precedent governs a
 withdrawal as it governs every other decision: the first in a module is the Owner's ruling, and
-later ones follow it.
+later ones follow it —
+[`docs/adr/0020`](adr/0020-a-source-that-has-left-the-mirror-is-withdrawn.md).
 
 **MF-CURATION-003 (judgment).** Where a module issues material both clean and annotated, the
 annotated copy is a second curated item, sharing the clean copy's number and topic and

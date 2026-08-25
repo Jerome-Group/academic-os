@@ -31,7 +31,7 @@ describe("the module session's prompt", () => {
     assert.match(prompt, /belongs in `docWrites`/u);
   });
 
-  it("names the seven lists the final message carries, without restating their schema", () => {
+  it("names the eight lists the final message carries, without restating their schema", () => {
     for (const bucket of [
       "curated",
       "rederived",
@@ -40,6 +40,7 @@ describe("the module session's prompt", () => {
       "parked",
       "docWrites",
       "failures",
+      "noted",
     ]) {
       assert.match(prompt, new RegExp(`\`${bucket}\``, "u"));
     }
@@ -54,6 +55,22 @@ describe("the module session's prompt", () => {
     );
     assert.match(prompt, /read every importer root end to end/u);
     assert.match(prompt, /many standing sources have gone at once/u);
+  });
+
+  it("draws the line the pass has to apply between a park and a note", () => {
+    assert.match(
+      prompt,
+      /`parked` is what the Owner settles, `noted` is what the Owner is told/u,
+    );
+    assert.match(prompt, /asks nothing of the Owner/u);
+    assert.match(prompt, /correct now and stays correct/u);
+  });
+
+  it("sends a diverged placed copy holding its ground to `noted`", () => {
+    assert.match(
+      prompt,
+      /A placed copy that has diverged from its source and is holding its ground is `noted`/u,
+    );
   });
 
   it("leaves tasks and compilation to the surfaces that own them", () => {

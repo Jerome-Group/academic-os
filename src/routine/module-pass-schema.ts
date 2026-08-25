@@ -32,6 +32,7 @@ export const MODULE_PASS_SCHEMA = {
     "parked",
     "docWrites",
     "failures",
+    "noted",
   ],
   properties: {
     curated: entries({ item: text, destination: text }, [
@@ -59,5 +60,8 @@ export const MODULE_PASS_SCHEMA = {
     ]),
     docWrites: entries({ file: text, summary: text }, ["file", "summary"]),
     failures: entries({ code: text, message: text }, ["code", "message"]),
+    // A note is read and never actioned, so it names no evidence: the `note` is the whole of what
+    // the Owner is told, and a field for settling it would be a field nothing ever settles.
+    noted: entries({ item: text, note: text }, ["item", "note"]),
   },
 } as const;

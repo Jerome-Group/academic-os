@@ -55,13 +55,22 @@ export interface ParkedItem {
   evidence: string;
 }
 
+// A fact about the module that is correct now and stays correct. It carries no `evidence` because
+// evidence exists to let the Owner settle something, and a note asks them to settle nothing — the
+// note states the fact in full and is read rather than actioned.
+export interface NotedItem {
+  item: string;
+  note: string;
+}
+
 export interface DocWrite {
   file: string;
   summary: string;
 }
 
 // What one module's session reports back — the curation decisions it took, the module docs it
-// wrote unattended, and the failures it hit. A session that dies reports failures and nothing else.
+// wrote unattended, the failures it hit, and what it observed without owing the Owner a decision.
+// A session that dies reports failures and nothing else.
 export interface ModulePassOutcome {
   curated: CuratedItem[];
   rederived: RederivedItem[];
@@ -70,6 +79,7 @@ export interface ModulePassOutcome {
   parked: ParkedItem[];
   docWrites: DocWrite[];
   failures: RoutineFailure[];
+  noted: NotedItem[];
 }
 
 export interface ModulePassReport extends ConfiguredModule, ModulePassOutcome {

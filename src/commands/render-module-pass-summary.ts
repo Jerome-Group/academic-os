@@ -12,6 +12,7 @@ export function renderModulePassSummary(module: ModulePassReport): string {
     ["parked", module.parked.length],
     ["doc writes", module.docWrites.length],
     ["failures", module.failures.length],
+    ["noted", module.noted.length],
   ];
   return `${module.module} (${module.semester}): ${counts
     .map(([name, count]) => `${count} ${name}`)

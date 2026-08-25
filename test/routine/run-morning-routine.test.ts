@@ -28,6 +28,7 @@ const quietPass: ModulePassOutcome = {
   parked: [],
   docWrites: [],
   failures: [],
+  noted: [],
 };
 
 function syntheticMorning(overrides: {
@@ -137,6 +138,16 @@ const parkedPass: ModulePassOutcome = {
   ...quietPass,
   parked: [
     { item: "source/odd.zip", reason: "no precedent", evidence: "cited" },
+  ],
+};
+
+const notedPass: ModulePassOutcome = {
+  ...quietPass,
+  noted: [
+    {
+      item: "source/worked-handout.pdf",
+      note: "The placed copy has diverged from its source and holds its ground.",
+    },
   ],
 };
 
@@ -272,6 +283,37 @@ describe("the morning's issue policy", () => {
     assert.deepEqual(report.issue, { outcome: "not-needed", number: null });
     assert.equal(morning.raised.length, 0);
     assert.equal(morning.rendered.length, 1);
+  });
+
+  it("leaves the morning quiet when a pass only noted something", async () => {
+    const morning = syntheticMorning({ passes: { CD5678: notedPass } });
+
+    const report = await runMorningRoutine({
+      date,
+      modules: cohort,
+      ...morning,
+    });
+
+    assert.equal(report.outcome, "quiet");
+    assert.deepEqual(report.issue, { outcome: "not-needed", number: null });
+    assert.equal(morning.raised.length, 0);
+    assert.match(morning.rendered[0] ?? "", /- Noted — 1/u);
+  });
+
+  it("raises once for a pass that both noted and parked something", async () => {
+    const morning = syntheticMorning({
+      passes: { CD5678: { ...parkedPass, noted: notedPass.noted } },
+    });
+
+    const report = await runMorningRoutine({
+      date,
+      modules: cohort,
+      ...morning,
+    });
+
+    assert.equal(report.outcome, "reported");
+    assert.deepEqual(report.issue, { outcome: "created", number: 900 });
+    assert.equal(morning.raised.length, 1);
   });
 
   it("raises for a doc write nobody watched, and for a failure", async () => {

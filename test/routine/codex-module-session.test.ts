@@ -59,6 +59,7 @@ describe("the Codex invocation a module pass runs under", () => {
       "parked",
       "docWrites",
       "failures",
+      "noted",
     ]);
   });
 
@@ -115,6 +116,8 @@ describe("the Codex invocation a module pass runs under", () => {
       ["parked", "evidence"],
       ["docWrites", "summary"],
       ["failures", "message"],
+      ["noted", "item"],
+      ["noted", "note"],
     ];
     for (const [bucket, field] of nonEmptyFields) {
       assert.equal(

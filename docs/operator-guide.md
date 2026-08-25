@@ -604,7 +604,7 @@ Under `stateRoot`, both named by the offering's calendar day:
 
 - `routine/reports/<date>.md` — the morning's full report, every day, in one fixed format: the
   prelude's two steps, then per module its curated, rederived, superseded, withdrawn, parked, doc
-  writes and failures, then what the purge removed.
+  writes, failures and noted, then what the purge removed.
 - `routine/sessions/<date>/<module>/` — that pass's `result.json`, the `result-schema.json` it was
   held to, and its `session.log`. The report is built from the result; the log is there for the
   morning the result is the argument (ADR-0018).
@@ -619,6 +619,11 @@ raises **one** issue on this tracker titled `Morning report <date>`, labelled `r
 `decision`, carrying the same report text as its body. It searches for that title before creating,
 so a second firing on the same day finds the first issue rather than raising another. A morning with
 none of those three raises nothing — silence is the good outcome, and the report still lands.
+
+A pass's `noted` bucket is the one that never raises. It carries what the morning observed and
+settled — a placed copy that has diverged from its source and is holding its ground, say — so a
+morning whose only news is a note stays quiet and the note waits in the report
+([`docs/adr/0021-…`](adr/0021-a-note-is-told-and-a-park-is-settled.md)).
 
 A run that never fired, or one that could not reach GitHub, looks from the Owner's side exactly like
 a quiet morning. That ambiguity is accepted for now; the report on the mini is what distinguishes

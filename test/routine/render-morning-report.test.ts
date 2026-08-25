@@ -53,6 +53,12 @@ describe("the morning report's fixed format", () => {
           ],
           docWrites: [{ file: "CONTEXT.md", summary: "minted a term" }],
           failures: [],
+          noted: [
+            {
+              item: "source/worked-handout.pdf",
+              note: "The placed copy has diverged from its source and holds its ground.",
+            },
+          ],
         },
       ],
       purge: { sessions: ["2026-08-15"], reports: [] },
@@ -89,6 +95,8 @@ describe("the morning report's fixed format", () => {
         "- Doc writes — 1",
         "  - CONTEXT.md — minted a term",
         "- Failures — 0",
+        "- Noted — 1",
+        "  - source/worked-handout.pdf — The placed copy has diverged from its source and holds its ground.",
         "- Artifacts — /state/routine/sessions/2026-08-23/AB1234",
         "",
         "## Retention purge",

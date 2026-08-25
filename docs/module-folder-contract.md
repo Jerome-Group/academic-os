@@ -536,6 +536,15 @@ withdrawal as it governs every other decision: the first in a module is the Owne
 later ones follow it —
 [`docs/adr/0020`](adr/0020-a-source-that-has-left-the-mirror-is-withdrawn.md).
 
+A placed copy differing from a source nothing has re-issued is a **standing divergence**, and it is
+reported rather than decided. The source still hashes to what its standing line recorded and the
+copy was annotated, graded or edited after it was placed, so this is a fact about the module's own
+material rather than a question about what to curate. It takes no register line: the `curated`
+decision that placed the copy still stands, and the source and the copy stay where they are. An
+arrival is the other case and parks — there new bytes upstream meet a worked-on copy, and which issue the module
+holds is the Owner's —
+[`docs/adr/0021`](adr/0021-a-note-is-told-and-a-park-is-settled.md).
+
 **MF-CURATION-003 (judgment).** Where a module issues material both clean and annotated, the
 annotated copy is a second curated item, sharing the clean copy's number and topic and
 distinguished by the `Annotated` qualifier. The two are different artifacts with different uses, so

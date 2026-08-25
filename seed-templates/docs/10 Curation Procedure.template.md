@@ -94,6 +94,15 @@ line placed. Byte-identical — nothing has been done to it — the new bytes re
 superseding line records that. Anything else — annotated, graded, edited, moved away — parks, and
 the placed copy holds its ground.
 
+**A standing divergence is told, not decided.** Compare every standing `curated` line's placed copy
+against the source it names, whether or not anything arrived. A copy differing from a source nothing
+has re-issued — its source still hashes to what the line recorded, and the copy was annotated,
+graded or edited after it was placed — is a fact about the module's own material rather than a
+question about what to curate. Report it with both digests and leave the source and the copy
+where they are. It takes no line, because the `curated` decision that placed the copy still stands. The morning run
+reports it in `noted`; a session with the Owner present says it and moves past. The update arrival
+above is the other case, and that one parks.
+
 ## When a source has left
 
 An open item whose source the walk did not meet gets a `withdrawn` line: the source is gone from the

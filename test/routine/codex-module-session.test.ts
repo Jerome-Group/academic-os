@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { delimiter } from "node:path";
 import { describe, it } from "node:test";
 
 import {
@@ -7,6 +8,7 @@ import {
   MORNING_SESSION_MODEL,
   MORNING_SESSION_REASONING_EFFORT,
   MORNING_SESSION_SANDBOX,
+  sessionSpawnOptions,
 } from "../../src/routine/index.js";
 
 const arguments_ = codexSessionArguments({
@@ -35,6 +37,38 @@ describe("the Codex invocation a module pass runs under", () => {
           `model_reasoning_effort="${MORNING_SESSION_REASONING_EFFORT}"`,
       ),
     );
+  });
+
+  // The pass runs from a LaunchAgent, whose PATH holds none of the tools a Codex installation ships
+  // beside its binary. Both unsupervised mornings searched with `command not found: rg` in every
+  // module because this environment was built and never handed to the spawn, and the prompt had
+  // already been sharpened to stop a pass reporting that as a failure — so nothing said so.
+  it("searches with the tools shipped beside the Codex binary", () => {
+    const options = sessionSpawnOptions({
+      codexPath: "/Applications/ChatGPT.app/Contents/Resources/codex",
+      moduleRoot: "/mount/Modules/Y2S1/AB1234",
+    });
+    const path = options.env.PATH ?? "";
+    assert.equal(
+      path.split(delimiter)[0],
+      "/Applications/ChatGPT.app/Contents/Resources",
+    );
+    assert.ok(
+      path.split(delimiter).length > 1,
+      "the machine's own PATH is kept behind it, not replaced.",
+    );
+  });
+
+  // Stdin closed rather than inherited: `codex exec` reads it, and an open pipe with nothing coming
+  // holds the session — and behind it, the rest of the cohort — until the timeout.
+  it("runs in the module folder, with stdin closed and a timeout", () => {
+    const options = sessionSpawnOptions({
+      codexPath: "/Applications/ChatGPT.app/Contents/Resources/codex",
+      moduleRoot: "/mount/Modules/Y2S1/AB1234",
+    });
+    assert.equal(options.cwd, "/mount/Modules/Y2S1/AB1234");
+    assert.deepEqual(options.stdio, ["ignore", "pipe", "pipe"]);
+    assert.ok(options.timeout > 0);
   });
 
   it("gets the module folder to write in and nothing wider", () => {

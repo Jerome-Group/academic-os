@@ -31,19 +31,11 @@ describe("the module session's prompt", () => {
     assert.match(prompt, /belongs in `docWrites`/u);
   });
 
-  it("names the seven lists the final message carries, without restating their schema", () => {
-    for (const bucket of [
-      "curated",
-      "rederived",
-      "superseded",
-      "withdrawn",
-      "parked",
-      "docWrites",
-      "failures",
-    ]) {
-      assert.match(prompt, new RegExp(`\`${bucket}\``, "u"));
-    }
+  // That it names every bucket is `module-pass-buckets.test.ts`'s question; this one is that it
+  // describes them rather than restating the schema the CLI already enforces.
+  it("presents the lists as a report rather than as a shape to fill in", () => {
     assert.match(prompt, /Your final message is the report/u);
+    assert.match(prompt, /Eight lists, empty where the morning was/u);
     assert.doesNotMatch(prompt, /```json/u);
   });
 
@@ -54,6 +46,26 @@ describe("the module session's prompt", () => {
     );
     assert.match(prompt, /read every importer root end to end/u);
     assert.match(prompt, /many standing sources have gone at once/u);
+  });
+
+  it("draws the line the pass has to apply between a park and a note", () => {
+    assert.match(
+      prompt,
+      /`parked` is what the Owner settles, `noted` is what the Owner is told/u,
+    );
+    assert.match(prompt, /asks nothing of the Owner/u);
+    assert.match(prompt, /correct now and stays correct/u);
+  });
+
+  it("sends a diverged placed copy holding its ground to `noted`, and an arrival still to `parked`", () => {
+    assert.match(
+      prompt,
+      /A placed copy that has diverged from its source and is holding its ground is `noted`/u,
+    );
+    assert.match(
+      prompt,
+      /An update arrival against a worked-on copy is the other case and still parks/u,
+    );
   });
 
   it("leaves tasks and compilation to the surfaces that own them", () => {

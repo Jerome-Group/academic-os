@@ -83,6 +83,7 @@ function renderModulePass(module: ModulePassReport): string[] {
       (write) => `${write.file} — ${write.summary}`,
     ),
     ...bucket("Failures", module.failures, renderFailure),
+    ...bucket("Noted", module.noted, (item) => `${item.item} — ${item.note}`),
     `- Artifacts — ${module.artifacts}`,
     "",
   ];

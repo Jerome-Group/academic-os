@@ -3,6 +3,7 @@ import type {
   CuratedItem,
   DocWrite,
   ModulePassOutcome,
+  NotedItem,
   ParkedItem,
   RederivedItem,
   RoutineFailure,
@@ -32,6 +33,7 @@ export function readModulePassOutcome(contents: string): ModulePassOutcome {
     parked: entries(result.parked, "parked", parked),
     docWrites: entries(result.docWrites, "docWrites", docWrite),
     failures: entries(result.failures, "failures", failure),
+    noted: entries(result.noted, "noted", note),
   };
 }
 
@@ -99,6 +101,13 @@ function parked(entry: Record<string, unknown>, key: string): ParkedItem {
     item: text(entry.item, key, "item"),
     reason: text(entry.reason, key, "reason"),
     evidence: text(entry.evidence, key, "evidence"),
+  };
+}
+
+function note(entry: Record<string, unknown>, key: string): NotedItem {
+  return {
+    item: text(entry.item, key, "item"),
+    note: text(entry.note, key, "note"),
   };
 }
 

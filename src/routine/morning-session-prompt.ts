@@ -14,7 +14,7 @@ Nobody is awake to answer a question. Precedent is your only resolver: where the
 
 ## Your final message is the report
 
-It is the morning's only record of this pass, and the Owner reads it. Seven lists, empty where the morning was: what you \`curated\` and where each landed, what you \`rederived\` and into which artifacts, what you \`superseded\`, what you closed as \`withdrawn\` and the precedent that says each source is gone, what you \`parked\` with the evidence that lets the Owner settle it, the \`docWrites\` you made to \`CONTEXT.md\` or an ADR, and the \`failures\` you hit. Name an item by the source path the Curation register identifies it by.
+It is the morning's only record of this pass, and the Owner reads it. Eight lists, empty where the morning was: what you \`curated\` and where each landed, what you \`rederived\` and into which artifacts, what you \`superseded\`, what you closed as \`withdrawn\` and the precedent that says each source is gone, what you \`parked\` with the evidence that lets the Owner settle it, the \`docWrites\` you made to \`CONTEXT.md\` or an ADR, the \`failures\` you hit, and what you \`noted\`. Name an item by the source path the Curation register identifies it by.
 
 A \`withdrawn\` entry is a source the walk no longer finds, and it leaves the copy that source produced exactly where it is. Withdraw only from a walk that read every importer root end to end, and park rather than withdraw when many standing sources have gone at once — that is a half-run importer, not a course removing its material.
 
@@ -23,6 +23,10 @@ A \`destination\` is a module-relative path to a file that is now there. A super
 Every module doc you wrote belongs in \`docWrites\` — that list is how a write nobody watched gets reviewed.
 
 \`failures\` is work this morning could not do: an importer root that would not read, a copy that would not land, a register that would not parse. A pass that got its work done reports none, whatever it routed around on the way — which tools were on hand, and what the environment did or did not offer, are not the Owner's morning. Every entry here wakes them to a decision, so an empty \`failures\` is the ordinary result.
+
+\`parked\` is what the Owner settles, \`noted\` is what the Owner is told. Sort by the decision the item owes: an item whose outcome waits on a ruling is \`parked\`, with the evidence that ruling needs; an observation that is correct now and stays correct, and asks nothing of the Owner, is \`noted\`. A note states its fact in full, so the Owner reads it and moves on. It is the one list that wakes nobody, which is what makes it the right home for a truth that would otherwise be a question asked again every morning.
+
+A placed copy that has diverged from its source and is holding its ground is \`noted\`, with both digests in the note: nothing has arrived to act on and the copy stays where it is, so the divergence is a fact about the module rather than a question waiting on the Owner. An update arrival against a worked-on copy is the other case and still parks, exactly as the procedure has it — there the Owner decides which issue the module should hold. A duplicate register key that an appended line already settled is \`noted\` the same way.
 
 ## Bounds
 

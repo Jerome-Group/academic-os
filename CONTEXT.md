@@ -480,16 +480,25 @@ is this job's untouched sibling; cron job, nightly build.
 **Module pass**:
 One module's share of a morning: a single headless session in that module folder, running the
 module's own seeded curation procedure and reporting what it curated, rederived, superseded,
-withdrew and parked, the module docs it wrote, and what failed. Unattended, precedent is its only
-resolver — no precedent parks.
+withdrew and parked, the module docs it wrote, what failed, and what it noted. Unattended,
+precedent is its only resolver — no precedent parks.
 _Avoid_: run, session — both name the whole morning or the process rather than the module's share.
+
+**Note**:
+Something a Module pass observed that is correct now and stays correct, and asks the Owner for no
+decision — a placed copy that has diverged from its source and is holding its ground, a duplicate
+register key an appended line already settled. Reported in the Morning report's `noted` bucket,
+which is the one bucket that never raises the day's issue. It records nothing in the curation
+register: a note reports what the register already decided (ADR-0021).
+_Avoid_: parked item — that is a question the Owner settles; warning, observation — Audit
+observation is a conformance term and means something else.
 
 **Morning report**:
 What the Morning routine writes on the mini every day, in one fixed format, dated by the offering's
-calendar day: the prelude's results, each Module pass's seven buckets, and the purge summary. It
+calendar day: the prelude's results, each Module pass's eight buckets, and the purge summary. It
 lands whether or not anything asks the Owner for a decision. The same text becomes the day's issue
 when the morning parked something, wrote a module doc or hit a failure; a morning with none of
-those is a **quiet morning** and raises nothing.
+those is a **quiet morning** and raises nothing, whatever it noted.
 _Avoid_: log — the session transcripts beside it are the log; digest, summary.
 
 Two terms are Organisation-wide and mean the same thing in every repository:

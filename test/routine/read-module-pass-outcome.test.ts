@@ -11,10 +11,11 @@ const emptyMorning = JSON.stringify({
   parked: [],
   docWrites: [],
   failures: [],
+  noted: [],
 });
 
 describe("reading a module pass's result", () => {
-  it("reads the seven buckets a session reports", () => {
+  it("reads the eight buckets a session reports", () => {
     const outcome = readModulePassOutcome(
       JSON.stringify({
         curated: [{ item: "source/handout.pdf", destination: "placed.pdf" }],
@@ -31,6 +32,12 @@ describe("reading a module pass's result", () => {
         ],
         docWrites: [{ file: "CONTEXT.md", summary: "minted a term" }],
         failures: [{ code: "read-failed", message: "the mirror went away" }],
+        noted: [
+          {
+            item: "source/worked-handout.pdf",
+            note: "The placed copy has diverged from its source and holds its ground.",
+          },
+        ],
       }),
     );
 
@@ -55,6 +62,12 @@ describe("reading a module pass's result", () => {
     assert.deepEqual(outcome.failures, [
       { code: "read-failed", message: "the mirror went away" },
     ]);
+    assert.deepEqual(outcome.noted, [
+      {
+        item: "source/worked-handout.pdf",
+        note: "The placed copy has diverged from its source and holds its ground.",
+      },
+    ]);
   });
 
   it("reads a supersession that replaced a decision placing no copy", () => {
@@ -67,13 +80,14 @@ describe("reading a module pass's result", () => {
         parked: [],
         docWrites: [],
         failures: [],
+        noted: [],
       }),
     );
 
     assert.deepEqual(outcome.superseded, [{ item: "source/notice.html" }]);
   });
 
-  it("reads a quiet morning as seven empty buckets", () => {
+  it("reads a quiet morning as eight empty buckets", () => {
     assert.deepEqual(readModulePassOutcome(emptyMorning), {
       curated: [],
       rederived: [],
@@ -82,6 +96,7 @@ describe("reading a module pass's result", () => {
       parked: [],
       docWrites: [],
       failures: [],
+      noted: [],
     });
   });
 
@@ -102,9 +117,26 @@ describe("reading a module pass's result", () => {
             parked: [],
             docWrites: [],
             failures: [],
+            noted: [],
           }),
         ),
       /destination must be a non-empty string/u,
+    );
+    assert.throws(
+      () =>
+        readModulePassOutcome(
+          JSON.stringify({
+            curated: [],
+            rederived: [],
+            superseded: [],
+            withdrawn: [],
+            parked: [],
+            docWrites: [],
+            failures: [],
+            noted: [{ item: "source/worked-handout.pdf", note: "" }],
+          }),
+        ),
+      /A noted entry's note must be a non-empty string/u,
     );
   });
 });

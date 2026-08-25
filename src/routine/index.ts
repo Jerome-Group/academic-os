@@ -41,6 +41,7 @@ export type {
   MorningIssueReport,
   MorningPreludePort,
   MorningRoutineReport,
+  NotedItem,
   ParkedItem,
   PreludeStepName,
   PreludeStepOutcome,

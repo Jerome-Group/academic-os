@@ -158,6 +158,9 @@ async function removed(
   return purged;
 }
 
+// Three things wake the Owner: a park is a question, an unwatched doc write needs review, and a
+// failure is work that did not happen. `noted` is none of those — it is a fact they are told, so a
+// morning whose only news is a note stays quiet and the note waits in the report (ADR-0021).
 function morningNeedsOwner(
   prelude: readonly PreludeStepReport[],
   modules: readonly ModulePassReport[],

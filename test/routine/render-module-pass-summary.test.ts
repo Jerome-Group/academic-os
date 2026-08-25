@@ -15,13 +15,14 @@ const quiet: ModulePassReport = {
   parked: [],
   docWrites: [],
   failures: [],
+  noted: [],
 };
 
 describe("the run's one-line summary of a module pass", () => {
   it("counts every bucket the report carries, in the report's order", () => {
     assert.equal(
       renderModulePassSummary(quiet),
-      "AB1234 (Y2S1): 0 curated, 0 rederived, 0 superseded, 0 withdrawn, 0 parked, 0 doc writes, 0 failures",
+      "AB1234 (Y2S1): 0 curated, 0 rederived, 0 superseded, 0 withdrawn, 0 parked, 0 doc writes, 0 failures, 0 noted",
     );
   });
 
@@ -36,6 +37,21 @@ describe("the run's one-line summary of a module pass", () => {
         ],
       }),
       /1 withdrawn/u,
+    );
+  });
+
+  it("says so when the morning noted something", () => {
+    assert.match(
+      renderModulePassSummary({
+        ...quiet,
+        noted: [
+          {
+            item: "source/worked-handout.pdf",
+            note: "The placed copy has diverged from its source and holds its ground.",
+          },
+        ],
+      }),
+      /1 noted/u,
     );
   });
 });

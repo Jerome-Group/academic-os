@@ -27,5 +27,6 @@ export function failedModulePass(
     parked: [],
     docWrites: [],
     failures: [routineFailure(error, fallbackCode)],
+    noted: [],
   };
 }

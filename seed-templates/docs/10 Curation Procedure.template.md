@@ -34,18 +34,20 @@ decides.
 never the importer's — `docs/00 Structure and Naming.md` says why. The walk passes over them, so
 each takes no line, is neither curated nor parked, and is left exactly as it is.
 
-Join each item found against the register on both halves of its identity:
+Join each item found against the register on both halves of its identity, taking the first row that
+answers:
 
 | The join | What it means | What the pass does |
 | --- | --- | --- |
+| Standing line `withdrawn` | The source has come back | A new item; classify it |
 | Path and checksum both known | Already decided | Leave it — the standing line covers it |
 | Path known, checksum new | An **update arrival** | Decide it again, superseding the earlier line |
 | Checksum known, path new | Known bytes, filed twice upstream | `source-only`, its evidence naming the original decision |
 | Neither known | A new item | Classify it |
 
-Every item the mirror holds ends the pass carrying a line. A line whose source is no longer in the
-mirror is the join running the other way: the curated copy stays exactly where it is, and the
-missing source is surfaced as a discrepancy.
+Every item the mirror holds ends the pass carrying a line. A standing line whose source the walk
+did not meet is the join running the other way, and it ends in a `withdrawn` line — **When a source
+has left** says when you may write one.
 
 ## Classification
 
@@ -73,13 +75,14 @@ number in a curated name.
 A source that numbers itself nowhere is an ambiguity: park it, and the Owner's ruling on that one
 item is the precedent every later item of its kind reads.
 
-## The four decisions
+## The five decisions
 
 | Decision | The item | The line also carries |
 | --- | --- | --- |
 | `curated` | Belongs in the module's own directories as a renamed copy | its destination |
 | `source-only` | Stays in the mirror and is read there | — |
 | `rederived` | Its content went into module docs, notes or the profile rather than into a copy | the derived artifacts' paths |
+| `withdrawn` | Its source has left the mirror, so the item is closed | — |
 | `requires-decision` | Parked | what was ambiguous, in its evidence |
 
 `rederived` is what much of a mirror actually earns: the item was worked, its content is now
@@ -90,6 +93,32 @@ firmly as a copy does.
 line placed. Byte-identical — nothing has been done to it — the new bytes replace it and a
 superseding line records that. Anything else — annotated, graded, edited, moved away — parks, and
 the placed copy holds its ground.
+
+## When a source has left
+
+A standing line whose source the walk did not meet gets a `withdrawn` line: the source is gone from
+the mirror and the item is closed. That line says that and only that. Whatever the item already
+placed stays exactly where it is, and a `withdrawn` line supersedes nothing, so the line that
+placed the copy remains the record of where the item went. A withdrawn item is settled for every
+later pass, which is how a source that is never coming back stops being reported every morning.
+
+**Withdraw only from a walk that completed.** Every importer root the Module Definition declares was
+read end to end, or there is no withdrawal to write. A root that would not read, or an importer that
+half-ran, leaves a mirror missing sources the site still holds; closing those items would end a
+module's history on the strength of a failed sync. A walk that could not finish reports the failure
+and withdraws nothing.
+
+**Many standing sources gone at once is an ambiguity.** One departure is the site renaming or
+removing a page. A handful together is the mirror rather than the material, so park them with the
+evidence — how many standing lines lost their source, and which roots they sit under — and let the
+Owner say which it was.
+
+**The first withdrawal in a module is the Owner's.** With no precedent to follow, park it as any
+other unprecedented decision is parked; their ruling becomes that line's evidence, and the precedent
+every later departure reads.
+
+A source that reappears carries no memory of the withdrawal. The withdrawn line closed the item, so
+the file walks in as a new item and is classified from scratch.
 
 ## Two sources, one item
 
@@ -127,21 +156,22 @@ or move contradicts it — a correction to show the Owner, rather than routine w
 One line per decision, appended, JSON:
 
 ```json
-{"schema_version":2,"source_id":"Lectures/Graph Theory/slides.pdf","integration":"NTULearn","role":"lecture","source_path":"03 Lectures/03 Graph Theory/slides.pdf","checksum":"<sha-256 of the source bytes>","decision":"curated","destination":"10 Learning Materials/10 Lecture Materials/MODULE_CODE_Lecture_03_Graph_Theory.pdf","evidence":"Follows the standing precedent for lecture slides.","timestamp":"2026-08-17T06:04:11Z"}
+{"schema_version":3,"source_id":"Lectures/Graph Theory/slides.pdf","integration":"NTULearn","role":"lecture","source_path":"03 Lectures/03 Graph Theory/slides.pdf","checksum":"<sha-256 of the source bytes>","decision":"curated","destination":"10 Learning Materials/10 Lecture Materials/MODULE_CODE_Lecture_03_Graph_Theory.pdf","evidence":"Follows the standing precedent for lecture slides.","timestamp":"2026-08-17T06:04:11Z"}
 ```
 
-- `schema_version` is 2 — the version that carries `rederived`. Version 1 lines are valid history,
-  read as they stand; nothing rewrites them.
+- `schema_version` is 3 — the version that carries `withdrawn`. Version 1 and version 2 lines are
+  valid history, read as they stand; nothing rewrites them.
 - `source_id` is the item's unnumbered identity, `source_path` its path inside the importer root as
-  walked, and `checksum` the sha-256 this pass computed.
+  walked, and `checksum` the sha-256 this pass computed. A `withdrawn` line carries no `checksum`:
+  its source is not there to read, and the digest of bytes nobody hashed is an assertion.
 - `integration` names the importer root the item came from; `role` says what the item is to this
   module.
 - `destination` is module-relative and belongs to `curated` lines. A `rederived` line carries the
-  derived artifacts' paths in `derived` instead.
+  derived artifacts' paths in `derived` instead, and a `withdrawn` line carries neither.
 - `evidence` says why — the precedent followed, the Owner's words, the module ADR the rule lives
   in, or what was ambiguous.
 - `timestamp` is the ISO 8601 instant of the decision; `supersedes` names the event this one
-  replaces.
+  replaces, and a `withdrawn` line names none.
 
 The register is append-only history, and a superseded line stays where it is. Reading the file top
 to bottom is how this module's precedent is reconstructed.

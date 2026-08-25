@@ -47,6 +47,19 @@ export function standingCurationItems(
   return [...new Map(items.map((item) => [item.key, item])).values()];
 }
 
+// The items a `withdrawn` line has closed. Their sources have left the importer mirror, so a later
+// walk meets nothing that answers to them and no pass has anything left to decide: reading one as
+// still open is what reported a departed source as missing every single morning.
+export function closedCurationKeys(
+  items: readonly CurationItem[],
+): ReadonlySet<string> {
+  return new Set(
+    standingCurationItems(items)
+      .filter((item) => item.standing.decision === "withdrawn")
+      .map((item) => item.key),
+  );
+}
+
 function walkedItem(
   event: CurationRegisterEvent,
   integrations: readonly string[],

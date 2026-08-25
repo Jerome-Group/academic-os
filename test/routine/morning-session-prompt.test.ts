@@ -31,11 +31,12 @@ describe("the module session's prompt", () => {
     assert.match(prompt, /belongs in `docWrites`/u);
   });
 
-  it("names the six lists the final message carries, without restating their schema", () => {
+  it("names the seven lists the final message carries, without restating their schema", () => {
     for (const bucket of [
       "curated",
       "rederived",
       "superseded",
+      "withdrawn",
       "parked",
       "docWrites",
       "failures",
@@ -44,6 +45,15 @@ describe("the module session's prompt", () => {
     }
     assert.match(prompt, /Your final message is the report/u);
     assert.doesNotMatch(prompt, /```json/u);
+  });
+
+  it("bounds a withdrawal to a completed walk and parks a mirror missing many at once", () => {
+    assert.match(
+      prompt,
+      /leaves the copy that source produced exactly where it is/u,
+    );
+    assert.match(prompt, /read every importer root end to end/u);
+    assert.match(prompt, /many standing sources have gone at once/u);
   });
 
   it("leaves tasks and compilation to the surfaces that own them", () => {

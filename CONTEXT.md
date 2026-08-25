@@ -156,6 +156,14 @@ the module profile — rather than copying the file itself. Recorded in the cura
 own decision, naming the derived artifacts where a curated decision names a destination.
 _Avoid_: curation — that places a verbatim renamed copy; summarising, extraction
 
+**Withdrawal**:
+Recording in the curation register that an item's source has left the NTULearn mirror, which closes
+the item. It decides the source alone: whatever copy the item already placed stays exactly where it
+is, and the line that placed it stays the record of where the item went. Written only from a walk
+that completed over every declared importer root, and by precedent like every other decision.
+_Avoid_: deletion, removal — nothing in the module folder moves; discrepancy — that was the
+unrecordable state this replaced
+
 **Module profile**:
 The human-facing description of one module, kept at `00 Module Admin/00 Module Profile.md` inside
 its module folder. It does not define what the auditor enforces.
@@ -471,17 +479,17 @@ is this job's untouched sibling; cron job, nightly build.
 
 **Module pass**:
 One module's share of a morning: a single headless session in that module folder, running the
-module's own seeded curation procedure and reporting what it curated, rederived, superseded and
-parked, the module docs it wrote, and what failed. Unattended, precedent is its only resolver — no
-precedent parks.
+module's own seeded curation procedure and reporting what it curated, rederived, superseded,
+withdrew and parked, the module docs it wrote, and what failed. Unattended, precedent is its only
+resolver — no precedent parks.
 _Avoid_: run, session — both name the whole morning or the process rather than the module's share.
 
 **Morning report**:
 What the Morning routine writes on the mini every day, in one fixed format, dated by the offering's
-calendar day: the prelude's results, each Module pass's six buckets, and the purge summary. It lands
-whether or not anything asks the Owner for a decision. The same text becomes the day's issue when
-the morning parked something, wrote a module doc or hit a failure; a morning with none of those is a
-**quiet morning** and raises nothing.
+calendar day: the prelude's results, each Module pass's seven buckets, and the purge summary. It
+lands whether or not anything asks the Owner for a decision. The same text becomes the day's issue
+when the morning parked something, wrote a module doc or hit a failure; a morning with none of
+those is a **quiet morning** and raises nothing.
 _Avoid_: log — the session transcripts beside it are the log; digest, summary.
 
 Two terms are Organisation-wide and mean the same thing in every repository:

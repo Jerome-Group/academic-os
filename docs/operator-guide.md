@@ -603,8 +603,8 @@ than thirty — and writes the day's report.
 Under `stateRoot`, both named by the offering's calendar day:
 
 - `routine/reports/<date>.md` — the morning's full report, every day, in one fixed format: the
-  prelude's two steps, then per module its curated, rederived, superseded, parked, doc writes and
-  failures, then what the purge removed.
+  prelude's two steps, then per module its curated, rederived, superseded, withdrawn, parked, doc
+  writes and failures, then what the purge removed.
 - `routine/sessions/<date>/<module>/` — that pass's `result.json`, the `result-schema.json` it was
   held to, and its `session.log`. The report is built from the result; the log is there for the
   morning the result is the argument (ADR-0018).

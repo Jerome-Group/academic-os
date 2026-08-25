@@ -34,6 +34,28 @@ function legacyLine(overrides: Record<string, unknown> = {}): string {
   });
 }
 
+// The line the curation walk appends once the Owner's precedent says the source is gone for good.
+// It supersedes nothing: the line that placed the copy stays the record of where the item went.
+function withdrawnLine(): string {
+  return legacyLine({
+    schema_version: 3,
+    source_id: "Materials/Graph Theory/handout.pdf",
+    decision: "withdrawn",
+    destination: undefined,
+    checksum: undefined,
+    evidence: "The source has left the mirror; the placed copy stays.",
+    timestamp: "2026-08-25T06:00:00.000Z",
+  });
+}
+
+const noItems = {
+  "contract-v4": 0,
+  migrating: 0,
+  changed: 0,
+  unprovable: 0,
+  "missing-source": 0,
+};
+
 // The mirror as the pass indexes it: keyed by contract-v4 identity's path half, and carrying the
 // path the file is at now, which is not the one the standing line recorded once numbering shifts.
 function mirror(
@@ -128,7 +150,7 @@ describe("planCurationIdentityMigration", () => {
       observed({ lines: [legacyLine()], sources: unchangedMirror }),
     );
 
-    assert.equal(appendedEvent(module.migrations[0]?.line).schema_version, 2);
+    assert.equal(appendedEvent(module.migrations[0]?.line).schema_version, 3);
   });
 
   it("records where a renumbered source actually is now", () => {
@@ -216,6 +238,36 @@ describe("planCurationIdentityMigration", () => {
     assert.deepEqual(module.migrations, []);
   });
 
+  // #186: a standing line whose source has left the mirror was reported every morning and nothing
+  // could close it. The withdrawal is what closes it, and closing it is what ends the report.
+  it("stops reporting an item once a withdrawal has closed it", () => {
+    const before = planFor(observed({ lines: [legacyLine()] }));
+
+    assert.equal(before.module.counts["missing-source"], 1);
+    assert.equal(before.module.legacyLines, 1);
+
+    const after = planFor(observed({ lines: [legacyLine(), withdrawnLine()] }));
+
+    assert.equal(after.plan.outcome, "contract-v4");
+    assert.deepEqual(after.module.counts, noItems);
+    assert.deepEqual(after.module.discrepancies, []);
+    assert.deepEqual(after.module.migrations, []);
+    assert.equal(after.module.legacyLines, 0);
+  });
+
+  it("leaves a source that came back for the arrival walk to classify", () => {
+    const { module } = planFor(
+      observed({
+        lines: [legacyLine(), withdrawnLine()],
+        sources: unchangedMirror,
+      }),
+    );
+
+    assert.deepEqual(module.counts, noItems);
+    assert.deepEqual(module.migrations, []);
+    assert.deepEqual(module.discrepancies, []);
+  });
+
   it("writes nothing for a key two files in the mirror both answer to", () => {
     const { module } = planFor(
       observed({ lines: [legacyLine()], ambiguous: [itemKey] }),
@@ -269,13 +321,7 @@ describe("planCurationIdentityMigration", () => {
     );
 
     assert.equal(module.legacyLines, 0);
-    assert.deepEqual(module.counts, {
-      "contract-v4": 0,
-      migrating: 0,
-      changed: 0,
-      unprovable: 0,
-      "missing-source": 0,
-    });
+    assert.deepEqual(module.counts, noItems);
   });
 
   it("plans nothing at all for an empty register", () => {

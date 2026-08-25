@@ -265,9 +265,17 @@ timestamp is ISO-compatible, and a curated event requires a destination.
 
 Version 2 adds the fourth decision `rederived`: the item's content reached the module through
 derived artifacts rather than through a copy, and the line names them in `derived` — a non-empty
-sequence of module-relative paths — where a curated line names a `destination`. Both versions are
-valid in one file. A version 1 line stays history exactly as it stands, so nothing migrates it and
-a register mixing the two is conformant.
+sequence of module-relative paths — where a curated line names a `destination`.
+
+Version 3 adds the fifth decision `withdrawn`: the item's source has left the importer mirror, and
+the item is closed. It records what became of the **source** and settles nothing about the copy —
+whatever the item already placed stays exactly where it is, which is MF-CURATION-002's standing
+rule rather than an exception to it. A `withdrawn` line therefore names no `destination`, no
+`derived` and no `supersedes`, so the line that placed the copy remains the register's record of
+where the item went.
+
+Every version is valid in one file. A version 1 or version 2 line stays history exactly as it
+stands, so nothing migrates one and a register mixing versions is conformant.
 
 ### Task register
 
@@ -513,8 +521,18 @@ nothing deletes one. A park nobody could ever clear is not a park —
 [`docs/adr/0010`](adr/0010-the-shelf-migration-is-one-settled-sheet.md) settled that for the
 Textbook shelf, and an importer root asks the same question. Ambiguous placement is shown with
 evidence and left uncopied until resolved. A source update never silently overwrites a curated copy
-since annotated, graded or otherwise modified; a disappeared source does not delete its curated copy
-and is reported as a discrepancy.
+since annotated, graded or otherwise modified; a disappeared source does not delete its curated
+copy, and its departure is recorded as a `withdrawn` decision that closes the item and moves
+nothing. A withdrawn item is settled for every later walk, which is what ends the daily report of a
+source that is never coming back, and a source that reappears afterwards walks in as a new arrival
+and is classified as one.
+
+A withdrawal rests on a walk that completed over every declared importer root. A root that would not
+read, or an importer that half-ran, leaves a mirror missing sources the site still holds, so a walk
+that could not finish reports a failure and withdraws nothing, and a walk finding many standing
+sources gone at once is an ambiguity to park rather than a run of withdrawals. Precedent governs a
+withdrawal as it governs every other decision: the first in a module is the Owner's ruling, and
+later ones follow it.
 
 **MF-CURATION-003 (judgment).** Where a module issues material both clean and annotated, the
 annotated copy is a second curated item, sharing the clean copy's number and topic and

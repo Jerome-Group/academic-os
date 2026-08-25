@@ -42,6 +42,13 @@ export interface RederivedItem {
   derived: string[];
 }
 
+// The source this item was decided from has left the importer mirror, so the item is closed. It
+// says nothing about the copy the item placed, which stays exactly where the decision put it.
+export interface WithdrawnItem {
+  item: string;
+  evidence: string;
+}
+
 export interface ParkedItem {
   item: string;
   reason: string;
@@ -53,12 +60,13 @@ export interface DocWrite {
   summary: string;
 }
 
-// What one module's session reports back — the four curation decisions it took, the module docs it
+// What one module's session reports back — the curation decisions it took, the module docs it
 // wrote unattended, and the failures it hit. A session that dies reports failures and nothing else.
 export interface ModulePassOutcome {
   curated: CuratedItem[];
   rederived: RederivedItem[];
   superseded: SupersededItem[];
+  withdrawn: WithdrawnItem[];
   parked: ParkedItem[];
   docWrites: DocWrite[];
   failures: RoutineFailure[];

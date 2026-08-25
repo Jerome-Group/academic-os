@@ -23,6 +23,7 @@ export function failedModulePass(
     curated: [],
     rederived: [],
     superseded: [],
+    withdrawn: [],
     parked: [],
     docWrites: [],
     failures: [routineFailure(error, fallbackCode)],

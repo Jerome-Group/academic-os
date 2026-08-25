@@ -37,6 +37,13 @@ describe("the morning report's fixed format", () => {
           curated: [{ item: "source/handout.pdf", destination: "placed.pdf" }],
           rederived: [{ item: "source/notice.html", derived: ["profile.md"] }],
           superseded: [],
+          withdrawn: [
+            {
+              item: "source/makeup-class.md",
+              evidence:
+                "Follows the module's standing precedent for a page the site has removed.",
+            },
+          ],
           parked: [
             {
               item: "source/odd.zip",
@@ -75,6 +82,8 @@ describe("the morning report's fixed format", () => {
         "- Rederived — 1",
         "  - source/notice.html → profile.md",
         "- Superseded — 0",
+        "- Withdrawn — 1",
+        "  - source/makeup-class.md — Follows the module's standing precedent for a page the site has removed.",
         "- Parked — 1",
         "  - source/odd.zip — no precedent; evidence: the register cites nothing like it",
         "- Doc writes — 1",

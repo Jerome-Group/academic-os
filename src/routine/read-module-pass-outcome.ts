@@ -7,6 +7,7 @@ import type {
   RederivedItem,
   RoutineFailure,
   SupersededItem,
+  WithdrawnItem,
 } from "./types.js";
 
 // The result file is the only thing the wrapper believes about a session, so a file it cannot read
@@ -27,6 +28,7 @@ export function readModulePassOutcome(contents: string): ModulePassOutcome {
     curated: entries(result.curated, "curated", placement),
     rederived: entries(result.rederived, "rederived", rederivation),
     superseded: entries(result.superseded, "superseded", supersession),
+    withdrawn: entries(result.withdrawn, "withdrawn", withdrawal),
     parked: entries(result.parked, "parked", parked),
     docWrites: entries(result.docWrites, "docWrites", docWrite),
     failures: entries(result.failures, "failures", failure),
@@ -80,6 +82,16 @@ function rederivation(
     );
   }
   return { item: text(entry.item, key, "item"), derived: entry.derived };
+}
+
+function withdrawal(
+  entry: Record<string, unknown>,
+  key: string,
+): WithdrawnItem {
+  return {
+    item: text(entry.item, key, "item"),
+    evidence: text(entry.evidence, key, "evidence"),
+  };
 }
 
 function parked(entry: Record<string, unknown>, key: string): ParkedItem {

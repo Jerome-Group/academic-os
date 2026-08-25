@@ -143,11 +143,14 @@ function spawnCodex(input: {
 }): Promise<number> {
   return new Promise((resolve, reject) => {
     const log = createWriteStream(input.logPath);
-    const session = spawn(input.codexPath, input.arguments, {
-      cwd: input.moduleRoot,
-      stdio: ["ignore", "pipe", "pipe"],
-      timeout: MORNING_SESSION_TIMEOUT_MS,
-    });
+    const session = spawn(
+      input.codexPath,
+      input.arguments,
+      sessionSpawnOptions({
+        codexPath: input.codexPath,
+        moduleRoot: input.moduleRoot,
+      }),
+    );
     session.stdout.pipe(log);
     session.stderr.pipe(log);
     session.on("error", reject);
@@ -164,6 +167,27 @@ function spawnCodex(input: {
       resolve(code ?? 1);
     });
   });
+}
+
+// How the session is launched, built where a test can read it. The environment is the reason this is
+// a seam rather than an object literal at the call site: it was written once, left uncalled, and
+// every pass since searched without the ripgrep its own installation ships — a defect no test could
+// see because nothing exercised the spawn. Returning the options makes the wiring itself assertable.
+export function sessionSpawnOptions(input: {
+  codexPath: string;
+  moduleRoot: string;
+}): {
+  cwd: string;
+  stdio: ["ignore", "pipe", "pipe"];
+  timeout: number;
+  env: NodeJS.ProcessEnv;
+} {
+  return {
+    cwd: input.moduleRoot,
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: MORNING_SESSION_TIMEOUT_MS,
+    env: sessionEnvironment(input.codexPath),
+  };
 }
 
 // A LaunchAgent runs with a minimal PATH, so a scheduled pass would search without the ripgrep its

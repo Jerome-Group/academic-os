@@ -2,6 +2,7 @@ export { createCohortPrelude } from "./cohort-prelude.js";
 export {
   codexSessionArguments,
   createCodexModuleSession,
+  sessionSpawnOptions,
   MORNING_SESSION_MODEL,
   MORNING_SESSION_REASONING_EFFORT,
   MORNING_SESSION_RESULT_FILENAME,

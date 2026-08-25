@@ -12,8 +12,11 @@ import type {
 } from "./types.js";
 
 // The result file is the only thing the wrapper believes about a session, so a file it cannot read
-// as this shape is a failed pass rather than an empty one — the morning never reports silence it
-// did not earn.
+// at all is a failed pass rather than an empty one — the morning never reports silence it did not
+// earn. One unreadable entry is the smaller claim and gets the smaller answer: it is dropped and
+// named in `failures`, and the buckets around it stand. The work a pass reports has already
+// happened on the mount, so discarding seven good buckets over an eighth bad line reports a module
+// as idle that has just rewritten its own docs.
 export function readModulePassOutcome(contents: string): ModulePassOutcome {
   let value: unknown;
   try {
@@ -25,30 +28,69 @@ export function readModulePassOutcome(contents: string): ModulePassOutcome {
     );
   }
   const result = asObject(value, "result");
+  const curated = readable(result.curated, "curated", placement);
+  const rederived = readable(result.rederived, "rederived", rederivation);
+  const superseded = readable(result.superseded, "superseded", supersession);
+  const withdrawn = readable(result.withdrawn, "withdrawn", withdrawal);
+  const parked = readable(result.parked, "parked", parking);
+  const docWrites = readable(result.docWrites, "docWrites", docWrite);
+  const failures = readable(result.failures, "failures", failure);
+  const noted = readable(result.noted, "noted", note);
   return {
-    curated: entries(result.curated, "curated", placement),
-    rederived: entries(result.rederived, "rederived", rederivation),
-    superseded: entries(result.superseded, "superseded", supersession),
-    withdrawn: entries(result.withdrawn, "withdrawn", withdrawal),
-    parked: entries(result.parked, "parked", parked),
-    docWrites: entries(result.docWrites, "docWrites", docWrite),
-    failures: entries(result.failures, "failures", failure),
-    noted: entries(result.noted, "noted", note),
+    curated: curated.kept,
+    rederived: rederived.kept,
+    superseded: superseded.kept,
+    withdrawn: withdrawn.kept,
+    parked: parked.kept,
+    docWrites: docWrites.kept,
+    failures: [
+      ...failures.kept,
+      ...curated.dropped,
+      ...rederived.dropped,
+      ...superseded.dropped,
+      ...withdrawn.dropped,
+      ...parked.dropped,
+      ...docWrites.dropped,
+      ...failures.dropped,
+      ...noted.dropped,
+    ],
+    noted: noted.kept,
   };
 }
 
-function entries<Entry>(
+interface ReadBucket<Entry> {
+  kept: Entry[];
+  dropped: RoutineFailure[];
+}
+
+// A bucket that is not an array leaves nothing to salvage and fails the pass; an entry inside one
+// costs only itself.
+function readable<Entry>(
   value: unknown,
   key: string,
   read: (entry: Record<string, unknown>, key: string) => Entry,
-): Entry[] {
+): ReadBucket<Entry> {
   if (!Array.isArray(value)) {
     throw new OperationalError(
       "operational-failure",
       `The session result's ${key} must be an array.`,
     );
   }
-  return value.map((entry) => read(asObject(entry, `${key} entry`), key));
+  const kept: Entry[] = [];
+  const dropped: RoutineFailure[] = [];
+  for (const entry of value) {
+    try {
+      kept.push(read(asObject(entry, `${key} entry`), key));
+    } catch (error) {
+      dropped.push({
+        code: "unreadable-entry",
+        message: `${
+          error instanceof Error ? error.message : String(error)
+        } It was dropped, and the rest of the pass stands.`,
+      });
+    }
+  }
+  return { kept, dropped };
 }
 
 function placement(entry: Record<string, unknown>, key: string): CuratedItem {
@@ -96,7 +138,7 @@ function withdrawal(
   };
 }
 
-function parked(entry: Record<string, unknown>, key: string): ParkedItem {
+function parking(entry: Record<string, unknown>, key: string): ParkedItem {
   return {
     item: text(entry.item, key, "item"),
     reason: text(entry.reason, key, "reason"),

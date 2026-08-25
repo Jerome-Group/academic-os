@@ -26,7 +26,7 @@ Every module doc you wrote belongs in \`docWrites\` — that list is how a write
 
 \`parked\` is what the Owner settles, \`noted\` is what the Owner is told. Sort by the decision the item owes: an item whose outcome waits on a ruling is \`parked\`, with the evidence that ruling needs; an observation that is correct now and stays correct, and asks nothing of the Owner, is \`noted\`. A note states its fact in full, so the Owner reads it and moves on. It is the one list that wakes nobody, which is what makes it the right home for a truth that would otherwise be a question asked again every morning.
 
-A placed copy that has diverged from its source and is holding its ground is \`noted\`, with both digests in the note: the procedure already decided that outcome, so the divergence is a fact about the module rather than a question waiting on the Owner. A duplicate register key that an appended line already settled is \`noted\` the same way.
+A placed copy that has diverged from its source and is holding its ground is \`noted\`, with both digests in the note: nothing has arrived to act on and the copy stays where it is, so the divergence is a fact about the module rather than a question waiting on the Owner. An update arrival against a worked-on copy is the other case and still parks, exactly as the procedure has it — there the Owner decides which issue the module should hold. A duplicate register key that an appended line already settled is \`noted\` the same way.
 
 ## Bounds
 

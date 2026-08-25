@@ -68,20 +68,31 @@ The register keeps its five decisions and its `schema_version` 3.
 The pass's outcome carries eight lists rather than seven, and the count is duplicated across
 `MODULE_PASS_SCHEMA`, `readModulePassOutcome`, `ModulePassOutcome`, `failedModulePass`,
 `renderMorningReport`, `renderModulePassSummary` and the session prompt. A ninth bucket has to reach
-all seven; the review of the seventh caught the terminal summary still counting six, which is the
-copy with the least test pressure behind it.
+all seven, and the review of the seventh caught the terminal summary still counting six — the copy
+with the least test pressure behind it. `test/routine/module-pass-buckets.test.ts` writes the list
+down once and holds every copy against it, so the ninth bucket that misses one is a red check rather
+than a review catch. The duplication itself stays: each bucket carries a different item shape and a
+different rendered line, and collapsing seven hand-written sites into one descriptor table is a
+larger change than the drift it would prevent.
 
 **A quiet morning now means less than it did.** It used to mean the pass found nothing worth saying;
 it now means the pass found nothing worth *asking*. The report on the mini is the only place a note
 appears, so the Owner who reads nothing but issues will not see one. That is the trade the bucket
 exists to make, and the report is the thing that makes it safe.
 
-**The seeded Curation Procedure still says a worked-on placed copy parks.** Its update-arrival
-clause reads *"Anything else — annotated, graded, edited, moved away — parks, and the placed copy
-holds its ground"*, which is the conflation this record names, written before there was a second
-bucket to write. The session prompt now routes that case to `noted`, so the morning reports it
-correctly; bringing the pinned procedure into line is a change to `docs/module-folder-contract.md`
-and a `pinned refresh` across the cohort, which is its own ticket.
+**The seeded Curation Procedure keeps its parks, and they are the other case.** Both of its
+"holds its ground and parks" clauses are scoped to an **update arrival** — new bytes upstream met by
+a copy somebody has worked on — and there the Owner genuinely decides which issue the module should
+hold, so the park stands and the session prompt says so. What the procedure has no word for is the
+standing divergence with nothing arriving: the copy differs from the source it was made from, and
+that is the state the register's own join never asks about. `noted` is that word, and it lives in
+the morning's vocabulary rather than the register's.
+
+**The pinned procedure will not name it until a `pinned refresh` runs.** A module's own copy of the
+Curation Procedure describes the register's five decisions and says nothing about the report's
+buckets, so nothing there goes stale — but a reader of one module's folder learns about `noted` from
+the morning's prompt alone. Teaching the pinned procedure the standing-divergence case is a change
+to `docs/module-folder-contract.md` and a rewrite across the cohort, which is its own ticket.
 
 ## Revisit when
 

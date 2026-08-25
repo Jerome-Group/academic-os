@@ -31,20 +31,11 @@ describe("the module session's prompt", () => {
     assert.match(prompt, /belongs in `docWrites`/u);
   });
 
-  it("names the eight lists the final message carries, without restating their schema", () => {
-    for (const bucket of [
-      "curated",
-      "rederived",
-      "superseded",
-      "withdrawn",
-      "parked",
-      "docWrites",
-      "failures",
-      "noted",
-    ]) {
-      assert.match(prompt, new RegExp(`\`${bucket}\``, "u"));
-    }
+  // That it names every bucket is `module-pass-buckets.test.ts`'s question; this one is that it
+  // describes them rather than restating the schema the CLI already enforces.
+  it("presents the lists as a report rather than as a shape to fill in", () => {
     assert.match(prompt, /Your final message is the report/u);
+    assert.match(prompt, /Eight lists, empty where the morning was/u);
     assert.doesNotMatch(prompt, /```json/u);
   });
 
@@ -66,10 +57,14 @@ describe("the module session's prompt", () => {
     assert.match(prompt, /correct now and stays correct/u);
   });
 
-  it("sends a diverged placed copy holding its ground to `noted`", () => {
+  it("sends a diverged placed copy holding its ground to `noted`, and an arrival still to `parked`", () => {
     assert.match(
       prompt,
       /A placed copy that has diverged from its source and is holding its ground is `noted`/u,
+    );
+    assert.match(
+      prompt,
+      /An update arrival against a worked-on copy is the other case and still parks/u,
     );
   });
 

@@ -42,6 +42,8 @@ describe("the Codex invocation a module pass runs under", () => {
     assert.equal(flagValue("--sandbox"), MORNING_SESSION_SANDBOX);
   });
 
+  // Which buckets the schema demands is `module-pass-buckets.test.ts`'s question, held there against
+  // every other copy of the list at once.
   it("has the harness enforce the report's shape and write it down", () => {
     assert.equal(
       flagValue("--output-schema"),
@@ -51,16 +53,6 @@ describe("the Codex invocation a module pass runs under", () => {
       flagValue("--output-last-message"),
       "/state/routine/sessions/2026-08-23/AB1234/result.json",
     );
-    assert.deepEqual(MODULE_PASS_SCHEMA.required, [
-      "curated",
-      "rederived",
-      "superseded",
-      "withdrawn",
-      "parked",
-      "docWrites",
-      "failures",
-      "noted",
-    ]);
   });
 
   it("names every property in `required`, which structured-output mode insists on", () => {

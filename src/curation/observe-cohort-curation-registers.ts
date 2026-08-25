@@ -19,6 +19,7 @@ import {
 } from "../mounted/index.js";
 import { hashSource } from "./hash-source.js";
 import {
+  closedCurationKeys,
   readCurationRegisterEvents,
   standingCurationItems,
   walkedCurationItems,
@@ -187,9 +188,14 @@ function legacyItems(
   integrations: readonly string[],
 ): CurationItem[] {
   try {
-    return standingCurationItems(
-      walkedCurationItems(readCurationRegisterEvents(register), integrations),
-    ).filter(({ identity }) => identity === "legacy");
+    const walked = walkedCurationItems(
+      readCurationRegisterEvents(register),
+      integrations,
+    );
+    const closed = closedCurationKeys(walked);
+    return standingCurationItems(walked).filter(
+      (item) => item.identity === "legacy" && !closed.has(item.key),
+    );
   } catch {
     // A register that will not parse is a blocker the plan reports; nothing is hashed for it.
     return [];

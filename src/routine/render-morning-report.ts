@@ -68,6 +68,11 @@ function renderModulePass(module: ModulePassReport): string[] {
         : `${item.item} → ${item.destination}`,
     ),
     ...bucket(
+      "Withdrawn",
+      module.withdrawn,
+      (item) => `${item.item} — ${item.evidence}`,
+    ),
+    ...bucket(
       "Parked",
       module.parked,
       (item) => `${item.item} — ${item.reason}; evidence: ${item.evidence}`,

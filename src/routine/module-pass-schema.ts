@@ -28,6 +28,7 @@ export const MODULE_PASS_SCHEMA = {
     "curated",
     "rederived",
     "superseded",
+    "withdrawn",
     "parked",
     "docWrites",
     "failures",
@@ -48,6 +49,9 @@ export const MODULE_PASS_SCHEMA = {
       "item",
       "destination",
     ]),
+    // A withdrawal names no destination: it closes the source and settles nothing about the copy,
+    // which stays where the decision that placed it put it.
+    withdrawn: entries({ item: text, evidence: text }, ["item", "evidence"]),
     parked: entries({ item: text, reason: text, evidence: text }, [
       "item",
       "reason",

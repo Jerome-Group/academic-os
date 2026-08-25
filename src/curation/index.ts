@@ -2,6 +2,7 @@ export { executeCurationIdentityMigration } from "./execute-curation-identity-mi
 export { observeCohortCurationRegisters } from "./observe-cohort-curation-registers.js";
 export { planCurationIdentityMigration } from "./plan-curation-identity-migration.js";
 export {
+  closedCurationKeys,
   readCurationRegisterEvents,
   standingCurationItems,
   walkedCurationItems,

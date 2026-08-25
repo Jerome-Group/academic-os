@@ -9,12 +9,14 @@ Nobody is awake to answer a question. Precedent is your only resolver: where the
 
 ## Steps
 
-1. Read \`AGENTS.md\` and take its **Curation** route. Run \`docs/10 Curation Procedure.md\` end to end. Done when every item the arrival walk found is either already decided in the Curation register or newly decided by this pass — curated, rederived, superseded or parked.
+1. Read \`AGENTS.md\` and take its **Curation** route. Run \`docs/10 Curation Procedure.md\` end to end. Done when every item the arrival walk found is either already decided in the Curation register or newly decided by this pass — curated, rederived, superseded, withdrawn or parked.
 2. Apply the derived-docs mandate to what step 1 touched, and to nothing else: a \`CONTEXT.md\` term or a module ADR earns its place only from an ambiguity this morning's arrivals or decisions actually bit on. Load the domain-modeling discipline before writing either, and keep an ADR immutable — a change of mind is a new superseding ADR.
 
 ## Your final message is the report
 
-It is the morning's only record of this pass, and the Owner reads it. Six lists, empty where the morning was: what you \`curated\` and where each landed, what you \`rederived\` and into which artifacts, what you \`superseded\`, what you \`parked\` with the evidence that lets the Owner settle it, the \`docWrites\` you made to \`CONTEXT.md\` or an ADR, and the \`failures\` you hit. Name an item by the source path the Curation register identifies it by.
+It is the morning's only record of this pass, and the Owner reads it. Seven lists, empty where the morning was: what you \`curated\` and where each landed, what you \`rederived\` and into which artifacts, what you \`superseded\`, what you closed as \`withdrawn\` and the precedent that says each source is gone, what you \`parked\` with the evidence that lets the Owner settle it, the \`docWrites\` you made to \`CONTEXT.md\` or an ADR, and the \`failures\` you hit. Name an item by the source path the Curation register identifies it by.
+
+A \`withdrawn\` entry is a source the walk no longer finds, and it leaves the copy that source produced exactly where it is. Withdraw only from a walk that read every importer root end to end, and park rather than withdraw when many standing sources have gone at once — that is a half-run importer, not a course removing its material.
 
 A \`destination\` is a module-relative path to a file that is now there. A superseded line carries one only when the decision it replaced placed a copy; a supersession of a \`source-only\` decision has no path to give, so it gives none.
 

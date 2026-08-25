@@ -1,6 +1,7 @@
 import { sha256 } from "../checksum.js";
 import { validateCurationRegister } from "../conformance/validate-curation-register.js";
 import {
+  closedCurationKeys,
   readCurationRegisterEvents,
   standingCurationItems,
   walkedCurationItems,
@@ -80,8 +81,13 @@ function planModule(
     readCurationRegisterEvents(observed.register),
     observed.integrations,
   );
-  const items = standingCurationItems(walked);
-  const notation = registerNotation(items);
+  const standing = standingCurationItems(walked);
+  const closed = closedCurationKeys(walked);
+  const open = (item: CurationItem): boolean => !closed.has(item.key);
+  const items = standing.filter(open);
+  // Notation is read from every standing line the register holds, closed ones included: a withdrawn
+  // item is still a line whose digest this register wrote in its own way.
+  const notation = registerNotation(standing);
   const counts = emptyCounts();
   const migrations: PlannedCurationMigration[] = [];
   const discrepancies: CurationDiscrepancy[] = [];
@@ -102,7 +108,9 @@ function planModule(
   }
   return {
     ...base,
-    legacyLines: walked.filter(({ identity }) => identity === "legacy").length,
+    legacyLines: walked.filter(
+      (item) => item.identity === "legacy" && open(item),
+    ).length,
     counts,
     migrations,
     discrepancies,
@@ -182,7 +190,7 @@ function migration(
     // Today's schema, because this is an event written today. Version 1 lines stay history exactly
     // as they stand; that is a rule about not rewriting them, not a licence to write new ones under
     // a version the vocabulary has moved past.
-    schema_version: 2,
+    schema_version: 3,
     source_id: item.unnumberedPath,
     source_path: decided.source.sourcePath,
     checksum,

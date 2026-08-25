@@ -50,4 +50,5 @@ export type {
   RoutineArtifactStore,
   RoutineFailure,
   SupersededItem,
+  WithdrawnItem,
 } from "./types.js";

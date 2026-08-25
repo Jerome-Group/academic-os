@@ -5,15 +5,19 @@ import { isRecord, nonEmptyString } from "./value-shape.js";
 
 const registerPath = writtenControlPaths.curationRegister;
 // Version 2 adds `rederived`, whose line names the derived artifacts an item's content reached the
-// module through. A version 1 line stays valid history exactly as it was written, so one file
-// holding both versions is one file holding its own past.
+// module through, and version 3 adds `withdrawn`, which records that the item's source has left the
+// importer mirror. A line stays valid history exactly as it was written under the version it names,
+// so one file holding all three is one file holding its own past.
 const version1Decisions = ["curated", "source-only", "requires-decision"];
 const version2Decisions = [...version1Decisions, "rederived"];
+const version3Decisions = [...version2Decisions, "withdrawn"];
 const decisionsByVersion = new Map([
   [1, version1Decisions],
   [2, version2Decisions],
+  [3, version3Decisions],
 ]);
 const supportedVersions = [...decisionsByVersion.keys()];
+const newestDecisions = version3Decisions;
 
 export function validateCurationRegister(source: string | undefined): Finding {
   if (source === undefined) {
@@ -75,12 +79,12 @@ function validateEvent(value: unknown, line: number): string[] {
   const declared = readDecisions(value.schema_version);
   if (declared === undefined) {
     problems.push(
-      `Line ${line} has unsupported schema_version ${JSON.stringify(value.schema_version)}; supported versions are ${supportedVersions.join(" and ")}.`,
+      `Line ${line} has unsupported schema_version ${JSON.stringify(value.schema_version)}; supported versions are ${joinedWithAnd(supportedVersions)}.`,
     );
   }
   // A line whose version says nothing is still read for its decision, against the newest
   // vocabulary — so an unsupported version reports what else is wrong with the line beside it.
-  const decisions = declared ?? version2Decisions;
+  const decisions = declared ?? newestDecisions;
   for (const field of requiredStrings) {
     if (!nonEmptyString(value[field])) {
       problems.push(`Line ${line} requires non-empty ${field}.`);
@@ -143,6 +147,21 @@ function outcomeProblems(
       `Line ${line} derived is allowed only for rederived decisions.`,
     );
   }
+  // A withdrawal closes the item's source and settles nothing about the copy that source produced.
+  // Superseding the line that placed the copy would take the record of where the item went off the
+  // top of the register, which reads as the deletion MF-CURATION-002 promises never happens.
+  if (value.decision === "withdrawn") {
+    if (value.supersedes !== undefined) {
+      problems.push(
+        `Line ${line} withdrawn decision supersedes nothing: the line that placed the copy stays the record of where the item went.`,
+      );
+    }
+    if (value.checksum !== undefined) {
+      problems.push(
+        `Line ${line} withdrawn decision records no checksum: its source is not there to hash.`,
+      );
+    }
+  }
   return problems;
 }
 
@@ -162,6 +181,10 @@ function derivedProblems(derived: unknown, line: number): string[] {
           `Line ${line} derived path ${JSON.stringify(path)} must be module-relative.`,
         ];
   });
+}
+
+function joinedWithAnd(versions: readonly number[]): string {
+  return `${versions.slice(0, -1).join(", ")} and ${versions.at(-1)}`;
 }
 
 function readDecisions(schemaVersion: unknown): string[] | undefined {

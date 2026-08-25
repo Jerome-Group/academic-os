@@ -24,6 +24,7 @@ const quietPass: ModulePassOutcome = {
   curated: [],
   rederived: [],
   superseded: [],
+  withdrawn: [],
   parked: [],
   docWrites: [],
   failures: [],

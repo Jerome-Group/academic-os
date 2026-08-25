@@ -55,6 +55,7 @@ describe("the Codex invocation a module pass runs under", () => {
       "curated",
       "rederived",
       "superseded",
+      "withdrawn",
       "parked",
       "docWrites",
       "failures",

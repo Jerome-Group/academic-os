@@ -7,18 +7,25 @@ const emptyMorning = JSON.stringify({
   curated: [],
   rederived: [],
   superseded: [],
+  withdrawn: [],
   parked: [],
   docWrites: [],
   failures: [],
 });
 
 describe("reading a module pass's result", () => {
-  it("reads the six buckets a session reports", () => {
+  it("reads the seven buckets a session reports", () => {
     const outcome = readModulePassOutcome(
       JSON.stringify({
         curated: [{ item: "source/handout.pdf", destination: "placed.pdf" }],
         rederived: [{ item: "source/notice.html", derived: ["profile.md"] }],
         superseded: [{ item: "source/handout.pdf", destination: "placed.pdf" }],
+        withdrawn: [
+          {
+            item: "source/makeup-class.md",
+            evidence: "The source has left the mirror; the placed copy stays.",
+          },
+        ],
         parked: [
           { item: "source/odd.zip", reason: "no precedent", evidence: "cited" },
         ],
@@ -32,6 +39,12 @@ describe("reading a module pass's result", () => {
     ]);
     assert.deepEqual(outcome.rederived, [
       { item: "source/notice.html", derived: ["profile.md"] },
+    ]);
+    assert.deepEqual(outcome.withdrawn, [
+      {
+        item: "source/makeup-class.md",
+        evidence: "The source has left the mirror; the placed copy stays.",
+      },
     ]);
     assert.deepEqual(outcome.parked, [
       { item: "source/odd.zip", reason: "no precedent", evidence: "cited" },
@@ -50,6 +63,7 @@ describe("reading a module pass's result", () => {
         curated: [],
         rederived: [],
         superseded: [{ item: "source/notice.html", destination: null }],
+        withdrawn: [],
         parked: [],
         docWrites: [],
         failures: [],
@@ -59,11 +73,12 @@ describe("reading a module pass's result", () => {
     assert.deepEqual(outcome.superseded, [{ item: "source/notice.html" }]);
   });
 
-  it("reads a quiet morning as six empty buckets", () => {
+  it("reads a quiet morning as seven empty buckets", () => {
     assert.deepEqual(readModulePassOutcome(emptyMorning), {
       curated: [],
       rederived: [],
       superseded: [],
+      withdrawn: [],
       parked: [],
       docWrites: [],
       failures: [],
@@ -83,6 +98,7 @@ describe("reading a module pass's result", () => {
             curated: [{ item: "source/handout.pdf" }],
             rederived: [],
             superseded: [],
+            withdrawn: [],
             parked: [],
             docWrites: [],
             failures: [],

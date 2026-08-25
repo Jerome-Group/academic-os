@@ -1,7 +1,10 @@
 // The shape a pass's final message must take, handed to the Codex CLI as a JSON Schema so the
-// harness enforces it rather than the model remembering it. It states exactly what
-// `readModulePassOutcome` demands — `minLength` included — because a schema looser than the parser
-// is a morning the CLI accepts and the wrapper then throws away whole.
+// harness enforces it rather than the model remembering it. What structured-output's strict mode
+// actually guarantees is the object's shape: the declared properties, their types, and that
+// `required` names every one. It does not read `minLength` — a pass returned a `""` note under this
+// schema on 2026-08-25 — so the parser is the only thing enforcing non-emptiness, and it drops the
+// entry it cannot read rather than the pass around it. The bound is kept here because it tells a
+// model what is wanted, not because anything checks it.
 const text = { type: "string", minLength: 1 } as const;
 
 // Structured-output mode requires `required` to name every property, so a field a pass may have no

@@ -574,6 +574,20 @@ stands beside the `rederived` one. MF-CURATION-003 and MF-CURATION-004 govern th
 sources build one or two artifacts; this one runs the other way —
 [`docs/adr/0022`](adr/0022-a-source-cut-into-many-artifacts-is-one-rederived-decision.md).
 
+**MF-CURATION-006 (judgment).** An update arrival that a walk decides `source-only` again appends no
+register line. Supersession records that a decision changed; a `source-only` line says the item stays
+in the mirror and is read there, so writing it a second time records only that bytes moved, and a
+register read top to bottom for a module's precedent gains nothing from a line that adds none. Every
+other decision still appends, because each records something the arrival changed: a `curated` copy
+was replaced, a `rederived` item's artifacts were worked again, a parked item's evidence is this
+arrival's.
+
+The importer's sync stamp is `source-only`: it carries no course material, and its content is not
+rederived into a module doc, because MF-PROFILE-002 has the Profile cite that file rather than a
+value read out of it. Its standing line and its MF-IMPORTER-001 landmark are both untouched — what
+stops is the second copy of a decision already recorded —
+[`docs/adr/0023`](adr/0023-a-decision-re-reached-is-not-a-decision-recorded.md).
+
 ## Naming
 
 **MF-NAMING-001 (deterministic).** Fixed paths use their exact spelling and case. Other governed

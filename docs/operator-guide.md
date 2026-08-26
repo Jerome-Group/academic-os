@@ -881,6 +881,33 @@ module. Every append is journalled under `stateRoot` at
 `journals/curation-rederivation/<run>.jsonl`, carrying the checksum replaced and the checksum
 written.
 
+## The importer's sync stamp
+
+The importer rewrites its sync stamp on every run, so the walk decides the item again and, under
+MF-CURATION-006, appends nothing — which is what makes movement in the morning report's `Superseded`
+bucket mean a decision changed.
+
+This rule lives in `seed-templates/docs/10 Curation Procedure.template.md`, so it governs nothing in
+the cohort until **Pinned refresh** above has rewritten every module's copy. Run that once this is
+merged:
+
+```bash
+node dist/src/cli.js pinned refresh --config academic-os.config.json --apply
+```
+
+Two things to know about what it changes:
+
+- **The lines already written stay.** The register is append-only history, and the sync-stamp lines
+  in it record what was decided on the days it was decided. Nothing rewrites them, and the standing
+  line is the last one either way.
+- **A module whose register carries a `rederived` precedent for the stamp stops following it.** A
+  pass that once wrote the sync instant into the Module Profile set that precedent for every pass
+  after it, and MF-PROFILE-002 is what it contradicts: the Profile cites `NTULearn/Last synced.md`
+  rather than a day read out of it, because a day copied out is stale by the next sync. The rule
+  displaces the precedent, which stops the daily Profile rewrite — but a Profile that already
+  quotes a date still holds it, and putting that cell back to a citation is a module edit for a
+  session with the Owner present.
+
 ## Transition a module to the current contract
 
 A module folder whose Definition declares an earlier contract version audits as
@@ -959,5 +986,7 @@ is mutable and therefore is not itself immutable or WORM storage.
   changed — that is an update arrival for the curation walk.
 - Curation rederive only appends to a register, and moves no artifact: it corrects what a decision
   said, never where anything sits.
+- A walk that re-reaches the decision already standing appends nothing, so movement in the morning
+  report's `Superseded` bucket means a decision changed.
 - Run `npm run check`, `npm run rule-coverage:check` and `npm run privacy:check` before publication.
 - Follow `docs/agents/safe-drive-testing.md` before any Drive write or integration test.

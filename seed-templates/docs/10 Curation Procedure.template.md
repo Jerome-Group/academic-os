@@ -87,7 +87,8 @@ item is the precedent every later item of its kind reads.
 
 `rederived` is what much of a mirror actually earns: the item was worked, its content is now
 somewhere in the folder, and no verbatim copy was the right output. Recording it closes the item as
-firmly as a copy does.
+firmly as a copy does, and one line carries every artifact the work produced — **One source, many
+artifacts** below is the shape that most often reaches for `curated` by mistake.
 
 **An update arrival supersedes on one condition.** Compare the placed copy against what the earlier
 line placed. Byte-identical — nothing has been done to it — the new bytes replace it and a
@@ -101,7 +102,9 @@ graded or edited after it was placed — is a fact about the module's own materi
 question about what to curate. Report it with both digests and leave the source and the copy
 where they are. It takes no line, because the `curated` decision that placed the copy still stands. The morning run
 reports it in `noted`; a session with the Owner present says it and moves past. The update arrival
-above is the other case, and that one parks.
+above is the other case, and that one parks. The walk is over `curated` lines: a `rederived` line
+closed its item and named what the work produced, so it owes no comparison and reports no
+divergence.
 
 ## When a source has left
 
@@ -153,6 +156,28 @@ been worked on holds its ground and parks.
 
 Park two sources holding different material — those are two items, not two issues of one — and park
 two sources where nothing says which is newer.
+
+## One source, many artifacts
+
+One file in the mirror can be worked into several files in the module — a combined document cut into
+a chapter apiece, questions separated from solutions. The section above is the other direction: there
+two sources build one or two artifacts, and here one source builds many.
+
+**One source worked into several artifacts is one `rederived` decision.** It names every artifact
+the work produced in `derived`, and closing the item there is what settles it. Reaching for
+`curated` once per artifact records something else: each of those lines says its destination holds
+this source's content, and a chapter cut out of a document does not, so every later walk compares
+the two, finds the difference the work put there, and reports a divergence nothing can settle.
+
+**A whole copy among the cuts is still `curated`.** A source cut into chapters is often also placed
+whole, and that copy is a real curated decision — its bytes are the source's bytes, so comparing
+them means something. Decide per destination: what holds the source's own bytes keeps its `curated`
+line, and what does not is one of the `derived` artifacts.
+
+**A split already filed as many `curated` lines is corrected by appending.** The `rederived` line
+arrives after them and supersedes them, and every line already written stays exactly where it is as
+the record of what was decided when. With the Owner absent, report the split rather than correcting
+it: rewriting a module's standing decisions is a decision.
 
 ## Naming and destinations
 

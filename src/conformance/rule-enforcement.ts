@@ -13,6 +13,7 @@ export const contractRuleEnforcement = {
   "MF-CURATION-002": "judgment",
   "MF-CURATION-003": "judgment",
   "MF-CURATION-004": "judgment",
+  "MF-CURATION-005": "judgment",
   "MF-DEFINITION-001": "deterministic",
   "MF-DEFINITION-002": "deterministic",
   "MF-DOCS-001": "deterministic",

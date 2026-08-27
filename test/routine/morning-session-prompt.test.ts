@@ -57,6 +57,25 @@ describe("the module session's prompt", () => {
     assert.match(prompt, /correct now and stays correct/u);
   });
 
+  // #197: two unattended mornings each invented a meta-item with an empty note — the pass narrating
+  // itself into a bucket meant for facts about the material. The parser drops such an entry, and the
+  // drop raises the day's issue, so the prompt is the only surface that can stop it being emitted.
+  it("binds a note to something in the module, and leaves the list empty when there is none", () => {
+    assert.match(
+      prompt,
+      /Every note is about the module: a file in the folder, a source in the mirror, a line in the register/u,
+    );
+    assert.match(prompt, /a morning that found none returns `noted` empty/u);
+  });
+
+  it("makes precedent, working state and reasoning what a pass decides with", () => {
+    assert.match(
+      prompt,
+      /The precedent you read, the state you carried from step to step and the reasoning behind a call are what you decide \*with\*/u,
+    );
+    assert.match(prompt, /a note holds what you decide \*about\*/u);
+  });
+
   it("sends a diverged placed copy holding its ground to `noted`, and an arrival still to `parked`", () => {
     assert.match(
       prompt,

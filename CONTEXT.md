@@ -490,8 +490,10 @@ decision — a placed copy that has diverged from its source and is holding its 
 register key an appended line already settled. Reported in the Morning report's `noted` bucket,
 which is the one bucket that never raises the day's issue. It records nothing in the curation
 register: a note reports what the register already decided (ADR-0021).
-_Avoid_: parked item — that is a question the Owner settles; warning, observation — Audit
-observation is a conformance term and means something else.
+_Avoid_: parked item — that is a question the Owner settles; the pass's own reasoning — precedent,
+working state and a call's reasoning are what a pass decides with, not what it decides about;
+warning, observation — Audit observation is a
+conformance term and means something else.
 
 **Morning report**:
 What the Morning routine writes on the mini every day, in one fixed format, dated by the offering's

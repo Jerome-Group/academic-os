@@ -41,7 +41,7 @@ answers:
 | --- | --- | --- |
 | Standing line `withdrawn` | The source has come back | A new item; classify it |
 | Path and checksum both known | Already decided | Leave it — the standing line covers it |
-| Path known, checksum new | An **update arrival** | Decide it again, superseding the earlier line |
+| Path known, checksum new | An **update arrival** | Decide it again; a changed decision supersedes, a re-reached one takes no line |
 | Checksum known, path new | Known bytes, filed twice upstream | `source-only`, its evidence naming the original decision |
 | Neither known | A new item | Classify it |
 
@@ -56,6 +56,11 @@ Two kinds of file, and only one of them costs judgment.
 **The importer's own writing is `source-only`, deterministically** — the course page, the sync
 stamp, announcements, item pages, folder pages, and any stand-in marked
 `<!-- ntulearn: nothing to copy -->`. These are the mirror describing itself.
+
+The sync stamp's content is not rederived into a module doc, however often the importer rewrites it.
+The Profile cites the stamp rather than a day read out of it, because a day copied out is stale by
+the next sync — so a Profile naming the stamp is citing it correctly, and one quoting its date is
+carrying a value that was wrong by the following morning.
 
 **Attachments are classified by precedent.** The register is the rule book: find the lines whose
 items match the one in front of you — same importer folder, same kind of material, same role in the
@@ -210,6 +215,18 @@ One line per decision, appended, JSON:
 
 The register is append-only history, and a superseded line stays where it is. Reading the file top
 to bottom is how this module's precedent is reconstructed.
+
+**A `source-only` decision re-reached takes no line.** Supersession records that a decision
+changed, and a `source-only` line says the item stays in the mirror and is read there — so an update
+arrival you decide `source-only` again is finished when you have decided it, and a second identical
+line adds no precedent for a later reader to reconstruct.
+
+Every other decision still appends, because each of them records something the arrival changed: a
+`curated` line's copy was replaced, a `rederived` line's artifacts were worked again, a
+`requires-decision` line carries the evidence this arrival gave the Owner.
+
+The importer's sync stamp is the item this comes up on every run. Decide it, record nothing, and
+report nothing: nothing happened that the Owner is owed.
 
 ## Parking
 

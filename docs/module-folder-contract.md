@@ -560,6 +560,20 @@ rather than a release's, so it holds across a reissue and a source's revision da
 line's evidence. Two sources holding different material are two items, and two sources with nothing
 to say which is newer are an ambiguity to park.
 
+**MF-CURATION-005 (judgment).** Where one source is worked into several module artifacts — a
+combined document cut into a chapter apiece — the item is one `rederived` decision naming every
+artifact in `derived`, and not a `curated` line per artifact. A `curated` line asserts its
+destination holds the source's content, so a cut filed as one is a divergence every later walk finds
+and none can settle. A `rederived` line closes the item, and a closed item owes no destination
+comparison: MF-CURATION-002's standing-divergence walk reads `curated` lines, so a `rederived` item
+is not reported as diverging.
+
+This is decided per destination rather than per source, because a source cut into artifacts is often
+also placed whole. A destination holding the source's own bytes is a copy and its `curated` line
+stands beside the `rederived` one. MF-CURATION-003 and MF-CURATION-004 govern the neighbouring shapes, where two
+sources build one or two artifacts; this one runs the other way —
+[`docs/adr/0022`](adr/0022-a-source-cut-into-many-artifacts-is-one-rederived-decision.md).
+
 ## Naming
 
 **MF-NAMING-001 (deterministic).** Fixed paths use their exact spelling and case. Other governed

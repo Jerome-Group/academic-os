@@ -4,8 +4,8 @@ The CLI has `seed`, `audit`, `calendar setup`, pull-only `calendar refresh`, pri
 propose`, explicitly authorised `calendar promote`, `tasks provision`, pull-only `tasks refresh`,
 in-session `tasks create`, `tasks change`, `tasks complete` and `tasks cancel`, additive `textbooks
 catch-up`, the unattended `routine morning`, previewed `pinned refresh`, previewed
-`curation migrate` and separately gated `repair` commands. It does not orchestrate a week of
-study or evolve a module's instructions on its own.
+`curation migrate`, previewed `curation rederive` and separately gated `repair` commands. It does
+not orchestrate a week of study or evolve a module's instructions on its own.
 
 ## Configure
 
@@ -825,6 +825,62 @@ through a temporary and one rename, so no reader meets the file half-written. Ev
 journalled under `stateRoot` at `journals/curation-identity/<run>.jsonl`, carrying the checksum
 replaced and the checksum written.
 
+## Curation register split sources
+
+One source can be worked into several module artifacts — a combined document cut into a chapter
+apiece — and MF-CURATION-005 is the one `rederived` line that records it. A register holding a
+`curated` line per artifact instead reports a divergence every morning that nothing can settle.
+`curation rederive` is the reviewed pass that corrects those registers, over the same active cohort
+audit selects:
+
+```bash
+node dist/src/cli.js curation rederive --config academic-os.config.json
+```
+
+That previews. It names, per split source, which destinations become `derived`, which stay
+`curated` because they hold the source's own bytes, and which the run could not read or could not
+find — read it before applying, because the register is history and what this appends to it is
+permanent.
+
+```bash
+node dist/src/cli.js curation rederive --config academic-os.config.json --apply
+```
+
+Applying **appends** one `rederived` line per corrected source, naming the derived artifacts and
+carrying the superseded batch's identifier in `supersedes`. Nothing already written is edited, so a
+second run plans nothing further — the item's standing batch is now the `rederived` line, and that
+is not a split — [`docs/adr/0022-…`](adr/0022-a-source-cut-into-many-artifacts-is-one-rederived-decision.md).
+
+The correction is decided per destination and not per source, because a source cut into chapters is
+often also placed whole. A destination whose bytes are the source's is a copy, and its `curated`
+line stays standing beside the appended one. A destination the mount does not hold is named and left
+out of `derived`, and a standing line whose own digest cannot be read costs only its own destination
+— refusing the item over one bad character would leave the whole source reporting every morning.
+
+Four kinds of source are reported and deliberately left alone:
+
+| Reported | The source | Who settles it |
+|---|---|---|
+| `changed` | Its bytes differ from the sha-256 its standing lines recorded | The curation walk, as an update arrival |
+| `legacy-identity` | Its standing batch is keyed by a Drive file ID | `curation migrate`, first |
+| `missing-source` | Nothing in the mirror answers to its unnumbered path | The curation walk, as a withdrawal |
+| `unprovable` | No standing line records a sha-256 this pass can compare | The Owner |
+
+| Exit | Meaning |
+|---:|---|
+| 0 | No standing batch records one source as a curated line per artifact |
+| 1 | Split sources remain, and `--apply` would correct them |
+| 2 | The run was refused, stopped part-way, a module could not be read, or a register is malformed |
+| 3 | Nothing left to correct, and sources only a decision or a walk can settle remain |
+
+Each write proves itself before it happens, under `docs/agents/safe-drive-testing.md`: the module is
+materialized before anything is hashed, the register resolves inside its own module folder on the
+Drive mount, it is an ordinary file, and its checksum still matches what the preview read — as does
+every source the run is about to name. Anything that disagrees refuses the **run**, not the one
+module. Every append is journalled under `stateRoot` at
+`journals/curation-rederivation/<run>.jsonl`, carrying the checksum replaced and the checksum
+written.
+
 ## Transition a module to the current contract
 
 A module folder whose Definition declares an earlier contract version audits as
@@ -901,5 +957,7 @@ is mutable and therefore is not itself immutable or WORM storage.
   academic contents where they are.
 - Curation migrate only appends to a register, and never decides an item whose source bytes have
   changed — that is an update arrival for the curation walk.
+- Curation rederive only appends to a register, and moves no artifact: it corrects what a decision
+  said, never where anything sits.
 - Run `npm run check`, `npm run rule-coverage:check` and `npm run privacy:check` before publication.
 - Follow `docs/agents/safe-drive-testing.md` before any Drive write or integration test.

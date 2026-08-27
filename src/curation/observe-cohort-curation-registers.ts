@@ -144,14 +144,14 @@ async function observeSources(
   return { sources, ambiguousSources };
 }
 
-const ambiguous = Symbol("two files answer to one unnumbered path");
+export const ambiguous = Symbol("two files answer to one unnumbered path");
 type MirrorEntry = { sourcePath: string; location: string };
 type MirrorIndex = Map<string, MirrorEntry | typeof ambiguous>;
 
 // The mirror keyed the way contract-v4 identity names it, because the `NN ` prefix a standing line
 // recorded is exactly what shifts when material is inserted or renumbered upstream. Looking an item
 // up by the path it was filed under would miss the files legacy identity fails hardest for.
-async function indexMirror(
+export async function indexMirror(
   moduleRoot: string,
   sources: readonly DeclaredImporterSource[],
 ): Promise<MirrorIndex> {

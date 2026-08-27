@@ -5,6 +5,7 @@ export {
   type OperationalErrorCode,
 } from "../operational-error.js";
 export { readModuleControls } from "./read-module-controls.js";
+export { openRunJournal, type RunJournal } from "./run-journal.js";
 export { resolveTarget } from "./resolve-target.js";
 export {
   appendMountedAuditObservation,

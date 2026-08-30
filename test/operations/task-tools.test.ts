@@ -5,6 +5,7 @@ import {
   createTaskTools,
   type TaskToolPort,
 } from "../../src/operations/index.js";
+import { applyTaskOperation } from "../../src/tasks/index.js";
 import type { OperationTool } from "../../src/operations/index.js";
 import type {
   TaskOperationReport,
@@ -80,9 +81,23 @@ function call(
 
 describe("the served task tools", () => {
   it("serves exactly the v1 surface", () => {
+    const tools = setupFixture().tools;
     assert.deepEqual(
-      [...setupFixture().tools.keys()],
+      [...tools.keys()],
       ["tasks_create", "tasks_change", "tasks_complete", "tasks_read_register"],
+    );
+    assert.deepEqual(
+      tools.get("tasks_create")?.fields.map(({ name }) => name),
+      [
+        "semester",
+        "module",
+        "title",
+        "do_date",
+        "notes",
+        "assessment",
+        "source",
+        "milestone",
+      ],
     );
   });
 
@@ -121,6 +136,35 @@ describe("the served task tools", () => {
       notes: "Deadline Friday",
       provenance: { assessment: "Quiz 2" },
     });
+  });
+
+  it("rejects programmatic research provenance before a module live-list write", async () => {
+    const fixture = setupFixture();
+
+    await assert.rejects(
+      applyTaskOperation({
+        target: {
+          semester: "Y2S1",
+          module: "MODULE",
+          registerStore: fixture.store,
+        },
+        operation: {
+          name: "create",
+          title: "Check a claim",
+          provenance: {
+            source: "source-1",
+            claim: "claim-1",
+            meeting: "20 Supervisor Meetings/2026-09-01 Scope.md",
+            deliverable: "paper",
+          },
+        },
+        writer: fixture.list.writer,
+        reader: fixture.list.reader,
+      }),
+      /claim, meeting, deliverable provenance is available only for research-project targets/u,
+    );
+    assert.equal(fixture.list.tasks().length, 1);
+    assert.equal(fixture.store.current()?.tasks.length, 1);
   });
 
   it("parks a push the live list refuses and leaves the register without a row", async () => {

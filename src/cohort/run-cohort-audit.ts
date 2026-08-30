@@ -1,14 +1,20 @@
 import { planModuleConformance } from "../conformance/index.js";
 import { loadModuleContract } from "../contract/load-module-contract.js";
-import type { AcademicConfig } from "../config/index.js";
+import {
+  type AcademicConfig,
+  resolveConfiguredResearchProjects,
+} from "../config/index.js";
+import { loadResearchProjectContract } from "../contract/load-research-project-contract.js";
 import {
   inspectMountedModule,
+  inspectMountedResearchProject,
   appendMountedAuditObservation,
   OperationalError,
   readMountedAuditHistory,
   resolveConfiguredSemesterRoots,
 } from "../mounted/index.js";
 import { createJsonAuditReport } from "../report/index.js";
+import { evaluateResearchProjectAudit } from "./evaluate-research-project-audit.js";
 import { planCohortAudit } from "./plan-cohort-audit.js";
 import type { CohortAuditReport } from "./types.js";
 
@@ -16,6 +22,10 @@ export async function runCohortAudit(
   config: AcademicConfig,
 ): Promise<CohortAuditReport> {
   const plan = planCohortAudit(config);
+  const configuredResearchProjects =
+    config.research === undefined
+      ? undefined
+      : resolveConfiguredResearchProjects(config);
   const activeSemester = config.semesters[config.activeSemester];
   if (activeSemester === undefined) {
     throw new OperationalError(
@@ -85,16 +95,79 @@ export async function runCohortAudit(
       });
     }
   }
-  const outcomes = modules.map(({ outcome }) => outcome);
-  const outcome =
-    plan.selection.unresolved.length > 0 ||
-    outcomes.includes("operational-failure")
-      ? "operational-failure"
-      : outcomes.includes("requires-decision")
-        ? "requires-decision"
-        : outcomes.includes("deviation")
-          ? "deviation"
-          : "conformant";
+  const researchSelection: CohortAuditReport["researchSelection"] =
+    configuredResearchProjects === undefined
+      ? undefined
+      : {
+          included: configuredResearchProjects
+            .filter(({ status }) => status === "active")
+            .map(({ key, folder }) => ({ key, folder })),
+          excluded: configuredResearchProjects
+            .filter(({ status }) => status === "inactive")
+            .map(({ key, folder }) => ({
+              key,
+              folder,
+              reason: "inactive" as const,
+            })),
+          unresolved: [],
+        };
+  const researchProjects: CohortAuditReport["researchProjects"] =
+    configuredResearchProjects === undefined ? undefined : [];
+  if (
+    configuredResearchProjects !== undefined &&
+    researchProjects !== undefined &&
+    researchSelection !== undefined
+  ) {
+    let researchContract:
+      | ReturnType<typeof loadResearchProjectContract>
+      | undefined;
+    for (const project of configuredResearchProjects.filter(
+      ({ status }) => status === "active",
+    )) {
+      try {
+        const inspected = await inspectMountedResearchProject(
+          config,
+          project.key,
+        );
+        if (researchContract === undefined) {
+          researchContract = loadResearchProjectContract();
+        }
+        researchProjects.push(
+          await evaluateResearchProjectAudit({
+            contract: await researchContract,
+            target: inspected.target,
+            inventory: inspected.inventory,
+            controls: inspected.controls,
+          }),
+        );
+      } catch (error) {
+        const operationalError = asOperationalError(
+          error,
+          "Research-project audit failed unexpectedly.",
+        );
+        researchProjects.push({
+          project: { key: project.key, folder: project.folder },
+          outcome: "operational-failure",
+          error: {
+            code: operationalError.code,
+            message: operationalError.message,
+          },
+        });
+        researchSelection.unresolved.push({
+          key: project.key,
+          folder: project.folder,
+          reason: operationalError.code,
+        });
+      }
+    }
+  }
+  const outcome = aggregateOutcome(
+    plan.selection.unresolved.length,
+    modules.map(({ outcome: moduleOutcome }) => moduleOutcome),
+    researchSelection?.unresolved.length ?? 0,
+    researchProjects?.map(({ outcome: researchOutcome }) => researchOutcome) ??
+      [],
+  );
   return {
     schemaVersion: 1,
     mode: "cohort",
@@ -102,5 +175,34 @@ export async function runCohortAudit(
     outcome,
     selection: plan.selection,
     modules,
+    ...(researchSelection === undefined || researchProjects === undefined
+      ? {}
+      : { researchSelection, researchProjects }),
   };
+}
+
+function asOperationalError(error: unknown, message: string): OperationalError {
+  return error instanceof OperationalError
+    ? error
+    : new OperationalError("operational-failure", message);
+}
+
+function aggregateOutcome(
+  unresolvedModules: number,
+  moduleOutcomes: CohortAuditReport["modules"][number]["outcome"][],
+  unresolvedResearchProjects: number,
+  researchOutcomes: NonNullable<
+    CohortAuditReport["researchProjects"]
+  >[number]["outcome"][],
+): CohortAuditReport["outcome"] {
+  const outcomes = [...moduleOutcomes, ...researchOutcomes];
+  if (
+    unresolvedModules > 0 ||
+    unresolvedResearchProjects > 0 ||
+    outcomes.includes("operational-failure")
+  ) {
+    return "operational-failure";
+  }
+  if (outcomes.includes("requires-decision")) return "requires-decision";
+  return outcomes.includes("deviation") ? "deviation" : "conformant";
 }

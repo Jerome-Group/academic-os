@@ -2,14 +2,30 @@ import {
   planCohortAudit,
   resolveConfiguredAuditTarget,
 } from "../cohort/index.js";
-import type { AcademicConfig, ConfiguredModule } from "../config/index.js";
-import type { LocalConfig } from "../mounted/index.js";
-import { createDeferredTaskRegisterStore } from "./deferred-task-register-store.js";
-import type { TaskRefreshTarget } from "./refresh-task-registers.js";
+import {
+  type AcademicConfig,
+  type ConfiguredModule,
+  requireActiveResearchProject,
+  resolveConfiguredResearchProject,
+  type ResolvedResearchProject,
+} from "../config/index.js";
+import { researchTaskRegisterPath } from "../contract/research-project-structure.js";
+import { researchTaskProvenanceKeys } from "../contract/task-register.js";
+import {
+  resolveConfiguredResearchProjectRoots,
+  type LocalConfig,
+} from "../mounted/index.js";
+import {
+  createDeferredPathTaskRegisterStore,
+  createDeferredTaskRegisterStore,
+} from "./deferred-task-register-store.js";
+import type {
+  TaskRefreshTarget,
+  TaskRegisterTarget,
+} from "./refresh-task-registers.js";
 
-// Every Tasks caller — the commands and the Operations server alike — addresses a module by
-// semester and code and needs the same register store behind it, so the walk from configuration
-// to a target lives here rather than once per entry point.
+// Every Tasks caller — commands, the morning prelude and the Operations server — resolves target
+// identity to the same register store here rather than rebuilding that mapping at each entry point.
 export function configuredTaskTarget(
   config: AcademicConfig,
   module: ConfiguredModule,
@@ -23,10 +39,77 @@ export function cohortTaskTargets(config: AcademicConfig): TaskRefreshTarget[] {
   return planCohortAudit(config).targets.map(taskTarget);
 }
 
+export function activeTaskRegisterTargets(
+  config: AcademicConfig,
+): TaskRegisterTarget[] {
+  return [
+    ...planCohortAudit(config).targets.map(taskRegisterTarget),
+    ...activeResearchProjectTaskTargets(config),
+  ];
+}
+
+export function configuredResearchProjectTaskTarget(
+  config: AcademicConfig,
+  key: string,
+  options: { requireActive?: boolean } = {},
+): TaskRegisterTarget {
+  const project = resolveConfiguredResearchProject(config, key);
+  return researchTaskTarget(
+    config,
+    options.requireActive === true
+      ? requireActiveResearchProject(project)
+      : project,
+  );
+}
+
+export function activeResearchProjectTaskTargets(
+  config: AcademicConfig,
+): TaskRegisterTarget[] {
+  return Object.keys(config.research?.projects ?? {})
+    .sort()
+    .map((key) => resolveConfiguredResearchProject(config, key))
+    .filter(({ status }) => status === "active")
+    .map((project) => researchTaskTarget(config, project));
+}
+
 function taskTarget(target: LocalConfig): TaskRefreshTarget {
   return {
     semester: target.semester,
     module: target.module,
     registerStore: createDeferredTaskRegisterStore(target),
+  };
+}
+
+function taskRegisterTarget(target: LocalConfig): TaskRegisterTarget {
+  return {
+    identity: {
+      kind: "module",
+      key: `${target.semester}/${target.module}`,
+      title: target.module,
+    },
+    registerStore: createDeferredTaskRegisterStore(target),
+  };
+}
+
+function researchTaskTarget(
+  config: AcademicConfig,
+  project: ResolvedResearchProject,
+): TaskRegisterTarget {
+  return {
+    identity: {
+      kind: "research-project",
+      key: project.key,
+      title: project.taskListTitle ?? project.folder,
+    },
+    registerStore: createDeferredPathTaskRegisterStore({
+      resolveRoot: async () =>
+        (
+          await resolveConfiguredResearchProjectRoots(config, project.key, {
+            requireProject: true,
+          })
+        ).projectRoot,
+      registerPath: researchTaskRegisterPath,
+      provenanceKeys: researchTaskProvenanceKeys,
+    }),
   };
 }

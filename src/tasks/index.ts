@@ -1,6 +1,12 @@
-export { applyTaskOperation } from "./apply-task-operation.js";
 export {
+  applyTaskOperation,
+  applyTaskTargetOperation,
+} from "./apply-task-operation.js";
+export {
+  activeResearchProjectTaskTargets,
+  activeTaskRegisterTargets,
   cohortTaskTargets,
+  configuredResearchProjectTaskTarget,
   configuredTaskTarget,
 } from "./configured-task-targets.js";
 export { createDeferredTaskRegisterStore } from "./deferred-task-register-store.js";
@@ -18,11 +24,20 @@ export {
   TASKS_READONLY_SCOPE,
   TASKS_WRITE_SCOPE,
 } from "./google-tasks-client.js";
-export { provisionModuleTaskList } from "./provision-module-task-list.js";
-export { readTaskRegister } from "./read-task-register.js";
+export {
+  provisionModuleTaskList,
+  provisionTaskList,
+} from "./provision-module-task-list.js";
+export {
+  readTaskRegister,
+  readTaskTargetRegister,
+} from "./read-task-register.js";
 export {
   refreshTaskRegister,
   refreshTaskRegisters,
+  refreshTaskTarget,
+  refreshTaskTargets,
+  type TaskRegisterTarget,
   type TaskRefreshTarget,
 } from "./refresh-task-registers.js";
 export type {
@@ -32,13 +47,22 @@ export type {
   TaskOperationReport,
   TaskOperationWriter,
   TaskProvenance,
+  ResearchTaskProvenance,
   TaskProvisionReport,
   TaskRefreshModuleReport,
   TaskRefreshReader,
+  TaskRefreshResearchProjectReport,
   TaskRefreshReport,
   TaskRegisterCounts,
   TaskRegister,
   TaskRegisterEntry,
+  TaskRegisterProvenance,
   TaskRegisterReadReport,
   TaskRegisterStore,
+  TaskResearchProjectProvisionReport,
+  TaskTargetIdentity,
+  TaskTargetOperationReport,
+  TaskTargetProvisionReport,
+  TaskTargetRegisterReadReport,
+  TaskTargetRefreshReport,
 } from "./types.js";

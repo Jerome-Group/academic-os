@@ -1,6 +1,6 @@
 # Safe Drive testing
 
-The rules for tests and automation that can touch Google Drive module folders. Research and
+The rules for tests and automation that can touch Google Drive Module or Research-project folders. Research and
 primary-source evidence live in [`docs/research/safe-google-drive-testing.md`](../research/safe-google-drive-testing.md);
 this file is the binding procedure.
 
@@ -8,14 +8,14 @@ this file is the binding procedure.
 
 - **Contract tests** create synthetic trees in an operating-system temporary directory outside
   every Drive mount.
-- **Live acceptance audits** inspect real module folders read-only.
+- **Live acceptance audits** inspect real configured target folders read-only.
 - **Drive integration tests** are opt-in and write only inside the configured test-root Drive ID.
 - **Mounted writes** change the Owner's real content through Drive for Desktop rather than the
-  API — seeding, the repair executor's staging and publication, the shelf migration's renames, and
+  API — Module and Research-project seeding, the repair executor's staging and publication, the shelf migration's renames, and
   the pinned refresh's rewriting of a module's copy. They are the one tier with no Drive ID to
   hold, and *Prove a mounted write* below is their rule.
 
-Real module folders are never integration-test fixtures. A test run is correctly scoped when its
+Real Module and Research-project folders are never integration-test fixtures. A test run is correctly scoped when its
 tier is explicit and every possible write resolves inside that tier's disposable root.
 
 ## Fail closed before a Drive integration run
@@ -24,7 +24,7 @@ Start no run until all conditions hold:
 
 1. The explicit integration-test flag is present.
 2. The configured root ID resolves to the expected folder and installation-specific canary.
-3. The test root is outside every semester, module and recovery root.
+3. The test root is outside every semester, Module, Research-project and recovery root.
 4. The credentials and target capabilities permit only the required operations.
 5. A complete paginated inventory succeeds without incomplete-search results.
 6. The independent reconciler proves no unresolved artifact remains from an earlier run.
@@ -50,15 +50,28 @@ A failed cleanup fails the test and preserves its journal. The next invocation r
 exact run before creating anything. Cleanup is complete only when both the run-folder lookup and
 the run-marker lookup return zero items.
 
-## Protect real modules
+## Protect real academic targets
 
-An audit has no write-capable dependency. The repair executor accepts only a versioned, approved
+An audit has no write-capable dependency. The Module repair executor accepts only a versioned, approved
 plan whose IDs and preconditions still match a fresh observation. Before any real repair, create
 and verify both an ID-mapped Drive copy and a byte snapshot on separate storage. Module contents
 move to the recovery vault rather than being permanently deleted; Drive Trash is not a recovery
 design. A transition is the lighter path beside repair: it writes the control files this repository
 authors and moves documents, reads academic contents and leaves them where they are, and so binds
 neither of those recoveries — its writes prove themselves under *Prove a mounted write* instead.
+
+Research-project seed is additive and binds neither repair recovery. It resolves an exact
+configured root and folder, preserves mount artifacts, refuses every conflict, journals each
+operation and verifies the result against the research-project contract. Its source templates and
+caller-approved controls are the recovery for files it creates; it never overwrites existing
+project content.
+
+An initial-files manifest does not create a second writer. Before the research seed plan exists,
+each manifest source proves itself as an ordinary materialized file whose bytes match the declared
+SHA-256; text also proves strict UTF-8. Those proved bytes enter the same private plan, staging,
+journal, exclusive creation and final verification as the canonical seed. Public preview and run
+reports carry destinations only. Reproduction and interrupted resume use the unchanged manifest
+and local sources; a changed or missing source refuses plan reconstruction.
 
 The pinned refresh is the fourth writer and binds neither recovery, for the same reason a
 transition does not: what it overwrites is a file this repository authored and still holds, so the
@@ -75,7 +88,7 @@ unavailable rather than equal.
 
 ## Prove a mounted write before it happens
 
-Drive for Desktop hands the seeder, the repair staging, the shelf renamer and the pinned refresh a
+Drive for Desktop hands the Module/Research-project seeders, repair staging, shelf renamer and pinned refresh a
 filesystem and no ID surface, so the identity above is one none of them can hold. Content stands in
 its place: a Drive ID names the container a file arrived in, and a sha256 names the file. A mounted
 write that needs to know it has the right target holds a checksum and reads it again.

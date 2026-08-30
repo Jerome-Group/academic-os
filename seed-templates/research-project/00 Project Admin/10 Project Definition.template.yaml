@@ -1,0 +1,10 @@
+contract_version: 1
+project:
+  key: example-project
+  folder: "{{PROJECT_NAME}}"
+  title: Example project title
+  status: active
+profile: generic
+evidence:
+  identity: owner-supplied
+  confirmation: unresolved

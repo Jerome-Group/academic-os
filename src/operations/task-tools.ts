@@ -1,13 +1,17 @@
 import { OperationalError } from "../operational-error.js";
 import {
   applyTaskOperation,
+  applyTaskTargetOperation,
   isDoDate,
   readTaskRegister,
+  readTaskTargetRegister,
   type TaskOperation,
   type TaskOperationWriter,
   type TaskProvenance,
+  type ResearchTaskProvenance,
   type TaskRefreshReader,
   type TaskRefreshTarget,
+  type TaskRegisterTarget,
 } from "../tasks/index.js";
 import type {
   OperationTool,
@@ -19,6 +23,7 @@ import type {
 // resolved to its register, and the two credentials the push and the pull run under.
 export interface TaskToolPort {
   target(module: { semester: string; module: string }): TaskRefreshTarget;
+  researchProjectTarget?(key: string): TaskRegisterTarget;
   writer: TaskOperationWriter;
   reader: TaskRefreshReader;
 }
@@ -33,6 +38,14 @@ const moduleFields: OperationToolField[] = [
   {
     name: "module",
     description: "The module code.",
+    required: true,
+  },
+];
+
+const researchProjectFields: OperationToolField[] = [
+  {
+    name: "research_project",
+    description: "The research project's stable configuration key.",
     required: true,
   },
 ];
@@ -58,7 +71,7 @@ const notesField: OperationToolField = {
 // The v1 surface: the three in-session writes that follow the Promotion pattern, and the read
 // that catches a module's register up with its live list.
 export function createTaskTools(port: TaskToolPort): OperationTool[] {
-  return [
+  const moduleTools: OperationTool[] = [
     {
       name: "tasks_create",
       title: "Create a task",
@@ -95,7 +108,7 @@ export function createTaskTools(port: TaskToolPort): OperationTool[] {
           title: required(values, "title"),
           ...optionalDoDate(values),
           ...optional(values, "notes"),
-          ...provenance(values),
+          ...moduleProvenance(values),
         }),
     },
     {
@@ -156,6 +169,138 @@ export function createTaskTools(port: TaskToolPort): OperationTool[] {
       },
     },
   ];
+  const researchProjectTarget = port.researchProjectTarget;
+  return researchProjectTarget === undefined
+    ? moduleTools
+    : [
+        ...moduleTools,
+        ...createResearchProjectTaskTools({
+          ...port,
+          researchProjectTarget,
+        }),
+      ];
+}
+
+function createResearchProjectTaskTools(
+  port: TaskToolPort & {
+    researchProjectTarget(key: string): TaskRegisterTarget;
+  },
+): OperationTool[] {
+  return [
+    {
+      name: "research_tasks_create",
+      title: "Create a research-project task",
+      description:
+        "Create a task on a research project's live task list, then refresh its Task register.",
+      fields: [
+        ...researchProjectFields,
+        {
+          name: "title",
+          description: "The task title, as it reads on the phone.",
+          required: true,
+        },
+        doDateField,
+        notesField,
+        {
+          name: "assessment",
+          description:
+            "Provenance Google never sees: the assessment this task belongs to.",
+        },
+        {
+          name: "source",
+          description:
+            "Provenance Google never sees: the source this task came from.",
+        },
+        {
+          name: "milestone",
+          description:
+            "Provenance Google never sees: the Calendar milestone this task relates to.",
+        },
+        {
+          name: "claim",
+          description:
+            "Provenance Google never sees: the research claim this task advances.",
+        },
+        {
+          name: "meeting",
+          description:
+            "Provenance Google never sees: the supervisor meeting this task follows from.",
+        },
+        {
+          name: "deliverable",
+          description:
+            "Provenance Google never sees: the research deliverable this task advances.",
+        },
+      ],
+      call: async (values) =>
+        await operateResearchProject(port, values, {
+          name: "create",
+          title: required(values, "title"),
+          ...optionalDoDate(values),
+          ...optional(values, "notes"),
+          ...researchProvenance(values),
+        }),
+    },
+    {
+      name: "research_tasks_change",
+      title: "Change a research-project task",
+      description:
+        "Change a task's title, do-date or notes on a research project's live task list, then refresh its Task register.",
+      fields: [
+        ...researchProjectFields,
+        taskField,
+        { name: "title", description: "The new task title." },
+        doDateField,
+        notesField,
+      ],
+      call: async (values) => {
+        const change = {
+          ...optional(values, "title"),
+          ...optionalDoDate(values),
+          ...optional(values, "notes"),
+        };
+        if (Object.keys(change).length === 0) {
+          throw new OperationalError(
+            "invalid-arguments",
+            "research_tasks_change takes at least one of title, do_date or notes.",
+          );
+        }
+        return await operateResearchProject(port, values, {
+          name: "change",
+          taskId: required(values, "task_id"),
+          ...change,
+        });
+      },
+    },
+    {
+      name: "research_tasks_complete",
+      title: "Complete a research-project task",
+      description:
+        "Tick a task on a research project's live task list, then refresh its Task register.",
+      fields: [...researchProjectFields, taskField],
+      call: async (values) =>
+        await operateResearchProject(port, values, {
+          name: "complete",
+          taskId: required(values, "task_id"),
+        }),
+    },
+    {
+      name: "research_tasks_read_register",
+      title: "Read a research project's Task register",
+      description:
+        "Pull a research project's live task list into its Task register and return rows with their provenance.",
+      fields: researchProjectFields,
+      call: async (values) => {
+        const report = await readTaskTargetRegister({
+          target: port.researchProjectTarget(
+            required(values, "research_project"),
+          ),
+          reader: port.reader,
+        });
+        return { report, failed: report.outcome !== "read" };
+      },
+    },
+  ];
 }
 
 async function operate(
@@ -173,6 +318,22 @@ async function operate(
   // failed is applied and not an error: the task is on the Owner's phone, and reporting it as a
   // failure is what invites the calling agent to push it a second time. The report names the
   // stale register, which a later read settles.
+  return { report, failed: report.outcome !== "applied" };
+}
+
+async function operateResearchProject(
+  port: TaskToolPort & {
+    researchProjectTarget(key: string): TaskRegisterTarget;
+  },
+  values: ReadonlyMap<string, string>,
+  operation: TaskOperation,
+): Promise<OperationToolResult> {
+  const report = await applyTaskTargetOperation({
+    target: port.researchProjectTarget(required(values, "research_project")),
+    operation,
+    writer: port.writer,
+    reader: port.reader,
+  });
   return { report, failed: report.outcome !== "applied" };
 }
 
@@ -220,13 +381,31 @@ function optionalDoDate(values: ReadonlyMap<string, string>): {
   return { doDate: value };
 }
 
-const provenanceKeys = ["assessment", "source", "milestone"] as const;
+const moduleProvenanceKeys = ["assessment", "source", "milestone"] as const;
 
-function provenance(values: ReadonlyMap<string, string>): {
+const researchProvenanceKeys = [
+  ...moduleProvenanceKeys,
+  "claim",
+  "meeting",
+  "deliverable",
+] as const;
+
+function moduleProvenance(values: ReadonlyMap<string, string>): {
   provenance?: TaskProvenance;
 } {
   const provenance: TaskProvenance = {};
-  for (const key of provenanceKeys) {
+  for (const key of moduleProvenanceKeys) {
+    const value = values.get(key);
+    if (value !== undefined) provenance[key] = value;
+  }
+  return Object.keys(provenance).length === 0 ? {} : { provenance };
+}
+
+function researchProvenance(values: ReadonlyMap<string, string>): {
+  provenance?: ResearchTaskProvenance;
+} {
+  const provenance: ResearchTaskProvenance = {};
+  for (const key of researchProvenanceKeys) {
     const value = values.get(key);
     if (value !== undefined) provenance[key] = value;
   }

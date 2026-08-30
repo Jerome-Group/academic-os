@@ -106,6 +106,30 @@ describe("academic-os tasks create", () => {
     assert.equal(provider.requests[2]?.credential, fixture.readCredential);
   });
 
+  it("rejects research-only provenance for a module target", async () => {
+    const fixture = await setupFixture();
+    await writeFile(fixture.register, seededRegister);
+
+    const result = await runTasks(
+      fixture,
+      "create",
+      "--title",
+      "Attempt tutorial 3",
+      "--claim",
+      "claim-1",
+      "--json",
+    );
+
+    assert.equal(result.exitCode, 2);
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.error.code, "invalid-arguments");
+    assert.match(
+      report.error.message,
+      /available only for --research-project/u,
+    );
+    assert.equal(await readFile(fixture.register, "utf8"), seededRegister);
+  });
+
   it("keeps the register free of an invented row when the push fails", async () => {
     const fixture = await setupFixture();
     await writeFile(fixture.register, seededRegister);

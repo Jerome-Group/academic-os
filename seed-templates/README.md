@@ -1,14 +1,19 @@
 # Seed-source templates
 
-The canonical bodies of the pinned files a module folder is seeded with. Seeding writes them into a
-new module folder; the auditor diffs each module's copy back against them. These files, and never a
-copy in Drive, are what "pinned" means.
+The canonical bodies of pinned files seeded into Module and Research-project folders. Seeding writes
+them into a new target; audit diffs each pinned copy back against its aggregate's templates. These
+files, and never a copy in Drive, are what "pinned" means.
 
 ## What reads them
 
 `AGENTS.md` and the four `docs/` templates are what `src/seed/create-module-seed-plan.ts` writes
 into a module folder, and what `src/conformance/validate-pinned-documents.ts` diffs each module's
 copy back against under MF-AGENTS-004.
+
+`research-project/` mirrors a Research-project folder. Its `AGENTS.md` and four numbered
+procedures are pinned under RP-AGENTS-004; its controls and Research templates are canonical seed
+bodies, with caller-supplied Profile and Definition taking their two destination paths. Research
+templates are starting interfaces rather than pinned local instructions.
 
 ## The path is the destination
 
@@ -21,6 +26,11 @@ infix and reaches no module.
 `MODULE_CODE` is the only token seeding substitutes, and so the only thing that may differ between
 two modules' copies. A template that wants to say something true of one module has found something
 belonging in that module's `CONTEXT.md`, `docs/adr/` or profile.
+
+Inside `research-project/`, the path after that directory is the Research-project destination and
+the `.template` infix is removed. `{{PROJECT_NAME}}` is its sole interpolation token. A template
+that wants to say something true of one project has found content for that project's Profile,
+Definition, `CONTEXT.md`, `docs/adr/` or registers.
 
 ## Changing one
 

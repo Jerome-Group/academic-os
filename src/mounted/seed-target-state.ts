@@ -9,11 +9,15 @@ import {
 import { moduleControlPaths } from "../conformance/control-paths.js";
 import { loadModuleContract } from "../contract/load-module-contract.js";
 import type { SeedOperation, SeedPlan } from "../seed/index.js";
+import {
+  seedFileByteLength,
+  seedFileBytes,
+} from "../seed/seed-operation-bytes.js";
 import { ensureMaterialized } from "./ensure-materialized.js";
 import { inventoryDirectory } from "./inventory-mounted-module.js";
 import { OperationalError } from "../operational-error.js";
 import { readModuleControls } from "./read-module-controls.js";
-import type { SeedTargetIdentity } from "./seed-operation-journal.js";
+import type { ModuleSeedTargetIdentity } from "./seed-operation-journal.js";
 
 export interface OperationState {
   matching: SeedOperation[];
@@ -24,7 +28,7 @@ export interface OperationState {
 export function seedTargetIdentity(
   semesterRoot: string,
   plan: SeedPlan,
-): SeedTargetIdentity {
+): ModuleSeedTargetIdentity {
   return {
     module: plan.module,
     semester: plan.semester,
@@ -63,7 +67,7 @@ export async function inspectSeedOperationState(
 }
 
 export async function inspectSeedTarget(
-  target: SeedTargetIdentity,
+  target: ModuleSeedTargetIdentity,
   plan: SeedPlan,
 ): Promise<string[]> {
   const matchingNames = (await readdir(target.semesterRoot))
@@ -111,7 +115,7 @@ export async function inspectSeedTarget(
 }
 
 export async function auditSeedTarget(
-  target: SeedTargetIdentity,
+  target: ModuleSeedTargetIdentity,
   plan: SeedPlan,
 ): Promise<string[]> {
   const metadata = await optionalLstat(target.moduleRoot);
@@ -130,7 +134,7 @@ export async function auditSeedTarget(
 }
 
 export async function auditProjectedSeedTarget(
-  target: SeedTargetIdentity,
+  target: ModuleSeedTargetIdentity,
   plan: SeedPlan,
 ): Promise<string[]> {
   const targetMetadata = await optionalLstat(target.moduleRoot);
@@ -147,7 +151,7 @@ export async function auditProjectedSeedTarget(
       kind: operation.kind,
       modifiedAt: "1970-01-01T00:00:00.000Z",
       ...(operation.kind === "file"
-        ? { size: (operation.contents ?? "").length }
+        ? { size: seedFileByteLength(operation) }
         : {}),
     });
   }
@@ -217,7 +221,7 @@ export async function inspectSeedOperation(
     return metadata.isDirectory() ? "matching" : "conflict";
   }
   if (!metadata.isFile()) return "conflict";
-  return (await readFile(path, "utf8")) === (operation.contents ?? "")
+  return (await readFile(path)).equals(seedFileBytes(operation))
     ? "matching"
     : "conflict";
 }
@@ -232,7 +236,7 @@ export async function createSeedOperation(
     return;
   }
   await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, operation.contents ?? "", { flag: "wx" });
+  await writeFile(path, seedFileBytes(operation), { flag: "wx" });
 }
 
 export async function optionalLstat(path: string) {

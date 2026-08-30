@@ -1,14 +1,12 @@
 import { mkdir, rename } from "node:fs/promises";
 
-import type { SeedOperation, SeedPlan } from "../seed/index.js";
+import type { SeedOperation } from "../seed/index.js";
 import { ensureMaterialized } from "./ensure-materialized.js";
 import {
   appendSeedJournalEvent,
   type SeedJournal,
-  type SeedTargetIdentity,
 } from "./seed-operation-journal.js";
 import {
-  auditSeedRoot,
   createSeedOperation,
   inspectSeedOperation,
   optionalLstat,
@@ -24,14 +22,15 @@ export interface SeedExecutionFailure {
 
 export async function stageSeedPlan(
   journal: SeedJournal,
-  plan: SeedPlan,
+  operations: SeedOperation[],
+  auditRoot: (root: string) => Promise<string[]>,
   options: SeedExecutionOptions,
 ): Promise<SeedExecutionFailure | undefined> {
   const stagingRoot = journal.started.stagingRoot;
   await mkdir(stagingRoot, { recursive: true });
   const failure = await applyOperations({
     root: stagingRoot,
-    operations: plan.operations,
+    operations,
     journal,
     phase: "staging",
     checkpoint: "during-staging",
@@ -39,7 +38,7 @@ export async function stageSeedPlan(
   });
   if (failure !== undefined) return failure;
   await ensureMaterialized(stagingRoot);
-  const findings = await auditSeedRoot(stagingRoot, plan);
+  const findings = await auditRoot(stagingRoot);
   return findings.length === 0
     ? undefined
     : {
@@ -51,22 +50,23 @@ export async function stageSeedPlan(
 
 export async function publishSeedPlan(
   journal: SeedJournal,
-  target: SeedTargetIdentity,
-  plan: SeedPlan,
+  targetRoot: string,
+  targetLabel: string,
+  operations: SeedOperation[],
   options: SeedExecutionOptions,
 ): Promise<SeedExecutionFailure | undefined> {
-  const targetMetadata = await optionalLstat(target.moduleRoot);
+  const targetMetadata = await optionalLstat(targetRoot);
   if (journal.started.preconditions.targetState === "absent") {
     if (targetMetadata !== undefined) {
       return {
         outcome: "blocked",
         phase: "publication",
-        evidence: `Publication target ${plan.module} appeared after approval.`,
+        evidence: `Publication target ${targetLabel} appeared after approval.`,
       };
     }
     await options.checkpoint?.({ checkpoint: "during-publication" });
     try {
-      await rename(journal.started.stagingRoot, target.moduleRoot);
+      await rename(journal.started.stagingRoot, targetRoot);
       return undefined;
     } catch (error) {
       return {
@@ -74,7 +74,7 @@ export async function publishSeedPlan(
         phase: "publication",
         evidence: errorMessage(
           error,
-          `Could not publish the complete staged module ${plan.module}.`,
+          `Could not publish the complete staged target ${targetLabel}.`,
         ),
       };
     }
@@ -86,19 +86,19 @@ export async function publishSeedPlan(
     return {
       outcome: "blocked",
       phase: "publication",
-      evidence: `Publication target ${plan.module} is not an ordinary directory.`,
+      evidence: `Publication target ${targetLabel} is not an ordinary directory.`,
     };
   }
   if (targetMetadata === undefined) {
     return {
       outcome: "blocked",
       phase: "publication",
-      evidence: `Approved partial target ${plan.module} disappeared before publication.`,
+      evidence: `Approved partial target ${targetLabel} disappeared before publication.`,
     };
   }
   return await applyOperations({
-    root: target.moduleRoot,
-    operations: plan.operations,
+    root: targetRoot,
+    operations,
     journal,
     phase: "publication",
     checkpoint: "during-publication",

@@ -86,6 +86,9 @@ describe("recordMountedAuditObservation", () => {
       contentChecksums: "unavailable",
       reason: "Mounted audits do not read academic file contents.",
     });
+    assert.equal(Object.hasOwn(first.observation, "observationType"), false);
+    assert.equal(Object.hasOwn(first.observation.target, "kind"), false);
+    assert.doesNotMatch(first.observationPath, /research-projects/u);
 
     const repeated = await record(
       target,

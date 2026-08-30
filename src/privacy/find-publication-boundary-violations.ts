@@ -132,13 +132,12 @@ function containsAcademicText(path: string, contents: string): boolean {
     /\b(?:week|lecture|tutorial|assignment|quiz|midterm|final|lab|project|exercise|problem set|study guide)\s*(?:0?[1-9]|[1-9][0-9])\b/iu.test(
       contents,
     ) ||
-    /^(?:#{1,6}|\/\/|%)\s*(?:course notes|study guide|proof|theorem|exercise|lab|project)\b/imu.test(
+    /^(?:#{1,6}|\/\/|%)\s*(?:course notes|study guide|proof|theorem|exercise|lab|project(?!\s+controls\b))\b/imu.test(
       contents,
     ) ||
-    (/\b[A-Z]{2,4}[0-9]{4}[A-Z]?\b/u.test(contents) &&
-      /\b(?:week|lecture|tutorial|assignment|quiz|midterm|final|lab|project|proof|theorem|exercise|problem set|study guide|course notes)\b/iu.test(
-        contents,
-      ))
+    /(?:\b[A-Z]{2,4}[0-9]{4}[A-Z]?\b[^\r\n]{0,160}\b(?:week|lecture|tutorial|assignment|quiz|midterm|final|lab|project|proof|theorem|exercise|problem set|study guide|course notes)\b|\b(?:week|lecture|tutorial|assignment|quiz|midterm|final|lab|project|proof|theorem|exercise|problem set|study guide|course notes)\b[^\r\n]{0,160}\b[A-Z]{2,4}[0-9]{4}[A-Z]?\b)/iu.test(
+      contents,
+    )
   );
 }
 

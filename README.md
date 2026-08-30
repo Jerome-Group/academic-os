@@ -1,7 +1,8 @@
 # academic-os
 
-The system one student runs a degree on: how module folders are laid out and named, how the work
-in them is tracked, and what the semester's calendar and the personal site are fed from. It is
+The system one student runs a degree on: how Module and Research-project folders are laid out and
+named, how the work in them is tracked, and what the semester's calendar and the personal site are
+fed from. It is
 public because the system is worth copying and costs nothing to share — but it holds only the
 system. The coursework it organises lives elsewhere and never enters this repository
 ([`docs/adr/0002`](docs/adr/0002-the-contract-lives-here-and-the-coursework-does-not.md)).
@@ -11,10 +12,11 @@ way around and [`AGENTS.md`](AGENTS.md) for how work is done here.
 
 ## Status
 
-✅ V1 proved. The CLI previews and explicitly publishes additive module seeds, audits the
-configured active semester as a monitoring cohort, and records append-only private observations.
-Past and future modules remain explicit targets; historical differences are assessed in read-only
-migration mode. The [operator guide](docs/operator-guide.md) and
+✅ V1 proved. The CLI previews and explicitly publishes additive seeds, audits the configured
+monitoring cohort, and records append-only private observations. Modules retain semester/module-code
+identity; Research projects use a separate configured root, stable key and programme profile.
+Past and future Modules and inactive Research projects remain explicit targets; historical Module
+differences are assessed in read-only migration mode. The [operator guide](docs/operator-guide.md) and
 [acceptance evidence](docs/v1-acceptance.md) cover operation and boundaries. Y1S1 and Y1S2 remain
 historical inputs awaiting separately approved repair;
 [`ntulearn`](https://github.com/Jerome-Group/ntulearn) already writes current module material into
@@ -36,11 +38,17 @@ contract every module folder follows: the universal structure, the parts that ap
 module has them, the naming rules, and where LaTeX builds go. It is the interface the
 [`ntulearn`](https://github.com/Jerome-Group/ntulearn) importer writes into.
 
-## Audit the active semester
+[`docs/research-project-folder-contract.md`](docs/research-project-folder-contract.md) — the
+separate contract for human-first Research projects: controls, sources, supervisor meetings,
+Owner-authored Research, profile-derived Deliverables and their Tasks/Calendar boundaries. It
+seeds no NTULearn surface.
+
+## Audit the monitoring cohort
 
 Copy `academic-os.config.example.json` to the gitignored `academic-os.config.json`, replace its
-placeholder roots, and declare each semester's status, relative root, and module codes. Exactly one
-semester is active. Then:
+placeholder roots, declare each semester's status, relative root and module codes, and optionally
+declare Research projects under a separate root. Exactly one semester is active; each Research
+project declares its own status. Then:
 
 ```sh
 npm ci
@@ -48,10 +56,12 @@ npm run build
 node dist/src/cli.js audit --config academic-os.config.json
 ```
 
-Add `--json` for the versioned machine-readable report. Audit never changes the module. Each run
-atomically appends a complete observation beneath the configured private `stateRoot`, then reports
-new, unchanged, resolved, incompatible, or contract-version-changed history explicitly. Keep that
-root outside the Drive mount and this repository; configuration rejects either unsafe location.
+Add `--json` for the versioned machine-readable report. Audit never changes its target. Each
+successful target atomically appends a complete observation beneath the configured private
+`stateRoot`, then reports new, unchanged, resolved, incompatible, or contract-version-changed
+history explicitly. Module and Research-project observations use separate target schemas and
+history namespaces. Keep that root outside the Drive mount and this repository; configuration
+rejects either unsafe location.
 
 Name both fields to audit one configured module outside routine monitoring:
 
@@ -69,6 +79,13 @@ For one explicit module, add its folder ID under `driveApi.moduleFolderIds` and 
 `drive.metadata.readonly`; it enriches the same audit with provider IDs and available metadata.
 Without that flag, credentials and the Drive API are never consulted. Keep credentials, raw API
 responses, observations, and reports outside tracked content.
+
+Audit one Research project by its stable configuration key:
+
+```sh
+node dist/src/cli.js audit --config academic-os.config.json \
+  --research-project example-project
+```
 
 ## Seed one vanilla module
 
@@ -93,6 +110,22 @@ is `safely-resumable`, rerun with both `--apply --resume`. Changed controls, con
 target identity, conflicts, or ambiguous journal state block continuation with evidence. Staging
 artifacts are removed after completion or a safely handled failure; the private journal remains.
 
+## Seed one research project
+
+Declare `research.root` and the project key in private configuration, then supply its approved
+Project Profile and closed Project Definition:
+
+```sh
+node dist/src/cli.js seed --config academic-os.config.json \
+  --research-project example-project \
+  --profile /path/to/approved-project-profile.md \
+  --definition /path/to/approved-project-definition.yaml
+```
+
+Preview first; add `--apply` only after review. The same staged publication, journal/resume,
+containment and post-write verification boundary applies. The generic Research seed contains no
+NTULearn root; its programme profile derives only the contract's named additions.
+
 ## Bootstrap Owned calendars
 
 Configure the Calendar block in the same gitignored local configuration, including a current
@@ -116,8 +149,9 @@ academic side end to end, and the pieces it is shaped for are:
 | Piece | What it is |
 |-------|------------|
 | Module folder contract | The layout and naming every module folder follows — **here now** |
+| Research-project folder contract | A reusable pure-mathematics-oriented research core with programme profiles — **here now** |
 | Teaching workspace | The `70 Learning` half of the contract: teaching a subject as a way of learning it |
-| Tasks | The semester's work, tracked as issues on this repository |
+| Tasks | Module and Research-project work in Google Tasks, mirrored into each target's Task register; repository changes remain Issues |
 | Calendar | Classes, assessments, meetings, appointments and recurring life events in Google Calendar; tasks and self-directed work stay elsewhere |
 | Site data | What [`homepage`](https://github.com/Jerome-Group/homepage) reads to publish the parts of this that are meant to be seen |
 

@@ -11,15 +11,22 @@ import type {
   TaskRegister,
   TaskRegisterCounts,
   TaskRegisterStore,
+  TaskTargetIdentity,
+  TaskTargetRefreshReport,
 } from "./types.js";
 
 export interface TaskRefreshTarget extends ConfiguredModuleIdentity {
   registerStore: TaskRegisterStore;
 }
 
+export interface TaskRegisterTarget {
+  identity: TaskTargetIdentity;
+  registerStore: TaskRegisterStore;
+}
+
 // Pull-only: a refresh reads the live list and rewrites the register, and has no authority to
-// write to Google at all. A module whose pull fails keeps its register untouched and reports
-// stale, so one unreachable list never stops the rest of the cohort catching up.
+// write to Google at all. A target whose pull fails keeps its register untouched and reports
+// stale, so one unreachable list never stops the rest of the active set catching up.
 export async function refreshTaskRegisters(input: {
   targets: TaskRefreshTarget[];
   reader: TaskRefreshReader;
@@ -44,25 +51,59 @@ export async function refreshTaskRegisters(input: {
   };
 }
 
-// One module's pull, and the whole of what a task operation refreshes with once its push is
+export async function refreshTaskTargets(input: {
+  targets: TaskRegisterTarget[];
+  reader: TaskRefreshReader;
+}): Promise<TaskTargetRefreshReport[]> {
+  const reports: TaskTargetRefreshReport[] = [];
+  for (const target of input.targets) {
+    reports.push(await refreshTaskTarget(target, input.reader));
+  }
+  return reports;
+}
+
+// One target's pull, and the whole of what a task operation refreshes with once its push is
 // verified: the same merge, the same conflict rules, the same stale report when the list is
 // unreachable.
 export async function refreshTaskRegister(
   target: TaskRefreshTarget,
   reader: TaskRefreshReader,
 ): Promise<TaskRefreshModuleReport> {
+  const refreshed = await refreshTaskTarget(
+    {
+      identity: {
+        kind: "module",
+        key: `${target.semester}/${target.module}`,
+        title: target.module,
+      },
+      registerStore: target.registerStore,
+    },
+    reader,
+  );
+  const { target: _identity, failure, ...result } = refreshed;
+  return {
+    semester: target.semester,
+    module: target.module,
+    ...result,
+    ...(failure === undefined ? {} : { failure }),
+  };
+}
+
+export async function refreshTaskTarget(
+  target: TaskRegisterTarget,
+  reader: TaskRefreshReader,
+): Promise<TaskTargetRefreshReport> {
   let register: TaskRegister | undefined;
   try {
     register = await target.registerStore.read();
-    const bound = provisionedList(register, target.module);
+    const bound = provisionedList(register, target.identity.title);
     const live = validateLiveTasks(
       await reader.listTasks({ listId: bound.listId }),
     );
     const merged = mergeLiveTasks(bound.register, live);
     await target.registerStore.write(merged.register);
     return {
-      semester: target.semester,
-      module: target.module,
+      target: target.identity,
       freshness: "fresh",
       listId: bound.listId,
       counts: countRegister(merged.register),
@@ -70,8 +111,7 @@ export async function refreshTaskRegister(
     };
   } catch (error) {
     return {
-      semester: target.semester,
-      module: target.module,
+      target: target.identity,
       freshness: "stale",
       listId: register?.listId ?? null,
       counts: countRegister(register),

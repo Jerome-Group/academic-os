@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
-
+import { recordResearchBehaviorEvidence } from "../support/rule-evidence.js";
 import { runCliWithEnvironment } from "../support/run-cli.js";
 
 const temporaryRoots: string[] = [];
@@ -477,6 +477,1257 @@ describe("academic-os calendar propose", () => {
     assert.ok(provider.requests.every(({ method }) => method === "GET"));
   });
 
+  it("rejects an under-specified provisional research milestone", async () => {
+    const fixture = await setupFixture();
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: {
+        kind: "research-project",
+        reference: "ureca-y2/standing-window/end-feb",
+      },
+      item: {
+        kind: "all-day-milestone",
+        calendarRole: "Academic",
+        evidenceStatus: "provisional",
+        summary: "URECA abstract planning window closes — provisional",
+        description:
+          "Planning marker from standing public guidance; verify the AY2026-27 deadline in the Student Intranet before relying on it.",
+        date: "2027-02-28",
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(
+      JSON.parse(result.stdout).error.message,
+      /provisional research milestone summary must say "Provisional"/u,
+    );
+    await assert.rejects(readProposalState(fixture));
+  });
+
+  it("keeps compliant provisional research evidence and provenance", async () => {
+    const fixture = await setupFixture();
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: {
+        kind: "research-project",
+        reference: "ureca-y2/standing-window/end-feb",
+      },
+      item: {
+        kind: "all-day-milestone",
+        calendarRole: "Academic",
+        evidenceStatus: "provisional",
+        summary: "URECA abstract planning marker — Provisional",
+        description:
+          "Provisional planning marker. Standing source: NTU URECA current-student guidance says end-February. Verification Task: Confirm the AY2026-27 abstract date in the Student Intranet.",
+        date: "2027-02-28",
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    const proposal = JSON.parse(result.stdout).proposal;
+    assert.deepEqual(proposal.source, {
+      kind: "research-project",
+      reference: "ureca-y2/standing-window/end-feb",
+    });
+    assert.deepEqual(proposal.intendedEvent, {
+      summary: "URECA abstract planning marker — Provisional",
+      description:
+        "Provisional planning marker. Standing source: NTU URECA current-student guidance says end-February. Verification Task: Confirm the AY2026-27 abstract date in the Student Intranet.",
+      visibility: "private",
+      transparency: "transparent",
+      start: { date: "2027-02-28" },
+      end: { date: "2027-03-01" },
+    });
+  });
+
+  it("requires provisional research milestones to cite evidence and a verification Task", async () => {
+    const fixture = await setupFixture();
+    const cases = [
+      {
+        description:
+          "Provisional planning marker. Verification Task: Confirm the current date.",
+        error: /must cite "Standing source:"/u,
+      },
+      {
+        description:
+          "Provisional planning marker. Standing source: current programme guidance.",
+        error: /must point to "Verification Task:"/u,
+      },
+    ];
+
+    for (const [index, testCase] of cases.entries()) {
+      const inputPath = await writeInput(fixture, {
+        schemaVersion: 1,
+        source: {
+          kind: "research-project",
+          reference: `ureca-y2/standing-window/${index.toString()}`,
+        },
+        item: {
+          kind: "timed-milestone",
+          calendarRole: "Academic",
+          evidenceStatus: "provisional",
+          summary: "Research planning marker — Provisional",
+          description: testCase.description,
+          at: { dateTime: "2027-02-28T09:00:00+08:00" },
+        },
+      });
+
+      const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+      assert.equal(result.exitCode, 2, JSON.stringify(result));
+      assert.match(JSON.parse(result.stdout).error.message, testCase.error);
+    }
+    await assert.rejects(readProposalState(fixture));
+  });
+
+  it("does not turn a standing window into a confirmed research deadline", async () => {
+    const fixture = await setupFixture();
+    const unmarkedInput = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: {
+        kind: "research-project",
+        reference: "ureca-y2/standing-window/end-mar",
+      },
+      item: {
+        kind: "all-day-milestone",
+        calendarRole: "Academic",
+        evidenceStatus: "provisional",
+        summary: "URECA poster submission",
+        description: "Programme guidance says end-March.",
+        date: "2027-03-31",
+      },
+    });
+    const deadlineInput = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: {
+        kind: "research-project",
+        reference: "ureca-y2/standing-window/end-mar",
+      },
+      item: {
+        kind: "all-day-milestone",
+        calendarRole: "Academic",
+        evidenceStatus: "provisional",
+        summary: "URECA poster deadline — Provisional",
+        description:
+          "Provisional marker. Standing source: programme guidance says end-March. Verification Task: Confirm the current exact date.",
+        date: "2027-03-31",
+      },
+    });
+    const deadlinesInput = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: {
+        kind: "research-project",
+        reference: "ureca-y2/standing-window/end-mar",
+      },
+      item: {
+        kind: "all-day-milestone",
+        calendarRole: "Academic",
+        evidenceStatus: "provisional",
+        summary: "URECA poster deadlines — Provisional",
+        description:
+          "Provisional marker. Standing source: programme guidance says end-March. Verification Task: Confirm the current exact date.",
+        date: "2027-03-31",
+      },
+    });
+
+    const unmarked = await runCalendarPropose(fixture, unmarkedInput, "--json");
+    const deadline = await runCalendarPropose(fixture, deadlineInput, "--json");
+    const deadlines = await runCalendarPropose(
+      fixture,
+      deadlinesInput,
+      "--json",
+    );
+
+    assert.equal(unmarked.exitCode, 2, JSON.stringify(unmarked));
+    assert.match(
+      JSON.parse(unmarked.stdout).error.message,
+      /summary must say "Provisional"/u,
+    );
+    assert.equal(deadline.exitCode, 2, JSON.stringify(deadline));
+    assert.match(
+      JSON.parse(deadline.stdout).error.message,
+      /must not be called a deadline/u,
+    );
+    assert.equal(deadlines.exitCode, 2, JSON.stringify(deadlines));
+    assert.match(
+      JSON.parse(deadlines.stdout).error.message,
+      /must not be called a deadline/u,
+    );
+    await assert.rejects(readProposalState(fixture));
+  });
+
+  it("requires explicit evidence status for every research milestone", async () => {
+    const fixture = await setupFixture();
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: {
+        kind: "research-project",
+        reference: "ureca-y2/current-students",
+      },
+      item: {
+        kind: "all-day-milestone",
+        calendarRole: "Academic",
+        summary: "URECA paper deadline",
+        description: "Public current-student guidance says end-June.",
+        date: "2027-06-30",
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(
+      JSON.parse(result.stdout).error.message,
+      /requires item\.evidenceStatus confirmed or provisional/u,
+    );
+    await assert.rejects(readProposalState(fixture));
+    recordResearchBehaviorEvidence("RP-CALENDAR-001", () => {
+      assert.equal(result.exitCode, 2);
+      assert.match(
+        JSON.parse(result.stdout).error.message,
+        /requires item\.evidenceStatus confirmed or provisional/u,
+      );
+    });
+  });
+
+  it("requires a confirmed research milestone to say Confirmed", async () => {
+    const fixture = await setupFixture();
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: {
+        kind: "research-project",
+        reference: "ureca-y2/authenticated/abstract-date",
+      },
+      item: {
+        kind: "all-day-milestone",
+        calendarRole: "Academic",
+        evidenceStatus: "confirmed",
+        summary: "URECA abstract deadline",
+        description:
+          "Confirmed source: authenticated AY2026-27 URECA notice captured in the private project evidence.",
+        date: "2027-02-23",
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(
+      JSON.parse(result.stdout).error.message,
+      /confirmed research milestone summary must say "Confirmed"/u,
+    );
+    await assert.rejects(readProposalState(fixture));
+  });
+
+  it("accepts a confirmed research deadline only with confirmed evidence", async () => {
+    const fixture = await setupFixture();
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: {
+        kind: "research-project",
+        reference: "ureca-y2/authenticated/abstract-date",
+      },
+      item: {
+        kind: "all-day-milestone",
+        calendarRole: "Academic",
+        evidenceStatus: "confirmed",
+        summary: "URECA abstract deadline — Confirmed",
+        description:
+          "Confirmed source: authenticated AY2026-27 URECA notice captured in the private project evidence.",
+        date: "2027-02-23",
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    assert.deepEqual(JSON.parse(result.stdout).proposal.source, {
+      kind: "research-project",
+      reference: "ureca-y2/authenticated/abstract-date",
+    });
+  });
+
+  it("does not let a manual create manufacture a confirmed research signature", async () => {
+    const fixture = await setupFixture();
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "manual", reference: "standing-guidance" },
+      item: {
+        kind: "all-day-milestone",
+        calendarRole: "Academic",
+        summary: "Programme abstract date — Confirmed",
+        description: "Confirmed source: standing guidance.",
+        date: "2027-02-23",
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(
+      JSON.parse(result.stdout).error.message,
+      /visible research milestone requires source\.kind research-project/u,
+    );
+    await assert.rejects(readProposalState(fixture));
+  });
+
+  it("keeps partial confirmed wording available to generic milestone creates", async () => {
+    const citationFixture = await setupFixture();
+    const citationInput = await writeInput(citationFixture, {
+      schemaVersion: 1,
+      source: { kind: "manual", reference: "club-committee-email" },
+      item: {
+        kind: "all-day-milestone",
+        calendarRole: "Academic",
+        summary: "Submit club form",
+        description: "Confirmed source: club committee email.",
+        date: "2027-02-23",
+      },
+    });
+    const labelFixture = await setupFixture();
+    const labelInput = await writeInput(labelFixture, {
+      schemaVersion: 1,
+      source: { kind: "manual", reference: "club-form-check" },
+      item: {
+        kind: "all-day-milestone",
+        calendarRole: "Academic",
+        summary: "Submit club form — Confirmed",
+        description: "Personal reminder.",
+        date: "2027-02-23",
+      },
+    });
+
+    const citationResult = await runCalendarPropose(
+      citationFixture,
+      citationInput,
+      "--json",
+    );
+    const labelResult = await runCalendarPropose(
+      labelFixture,
+      labelInput,
+      "--json",
+    );
+
+    assert.equal(citationResult.exitCode, 0, JSON.stringify(citationResult));
+    assert.equal(labelResult.exitCode, 0, JSON.stringify(labelResult));
+  });
+
+  it("requires a new research milestone to target Academic", async () => {
+    const fixture = await setupFixture();
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: {
+        kind: "research-project",
+        reference: "ureca-y2/authenticated/abstract-date",
+      },
+      item: {
+        kind: "all-day-milestone",
+        calendarRole: "Commitments",
+        evidenceStatus: "confirmed",
+        summary: "URECA abstract deadline — Confirmed",
+        description:
+          "Confirmed source: authenticated AY2026-27 URECA notice captured in the private project evidence.",
+        date: "2027-02-23",
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(
+      JSON.parse(result.stdout).error.message,
+      /research-project marker must remain an Academic private transparent milestone/u,
+    );
+    await assert.rejects(readProposalState(fixture));
+  });
+
+  it("does not use research-project provenance for a fixed event", async () => {
+    const fixture = await setupFixture();
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: {
+        kind: "research-project",
+        reference: "ureca-y2/supervisor-meeting",
+      },
+      item: {
+        kind: "fixed-event",
+        calendarRole: "Academic",
+        summary: "Supervisor meeting",
+        start: { dateTime: "2027-02-23T10:00:00+08:00" },
+        end: { dateTime: "2027-02-23T11:00:00+08:00" },
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(
+      JSON.parse(result.stdout).error.message,
+      /research-project marker must remain an Academic private transparent milestone/u,
+    );
+    await assert.rejects(readProposalState(fixture));
+  });
+
+  it("does not use research-project provenance for a routine event", async () => {
+    const fixture = await setupFixture();
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: {
+        kind: "research-project",
+        reference: "ureca-y2/reading-session",
+      },
+      item: {
+        kind: "routine-event",
+        calendarRole: "Routine",
+        summary: "Research reading",
+        start: { dateTime: "2027-02-23T10:00:00+08:00" },
+        end: { dateTime: "2027-02-23T11:00:00+08:00" },
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(
+      JSON.parse(result.stdout).error.message,
+      /research-project marker must remain an Academic private transparent milestone/u,
+    );
+    await assert.rejects(readProposalState(fixture));
+  });
+
+  it("does not reclassify an event through research-project update provenance", async () => {
+    for (const [calendarRole, events] of [
+      [
+        "Academic",
+        [
+          {
+            id: "supervisor-meeting",
+            summary: "Supervisor meeting",
+            visibility: "private",
+            transparency: "opaque",
+            start: {
+              dateTime: "2027-02-23T10:00:00+08:00",
+              timeZone: "Asia/Singapore",
+            },
+            end: {
+              dateTime: "2027-02-23T11:00:00+08:00",
+              timeZone: "Asia/Singapore",
+            },
+          },
+        ],
+      ],
+      [
+        "Routine",
+        [
+          {
+            id: "research-reading",
+            summary: "Research reading",
+            visibility: "private",
+            transparency: "transparent",
+            start: {
+              dateTime: "2027-02-23T10:00:00+08:00",
+              timeZone: "Asia/Singapore",
+            },
+            end: {
+              dateTime: "2027-02-23T11:00:00+08:00",
+              timeZone: "Asia/Singapore",
+            },
+          },
+        ],
+      ],
+    ] as const) {
+      const fixture = await setupFixture({
+        ...(calendarRole === "Academic"
+          ? { academicEvents: [...events] }
+          : { routineEvents: [...events] }),
+      });
+      const inputPath = await writeInput(fixture, {
+        schemaVersion: 1,
+        source: { kind: "research-project", reference: "ureca-y2/edit" },
+        item: {
+          operation: "update",
+          calendarRole,
+          eventId: events[0].id,
+          patch: { summary: `${events[0].summary} updated` },
+        },
+      });
+
+      const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+      assert.equal(result.exitCode, 2, JSON.stringify(result));
+      assert.match(
+        JSON.parse(result.stdout).error.message,
+        /research-project marker must remain an Academic private transparent milestone/u,
+      );
+      await assert.rejects(readProposalState(fixture));
+    }
+  });
+
+  it("does not create a recurring research planning marker", async () => {
+    const fixture = await setupFixture();
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: {
+        kind: "research-project",
+        reference: "ureca-y2/standing-window/end-feb",
+      },
+      item: {
+        kind: "all-day-milestone",
+        calendarRole: "Academic",
+        evidenceStatus: "provisional",
+        summary: "URECA abstract planning marker — Provisional",
+        description:
+          "Provisional planning marker. Standing source: current programme guidance. Verification Task: Confirm the current exact date.",
+        recurrence: ["RRULE:FREQ=YEARLY;COUNT=2"],
+        date: "2027-02-28",
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(
+      JSON.parse(result.stdout).error.message,
+      /research-project milestones must be singular and non-recurring/u,
+    );
+    await assert.rejects(readProposalState(fixture));
+  });
+
+  it("rejects a research update that promotes a standing marker without evidence", async () => {
+    const fixture = await setupFixture({
+      academicEvents: [
+        {
+          id: "ureca-abstract-marker",
+          summary: "URECA abstract planning marker — Provisional",
+          description:
+            "Provisional planning marker. Standing source: current programme guidance. Verification Task: Confirm the current exact date.",
+          visibility: "private",
+          transparency: "transparent",
+          start: { date: "2027-02-28" },
+          end: { date: "2027-03-01" },
+        },
+      ],
+    });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: {
+        kind: "research-project",
+        reference: "ureca-y2/standing-window/end-feb",
+      },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: "ureca-abstract-marker",
+        patch: {
+          summary: "URECA abstract deadline — Confirmed",
+          description: "Confirmed exact date.",
+        },
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(
+      JSON.parse(result.stdout).error.message,
+      /requires item\.evidenceStatus confirmed or provisional/u,
+    );
+    await assert.rejects(readProposalState(fixture));
+
+    const falselyConfirmedInput = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: {
+        kind: "research-project",
+        reference: "ureca-y2/standing-window/end-feb",
+      },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: "ureca-abstract-marker",
+        evidenceStatus: "confirmed",
+        patch: {
+          summary: "URECA abstract deadline",
+          description: "Confirmed source: standing programme guidance.",
+        },
+      },
+    });
+
+    const falselyConfirmed = await runCalendarPropose(
+      fixture,
+      falselyConfirmedInput,
+      "--json",
+    );
+
+    assert.equal(
+      falselyConfirmed.exitCode,
+      2,
+      JSON.stringify(falselyConfirmed),
+    );
+    assert.match(
+      JSON.parse(falselyConfirmed.stdout).error.message,
+      /cannot be marked confirmed/u,
+    );
+    await assert.rejects(readProposalState(fixture));
+  });
+
+  it("does not let a manual update strip a provisional research marker", async () => {
+    const fixture = await setupFixture({
+      academicEvents: [
+        {
+          id: "ureca-abstract-marker",
+          summary: "URECA abstract planning marker — Provisional",
+          description:
+            "Provisional planning marker. Standing source: current programme guidance. Verification Task: Confirm the current exact date.",
+          visibility: "private",
+          transparency: "transparent",
+          start: { date: "2027-02-28" },
+          end: { date: "2027-03-01" },
+        },
+      ],
+    });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: {
+        kind: "manual",
+        reference: "rename-ureca-abstract-marker",
+      },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: "ureca-abstract-marker",
+        patch: {
+          summary: "URECA abstract deadline",
+          description: "Confirmed exact date.",
+        },
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(
+      JSON.parse(result.stdout).error.message,
+      /visible research milestone requires source\.kind research-project/u,
+    );
+    await assert.rejects(readProposalState(fixture));
+  });
+
+  it("does not let a manual update strip a confirmed research marker", async () => {
+    const fixture = await setupFixture({
+      academicEvents: [
+        {
+          id: "ureca-confirmed-abstract",
+          summary: "URECA abstract deadline — Confirmed",
+          description:
+            "Confirmed source: authenticated AY2026-27 URECA notice captured in the private project evidence.",
+          visibility: "private",
+          transparency: "transparent",
+          start: { date: "2027-02-23" },
+          end: { date: "2027-02-24" },
+        },
+      ],
+    });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: {
+        kind: "manual",
+        reference: "rename-ureca-confirmed-abstract",
+      },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: "ureca-confirmed-abstract",
+        patch: {
+          summary: "Abstract date",
+          description: "Check the portal.",
+        },
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(
+      JSON.parse(result.stdout).error.message,
+      /visible research milestone requires source\.kind research-project/u,
+    );
+    await assert.rejects(readProposalState(fixture));
+  });
+
+  it("does not move a protected research marker to Routine", async () => {
+    const fixture = await setupFixture({
+      academicEvents: [
+        {
+          id: "ureca-abstract-marker",
+          summary: "URECA abstract planning marker — Provisional",
+          description:
+            "Provisional planning marker. Standing source: current programme guidance. Verification Task: Confirm the current exact date.",
+          visibility: "private",
+          transparency: "transparent",
+          start: { date: "2027-02-28" },
+          end: { date: "2027-03-01" },
+        },
+      ],
+    });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: {
+        kind: "research-project",
+        reference: "ureca-y2/standing-window/end-feb",
+      },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        targetCalendarRole: "Routine",
+        eventId: "ureca-abstract-marker",
+        evidenceStatus: "provisional",
+        patch: {},
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(
+      JSON.parse(result.stdout).error.message,
+      /research-project marker must remain an Academic private transparent milestone/u,
+    );
+    await assert.rejects(readProposalState(fixture));
+  });
+
+  it("does not move a protected research marker to Commitments", async () => {
+    const fixture = await setupFixture({
+      academicEvents: [
+        {
+          id: "ureca-abstract-marker",
+          summary: "URECA abstract planning marker — Provisional",
+          description:
+            "Provisional planning marker. Standing source: current programme guidance. Verification Task: Confirm the current exact date.",
+          visibility: "private",
+          transparency: "transparent",
+          start: { date: "2027-02-28" },
+          end: { date: "2027-03-01" },
+        },
+      ],
+    });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: {
+        kind: "research-project",
+        reference: "ureca-y2/standing-window/end-feb",
+      },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        targetCalendarRole: "Commitments",
+        eventId: "ureca-abstract-marker",
+        evidenceStatus: "provisional",
+        patch: {},
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(
+      JSON.parse(result.stdout).error.message,
+      /research-project marker must remain an Academic private transparent milestone/u,
+    );
+    await assert.rejects(readProposalState(fixture));
+  });
+
+  it("does not make a protected research marker opaque", async () => {
+    const fixture = await setupFixture({
+      academicEvents: [
+        {
+          id: "ureca-abstract-marker",
+          summary: "URECA abstract planning marker — Provisional",
+          description:
+            "Provisional planning marker. Standing source: current programme guidance. Verification Task: Confirm the current exact date.",
+          visibility: "private",
+          transparency: "transparent",
+          start: { date: "2027-02-28" },
+          end: { date: "2027-03-01" },
+        },
+      ],
+    });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: {
+        kind: "research-project",
+        reference: "ureca-y2/standing-window/end-feb",
+      },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: "ureca-abstract-marker",
+        evidenceStatus: "provisional",
+        patch: { transparency: "opaque" },
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(
+      JSON.parse(result.stdout).error.message,
+      /research-project marker must remain an Academic private transparent milestone/u,
+    );
+    await assert.rejects(readProposalState(fixture));
+  });
+
+  it("does not make a protected research marker recurring", async () => {
+    const fixture = await setupFixture({
+      academicEvents: [
+        {
+          id: "ureca-abstract-marker",
+          summary: "URECA abstract planning marker — Provisional",
+          description:
+            "Provisional planning marker. Standing source: current programme guidance. Verification Task: Confirm the current exact date.",
+          visibility: "private",
+          transparency: "transparent",
+          start: { date: "2027-02-28" },
+          end: { date: "2027-03-01" },
+        },
+      ],
+    });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: {
+        kind: "research-project",
+        reference: "ureca-y2/standing-window/end-feb",
+      },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: "ureca-abstract-marker",
+        evidenceStatus: "provisional",
+        patch: { recurrence: ["RRULE:FREQ=YEARLY;COUNT=2"] },
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(
+      JSON.parse(result.stdout).error.message,
+      /research-project milestones must be singular and non-recurring/u,
+    );
+    await assert.rejects(readProposalState(fixture));
+  });
+
+  it("does not make a protected research marker public or default-visible", async () => {
+    for (const visibility of ["public", "default"] as const) {
+      const fixture = await setupFixture({
+        academicEvents: [
+          {
+            id: "ureca-abstract-marker",
+            summary: "URECA abstract planning marker — Provisional",
+            description:
+              "Provisional planning marker. Standing source: current programme guidance. Verification Task: Confirm the current exact date.",
+            visibility: "private",
+            transparency: "transparent",
+            start: { date: "2027-02-28" },
+            end: { date: "2027-03-01" },
+          },
+        ],
+      });
+      const inputPath = await writeInput(fixture, {
+        schemaVersion: 1,
+        source: {
+          kind: "research-project",
+          reference: "ureca-y2/standing-window/end-feb",
+        },
+        item: {
+          operation: "update",
+          calendarRole: "Academic",
+          eventId: "ureca-abstract-marker",
+          evidenceStatus: "provisional",
+          patch: { visibility },
+        },
+      });
+
+      const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+      assert.equal(result.exitCode, 2, JSON.stringify(result));
+      assert.match(
+        JSON.parse(result.stdout).error.message,
+        /research-project marker must remain an Academic private transparent milestone/u,
+      );
+      await assert.rejects(readProposalState(fixture));
+    }
+  });
+
+  it("keeps manual updates available for generic milestones", async () => {
+    const fixture = await setupFixture({
+      academicEvents: [
+        {
+          id: "club-form-reminder",
+          summary: "Submit club form",
+          description: "Personal reminder.",
+          visibility: "private",
+          transparency: "transparent",
+          start: { date: "2027-02-23" },
+          end: { date: "2027-02-24" },
+        },
+      ],
+    });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "manual", reference: "rename-club-form-reminder" },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: "club-form-reminder",
+        patch: { summary: "Submit club registration form" },
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    assert.deepEqual(JSON.parse(result.stdout).proposal.patch, {
+      summary: "Submit club registration form",
+    });
+  });
+
+  it("does not treat generic Confirmed source text as research provenance", async () => {
+    const fixture = await setupFixture({
+      academicEvents: [
+        {
+          id: "club-form-reminder",
+          summary: "Submit club form",
+          description: "Confirmed source: club committee email.",
+          transparency: "transparent",
+          start: { date: "2027-02-23" },
+          end: { date: "2027-02-24" },
+        },
+      ],
+    });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "manual", reference: "rename-club-form-reminder" },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: "club-form-reminder",
+        patch: { summary: "Submit club registration form" },
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    assert.equal(
+      JSON.parse(result.stdout).proposal.patch.summary,
+      "Submit club registration form",
+    );
+  });
+
+  it("does not let a manual patch manufacture a confirmed research signature", async () => {
+    const fixture = await setupFixture({
+      academicEvents: [
+        {
+          id: "club-form-reminder",
+          summary: "Submit club form",
+          description: "Personal reminder.",
+          transparency: "transparent",
+          start: { date: "2027-02-23" },
+          end: { date: "2027-02-24" },
+        },
+      ],
+    });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "manual", reference: "rename-club-form-reminder" },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: "club-form-reminder",
+        patch: {
+          summary: "Submit club form — Confirmed",
+          description: "Confirmed source: standing guidance.",
+        },
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(
+      JSON.parse(result.stdout).error.message,
+      /visible research milestone requires source\.kind research-project/u,
+    );
+    await assert.rejects(readProposalState(fixture));
+  });
+
+  it("does not let a second manual patch complete a confirmed research signature", async () => {
+    const fixture = await setupFixture({
+      academicEvents: [
+        {
+          id: "club-form-reminder",
+          summary: "Submit club form",
+          description: "Confirmed source: standing guidance.",
+          visibility: "private",
+          transparency: "transparent",
+          start: { date: "2027-02-23" },
+          end: { date: "2027-02-24" },
+        },
+      ],
+    });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "manual", reference: "confirm-club-form-reminder" },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: "club-form-reminder",
+        patch: { summary: "Submit club form — Confirmed" },
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(
+      JSON.parse(result.stdout).error.message,
+      /visible research milestone requires source\.kind research-project/u,
+    );
+    await assert.rejects(readProposalState(fixture));
+  });
+
+  it("does not let a manual patch manufacture a provisional research signature", async () => {
+    const fixture = await setupFixture({
+      academicEvents: [
+        {
+          id: "club-form-reminder",
+          summary: "Submit club form",
+          description: "Personal reminder.",
+          visibility: "private",
+          transparency: "transparent",
+          start: { date: "2027-02-23" },
+          end: { date: "2027-02-24" },
+        },
+      ],
+    });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "manual", reference: "rename-club-form-reminder" },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: "club-form-reminder",
+        patch: {
+          summary: "Submit club form — Provisional",
+          description:
+            "Provisional planning marker. Standing source: committee guidance. Verification Task: Confirm the current exact date.",
+        },
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(
+      JSON.parse(result.stdout).error.message,
+      /visible research milestone requires source\.kind research-project/u,
+    );
+    await assert.rejects(readProposalState(fixture));
+  });
+
+  it("does not let a second manual patch complete a provisional research signature", async () => {
+    const fixture = await setupFixture({
+      academicEvents: [
+        {
+          id: "club-form-reminder",
+          summary: "Submit club form",
+          description:
+            "Provisional planning marker. Standing source: committee guidance. Verification Task: Confirm the current exact date.",
+          visibility: "private",
+          transparency: "transparent",
+          start: { date: "2027-02-23" },
+          end: { date: "2027-02-24" },
+        },
+      ],
+    });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "manual", reference: "mark-club-form-provisional" },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: "club-form-reminder",
+        patch: { summary: "Submit club form — Provisional" },
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(
+      JSON.parse(result.stdout).error.message,
+      /visible research milestone requires source\.kind research-project/u,
+    );
+    await assert.rejects(readProposalState(fixture));
+  });
+
+  it("keeps generic milestone reclassification available", async () => {
+    const moveFixture = await setupFixture({
+      academicEvents: [
+        {
+          id: "club-form-reminder",
+          summary: "Submit club form",
+          description: "Personal reminder.",
+          transparency: "transparent",
+          start: { date: "2027-02-23" },
+          end: { date: "2027-02-24" },
+        },
+      ],
+    });
+    const moveInput = await writeInput(moveFixture, {
+      schemaVersion: 1,
+      source: { kind: "manual", reference: "move-club-form-reminder" },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        targetCalendarRole: "Routine",
+        eventId: "club-form-reminder",
+        patch: {},
+      },
+    });
+    const opacityFixture = await setupFixture({
+      academicEvents: [
+        {
+          id: "club-form-reminder",
+          summary: "Submit club form",
+          description: "Personal reminder.",
+          transparency: "transparent",
+          start: { date: "2027-02-23" },
+          end: { date: "2027-02-24" },
+        },
+      ],
+    });
+    const opacityInput = await writeInput(opacityFixture, {
+      schemaVersion: 1,
+      source: { kind: "manual", reference: "block-club-form-reminder" },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: "club-form-reminder",
+        patch: { transparency: "opaque" },
+      },
+    });
+
+    const move = await runCalendarPropose(moveFixture, moveInput, "--json");
+    const opacity = await runCalendarPropose(
+      opacityFixture,
+      opacityInput,
+      "--json",
+    );
+
+    assert.equal(move.exitCode, 0, JSON.stringify(move));
+    assert.equal(JSON.parse(move.stdout).proposal.itemKind, "routine-event");
+    assert.equal(opacity.exitCode, 0, JSON.stringify(opacity));
+    assert.equal(JSON.parse(opacity.stdout).proposal.itemKind, "fixed-event");
+  });
+
+  it("returns a misplaced research marker to Academic transparent", async () => {
+    const fixture = await setupFixture({
+      routineEvents: [
+        {
+          id: "ureca-abstract-marker",
+          summary: "URECA abstract planning marker — Provisional",
+          description:
+            "Provisional planning marker. Standing source: current programme guidance. Verification Task: Confirm the current exact date.",
+          visibility: "default",
+          transparency: "opaque",
+          start: { date: "2027-02-28" },
+          end: { date: "2027-03-01" },
+        },
+      ],
+    });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: {
+        kind: "research-project",
+        reference: "ureca-y2/standing-window/end-feb",
+      },
+      item: {
+        operation: "update",
+        calendarRole: "Routine",
+        targetCalendarRole: "Academic",
+        eventId: "ureca-abstract-marker",
+        evidenceStatus: "provisional",
+        patch: { transparency: "transparent", visibility: "private" },
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    const proposal = JSON.parse(result.stdout).proposal;
+    assert.equal(proposal.operation, "move");
+    assert.equal(proposal.target.calendarRole, "Academic");
+    assert.equal(proposal.itemKind, "all-day-milestone");
+    assert.deepEqual(proposal.patch, {
+      transparency: "transparent",
+      visibility: "private",
+    });
+  });
+
+  it("accepts a research update with confirmed evidence and provenance", async () => {
+    const fixture = await setupFixture({
+      academicEvents: [
+        {
+          id: "ureca-abstract-marker",
+          summary: "URECA abstract planning marker — Provisional",
+          description:
+            "Provisional planning marker. Standing source: current programme guidance. Verification Task: Confirm the current exact date.",
+          visibility: "private",
+          transparency: "transparent",
+          start: { date: "2027-02-28" },
+          end: { date: "2027-03-01" },
+        },
+      ],
+    });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: {
+        kind: "research-project",
+        reference: "ureca-y2/authenticated/abstract-date",
+      },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: "ureca-abstract-marker",
+        evidenceStatus: "confirmed",
+        patch: {
+          summary: "URECA abstract deadline — Confirmed",
+          description:
+            "Confirmed source: authenticated AY2026-27 URECA notice captured in the private project evidence.",
+        },
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    const proposal = JSON.parse(result.stdout).proposal;
+    assert.deepEqual(proposal.source, {
+      kind: "research-project",
+      reference: "ureca-y2/authenticated/abstract-date",
+    });
+    assert.deepEqual(proposal.patch, {
+      summary: "URECA abstract deadline — Confirmed",
+      description:
+        "Confirmed source: authenticated AY2026-27 URECA notice captured in the private project evidence.",
+    });
+  });
+
   it("previews an exact update patch without provider mutation", async () => {
     const existing = {
       id: "owned-seminar",
@@ -601,6 +1852,162 @@ describe("academic-os calendar propose", () => {
     const rejected = await runCalendarPropose(fixture, missingScope, "--json");
     assert.equal(rejected.exitCode, 2, JSON.stringify(rejected));
     assert.match(rejected.stdout, /require exactly one recurrenceScope/u);
+  });
+
+  it("does not let a generic occurrence hide a protected recurring research master", async () => {
+    const master = {
+      id: "ureca-marker-series",
+      summary: "URECA abstract planning marker — Provisional",
+      description:
+        "Provisional planning marker. Standing source: current programme guidance. Verification Task: Confirm the current exact date.",
+      recurrence: ["RRULE:FREQ=YEARLY;COUNT=2"],
+      visibility: "private",
+      transparency: "transparent",
+      start: { date: "2027-02-28" },
+      end: { date: "2027-03-01" },
+    };
+    const occurrence = {
+      id: "ureca-marker-series-2028",
+      recurringEventId: master.id,
+      originalStartTime: { date: "2028-02-28" },
+      summary: "Review date",
+      description: "Generic occurrence override.",
+      visibility: "private",
+      transparency: "transparent",
+      start: { date: "2028-02-28" },
+      end: { date: "2028-02-29" },
+    };
+    const fixture = await setupFixture({
+      academicEvents: [master, occurrence],
+    });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "manual", reference: "change-review-date-series" },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: occurrence.id,
+        recurrenceScope: "entire-series",
+        patch: { summary: "Changed review date" },
+      },
+    });
+    const futureInputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "manual", reference: "change-future-review-dates" },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: occurrence.id,
+        recurrenceScope: "this-and-future",
+        patch: { summary: "Changed future review dates" },
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+    const futureResult = await runCalendarPropose(
+      fixture,
+      futureInputPath,
+      "--json",
+    );
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(
+      JSON.parse(result.stdout).error.message,
+      /visible research milestone requires source\.kind research-project/u,
+    );
+    assert.equal(futureResult.exitCode, 2, JSON.stringify(futureResult));
+    assert.match(
+      JSON.parse(futureResult.stdout).error.message,
+      /visible research milestone requires source\.kind research-project/u,
+    );
+    await assert.rejects(readProposalState(fixture));
+  });
+
+  it("fails closed when an entire-series occurrence has no mirrored master", async () => {
+    const occurrence = {
+      id: "weekly-class-instance",
+      recurringEventId: "weekly-class",
+      originalStartTime: {
+        dateTime: "2026-08-20T10:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+      summary: "Weekly class",
+      start: {
+        dateTime: "2026-08-20T10:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+      end: {
+        dateTime: "2026-08-20T11:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+    };
+    const fixture = await setupFixture({ academicEvents: [occurrence] });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "manual", reference: "change-weekly-class" },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: occurrence.id,
+        recurrenceScope: "entire-series",
+        patch: { summary: "Changed weekly class" },
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(
+      JSON.parse(result.stdout).error.message,
+      /entire-series Proposal requires its mirrored recurring master/u,
+    );
+    await assert.rejects(readProposalState(fixture));
+  });
+
+  it("binds the mirrored master when an entire-series occurrence is selected", async () => {
+    const master = {
+      id: "weekly-class",
+      summary: "Weekly class",
+      recurrence: ["RRULE:FREQ=WEEKLY"],
+      start: {
+        dateTime: "2026-08-20T10:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+      end: {
+        dateTime: "2026-08-20T11:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+    };
+    const occurrence = {
+      id: "weekly-class-instance",
+      recurringEventId: master.id,
+      originalStartTime: master.start,
+      summary: master.summary,
+      start: master.start,
+      end: master.end,
+    };
+    const fixture = await setupFixture({
+      academicEvents: [master, occurrence],
+    });
+    const inputPath = await writeInput(fixture, {
+      schemaVersion: 1,
+      source: { kind: "manual", reference: "change-weekly-class" },
+      item: {
+        operation: "update",
+        calendarRole: "Academic",
+        eventId: occurrence.id,
+        recurrenceScope: "entire-series",
+        patch: { summary: "Changed weekly class" },
+      },
+    });
+
+    const result = await runCalendarPropose(fixture, inputPath, "--json");
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    const [dependency] = JSON.parse(result.stdout).proposal
+      .recurrenceDependencies;
+    assert.equal(dependency.eventId, master.id);
+    assert.match(dependency.versionDigest, /^[a-f0-9]{64}$/u);
   });
 
   it("accepts a recurrence patch for an entire recurring series", async () => {

@@ -5,13 +5,22 @@ import {
   findCalendarOverlaps,
 } from "./calendar-conflicts.js";
 import {
-  parseCalendarChangeProposalInput,
-  parseCalendarAcademicTimetableProposalInput,
-  parseCalendarProposalInput,
-  parseCalendarRoutineMigrationProposalInput,
   type ParsedCalendarActionProposalInput,
   type ParsedCalendarChangeProposalInput,
+  parseCalendarAcademicTimetableProposalInput,
+  parseCalendarChangeProposalInput,
+  parseCalendarProposalInput,
+  parseCalendarRoutineMigrationProposalInput,
 } from "./calendar-proposal-input.js";
+import { trimCalendarRecurrence } from "./calendar-recurrence.js";
+import { calendarStateDigest } from "./calendar-state-digest.js";
+import { createAcademicTimetableProposal } from "./create-academic-timetable-proposal.js";
+import { createRoutineMigrationProposal } from "./create-routine-migration-proposal.js";
+import { readCurrentCalendarMirrors } from "./read-current-calendar-mirrors.js";
+import {
+  detectVisibleResearchProjectEvidenceStatus,
+  validateResearchProjectMilestonePolicy,
+} from "./research-project-milestone-policy.js";
 import type {
   CalendarChangeProposalCandidate,
   CalendarEvent,
@@ -28,11 +37,6 @@ import type {
   OwnedCalendarRole,
   OwnedCalendarWorkspaceReader,
 } from "./types.js";
-import { trimCalendarRecurrence } from "./calendar-recurrence.js";
-import { calendarStateDigest } from "./calendar-state-digest.js";
-import { readCurrentCalendarMirrors } from "./read-current-calendar-mirrors.js";
-import { createRoutineMigrationProposal } from "./create-routine-migration-proposal.js";
-import { createAcademicTimetableProposal } from "./create-academic-timetable-proposal.js";
 
 export { calendarStateDigest } from "./calendar-state-digest.js";
 
@@ -486,11 +490,61 @@ async function createChangeProposal(input: {
     recurrenceScope: input.changeInput.recurrenceScope,
   };
   const digest = calendarStateDigest(intent);
+  const projectedEvent = { ...event, ...input.changeInput.patch };
+  const projectedItemKind = inferItemKind(projectedEvent, targetRole);
+  const recurringMaster =
+    event.recurringEventId === undefined
+      ? undefined
+      : sourceMirror.items.find(
+          ({ event: candidate }) => candidate.id === event.recurringEventId,
+        )?.event;
+  if (
+    input.changeInput.recurrenceScope === "entire-series" &&
+    event.recurringEventId !== undefined &&
+    recurringMaster === undefined
+  ) {
+    throw new OperationalError(
+      "invalid-target",
+      "An entire-series Proposal requires its mirrored recurring master.",
+    );
+  }
+  const entireSeriesState =
+    input.changeInput.recurrenceScope === "entire-series" &&
+    event.recurringEventId !== undefined &&
+    recurringMaster !== undefined
+      ? {
+          recurrenceDependencies: [
+            {
+              eventId: recurringMaster.id,
+              versionDigest: calendarStateDigest(recurringMaster),
+            },
+          ],
+        }
+      : undefined;
+  const visibleEvidenceStatus =
+    detectVisibleResearchProjectEvidenceStatus(event) ??
+    (recurringMaster === undefined
+      ? undefined
+      : detectVisibleResearchProjectEvidenceStatus(recurringMaster)) ??
+    detectVisibleResearchProjectEvidenceStatus(projectedEvent);
+  validateResearchProjectMilestonePolicy({
+    source: input.changeInput.source,
+    evidenceStatus: input.changeInput.evidenceStatus,
+    description: projectedEvent.description,
+    summary: projectedEvent.summary,
+    calendarRole: targetRole,
+    itemKind: projectedItemKind,
+    visibility: projectedEvent.visibility,
+    recurring:
+      input.changeInput.recurrenceScope !== undefined ||
+      projectedEvent.recurrence !== undefined ||
+      event.recurringEventId !== undefined,
+    visibleEvidenceStatus,
+  });
   const futureState =
     input.changeInput.recurrenceScope === "this-and-future"
       ? recurringFutureState(sourceMirror, event)
       : undefined;
-  const projectedEvent = { ...event, ...input.changeInput.patch };
   const availability = await prepareChangeAvailability({
     reader: input.reader,
     mirrors,
@@ -505,7 +559,7 @@ async function createChangeProposal(input: {
     status: "ready",
     operation,
     source: input.changeInput.source,
-    itemKind: inferItemKind(projectedEvent, targetRole),
+    itemKind: projectedItemKind,
     sourceItem: {
       calendarRole: input.changeInput.calendarRole,
       calendarId: sourceCalendarId,
@@ -520,6 +574,7 @@ async function createChangeProposal(input: {
     ...(input.changeInput.recurrenceScope === undefined
       ? {}
       : { recurrenceScope: input.changeInput.recurrenceScope }),
+    ...(entireSeriesState ?? {}),
     ...(futureState ?? {}),
     idempotencyKey: `${operation}-${digest}`,
     liveVersions: mirrors.map((mirror) => ({

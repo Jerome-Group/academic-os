@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import {
   access,
   mkdir,
@@ -105,6 +106,11 @@ describe("seedMountedModule", () => {
       assert.equal(journal[0]?.type, "started");
       assert.deepEqual(journal[0]?.plan, fixture.plan);
       assert.equal(journal[0]?.target.module, "MH2100");
+      assert.equal("kind" in (journal[0]?.target ?? {}), false);
+      assert.match(
+        journal[0]?.stagingRoot ?? "",
+        /\.academic-os-stage-MH2100-[0-9a-f-]+$/u,
+      );
       assert.equal(journal[0]?.preconditions?.contractVersion, 4);
       assert.equal(journal.at(-1)?.outcome, "completed");
     });
@@ -215,7 +221,7 @@ describe("seedMountedModule", () => {
     const fixture = await mountedSeedFixture();
     const abandoned = join(
       fixture.semesterRoot,
-      ".academic-os-stage-MH2100-abandoned",
+      `.academic-os-stage-MH2100-${randomUUID()}`,
     );
     await mkdir(abandoned);
 
@@ -422,6 +428,7 @@ interface JournalEvent {
   type: string;
   plan?: unknown;
   target: { module: string };
+  stagingRoot?: string;
   preconditions?: { contractVersion: number | "unavailable" };
   outcome?: string;
 }

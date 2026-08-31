@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { isAbsolute, join, normalize } from "node:path";
 import { parse, stringify } from "yaml";
 
 import {
@@ -11,116 +11,163 @@ import { OperationalError } from "../operational-error.js";
 import { writeFileAtomically } from "../write-file-atomically.js";
 import { isDoDate } from "./do-date.js";
 import type {
-  TaskProvenance,
   TaskRegister,
   TaskRegisterEntry,
+  TaskRegisterProvenance,
   TaskRegisterStore,
   TaskStatus,
 } from "./types.js";
 
 export function createFileTaskRegisterStore(
-  moduleRoot: string,
+  targetRoot: string,
+  registerPath = taskRegisterPath,
+  provenanceKeys: readonly (keyof TaskRegisterProvenance)[] = taskProvenanceKeys,
 ): TaskRegisterStore {
-  const registerPath = join(moduleRoot, taskRegisterPath);
+  if (
+    registerPath.length === 0 ||
+    isAbsolute(registerPath) ||
+    registerPath.includes("\\") ||
+    normalize(registerPath) !== registerPath ||
+    registerPath
+      .split("/")
+      .some((part) => part.length === 0 || part === "." || part === "..")
+  ) {
+    throw new OperationalError(
+      "invalid-config",
+      "A Task-register path must be a normalized relative path inside its target root.",
+    );
+  }
+  const absoluteRegisterPath = join(targetRoot, registerPath);
   return {
-    read: async () => await readRegister(registerPath),
+    read: async () =>
+      await readRegister(absoluteRegisterPath, registerPath, provenanceKeys),
     write: async (register) =>
-      await writeFileAtomically(registerPath, serializeRegister(register)),
+      await writeFileAtomically(
+        absoluteRegisterPath,
+        serializeRegister(register, provenanceKeys),
+      ),
   };
 }
 
 async function readRegister(
+  absoluteRegisterPath: string,
   registerPath: string,
+  provenanceKeys: readonly (keyof TaskRegisterProvenance)[],
 ): Promise<TaskRegister | undefined> {
   let contents: string;
   try {
-    contents = await readFile(registerPath, "utf8");
+    contents = await readFile(absoluteRegisterPath, "utf8");
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
-    throw invalidRegister();
+    throw invalidRegister(registerPath);
   }
   let value: unknown;
   try {
     value = parse(contents);
   } catch {
-    throw invalidRegister();
+    throw invalidRegister(registerPath);
   }
-  if (!isRecord(value)) throw invalidRegister();
-  const listId = readListId(value.list_id);
+  if (!isRecord(value)) throw invalidRegister(registerPath);
+  const listId = readListId(value.list_id, registerPath);
   const tasks = value.tasks ?? [];
-  if (!Array.isArray(tasks)) throw invalidRegister();
+  if (!Array.isArray(tasks)) throw invalidRegister(registerPath);
   return {
     ...(listId === undefined ? {} : { listId }),
-    tasks: tasks.map(readEntry),
+    tasks: tasks.map((entry) => readEntry(entry, registerPath, provenanceKeys)),
   };
 }
 
 // A register naming no list is the seeded skeleton, which provisioning fills; a register naming an
 // empty one has lost the only handle it had on Google, and reading past that would push nowhere.
-function readListId(value: unknown): string | undefined {
+function readListId(value: unknown, registerPath: string): string | undefined {
   if (value === undefined || value === null) return undefined;
-  if (typeof value !== "string" || value === "") throw invalidRegister();
+  if (typeof value !== "string" || value === "") {
+    throw invalidRegister(registerPath);
+  }
   return value;
 }
 
-function readEntry(value: unknown): TaskRegisterEntry {
+function readEntry(
+  value: unknown,
+  registerPath: string,
+  provenanceKeys: readonly (keyof TaskRegisterProvenance)[],
+): TaskRegisterEntry {
   if (!isRecord(value) || typeof value.title !== "string") {
-    throw invalidRegister();
+    throw invalidRegister(registerPath);
   }
-  const status = readStatus(value.status);
-  const taskId = optionalText(value.task_id);
-  const notes = optionalText(value.notes);
+  const status = readStatus(value.status, registerPath);
+  const taskId = optionalText(value.task_id, registerPath);
+  const notes = optionalText(value.notes, registerPath);
   return {
     ...(taskId === undefined ? {} : { taskId }),
     title: value.title,
     ...(value.do_date === undefined
       ? {}
-      : { doDate: readDoDate(value.do_date) }),
+      : { doDate: readDoDate(value.do_date, registerPath) }),
     status,
     ...(notes === undefined ? {} : { notes }),
     ...(value.provenance === undefined
       ? {}
-      : { provenance: readProvenance(value.provenance) }),
+      : {
+          provenance: readProvenance(
+            value.provenance,
+            registerPath,
+            provenanceKeys,
+          ),
+        }),
   };
 }
 
-function readStatus(value: unknown): TaskStatus {
+function readStatus(value: unknown, registerPath: string): TaskStatus {
   const status = taskStatuses.find((candidate) => candidate === value);
-  if (status === undefined) throw invalidRegister();
+  if (status === undefined) throw invalidRegister(registerPath);
   return status;
 }
 
 // A register carrying a time is one to fix by hand rather than one to silently truncate: the
 // time is the only evidence that somebody meant a deadline.
-function readDoDate(value: unknown): string {
-  if (!isDoDate(value)) throw invalidRegister();
+function readDoDate(value: unknown, registerPath: string): string {
+  if (!isDoDate(value)) throw invalidRegister(registerPath);
   return value;
 }
 
-function readProvenance(value: unknown): TaskProvenance {
-  if (!isRecord(value)) throw invalidRegister();
-  const provenance: TaskProvenance = {};
-  for (const key of taskProvenanceKeys) {
-    const text = optionalText(value[key]);
+function readProvenance(
+  value: unknown,
+  registerPath: string,
+  provenanceKeys: readonly (keyof TaskRegisterProvenance)[],
+): TaskRegisterProvenance {
+  if (!isRecord(value)) throw invalidRegister(registerPath);
+  if (unsupportedProvenanceKeys(value, provenanceKeys).length > 0) {
+    throw invalidRegister(registerPath);
+  }
+  const provenance: TaskRegisterProvenance = {};
+  for (const key of provenanceKeys) {
+    const text = optionalText(value[key], registerPath);
     if (text !== undefined) provenance[key] = text;
   }
   return provenance;
 }
 
-function optionalText(value: unknown): string | undefined {
+function optionalText(
+  value: unknown,
+  registerPath: string,
+): string | undefined {
   if (value === undefined || value === null) return undefined;
-  if (typeof value !== "string") throw invalidRegister();
+  if (typeof value !== "string") throw invalidRegister(registerPath);
   return value;
 }
 
-function invalidRegister(): OperationalError {
+function invalidRegister(registerPath: string): OperationalError {
   return new OperationalError(
     "operational-failure",
-    `The module's ${taskRegisterPath} is not a readable Task register.`,
+    `The configured ${registerPath} is not a readable Task register.`,
   );
 }
 
-function serializeRegister(register: TaskRegister): string {
+function serializeRegister(
+  register: TaskRegister,
+  provenanceKeys: readonly (keyof TaskRegisterProvenance)[],
+): string {
   return stringify({
     ...(register.listId === undefined ? {} : { list_id: register.listId }),
     tasks: register.tasks.map((entry) => ({
@@ -129,11 +176,39 @@ function serializeRegister(register: TaskRegister): string {
       ...(entry.doDate === undefined ? {} : { do_date: entry.doDate }),
       status: entry.status,
       ...(entry.notes === undefined ? {} : { notes: entry.notes }),
-      ...(entry.provenance === undefined
-        ? {}
-        : { provenance: entry.provenance }),
+      ...serializedProvenance(entry.provenance, provenanceKeys),
     })),
   });
+}
+
+function serializedProvenance(
+  provenance: TaskRegisterProvenance | undefined,
+  provenanceKeys: readonly (keyof TaskRegisterProvenance)[],
+): { provenance?: TaskRegisterProvenance } {
+  if (provenance === undefined) return {};
+  const unsupported = unsupportedProvenanceKeys(provenance, provenanceKeys);
+  if (unsupported.length > 0) {
+    throw new OperationalError(
+      "invalid-arguments",
+      `The Task-register target does not support provenance fields ${unsupported.join(", ")}.`,
+    );
+  }
+  const selected: TaskRegisterProvenance = {};
+  for (const key of provenanceKeys) {
+    const value = provenance[key];
+    if (value !== undefined) selected[key] = value;
+  }
+  return Object.keys(selected).length === 0 ? {} : { provenance: selected };
+}
+
+function unsupportedProvenanceKeys(
+  provenance: object,
+  provenanceKeys: readonly (keyof TaskRegisterProvenance)[],
+): string[] {
+  const supported = new Set<string>(provenanceKeys);
+  return Object.entries(provenance).flatMap(([key, value]) =>
+    value !== undefined && !supported.has(key) ? [key] : [],
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

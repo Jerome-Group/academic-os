@@ -2,7 +2,8 @@ import { OperationalError } from "../operational-error.js";
 import { liveDoDate, liveDue } from "./do-date.js";
 import { provisionedList } from "./provisioned-list.js";
 import {
-  refreshTaskRegister,
+  refreshTaskTarget,
+  type TaskRegisterTarget,
   type TaskRefreshTarget,
 } from "./refresh-task-registers.js";
 import { taskFailure } from "./task-failure.js";
@@ -11,6 +12,7 @@ import type {
   LiveTaskFields,
   TaskOperation,
   TaskOperationReport,
+  TaskTargetOperationReport,
   TaskOperationWriter,
   TaskRefreshReader,
   TaskRegister,
@@ -36,6 +38,8 @@ interface PushedTask {
   createdRegister?: TaskRegister;
 }
 
+const researchOnlyProvenanceKeys = ["claim", "meeting", "deliverable"] as const;
+
 // The Promotion pattern for tasks: the push reaches the live list first, the live result is read
 // back before anything local moves, and the register catches up through the same pull an
 // unattended refresh runs — so the register only ever mirrors what Google accepted. A push that
@@ -47,6 +51,29 @@ export async function applyTaskOperation(input: {
   writer: TaskOperationWriter;
   reader: TaskRefreshReader;
 }): Promise<TaskOperationReport> {
+  const report = await applyTaskTargetOperation({
+    target: {
+      identity: {
+        kind: "module",
+        key: `${input.target.semester}/${input.target.module}`,
+        title: input.target.module,
+      },
+      registerStore: input.target.registerStore,
+    },
+    operation: input.operation,
+    writer: input.writer,
+    reader: input.reader,
+  });
+  return moduleOperationReport(report, input.target);
+}
+
+export async function applyTaskTargetOperation(input: {
+  target: TaskRegisterTarget;
+  operation: TaskOperation;
+  writer: TaskOperationWriter;
+  reader: TaskRefreshReader;
+}): Promise<TaskTargetOperationReport> {
+  assertSupportedTargetProvenance(input.target, input.operation);
   let pushed: PushedTask;
   try {
     pushed = await pushToLiveList(input.target, input.operation, input.writer);
@@ -76,18 +103,40 @@ export async function applyTaskOperation(input: {
     ...reportHead(input),
     outcome: "applied",
     taskId: pushed.taskId,
-    register: await refreshTaskRegister(input.target, input.reader),
+    register: await refreshTaskTarget(input.target, input.reader),
   };
 }
 
+function assertSupportedTargetProvenance(
+  target: TaskRegisterTarget,
+  operation: TaskOperation,
+): void {
+  if (
+    target.identity.kind === "research-project" ||
+    operation.name !== "create" ||
+    operation.provenance === undefined
+  ) {
+    return;
+  }
+  const unsupported = researchOnlyProvenanceKeys.filter(
+    (key) => operation.provenance?.[key] !== undefined,
+  );
+  if (unsupported.length > 0) {
+    throw new OperationalError(
+      "invalid-arguments",
+      `${unsupported.join(", ")} provenance is available only for research-project targets.`,
+    );
+  }
+}
+
 async function pushToLiveList(
-  target: TaskRefreshTarget,
+  target: TaskRegisterTarget,
   operation: TaskOperation,
   writer: TaskOperationWriter,
 ): Promise<PushedTask> {
   const { register, listId } = provisionedList(
     await target.registerStore.read(),
-    target.module,
+    target.identity.title,
   );
   if (operation.name === "create") {
     const fields = { title: operation.title, ...writtenFields(operation) };
@@ -98,7 +147,11 @@ async function pushToLiveList(
       createdRegister: registerWithCreatedRow(register, id, operation),
     };
   }
-  const taskId = registeredTaskId(register, operation.taskId, target.module);
+  const taskId = registeredTaskId(
+    register,
+    operation.taskId,
+    target.identity.title,
+  );
   if (operation.name === "cancel") {
     await writer.deleteTask({ listId, taskId });
     await verifyLiveCancellation(writer, listId, taskId);
@@ -113,7 +166,7 @@ async function pushToLiveList(
   return { taskId };
 }
 
-// The register names the module's tasks, so an ID it does not hold is one this session has not
+// The register names the target's tasks, so an ID it does not hold is one this session has not
 // pulled — pushing to it would be writing blind at a list Google may have moved on from. A row it
 // holds as cancelled names a task Google deleted, and a cancelled task is never re-pushed.
 function registeredTaskId(
@@ -215,12 +268,44 @@ function registerWithCreatedRow(
 }
 
 function reportHead(input: {
-  target: TaskRefreshTarget;
+  target: TaskRegisterTarget;
   operation: TaskOperation;
-}): Pick<TaskOperationReport, "schemaVersion" | "command" | "module"> {
+}): Pick<TaskTargetOperationReport, "schemaVersion" | "command" | "target"> {
   return {
     schemaVersion: 1,
     command: `tasks ${input.operation.name}`,
-    module: { semester: input.target.semester, module: input.target.module },
+    target: input.target.identity,
+  };
+}
+
+function moduleOperationReport(
+  report: TaskTargetOperationReport,
+  target: TaskRefreshTarget,
+): TaskOperationReport {
+  const register =
+    report.register === null
+      ? null
+      : moduleRefreshReport(report.register, target);
+  return {
+    schemaVersion: report.schemaVersion,
+    command: report.command,
+    outcome: report.outcome,
+    module: { semester: target.semester, module: target.module },
+    taskId: report.taskId,
+    register,
+    ...(report.failure === undefined ? {} : { failure: report.failure }),
+  };
+}
+
+function moduleRefreshReport(
+  report: NonNullable<TaskTargetOperationReport["register"]>,
+  target: TaskRefreshTarget,
+): NonNullable<TaskOperationReport["register"]> {
+  const { target: _identity, failure, ...result } = report;
+  return {
+    semester: target.semester,
+    module: target.module,
+    ...result,
+    ...(failure === undefined ? {} : { failure }),
   };
 }

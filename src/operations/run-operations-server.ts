@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 
 import { loadCohortTasksConfig } from "../commands/load-cohort-tasks-config.js";
 import {
+  configuredResearchProjectTaskTarget,
   configuredTaskTarget,
   createGoogleTaskOperationWriter,
   createGoogleTaskRefreshReader,
@@ -32,6 +33,14 @@ export async function runOperationsServer(input: {
   const { config, tasks } = await loadCohortTasksConfig(input.configPath);
   const tools = createTaskTools({
     target: (module) => configuredTaskTarget(config, module),
+    ...(config.research === undefined
+      ? {}
+      : {
+          researchProjectTarget: (key: string) =>
+            configuredResearchProjectTaskTarget(config, key, {
+              requireActive: true,
+            }),
+        }),
     writer: createGoogleTaskOperationWriter(tasks.credentials.interactiveWrite),
     reader: createGoogleTaskRefreshReader(tasks.credentials.scheduledRead),
   });

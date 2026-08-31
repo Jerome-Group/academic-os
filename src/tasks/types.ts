@@ -8,17 +8,25 @@ export interface TaskProvenance {
   milestone?: string;
 }
 
+export interface ResearchTaskProvenance extends TaskProvenance {
+  claim?: string;
+  meeting?: string;
+  deliverable?: string;
+}
+
+export type TaskRegisterProvenance = ResearchTaskProvenance;
+
 export interface TaskRegisterEntry {
   taskId?: string;
   title: string;
   doDate?: string;
   status: TaskStatus;
   notes?: string;
-  provenance?: TaskProvenance;
+  provenance?: TaskRegisterProvenance;
 }
 
 export interface TaskRegister {
-  // Absent until provisioning binds the module's list: the register is seeded before the list it
+  // Absent until provisioning binds the target's list: the register is seeded before the list it
   // mirrors exists.
   listId?: string;
   tasks: TaskRegisterEntry[];
@@ -49,6 +57,12 @@ export interface TaskListReader {
 
 export interface TaskListWriter {
   createTaskList(title: string): Promise<{ id: string }>;
+}
+
+export interface TaskTargetIdentity {
+  kind: "module" | "research-project";
+  key: string;
+  title: string;
 }
 
 export interface TaskRefreshReader {
@@ -89,7 +103,7 @@ export type TaskOperation =
       title: string;
       doDate?: string;
       notes?: string;
-      provenance?: TaskProvenance;
+      provenance?: TaskRegisterProvenance;
     }
   | {
       name: "change";
@@ -119,12 +133,31 @@ export interface TaskOperationReport {
   };
 }
 
+export interface TaskTargetOperationReport {
+  schemaVersion: 1;
+  command: `tasks ${TaskOperationName}`;
+  outcome: TaskOperationReport["outcome"];
+  target: TaskTargetIdentity;
+  taskId: string | null;
+  register: TaskTargetRefreshReport | null;
+  failure?: TaskOperationReport["failure"];
+}
+
 export interface TaskRegisterReadReport {
   schemaVersion: 1;
   command: "tasks read-register";
   outcome: "read" | "stale";
   module: ConfiguredModuleIdentity;
   register: TaskRefreshModuleReport;
+  tasks: TaskRegisterEntry[];
+}
+
+export interface TaskTargetRegisterReadReport {
+  schemaVersion: 1;
+  command: "tasks read-register";
+  outcome: TaskRegisterReadReport["outcome"];
+  target: TaskTargetIdentity;
+  register: TaskTargetRefreshReport;
   tasks: TaskRegisterEntry[];
 }
 
@@ -147,6 +180,22 @@ export interface TaskProvisionReport {
   register: "written" | "not-written";
 }
 
+export interface TaskTargetProvisionReport {
+  target: TaskTargetIdentity;
+  outcome: TaskProvisionReport["outcome"];
+  list: TaskProvisionReport["list"];
+  register: TaskProvisionReport["register"];
+}
+
+export interface TaskResearchProjectProvisionReport {
+  schemaVersion: 1;
+  command: "tasks provision";
+  outcome: TaskProvisionReport["outcome"];
+  researchProject: { key: string };
+  list: TaskProvisionReport["list"];
+  register: TaskProvisionReport["register"];
+}
+
 export interface ConfiguredModuleIdentity {
   semester: string;
   module: string;
@@ -157,6 +206,7 @@ export interface TaskRefreshReport {
   command: "tasks refresh";
   outcome: "refreshed" | "partially-refreshed" | "stale";
   modules: TaskRefreshModuleReport[];
+  researchProjects?: TaskRefreshResearchProjectReport[];
 }
 
 export interface TaskRefreshModuleReport extends ConfiguredModuleIdentity {
@@ -168,6 +218,24 @@ export interface TaskRefreshModuleReport extends ConfiguredModuleIdentity {
     code: string;
     message: string;
   };
+}
+
+export interface TaskTargetRefreshReport {
+  target: TaskTargetIdentity;
+  freshness: TaskRefreshModuleReport["freshness"];
+  listId: string | null;
+  counts: TaskRegisterCounts;
+  changes: TaskRegisterChanges;
+  failure?: TaskRefreshModuleReport["failure"];
+}
+
+export interface TaskRefreshResearchProjectReport {
+  researchProject: string;
+  freshness: TaskRefreshModuleReport["freshness"];
+  listId: string | null;
+  counts: TaskRegisterCounts;
+  changes: TaskRegisterChanges;
+  failure?: TaskRefreshModuleReport["failure"];
 }
 
 export interface TaskRegisterCounts {

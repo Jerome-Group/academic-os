@@ -1,19 +1,24 @@
 import { OperationalError } from "../operational-error.js";
 import {
   localNtuDateTime,
-  ntuWeeklyClassSchedule,
   NTU_AY2026_27_SEMESTER_1,
-  type NtuWeekSelection,
   type NtuWeekday,
+  type NtuWeekSelection,
+  ntuWeeklyClassSchedule,
 } from "./ntu-academic-calendar.js";
+import {
+  detectVisibleResearchProjectEvidenceStatus,
+  parseOptionalResearchProjectEvidenceStatus,
+  validateResearchProjectMilestonePolicy,
+} from "./research-project-milestone-policy.js";
 import type {
-  CalendarIntendedEvent,
   CalendarEventPatch,
+  CalendarIntendedEvent,
   CalendarInterval,
   CalendarProposalItemKind,
   CalendarProposalSource,
-  CalendarRecurrenceScope,
   CalendarProviderIdentity,
+  CalendarRecurrenceScope,
   OwnedCalendarRole,
 } from "./types.js";
 
@@ -56,6 +61,7 @@ export interface ParsedCalendarChangeProposalInput {
   calendarRole: OwnedCalendarRole;
   eventId: string;
   patch: CalendarEventPatch;
+  evidenceStatus?: "confirmed" | "provisional";
   targetCalendarRole?: OwnedCalendarRole;
   recurrenceScope?: CalendarRecurrenceScope;
 }
@@ -409,12 +415,17 @@ export function parseCalendarChangeProposalInput(
     item.patch,
     targetCalendarRole !== undefined && targetCalendarRole !== calendarRole,
   );
+  const evidenceStatus = parseOptionalResearchProjectEvidenceStatus(
+    source,
+    item.evidenceStatus,
+  );
   return {
     operation: "update",
     source,
     calendarRole,
     eventId,
     patch,
+    ...(evidenceStatus === undefined ? {} : { evidenceStatus }),
     ...(targetCalendarRole === undefined ? {} : { targetCalendarRole }),
     ...(recurrenceScope === undefined ? {} : { recurrenceScope }),
   };
@@ -478,9 +489,23 @@ export function parseCalendarProposalInput(
   const kind = requireKind(item.kind);
   const calendarRole = requireRole(item.calendarRole);
   const summary = requireNonEmptyString(item.summary, "item.summary");
+  const visibleEvidenceStatus = detectVisibleResearchProjectEvidenceStatus({
+    summary,
+    description: item.description,
+  });
   validateRoleForKind(kind, calendarRole);
 
   if (kind === "fixed-event" || kind === "routine-event") {
+    validateResearchProjectMilestonePolicy({
+      source,
+      evidenceStatus: item.evidenceStatus,
+      summary,
+      description: item.description,
+      calendarRole,
+      itemKind: kind,
+      visibility: "private",
+      visibleEvidenceStatus,
+    });
     return {
       source,
       item: parseEvent({
@@ -495,6 +520,17 @@ export function parseCalendarProposalInput(
   if (item.travelBuffer !== undefined) {
     invalidInput("milestones cannot have a travelBuffer");
   }
+  validateResearchProjectMilestonePolicy({
+    source,
+    evidenceStatus: item.evidenceStatus,
+    summary,
+    description: item.description,
+    calendarRole,
+    itemKind: kind,
+    recurring: item.recurrence !== undefined,
+    visibility: "private",
+    visibleEvidenceStatus,
+  });
   return {
     source,
     item:
@@ -517,6 +553,10 @@ function parseEvent(input: {
   summary: string;
   defaultTimezone: "Asia/Singapore";
 }): ParsedCalendarProposalInput["item"] {
+  const description = optionalString(
+    input.item.description,
+    "item.description",
+  );
   const start = parseTimedPoint(
     input.item.start,
     "item.start",
@@ -540,6 +580,7 @@ function parseEvent(input: {
     summary: input.summary,
     intendedEvent: {
       summary: input.summary,
+      ...(description === undefined ? {} : { description }),
       visibility: "private",
       transparency: input.kind === "fixed-event" ? "opaque" : "transparent",
       start,
@@ -577,12 +618,17 @@ function parseTimedMilestone(input: {
   defaultTimezone: "Asia/Singapore";
 }): ParsedCalendarProposalInput["item"] {
   const at = parseTimedPoint(input.item.at, "item.at", input.defaultTimezone);
+  const description = optionalString(
+    input.item.description,
+    "item.description",
+  );
   return {
     kind: input.kind,
     calendarRole: input.calendarRole,
     summary: input.summary,
     intendedEvent: {
       summary: input.summary,
+      ...(description === undefined ? {} : { description }),
       visibility: "private",
       transparency: "transparent",
       start: at,
@@ -605,12 +651,17 @@ function parseAllDayMilestone(input: {
   summary: string;
 }): ParsedCalendarProposalInput["item"] {
   const date = requireDate(input.item.date, "item.date");
+  const description = optionalString(
+    input.item.description,
+    "item.description",
+  );
   return {
     kind: input.kind,
     calendarRole: input.calendarRole,
     summary: input.summary,
     intendedEvent: {
       summary: input.summary,
+      ...(description === undefined ? {} : { description }),
       visibility: "private",
       transparency: "transparent",
       start: { date },

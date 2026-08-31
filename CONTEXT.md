@@ -1,7 +1,7 @@
 # academic-os — context
 
-Running a degree: the modules taken in a semester, the work each one demands, and the folders and
-schedules that keep both findable.
+Running a degree: taught modules and research projects, the work each one demands, and the folders
+and schedules that keep both findable.
 
 ## Language
 
@@ -14,7 +14,7 @@ does not creep back in.
 
 **Module**:
 One taught unit of the degree, identified by its module code (`MH2100`). The unit of enrolment
-and the unit of organisation — everything else here is scoped to one.
+and the unit of organisation for taught work.
 _Avoid_: course, class, subject. *Course* is NTULearn's word for the same thing and appears when
 quoting it; *class* is a timetabled session.
 
@@ -23,6 +23,19 @@ The directory holding one module's material, laid out to `docs/module-folder-con
 named for the module code alone. It lives inside the Drive mount, never in this repository.
 _Avoid_: module repo — a module folder is not a git repository, and the contract's own deferred
 work is what would change that.
+
+**Research project**:
+One supervised or independent investigation, configured by a stable key and organised under a
+human-facing folder name. It may cross semesters and derives programme-specific outputs from its
+profile; it is not a taught Module.
+_Avoid_: research module, course. Both import Module identity and its universal NTULearn surface.
+
+**Research-project folder**:
+The directory holding one Research project's controls, sources, meetings, research and
+deliverables, laid out to `docs/research-project-folder-contract.md`. It lives inside the Drive
+mount and never in this repository.
+_Avoid_: project repo — the folder is not a git repository; module folder — its identity and
+contract are different.
 
 **Drive mount**:
 The folder on the RAID0 that is synchronised with Google Drive. It is one local view of Drive,
@@ -37,38 +50,38 @@ nothing deletes one: whatever wrote it writes it back, and an `Icon\r` is a rend
 than debris (MF-ROOT-003). A walk that only accounts for bytes, such as repair's, does collect them.
 _Avoid_: junk, cruft, stray file. Each invites a tidy-up, which is the one response that is wrong.
 
-**The contract**:
-`docs/module-folder-contract.md`, normative. A module folder that disagrees with it is wrong, and
-a rule that is not in it is not a rule.
-_Avoid_: the template, the convention. Both suggest a starting point that may be departed from,
-which is the opposite of what it is.
+**Folder contract**:
+The normative interface for one aggregate: `docs/module-folder-contract.md` for Module folders or
+`docs/research-project-folder-contract.md` for Research-project folders. A governed folder that
+disagrees with its applicable contract is wrong, and a rule absent from it is not a rule.
+_Avoid_: the template, the convention. Both suggest a starting point that may be departed from.
 
 **Seed**:
-Creating a module folder from the contract, at the start of a semester, after researching what
-that module actually has. Additive and one-way: seeding never removes or renames anything.
+Creating a configured Module or Research-project folder from its Folder contract, after researching
+the target's real context. Additive and one-way: seeding never removes or renames anything.
 _Avoid_: scaffold, generate, init
 
 **Conformance**:
-The state in which a module folder satisfies every universal and applicable context-derived rule
-in the contract.
+The state in which a governed folder satisfies every universal and applicable profile-derived rule
+in its Folder contract.
 _Avoid_: exact match, synchronisation
 
 **Deviation**:
-A current, observable disagreement between a module folder and an applicable contract rule.
+A current, observable disagreement between a governed folder and an applicable contract rule.
 _Avoid_: drift — drift means a change between observations, not merely a present mismatch
 
 **Drift**:
-A change in a module folder's conformance between two observations.
+A change in a governed folder's conformance between two observations.
 _Avoid_: deviation, mismatch
 
 **Pinned document**:
-A file seeded byte-identically into every module folder and diffed back against its seed-source
-template: `AGENTS.md`, the four `docs/` procedures, and the teaching preferences. A module's copy
-carries nothing of its own. These are module controls like the Profile and the registers — the
-contract's Module controls section holds both — and what separates them is how a valid one is
+A file seeded byte-identically into every folder of one aggregate and diffed back against that
+aggregate's seed-source template. Modules pin `AGENTS.md`, four procedures and teaching
+preferences; Research projects pin `AGENTS.md` and four research procedures. A target's copy
+carries nothing of its own. What separates one from a written control is how a valid copy is
 recognised: a pinned control against its template, a written control against its own shape
 ([`docs/adr/0016`](docs/adr/0016-a-control-is-written-or-pinned.md)).
-_Avoid_: template, boilerplate — a module may edit neither
+_Avoid_: template, boilerplate — a governed folder may edit neither
 
 **Rewrite**:
 Replacing one module's Pinned document with its seed-source template, which is how MF-AGENTS-004
@@ -94,28 +107,29 @@ _Avoid_: audit observation, Drive Trash
 
 **Contract version**:
 The increasing identifier for a distinct set of normative folder requirements. It identifies
-which contract a module folder was prepared to follow.
+which applicable Folder contract a governed folder was prepared to follow.
 _Avoid_: repository version, commit
 
 **Transition**:
-The Owner-approved pass that brings one module folder from an earlier contract version to the
-current one — the difference read, a re-homing plan drafted for whatever the pinned files cannot
-keep, and the whole of it applied on the Owner's yes for that module. It writes control files and
-moves documents rather than relocating coursework, which is why it binds none of repair's recovery
-evidence.
+The Owner-approved pass that brings one governed folder from an earlier or pre-contract state to
+its current Folder contract: inventory first, preservation and placement decisions made explicit,
+then the approved plan applied through proved mounted writes. A Module transition writes controls
+and moves documents rather than relocating coursework. A Research-project transition preserves
+human work and authoritative sources, carries generated aids only as aids, and excludes disposable
+output.
 _Avoid_: repair — that relocates real coursework, which is what its recovery evidence is for;
 migration — that is the historical semesters' own track; upgrade — that is the audit's word for the
 lag a transition clears.
 
 **Audit observation**:
-A complete record of a module folder's paths, available metadata and conformance results at one
+A complete record of a governed folder's paths, available metadata and conformance results at one
 audit time. Comparing audit observations reveals drift without recording file contents.
 _Avoid_: backup, snapshot
 
 **Universal structure**:
-The directories every module folder has, whatever the module is. Distinguished from the
-**context-derived structure**, which appears only when the module has the thing it holds — labs,
-projects, quizzes.
+The directories every folder of one aggregate has. A Module's additional
+**context-derived structure** appears only when its Definition declares the thing it holds; a
+Research project's **profile-derived structure** follows its declared programme profile.
 _Avoid_: base, default
 
 **Assessment category**:
@@ -174,6 +188,38 @@ The machine-readable declaration of one module's identity, contract version, and
 context-derived structure, kept at `00 Module Admin/10 Module Definition.yaml`.
 _Avoid_: module profile, manifest
 
+**Project profile**:
+The human-facing description of one Research project, kept at
+`00 Project Admin/00 Project Profile.md`. It separates confirmed, Owner-supplied and unresolved
+facts and does not define what audit enforces.
+_Avoid_: Project definition, research summary — the first is machine authority and the second is
+research content.
+
+**Project definition**:
+The closed machine declaration of one Research project's identity, contract version, programme
+profile and identity-evidence status, kept at `00 Project Admin/10 Project Definition.yaml`.
+_Avoid_: Project profile, manifest, structure list — profile derives the additional structure.
+
+**Source register**:
+The current-state catalogue connecting one Research project's sources to durable locators, local
+files, bibliographic keys, authority and role, kept at `00 Project Admin/20 Source Register.yaml`.
+It identifies evidence; `references.bib` owns bibliographic facts and Research artifacts own the
+precise passage used.
+_Avoid_: bibliography, reading history, Source map — each owns a different relation.
+
+**Research map**:
+The machine-readable mapping from one Research project's stable topic threads to its sources,
+reading, mathematics and experiments, kept at `00 Project Admin/40 Research Map.yaml`. It maps
+durable work and carries no task queue, deadline or proof text.
+_Avoid_: research plan, task list, Source map — the Source map keys taught Module material by
+Lecture-unit.
+
+**Deliverable register**:
+The current state of programme-profile outputs in one Research project, kept at
+`00 Project Admin/50 Deliverable Register.yaml`. It points to authority, workspaces and external
+milestones without owning deadlines or prose.
+_Avoid_: submission, task list, Calendar — each is separate evidence or authority.
+
 **Curation register**:
 The append-only history of decisions that connect importer items to curated copies, kept at
 `00 Module Admin/20 Curation Register.jsonl`.
@@ -193,9 +239,10 @@ bytes have changed is left for the curation walk to decide as an update arrival.
 _Avoid_: rewrite, backfill — nothing already written is edited
 
 **Monitoring cohort**:
-The modules in the active semester, which are checked continuously. Past and future modules sit
-outside the cohort and change only after a user request or an agent proposal the user accepts.
-_Avoid_: all modules, managed modules
+The Modules in the active semester plus explicitly active configured Research projects, which are
+checked continuously under their respective contracts. Past/future Modules and inactive Research
+projects stay explicit read-only targets unless the Owner approves change.
+_Avoid_: all folders, managed folders
 
 **Live calendar**:
 The Google Calendar state that is authoritative for which Calendar items actually exist and what
@@ -219,7 +266,14 @@ _Avoid_: task, work block
 **Calendar milestone**:
 A Calendar item marking a fixed date or instant without claiming an occupied interval, such as a
 deadline.
-_Avoid_: Calendar event, task due date
+_Avoid_: Calendar event, task due date, planning marker
+
+**Planning marker**:
+A provisional Calendar milestone used to make an unresolved research window visible without
+calling it a deadline. It declares provisional evidence; its title and description say
+`Provisional`; its description cites the standing source and points to the Task that verifies the
+exact date.
+_Avoid_: deadline, confirmed milestone
 
 **Owned calendar**:
 One of the three calendars the calendar system controls: the primary **Academic** calendar for
@@ -322,15 +376,15 @@ _Avoid_: due date. That is Google's name for the same field, and it reads as a d
 the misreading this term exists to prevent.
 
 **Task register**:
-The agent-managed mirror of one module's Google Tasks list, kept at
-`00 Module Admin/30 Task Register.yaml` inside its module folder. The list is the live authority;
-the register catches up by pull, never wins a conflict, and carries the provenance the list
-cannot.
+The agent-managed mirror of one academic target's Google Tasks list, kept at
+`00 Module Admin/30 Task Register.yaml` for a Module or
+`00 Project Admin/30 Task Register.yaml` for a Research project. The list is the live authority;
+the register catches up by pull, never wins a conflict, and carries provenance the list cannot.
 _Avoid_: task list — that is the live authority the register mirrors; task history — the register
 is current state, not an append-only record like the Curation register.
 
 **Task operation**:
-An in-session create, change, complete or cancel that pushes to a module's live task list, verifies
+An in-session create, change, complete or cancel that pushes to an academic target's live task list, verifies
 the live result, then refreshes the Task register. It carries the Promotion pattern without a
 Proposal — the Owner asked for the change in session, so nothing stages it for approval — and a
 push Google does not take parks, leaving the register with no row for it; one Google takes but
@@ -341,7 +395,7 @@ the Calendar, whose Proposals a register can never be a source for.
 **Operations server**:
 The MCP server this repository builds and runs on the mini, exposing its operations — task
 operations first, later surfaces joining the same server — to any MCP-speaking agent on the
-Tailnet. A machine registers it once at user scope; module folders and their routers never carry
+Tailnet. A machine registers it once at user scope; target folders and their routers never carry
 its transport.
 _Avoid_: the MCP server — says the protocol, not which surface; the CLI — the same operations run
 locally on the mini, not the remote surface; API, backend.
@@ -359,6 +413,26 @@ activity — lectures, tutorials, revision, past papers — with each activity k
 Learning records. Its structure and templates are seeded for every module, used or not.
 _Avoid_: notes. Personal notes are `10 Learning Materials/30 Personal Notes`, which is a different
 thing done for a different reason.
+
+**Research workspace**:
+The `70 Research` part of a Research project: source-by-source Reading, Owner-authored Mathematics,
+reproducible Experiments, and the Glossary, Questions and Claims that connect them. It is organised
+by a Research map rather than a taught sequence.
+_Avoid_: Teaching workspace — understanding here advances an open question rather than a module's
+Lecture-units; deliverables — they consume Research but have programme-owned requirements.
+
+**Claim**:
+A mathematical statement the Research project may rely on, recorded with assumptions, status,
+Source IDs and precise locators, and the Owner-authored artifact that checks it. A Claim is checked
+only when the Owner can reconstruct its argument.
+_Avoid_: generated answer, conjecture — a candidate Claim may be conjectural, but its status must
+say so; task — work to investigate it lives in Google Tasks.
+
+**Research aid**:
+Generated orientation, an explanatory sketch or another useful artifact that helps the Owner work
+but does not establish a Claim. It points to registered sources and records provenance when
+adopted.
+_Avoid_: source, evidence, proof. Each would promote help beyond what it can establish.
 
 **Lecture-unit**:
 One step of a module's own lecture numbering — a week or a lecture, named exactly as the module
@@ -460,6 +534,23 @@ The `GLOSSARY.md` inside `70 Learning`: the subject-matter terms of the module i
 the learning. A ruling on what the lecturer's word means for classifying or naming files belongs
 in the Module glossary instead.
 _Avoid_: module glossary, definitions list.
+
+**Project context**:
+The `CONTEXT.md` inside a Research-project folder: organisational language that changes where an
+artifact goes or how it is named. Mathematical definitions belong in the Research glossary.
+_Avoid_: Research glossary, project summary — neither governs organisation.
+
+**Research glossary**:
+The `GLOSSARY.md` inside `70 Research`: mathematical terms the project relies on, cited where the
+definition is not the Owner's. A term controlling classification or naming belongs in Project
+context.
+_Avoid_: Project context, dictionary.
+
+**Project ADR**:
+A decision record in a Research project's `docs/adr/`: a standing project rule the Folder contract
+does not force, whose reversal would strand records already built on it. Numbered locally from
+`0001` and superseded rather than edited.
+_Avoid_: repository ADR, meeting decision, Source-register evidence.
 
 **Module ADR**:
 A decision record in a module folder's `docs/adr/`: a standing rule the module follows that the

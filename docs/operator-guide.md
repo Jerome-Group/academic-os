@@ -11,9 +11,15 @@ not orchestrate a week of study or evolve a module's instructions on its own.
 
 Copy `academic-os.config.example.json` to the gitignored `academic-os.config.json`. Set the Drive
 mount, a private state root outside both Drive and this repository, exactly one active semester,
-and explicit semester/module mappings. Add `seedTarget` only for the approved module to seed.
-Optional Drive API inventory needs an exact module-folder ID and read-only application-default
-credentials; mounted inventory remains the baseline.
+and explicit semester/module mappings. Optional `research` declares one containing root and a map
+of stable project keys to exact folders, status, profile and optional Tasks-list title. Active
+Research projects join cohort audit and Tasks refresh; the Morning routine remains Module-only.
+Omitting a project's `profile` selects `generic`; `profile: "ureca"` selects only the URECA
+additions in the research-project contract.
+Add `seedTarget` only for the approved legacy Module seed; a Research-project seed is selected by
+its CLI key. Optional Drive API inventory needs an exact target-folder ID under
+`driveApi.moduleFolderIds` or `driveApi.researchProjectFolderIds` and read-only
+application-default credentials; mounted inventory remains the baseline.
 
 Repair additionally needs the exact module folder ID, a dedicated unmonitored Drive recovery-root
 ID, and an existing `snapshotRoot` on a physically separate volume. Its full-Drive OAuth scope is
@@ -173,7 +179,7 @@ The versioned input names a source and one item. Fixed and Routine events use `s
 objects containing an ISO-8601 `dateTime` with an offset and optional IANA `timeZone`; omitted
 timezones default to Asia/Singapore. Timed milestones use `at` and a transparent one-minute
 provider representation while consuming no conflict interval; all-day milestones use a
-timezone-free `date`.
+timezone-free `date`. Any item may carry a private `description` that Promotion preserves.
 
 ```json
 {
@@ -198,6 +204,17 @@ Only an explicitly supplied travel buffer expands a conflict check. The ready Pr
 the current pending Proposal beneath `stateRoot/calendar/`; Observed event details are reported
 only in the transient preview and are not persisted. Propose never changes Google Calendar. Use
 `--json` for the deterministic equivalent preview.
+
+`source.kind: "research-project"` is reserved for a private, transparent, singular and
+non-recurring Research-project milestone on Academic. It declares `item.evidenceStatus` as
+`confirmed` or `provisional`. An update cannot move it, make it public or opaque, turn it into an
+event or recurrence, or remove its evidence state. A confirmed research deadline uses an
+`authenticated` or `confirmed` source reference, says `Confirmed` in its summary and cites
+`Confirmed source:` in its private description. An unconfirmed month window may instead be
+promoted as a **planning marker** only when both summary and description say `Provisional`, the
+description cites the standing source and points to a verification Task, and neither field calls
+it a deadline. Verification later replaces or removes the marker through the ordinary reviewed
+Proposal/Promotion path.
 
 Routine-event inputs may also include an explicit `recurrence` array, such as
 `["RRULE:FREQ=WEEKLY;BYDAY=MO"]`; the Proposal preserves the recurrence on the created Routine
@@ -315,31 +332,39 @@ then Refreshes. It never promotes entries listed as requiring a human decision.
 
 ## Tasks provision
 
-Preview the module's Google Tasks list:
+Preview one Module's Google Tasks list:
 
 ```sh
 node dist/src/cli.js tasks provision --config academic-os.config.json \
   --semester Y2S1 --module MODULE_CODE
 ```
 
-The command reports what it would do — `would adopt` for a list titled exactly the module code,
-`would create` for a missing one — and creates nothing and writes no register. Adding `--apply`
-adopts or creates the list and writes `00 Module Admin/30 Task Register.yaml` carrying its exact
-ID.
+Select one Research project instead with a mutually exclusive target:
+
+```sh
+node dist/src/cli.js tasks provision --config academic-os.config.json \
+  --research-project example-project
+```
+
+The command reports what it would do — `would adopt` for an exact title match, `would create` for
+a missing one — and creates nothing and writes no register. A Module title is its code; a Research
+project title is `taskListTitle` or its folder name. Adding `--apply` adopts or creates the list and
+writes the target's `30 Task Register.yaml` carrying its exact ID.
 
 Seeding writes the register before the list exists, so a register naming no list is one waiting
 for this command: provisioning adopts or creates the list and writes the ID into the skeleton it
 finds, keeping any rows already there.
 
 Rerunning is safe. Once the register names a list, provisioning verifies that list still exists,
-reports `bound` and leaves the register's rows alone — the persisted ID is the module's task-list
-identity from then on, and a retitled list stays the same list. Two lists sharing the module code
-is a conflict the Owner resolves in Google; a register naming a list Google no longer has fails
+reports `bound` and leaves the register's rows alone — the persisted ID is the target's task-list
+identity from then on, and a retitled list stays the same list. Two lists sharing the requested
+title are a conflict the Owner resolves in Google; a register naming a list Google no longer has fails
 rather than silently adopting a different one.
 
 ## Tasks refresh
 
-Pull the live lists of the whole monitoring cohort into their registers:
+Pull the live lists of the whole monitoring cohort—active-semester Modules and active Research
+projects—into their registers:
 
 ```sh
 node dist/src/cli.js tasks refresh --config academic-os.config.json
@@ -356,14 +381,15 @@ mirrors a task, then the one after it was deleted. A task created and deleted be
 pulls never enters the register at all — a `cancelled` row exists to explain where a tracked task
 went, and inventing one for work the register never saw would say the opposite.
 
-Add `--semester` and `--module` to refresh one module. A nonzero result may still have refreshed
-other modules: the named stale modules kept their last-good register and report why. Reading a
+Add `--semester` and `--module` to refresh one Module, or the mutually exclusive
+`--research-project` to refresh one project. A nonzero cohort result may still have refreshed other
+targets: stale targets keep their last-good register and report why. Reading a
 stale register is fine when its staleness is named; the register is a mirror, so the fix is a
 rerun rather than an edit.
 
 ## Tasks operations
 
-Write to a module's live list in session — the pushes an unattended refresh has no authority to
+Write to one target's live list in session — the pushes an unattended refresh has no authority to
 make:
 
 ```sh
@@ -376,14 +402,23 @@ node dist/src/cli.js tasks change --config academic-os.config.json \
   --semester Y2S1 --module MODULE_CODE --task TASK_ID --do-date 2026-08-28
 ```
 
+Every create/change/complete/cancel command may select a Research project instead:
+
+```sh
+node dist/src/cli.js tasks create --config academic-os.config.json \
+  --research-project example-project --title 'Read the next core source' --do-date 2026-08-27
+```
+
 `tasks complete` and `tasks cancel` take the same `--task` and nothing more. Every operation
 pushes with the interactive-write credential, reads the live result back, then runs the same pull
 `tasks refresh` runs with the scheduled-read one — so the register only ever mirrors what Google
 accepted, and the Owner's phone has it first.
 
-`create` also takes `--notes` and the provenance flags `--assessment`, `--source` and
-`--milestone`; the returned task ID and that provenance are what the new row carries, and
-provenance never reaches Google. `change` takes any of `--title`, `--do-date` and `--notes`. A
+`create` also takes `--notes` and the additive provenance flags `--assessment`, `--source`,
+`--milestone`, `--claim`, `--meeting` and `--deliverable`; the last three connect Research-project
+work to its own controls without changing the existing Module fields. The returned task ID and that
+provenance are what the new row carries, and provenance never reaches Google. `change` takes any of
+`--title`, `--do-date` and `--notes`. A
 `--do-date` is a date with no time: Google discards a time and a Do-date is not a deadline, so the
 command refuses one rather than truncating it.
 
@@ -407,14 +442,14 @@ Three outcomes, and the difference between them is what Google did:
 
 Anything but `applied` against a fresh register exits nonzero.
 
-Supervise the first live round-trip: `tasks create` against a real module list, tick the task in
+Supervise the first live round-trip: `tasks create` against a real target list, tick the task in
 Google Tasks on the phone, then `tasks refresh`. The row should come back `completed` with its
 provenance intact and no other row moved.
 
 ## Operations server
 
 The mini serves this repository's task operations to every machine on the Tailnet, so an agent in
-a module folder anywhere reaches them with no clone, no Node and no credential file. Build the
+a configured target folder anywhere reaches them with no clone, no Node and no credential file. Build the
 current CLI, then install the resident per-user LaunchAgent from this checkout:
 
 ```sh
@@ -436,12 +471,17 @@ reachability on the Tailnet is the whole of the authorisation, and there is no t
 (ADR-0011). Second machines register the URL once at user scope — `machine-setup.md` is their
 whole checklist.
 
-Four tools are served, and each one is the operation of the same name run on the mini:
-`tasks_create`, `tasks_change`, `tasks_complete` and `tasks_read_register`. The three writes
-follow the Promotion pattern exactly as the CLI does; `tasks_read_register` pulls the live list
-into the register first and returns the rows with their provenance. Every tool takes `semester`
-and `module`, and a module the config does not map is refused rather than guessed at. An
-operation that did not apply comes back as an MCP error carrying the same report the CLI prints,
+Four Module tools are served: `tasks_create`, `tasks_change`, `tasks_complete` and
+`tasks_read_register`. When Research projects are configured, four parallel tools are also served:
+`research_tasks_create`, `research_tasks_change`, `research_tasks_complete` and
+`research_tasks_read_register`. The Module tools take `semester` and `module`; the Research tools
+take the stable `research_project` key. Research create additionally accepts `claim`, `meeting` and
+`deliverable` provenance beside the shared fields.
+
+The three writes on either surface follow the Promotion pattern exactly as the CLI does; each read
+pulls the live list into the register first and returns rows with their provenance. A target the
+config does not map is refused rather than guessed at. An operation that did not apply comes back as
+an MCP error carrying the same report the CLI prints,
 so a parked push is visible to the calling agent without it having to read the report for the bad
 news. A verified push whose refresh then failed is not one of those: the task is on the phone, the
 report names the stale register, and reporting it as an error is what would invite a second push.
@@ -664,7 +704,8 @@ launchctl kickstart -k gui/$(id -u)/com.jerome-group.academic-os.morning-routine
 
 ## Seed
 
-Supply an approved Profile and Definition. The default is a non-mutating preview:
+Supply an approved Profile and Definition. The legacy `seedTarget` selects a Module; the default is
+a non-mutating preview:
 
 ```sh
 node dist/src/cli.js seed --config academic-os.config.json \
@@ -700,12 +741,52 @@ module's to edit where the difference is functional, so audit checks that it is 
 diffing it back. `preferences.md` is the exception and is diffed, under MF-AGENTS-004 with the rest
 of the pinned set.
 
+Select a configured Research project explicitly by stable key:
+
+```sh
+node dist/src/cli.js seed --config academic-os.config.json \
+  --research-project example-project \
+  --profile /path/to/approved-project-profile.md \
+  --definition /path/to/approved-project-definition.yaml
+```
+
+Research-project seed uses the same preview, `--apply`, `--resume` and `--json` boundary. It
+resolves the exact configured research root and folder, preserves mount artifacts, refuses every
+conflict, journals additions and verifies the published tree. The caller-supplied Profile and
+Definition replace their generic seed bodies; the remainder comes from
+`seed-templates/research-project/`, with `{{PROJECT_NAME}}` interpolated. The universal seed has no
+NTULearn directory. `profile: ureca` adds only the four URECA Deliverable workspaces and two
+Resource categories the research-project contract names.
+
+Put approved starting controls and source files in the same seed with a private initial-files
+manifest:
+
+```sh
+node dist/src/cli.js seed --config academic-os.config.json \
+  --research-project example-project \
+  --profile /path/to/approved-project-profile.md \
+  --definition /path/to/approved-project-definition.yaml \
+  --initial-files-manifest /path/to/intake/initial-files.json
+```
+
+The closed manifest schema and allowed destinations are in
+[`docs/research-project-folder-contract.md`](research-project-folder-contract.md#seeding-a-research-project).
+Keep the manifest beside its relative source paths, record every source's exact SHA-256 and choose
+`utf8` only for strict text. The preview lists every derived directory and file without printing
+contents. Review that list before applying; keep the unchanged manifest and sources available for
+an interrupted `--apply --resume` so the plan digest can be reproduced.
+
 ## Audit
 
-`audit --config academic-os.config.json` selects only the configured active cohort. Name both
-`--semester` and `--module` for an explicit read-only target, including a past module used for
-acceptance evidence. Add `--migration` only when a configured past module should receive
-historical-migration interpretation; it never enrols or changes the module.
+`audit --config academic-os.config.json` selects the configured active cohort: active-semester
+Modules and active Research projects. Name both `--semester` and `--module` for an explicit
+read-only Module, including a past Module used for acceptance evidence. Add `--migration` only when
+that past Module should receive historical-migration interpretation; it never enrols or changes the
+Module.
+
+Name `--research-project example-project` instead for one explicit Research project. It is mutually
+exclusive with the Module target and `--migration`. Mounted inventory is the default; add
+`--inventory drive-api` only after configuring that project's exact folder ID.
 
 Human output is the default. `--json` emits the versioned report used by automation. Both expose
 the same findings, applicability, evidence and enforcement:
@@ -717,18 +798,30 @@ the same findings, applicability, evidence and enforcement:
 | 2 | Unsafe/incomplete inventory, configuration or operation |
 | 3 | Human decision or manual review required |
 
-Every audit appends a complete private observation under `stateRoot`; reports and observations
-contain metadata and filenames, so do not commit them. Current mismatch is a **deviation**. Only a
-change between compatible observations is **drift**. A historical contract gap or contract-version
-upgrade is migration evidence, not permission to repair or change the contract.
+Every successful target audit appends a complete private observation under `stateRoot`. Module
+history remains at `observations/<sha256(module-root)>`; Research-project history uses the separate
+`observations/research-projects/<sha256(project-root)>` namespace and a Research-specific target
+schema. The report names the observation path, comparison, new/unchanged/resolved findings and any
+corrupt, incompatible or interrupted-history diagnostics. Drive API observations retain their
+provider provenance. A cohort isolates one target's operational failure and keeps every successful
+report.
+
+Reports and observations contain metadata and filenames, so do not commit them. Current mismatch
+is a **deviation**. Only a change between compatible observations is **drift**. A historical
+contract gap or contract-version upgrade is migration evidence, not permission to repair or change
+the contract.
 
 ## Pinned refresh
 
-A change to any file under `seed-templates/` leaves every module's copy stale, which audit reports
-as MF-AGENTS-004. `pinned refresh` is the repair that rule names, over the active cohort audit
+A change to a Module-pinned file directly under `seed-templates/` leaves every Module's copy stale,
+which audit reports as MF-AGENTS-004. `pinned refresh` is the Module repair that rule names, over the active cohort audit
 already selects. It reads the templates from the checkout it runs in, so run it once the change is
 merged: a module's agents follow the copy in their own `docs/`, and an amended procedure governs
 nothing in the cohort until this has rewritten them.
+
+Research-project pinned files live under `seed-templates/research-project/` and audit under
+RP-AGENTS-004. This command does not rewrite them; transition an existing Research project only on
+the Owner's approval until a project-pinned refresh surface exists.
 
 ```bash
 node dist/src/cli.js pinned refresh --config academic-os.config.json
@@ -978,8 +1071,10 @@ is mutable and therefore is not itself immutable or WORM storage.
 - Tasks refresh is pull-only; the task operations are the one Tasks path that writes to Google, and
   they run in session under the interactive-write credential, never unattended.
 - Audit has no repair path and no write-capable Drive API dependency.
-- A contract change edits `docs/module-folder-contract.md`; repair resolves only an approved
-  deviation and cannot change the contract.
+- A contract change edits the applicable Module or Research-project folder contract; repair
+  resolves only an approved deviation and cannot change either contract.
+- Research-project seed is additive, exact-targeted and journalled under the same mounted-write
+  proof as Module seed; it preserves every existing artifact and mount artifact.
 - Transition brings one folder to the current contract version on the Owner's yes and leaves
   academic contents where they are.
 - Curation migrate only appends to a register, and never decides an item whose source bytes have

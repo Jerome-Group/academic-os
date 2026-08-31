@@ -1,7 +1,7 @@
 import { OperationalError } from "../operational-error.js";
 import type { TaskRegister } from "./types.js";
 
-// Seeding writes the register before the module has a list at all, so a register naming no list is
+// Seeding writes the register before its target has a list at all, so a register naming no list is
 // one waiting for `tasks provision` rather than a malformed file. Both Tasks paths read it that
 // way, and both say which step is outstanding.
 export function provisionedList(

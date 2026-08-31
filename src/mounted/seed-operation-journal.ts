@@ -2,14 +2,33 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, open, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-import type { SeedOutcome, SeedPlan } from "../seed/index.js";
+import type {
+  ResearchProjectSeedPlan,
+  SeedOutcome,
+  SeedPlan,
+} from "../seed/index.js";
+import { isCanonicalBase64 } from "../seed/seed-operation-bytes.js";
 
-export interface SeedTargetIdentity {
+export interface ModuleSeedTargetIdentity {
   module: string;
   semester: string;
   semesterRoot: string;
   moduleRoot: string;
 }
+
+export interface ResearchProjectSeedTargetIdentity {
+  kind: "research-project";
+  projectKey: string;
+  folder: string;
+  parentRoot: string;
+  projectRoot: string;
+}
+
+export type SeedTargetIdentity =
+  | ModuleSeedTargetIdentity
+  | ResearchProjectSeedTargetIdentity;
+
+export type SeedablePlan = SeedPlan | ResearchProjectSeedPlan;
 
 export interface SeedPreconditions {
   contractVersion: number | "unavailable";
@@ -29,7 +48,7 @@ interface SeedJournalBase {
 export interface SeedJournalStarted extends SeedJournalBase {
   type: "started";
   planDigest: string;
-  plan: SeedPlan;
+  plan: SeedablePlan;
   preconditions: SeedPreconditions;
   stagingRoot: string;
 }
@@ -79,7 +98,7 @@ export interface SeedJournal {
   events: SeedJournalEvent[];
 }
 
-export function seedPlanDigest(plan: SeedPlan): string {
+export function seedPlanDigest(plan: SeedablePlan): string {
   return createHash("sha256").update(JSON.stringify(plan)).digest("hex");
 }
 
@@ -88,7 +107,7 @@ export function seedJournalPath(
   target: SeedTargetIdentity,
 ): string {
   const targetKey = createHash("sha256")
-    .update(target.moduleRoot)
+    .update(seedTargetRoot(target))
     .digest("hex");
   return join(stateRoot, "journals", "seeds", `${targetKey}.jsonl`);
 }
@@ -96,7 +115,7 @@ export function seedJournalPath(
 export async function startSeedJournal(input: {
   path: string;
   target: SeedTargetIdentity;
-  plan: SeedPlan;
+  plan: SeedablePlan;
   preconditions: SeedPreconditions;
   stagingRoot: string;
 }): Promise<SeedJournal> {
@@ -155,6 +174,11 @@ export async function readSeedJournal(
   const started = events[0];
   if (started?.type !== "started") {
     return { diagnostic: "Seed continuation has an ambiguous journal start." };
+  }
+  if (!targetMatchesPlan(started.target, started.plan)) {
+    return {
+      diagnostic: "Seed journal contains a mismatched target identity.",
+    };
   }
   if (
     events.some(
@@ -222,12 +246,7 @@ function isSeedJournalEvent(value: unknown): value is SeedJournalEvent {
   ) {
     return false;
   }
-  const targetRecord = target as Record<string, unknown>;
-  if (
-    !["module", "semester", "semesterRoot", "moduleRoot"].every(
-      (field) => typeof targetRecord[field] === "string",
-    )
-  ) {
+  if (!isSeedTargetIdentity(target)) {
     return false;
   }
   if (event.type === "started") {
@@ -304,24 +323,100 @@ function hasValidJournalLifecycle(events: SeedJournalEvent[]): boolean {
   return events.at(-1)?.type !== "failure";
 }
 
-function isSeedPlan(value: unknown): value is SeedPlan {
+function isSeedPlan(value: unknown): value is SeedablePlan {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return false;
   }
   const plan = value as Record<string, unknown>;
-  return (
-    typeof plan.module === "string" &&
-    typeof plan.semester === "string" &&
+  const common =
     Array.isArray(plan.operations) &&
     plan.operations.every(isSeedOperation) &&
     Array.isArray(plan.blockers) &&
-    plan.blockers.every((blocker) => typeof blocker === "string")
+    plan.blockers.every((blocker) => typeof blocker === "string");
+  if (!common) return false;
+  if (typeof plan.module === "string" || typeof plan.semester === "string") {
+    return typeof plan.module === "string" && typeof plan.semester === "string";
+  }
+  if (!isRecord(plan.target)) return false;
+  return (
+    plan.target.kind === "research-project" &&
+    typeof plan.target.key === "string" &&
+    typeof plan.target.folder === "string" &&
+    Number.isInteger(plan.contractVersion)
   );
+}
+
+function isSeedTargetIdentity(target: unknown): target is SeedTargetIdentity {
+  if (!isRecord(target)) return false;
+  if ("kind" in target) {
+    return (
+      target.kind === "research-project" &&
+      ["projectKey", "folder", "parentRoot", "projectRoot"].every(
+        (field) => typeof target[field] === "string",
+      )
+    );
+  }
+  return ["module", "semester", "semesterRoot", "moduleRoot"].every(
+    (field) => typeof target[field] === "string",
+  );
+}
+
+export function seedTargetRoot(target: SeedTargetIdentity): string {
+  return isResearchSeedTarget(target) ? target.projectRoot : target.moduleRoot;
+}
+
+export function seedTargetParentRoot(target: SeedTargetIdentity): string {
+  return isResearchSeedTarget(target) ? target.parentRoot : target.semesterRoot;
+}
+
+export function seedTargetLabel(target: SeedTargetIdentity): string {
+  return isResearchSeedTarget(target) ? target.folder : target.module;
+}
+
+function targetMatchesPlan(
+  target: SeedTargetIdentity,
+  plan: SeedablePlan,
+): boolean {
+  if (isResearchSeedTarget(target)) {
+    return (
+      "target" in plan &&
+      plan.target.kind === "research-project" &&
+      plan.target.key === target.projectKey &&
+      plan.target.folder === target.folder
+    );
+  }
+  return (
+    "module" in plan &&
+    plan.module === target.module &&
+    plan.semester === target.semester
+  );
+}
+
+function isResearchSeedTarget(
+  target: SeedTargetIdentity,
+): target is ResearchProjectSeedTargetIdentity {
+  return "kind" in target && target.kind === "research-project";
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function isSeedOperation(value: unknown): boolean {
   if (!isPublicOperation(value)) return false;
   const operation = value as Record<string, unknown>;
+  if (operation.kind === "directory") {
+    return (
+      operation.contents === undefined && operation.contentsBase64 === undefined
+    );
+  }
+  if (operation.contentsBase64 !== undefined) {
+    return (
+      operation.contents === undefined &&
+      typeof operation.contentsBase64 === "string" &&
+      isCanonicalBase64(operation.contentsBase64)
+    );
+  }
   return (
     operation.contents === undefined || typeof operation.contents === "string"
   );

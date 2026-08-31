@@ -19,6 +19,17 @@
       "modules": ["MH2200"]
     }
   },
+  "research": {
+    "root": "Modules/Research",
+    "projects": {
+      "ureca-y2": {
+        "folder": "URECA Y2",
+        "status": "active",
+        "profile": "ureca",
+        "taskListTitle": "URECA Y2"
+      }
+    }
+  },
   "seedTarget": {
     "semester": "Y2S1",
     "module": "MH2100"
@@ -48,6 +59,9 @@
       "Y2S1": {
         "MH2100": "replace-with-drive-folder-id"
       }
+    },
+    "researchProjectFolderIds": {
+      "ureca-y2": "replace-with-drive-folder-id"
     }
   },
   "repair": {

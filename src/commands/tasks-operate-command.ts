@@ -1,6 +1,8 @@
 import { OperationalError } from "../mounted/index.js";
 import {
   applyTaskOperation,
+  applyTaskTargetOperation,
+  configuredResearchProjectTaskTarget,
   configuredTaskTarget,
   createGoogleTaskRefreshReader,
   createGoogleTaskOperationWriter,
@@ -8,7 +10,9 @@ import {
   type TaskOperation,
   type TaskOperationName,
   type TaskOperationReport,
+  type TaskTargetOperationReport,
   type TaskProvenance,
+  type ResearchTaskProvenance,
 } from "../tasks/index.js";
 import { parseArgumentTokens } from "./argument-tokens.js";
 import { loadCohortTasksConfig } from "./load-cohort-tasks-config.js";
@@ -28,24 +32,27 @@ const operations: Record<
       "--assessment",
       "--source",
       "--milestone",
+      "--claim",
+      "--meeting",
+      "--deliverable",
     ],
     usage:
-      "Usage: academic-os tasks create --config <path> --semester <semester> --module <module> --title <title> [--do-date <YYYY-MM-DD>] [--notes <notes>] [--assessment <name>] [--source <name>] [--milestone <name>] [--json]",
+      "Usage: academic-os tasks create --config <path> (--semester <semester> --module <module> | --research-project <key>) --title <title> [--do-date <YYYY-MM-DD>] [--notes <notes>] [--assessment <name>] [--source <name>] [--milestone <name>] [--claim <name>] [--meeting <name>] [--deliverable <name>] [--json]",
   },
   change: {
     valueFlags: ["--task", "--title", "--do-date", "--notes"],
     usage:
-      "Usage: academic-os tasks change --config <path> --semester <semester> --module <module> --task <task-id> [--title <title>] [--do-date <YYYY-MM-DD>] [--notes <notes>] [--json]",
+      "Usage: academic-os tasks change --config <path> (--semester <semester> --module <module> | --research-project <key>) --task <task-id> [--title <title>] [--do-date <YYYY-MM-DD>] [--notes <notes>] [--json]",
   },
   complete: {
     valueFlags: ["--task"],
     usage:
-      "Usage: academic-os tasks complete --config <path> --semester <semester> --module <module> --task <task-id> [--json]",
+      "Usage: academic-os tasks complete --config <path> (--semester <semester> --module <module> | --research-project <key>) --task <task-id> [--json]",
   },
   cancel: {
     valueFlags: ["--task"],
     usage:
-      "Usage: academic-os tasks cancel --config <path> --semester <semester> --module <module> --task <task-id> [--json]",
+      "Usage: academic-os tasks cancel --config <path> (--semester <semester> --module <module> | --research-project <key>) --task <task-id> [--json]",
   },
 };
 
@@ -65,15 +72,31 @@ export async function runTasksOperateCommand(
 ): Promise<void> {
   const parsed = parseOperationArguments(name, arguments_);
   const { config, tasks } = await loadCohortTasksConfig(parsed.configPath);
-  const report = await applyTaskOperation({
-    target: configuredTaskTarget(config, {
-      semester: parsed.semester,
-      module: parsed.module,
-    }),
-    operation: parsed.operation,
-    writer: createGoogleTaskOperationWriter(tasks.credentials.interactiveWrite),
-    reader: createGoogleTaskRefreshReader(tasks.credentials.scheduledRead),
-  });
+  const writer = createGoogleTaskOperationWriter(
+    tasks.credentials.interactiveWrite,
+  );
+  const reader = createGoogleTaskRefreshReader(tasks.credentials.scheduledRead);
+  const report =
+    parsed.researchProject === undefined
+      ? await applyTaskOperation({
+          target: configuredTaskTarget(config, {
+            semester: parsed.semester ?? "",
+            module: parsed.module ?? "",
+          }),
+          operation: parsed.operation,
+          writer,
+          reader,
+        })
+      : await applyTaskTargetOperation({
+          target: configuredResearchProjectTaskTarget(
+            config,
+            parsed.researchProject,
+            { requireActive: true },
+          ),
+          operation: parsed.operation,
+          writer,
+          reader,
+        });
   process.stdout.write(
     json
       ? `${JSON.stringify(report, null, 2)}\n`
@@ -91,6 +114,7 @@ function parseOperationArguments(
   configPath: string;
   semester: string;
   module: string;
+  researchProject?: string;
   operation: TaskOperation;
 } {
   const { values } = parseArgumentTokens({
@@ -100,6 +124,7 @@ function parseOperationArguments(
       "--config",
       "--semester",
       "--module",
+      "--research-project",
       ...operations[name].valueFlags,
     ],
     booleanFlags: ["--json"],
@@ -108,24 +133,28 @@ function parseOperationArguments(
   const configPath = values.get("--config");
   const semester = values.get("--semester");
   const module = values.get("--module");
+  const researchProject = values.get("--research-project");
+  const hasModuleTarget = semester !== undefined && module !== undefined;
   if (
     configPath === undefined ||
-    semester === undefined ||
-    module === undefined
+    (semester === undefined) !== (module === undefined) ||
+    hasModuleTarget === (researchProject !== undefined)
   ) {
     throw new OperationalError("invalid-arguments", operations[name].usage);
   }
   return {
     configPath,
-    semester,
-    module,
-    operation: readOperation(name, values),
+    semester: semester ?? "",
+    module: module ?? "",
+    ...(researchProject === undefined ? {} : { researchProject }),
+    operation: readOperation(name, values, researchProject !== undefined),
   };
 }
 
 function readOperation(
   name: TaskOperationName,
   values: ReadonlyMap<string, string>,
+  researchProject: boolean,
 ): TaskOperation {
   const title = values.get("--title");
   const notes = values.get("--notes");
@@ -139,7 +168,7 @@ function readOperation(
       title,
       ...(doDate === undefined ? {} : { doDate }),
       ...(notes === undefined ? {} : { notes }),
-      ...provenanceOf(values),
+      ...provenanceOf(values, researchProject),
     };
   }
   const taskId = values.get("--task");
@@ -175,24 +204,49 @@ function readDoDate(
   return value;
 }
 
-const provenanceFlags = [
+const moduleProvenanceFlags = [
   ["--assessment", "assessment"],
   ["--source", "source"],
   ["--milestone", "milestone"],
 ] as const;
 
-function provenanceOf(values: ReadonlyMap<string, string>): {
-  provenance?: TaskProvenance;
+const researchProvenanceFlags = [
+  ...moduleProvenanceFlags,
+  ["--claim", "claim"],
+  ["--meeting", "meeting"],
+  ["--deliverable", "deliverable"],
+] as const;
+
+function provenanceOf(
+  values: ReadonlyMap<string, string>,
+  researchProject: boolean,
+): {
+  provenance?: TaskProvenance | ResearchTaskProvenance;
 } {
-  const provenance: TaskProvenance = {};
-  for (const [flag, key] of provenanceFlags) {
+  const richFlags = researchProvenanceFlags.slice(moduleProvenanceFlags.length);
+  if (
+    !researchProject &&
+    richFlags.some(([flag]) => values.get(flag) !== undefined)
+  ) {
+    throw new OperationalError(
+      "invalid-arguments",
+      "claim, meeting, and deliverable provenance are available only for --research-project targets.",
+    );
+  }
+  const provenance: ResearchTaskProvenance = {};
+  const flags = researchProject
+    ? researchProvenanceFlags
+    : moduleProvenanceFlags;
+  for (const [flag, key] of flags) {
     const value = values.get(flag);
     if (value !== undefined) provenance[key] = value;
   }
   return Object.keys(provenance).length === 0 ? {} : { provenance };
 }
 
-function renderLiveOutcome(report: TaskOperationReport): string {
+function renderLiveOutcome(
+  report: Pick<TaskOperationReport, "taskId" | "outcome">,
+): string {
   if (report.taskId === null) return "no live change";
   return report.outcome === "unverified"
     ? `task ${report.taskId}, live result unverified`
@@ -201,11 +255,15 @@ function renderLiveOutcome(report: TaskOperationReport): string {
 
 function renderHuman(
   name: TaskOperationName,
-  report: TaskOperationReport,
+  report: TaskOperationReport | TaskTargetOperationReport,
 ): string {
+  const target =
+    "module" in report
+      ? `${report.module.module} (${report.module.semester})`
+      : `${report.target.title} (${report.target.key})`;
   return [
     `Tasks ${name}: ${report.outcome}`,
-    `${report.module.module} (${report.module.semester}): ${renderLiveOutcome(report)}`,
+    `${target}: ${renderLiveOutcome(report)}`,
     ...(report.register === null
       ? []
       : [

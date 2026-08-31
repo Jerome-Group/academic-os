@@ -96,6 +96,45 @@ it("admits a seed-source template carrying its destination's name", () => {
   ]);
 });
 
+it("scans named normative research-project documents for injected coursework", () => {
+  const normative = [
+    "docs/research-project-folder-contract.md",
+    "docs/research/ureca-spms-research-project-workspaces.md",
+  ].map((path) => ({
+    path,
+    contents: "# Project 01\n\nMH2100 theorem and proof guidance.\n",
+  }));
+  const unnamed = {
+    path: "docs/research/project-notes.md",
+    contents: "# Project 01\n\nMH2100 theorem and proof guidance.\n",
+  };
+
+  assert.deepEqual(findPublicationBoundaryViolations(normative), [
+    { path: normative[0]?.path, kind: "academic-content" },
+    { path: normative[1]?.path, kind: "academic-content" },
+  ]);
+  assert.deepEqual(findPublicationBoundaryViolations([unnamed]), [
+    { path: unnamed.path, kind: "academic-content" },
+  ]);
+});
+
+it("scans README prose while admitting an ordinary normative overview", () => {
+  const normative = {
+    path: "README.md",
+    contents:
+      "# academic-os\n\nResearch projects use a separate configured root.\n\n`academic-os audit --module MH2200` audits one target.\n",
+  };
+  const coursework = {
+    path: "README.md",
+    contents: "# Theorem\n\nProof of the module result.\n",
+  };
+
+  assert.deepEqual(findPublicationBoundaryViolations([normative]), []);
+  assert.deepEqual(findPublicationBoundaryViolations([coursework]), [
+    { path: coursework.path, kind: "academic-content" },
+  ]);
+});
+
 it("rejects private Calendar workspace and provider-response files", () => {
   const files = [
     {

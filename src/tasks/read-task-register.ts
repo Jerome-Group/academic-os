@@ -1,5 +1,6 @@
 import {
-  refreshTaskRegister,
+  refreshTaskTarget,
+  type TaskRegisterTarget,
   type TaskRefreshTarget,
 } from "./refresh-task-registers.js";
 import type {
@@ -7,6 +8,7 @@ import type {
   TaskRegisterEntry,
   TaskRegisterReadReport,
   TaskRegisterStore,
+  TaskTargetRegisterReadReport,
 } from "./types.js";
 
 // Reading a register means catching it up first: the live list is the authority, so rows read
@@ -16,12 +18,43 @@ export async function readTaskRegister(input: {
   target: TaskRefreshTarget;
   reader: TaskRefreshReader;
 }): Promise<TaskRegisterReadReport> {
-  const register = await refreshTaskRegister(input.target, input.reader);
+  const report = await readTaskTargetRegister({
+    target: {
+      identity: {
+        kind: "module",
+        key: `${input.target.semester}/${input.target.module}`,
+        title: input.target.module,
+      },
+      registerStore: input.target.registerStore,
+    },
+    reader: input.reader,
+  });
+  const { target: _identity, failure, ...register } = report.register;
+  return {
+    schemaVersion: 1,
+    command: "tasks read-register",
+    outcome: report.outcome,
+    module: { semester: input.target.semester, module: input.target.module },
+    register: {
+      semester: input.target.semester,
+      module: input.target.module,
+      ...register,
+      ...(failure === undefined ? {} : { failure }),
+    },
+    tasks: report.tasks,
+  };
+}
+
+export async function readTaskTargetRegister(input: {
+  target: TaskRegisterTarget;
+  reader: TaskRefreshReader;
+}): Promise<TaskTargetRegisterReadReport> {
+  const register = await refreshTaskTarget(input.target, input.reader);
   return {
     schemaVersion: 1,
     command: "tasks read-register",
     outcome: register.freshness === "fresh" ? "read" : "stale",
-    module: { semester: input.target.semester, module: input.target.module },
+    target: input.target.identity,
     register,
     tasks: await readRows(input.target.registerStore),
   };

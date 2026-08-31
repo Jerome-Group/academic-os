@@ -4,9 +4,8 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
-
-import { runCliWithEnvironment } from "../support/run-cli.js";
 import { calendarStateDigest } from "../../src/calendar/index.js";
+import { runCliWithEnvironment } from "../support/run-cli.js";
 
 const temporaryRoots: string[] = [];
 const fakeCalendarPreload = new URL(
@@ -812,6 +811,43 @@ describe("academic-os calendar promote", () => {
     );
   });
 
+  it("stales an entire-series occurrence when its bound master changes", async () => {
+    const fixture = await setupRecurringChangeFixture(
+      "entire-series",
+      "Academic",
+      true,
+    );
+    await mutateProvider(fixture, (provider) => {
+      const master = provider.events["academic-id"]?.find(
+        (event) =>
+          typeof event === "object" &&
+          event !== null &&
+          "id" in event &&
+          event.id === "weekly-class",
+      );
+      const incremental = provider.incrementalEvents["academic-id"];
+      assert.ok(master);
+      assert.ok(incremental);
+      incremental["academic-sync"] = [
+        {
+          ...(master as Record<string, unknown>),
+          description: "Changed after preparation",
+        },
+      ];
+    });
+
+    const result = await runPromote(fixture, "proposal-recurring", "--json");
+
+    assert.equal(result.exitCode, 3, JSON.stringify(result));
+    assert.equal(JSON.parse(result.stdout).outcome, "stale");
+    assert.equal(
+      (await readProvider(fixture)).requests.filter(
+        ({ method }) => method !== "GET",
+      ).length,
+      0,
+    );
+  });
+
   it("cancels exactly once, retains a tombstone, retries safely, and explicitly restores", async () => {
     const fixture = await setupCancellationFixture();
 
@@ -1244,6 +1280,7 @@ async function setupCancellationFixture(): Promise<Fixture> {
 async function setupRecurringChangeFixture(
   recurrenceScope: "this-occurrence" | "entire-series" | "this-and-future",
   targetRole: "Academic" | "Routine" = "Academic",
+  selectOccurrenceForEntireSeries = false,
 ): Promise<Fixture> {
   const fixture = await setupFixture();
   const master = {
@@ -1287,7 +1324,10 @@ async function setupRecurringChangeFixture(
     description: "Preserved exception description",
     attachments: [{ fileUrl: "https://example.invalid/private" }],
   };
-  const source = recurrenceScope === "entire-series" ? master : instance;
+  const source =
+    recurrenceScope === "entire-series" && !selectOccurrenceForEntireSeries
+      ? master
+      : instance;
   const mirrorPath = join(fixture.calendarRoot, "mirrors", "academic.json");
   const mirror = JSON.parse(await readFile(mirrorPath, "utf8"));
   mirror.items = [master, instance, exception].map((event) => ({
@@ -1342,7 +1382,17 @@ async function setupRecurringChangeFixture(
                   },
                 ],
               }
-            : {}),
+            : recurrenceScope === "entire-series" &&
+                selectOccurrenceForEntireSeries
+              ? {
+                  recurrenceDependencies: [
+                    {
+                      eventId: master.id,
+                      versionDigest: calendarStateDigest(master),
+                    },
+                  ],
+                }
+              : {}),
           idempotencyKey: `recurring-${recurrenceScope}`,
           liveVersions: [],
           relevantAvailabilityVersion: {

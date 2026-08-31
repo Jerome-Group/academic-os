@@ -12,6 +12,8 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, it } from "node:test";
 
+import { loadResearchProjectContract } from "../../src/contract/load-research-project-contract.js";
+import { createResearchProjectSeedPlan } from "../../src/seed/index.js";
 import {
   moduleControlContents,
   validModuleControls,
@@ -19,7 +21,10 @@ import {
 import { learningWorkspacePaths } from "../fixtures/learning-workspace.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 import { runCli } from "../support/run-cli.js";
-import { recordBehaviorEvidence } from "../support/rule-evidence.js";
+import {
+  recordBehaviorEvidence,
+  recordResearchBehaviorEvidence,
+} from "../support/rule-evidence.js";
 
 const temporaryRoots: string[] = [];
 
@@ -134,6 +139,113 @@ async function declareContractVersion(
   );
 }
 
+async function writeConformantResearchProject(
+  driveMount: string,
+  folder = "Example Project",
+): Promise<string> {
+  const projectRoot = join(driveMount, "Modules", "Research", folder);
+  const contract = await loadResearchProjectContract();
+  const plan = createResearchProjectSeedPlan({
+    target: {
+      key: "example-project",
+      root: "Modules/Research",
+      folder,
+      status: "active",
+      profile: "ureca",
+    },
+    profile: validResearchProfile(folder),
+    definition: `contract_version: 1
+project:
+  key: example-project
+  folder: ${folder}
+  title: Synthetic project
+  status: active
+profile: ureca
+evidence:
+  identity: owner-supplied
+  confirmation: unresolved
+`,
+    contract,
+  });
+  assert.deepEqual(plan.blockers, []);
+  for (const operation of plan.operations) {
+    const path = join(projectRoot, operation.path);
+    if (operation.kind === "directory") {
+      await mkdir(path, { recursive: true });
+      continue;
+    }
+    await mkdir(dirname(path), { recursive: true });
+    await writeFile(path, operation.contents ?? "");
+  }
+  return projectRoot;
+}
+
+async function configureResearchProjects(
+  configPath: string,
+  projects: Record<
+    string,
+    {
+      folder: string;
+      status: "active" | "inactive";
+      profile?: "ureca";
+    }
+  >,
+): Promise<void> {
+  const config = JSON.parse(await readFile(configPath, "utf8"));
+  config.research = { root: "Modules/Research", projects };
+  await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`);
+}
+
+function validResearchProfile(folder: string): string {
+  return `# ${folder} — Synthetic project
+
+## Identity
+
+| Field | Value | Evidence |
+| --- | --- | --- |
+| Project key | example-project | owner-supplied fixture |
+| Folder | ${folder} | owner-supplied fixture |
+| Title | Synthetic project | owner-supplied fixture |
+| Status | active | owner-supplied fixture |
+| Programme profile | ureca | owner-supplied fixture |
+
+## Purpose and Questions
+
+No research claim.
+
+## Programme
+
+Synthetic profile coverage.
+
+## Supervision
+
+| Field | Value | Evidence |
+| --- | --- | --- |
+
+## Deliverables
+
+| Deliverable | Requirement | Evidence |
+| --- | --- | --- |
+
+## Source Authority
+
+| Rank | Source | Role | Governs | Evidence |
+| --- | --- | --- | --- | --- |
+
+## Workspaces
+
+| Workspace | Purpose | Pointer |
+| --- | --- | --- |
+| Research | Disposable fixture | 70 Research/ |
+
+## Known Gaps
+
+| Gap | Consequence | Next evidence |
+| --- | --- | --- |
+| Fixture content | Content accuracy is not tested | unresolved fixture |
+`;
+}
+
 async function moduleMetadata(
   root: string,
   relativeRoot = "",
@@ -188,6 +300,145 @@ it("audits only active-semester modules and reports past and future exclusions [
       { semester: "Y2S1", module: "MH2100" },
     ]);
   });
+});
+
+it("preserves the module-only cohort report when no research is configured", async () => {
+  const { configPath } = await cohortFixture();
+
+  const json = await runCli("audit", "--config", configPath, "--json");
+  const human = await runCli("audit", "--config", configPath);
+  const report = JSON.parse(json.stdout);
+
+  assert.equal(Object.hasOwn(report, "researchSelection"), false);
+  assert.equal(Object.hasOwn(report, "researchProjects"), false);
+  assert.doesNotMatch(human.stdout, /Research project/u);
+});
+
+it("monitors only active research projects beside the active module cohort [RP-AUDIT-003]", async () => {
+  const { configPath, driveMount } = await cohortFixture();
+  await writeConformantResearchProject(driveMount);
+  await configureResearchProjects(configPath, {
+    "example-project": {
+      folder: "Example Project",
+      status: "active",
+      profile: "ureca",
+    },
+    "past-project": {
+      folder: "Past Project",
+      status: "inactive",
+      profile: "ureca",
+    },
+  });
+
+  const json = await runCli("audit", "--config", configPath, "--json");
+  const human = await runCli("audit", "--config", configPath);
+
+  assert.equal(json.exitCode, 0, `${json.stderr}\n${json.stdout}`);
+  assert.equal(human.exitCode, 0, human.stderr);
+  const report = JSON.parse(json.stdout);
+  assert.deepEqual(report.researchSelection, {
+    included: [{ key: "example-project", folder: "Example Project" }],
+    excluded: [
+      { key: "past-project", folder: "Past Project", reason: "inactive" },
+    ],
+    unresolved: [],
+  });
+  assert.deepEqual(
+    report.researchProjects.map(
+      ({ project, outcome }: { project: { key: string }; outcome: string }) => [
+        project.key,
+        outcome,
+      ],
+    ),
+    [["example-project", "conformant"]],
+  );
+  assert.equal(
+    report.researchProjects[0].comparison.basis,
+    "no-prior-observation",
+  );
+  assert.match(
+    report.researchProjects[0].observation.path,
+    /\/observations\/research-projects\/[a-f0-9]{64}\//u,
+  );
+  assert.match(human.stdout, /Research projects audited: 1/u);
+  assert.match(
+    human.stdout,
+    /Research included: example-project \(Example Project\)/u,
+  );
+  assert.match(
+    human.stdout,
+    /Research excluded \[inactive\]: past-project \(Past Project\)/u,
+  );
+  assert.match(human.stdout, /Comparison: compatible-observation/u);
+  recordResearchBehaviorEvidence("RP-AUDIT-003", () => {
+    assert.deepEqual(report.researchSelection.excluded, [
+      { key: "past-project", folder: "Past Project", reason: "inactive" },
+    ]);
+  });
+});
+
+it("isolates one research-project operational failure and preserves successful audits", async () => {
+  const { configPath, driveMount } = await cohortFixture();
+  await writeConformantResearchProject(driveMount);
+  await configureResearchProjects(configPath, {
+    "example-project": {
+      folder: "Example Project",
+      status: "active",
+      profile: "ureca",
+    },
+    "missing-project": {
+      folder: "Missing Project",
+      status: "active",
+      profile: "ureca",
+    },
+  });
+
+  const result = await runCli("audit", "--config", configPath, "--json");
+
+  assert.equal(result.exitCode, 2, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.outcome, "operational-failure");
+  assert.deepEqual(
+    report.researchProjects.map(
+      ({ project, outcome }: { project: { key: string }; outcome: string }) => [
+        project.key,
+        outcome,
+      ],
+    ),
+    [
+      ["example-project", "conformant"],
+      ["missing-project", "operational-failure"],
+    ],
+  );
+  assert.deepEqual(report.researchSelection.unresolved, [
+    {
+      key: "missing-project",
+      folder: "Missing Project",
+      reason: "missing-target",
+    },
+  ]);
+  assert.equal(report.modules[0].outcome, "conformant");
+});
+
+it("lifts a research decision into the aggregate cohort outcome", async () => {
+  const { configPath, driveMount } = await cohortFixture();
+  const projectRoot = await writeConformantResearchProject(driveMount);
+  await mkdir(join(projectRoot, "Unclassified Area"));
+  await configureResearchProjects(configPath, {
+    "example-project": {
+      folder: "Example Project",
+      status: "active",
+      profile: "ureca",
+    },
+  });
+
+  const result = await runCli("audit", "--config", configPath, "--json");
+
+  assert.equal(result.exitCode, 3, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.outcome, "requires-decision");
+  assert.equal(report.modules[0].outcome, "conformant");
+  assert.equal(report.researchProjects[0].outcome, "requires-decision");
 });
 
 it("queues a lagging cohort module for transition and touches nothing [MF-TRANSITION-001]", async () => {

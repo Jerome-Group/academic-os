@@ -1,0 +1,5 @@
+interface:
+  display_name: "Research Project"
+  short_description: "Route work into a synced research project"
+policy:
+  allow_implicit_invocation: false

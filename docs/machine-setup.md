@@ -73,3 +73,25 @@ when someone sends it. A machine that holds the repository for other reasons may
 
 Any further harness takes the same directory wherever it keeps user-scope skills, and gets its own
 manifest beside `SKILL.md` if it needs one to know the skill fires only when the Owner says so.
+
+## Optional: install the `/research-project` skill
+
+`/research-project <project identity> [-- what to work on]` starts from any directory, discovers
+one synced folder below `Modules/Research/`, and hands the work to that project's own router. It
+does not replace `/learn`: `/learn` resolves a Module and always enters its Teaching workspace,
+while a Research project selects among the routes its `AGENTS.md` currently declares. The split
+is [ADR-0025](adr/0025-research-project-work-has-its-own-user-invoked-router.md).
+
+The installation has the same boundary as `/learn`: one self-contained directory, no clone,
+system configuration or credential required on the target machine. Copy it into each harness's
+user-scope skills directory:
+
+```sh
+for harness in .claude .codex; do
+  rsync -a "<clone>/skills/research-project/" \
+    "<machine>:~/$harness/skills/research-project/"
+done
+```
+
+Updating it repeats that command. A machine that already holds the repository may symlink the
+directory instead.

@@ -92,6 +92,13 @@ Owner invoke it — it fires by their hand alone, which is a decision rather tha
 
 The source is `skills/learn/`, and editing it is `docs/adr/0017-…`'s business first.
 
+### `/research-project`, the Research-project router
+
+`/research-project <project identity> [-- what to work on]` reaches one synced Research-project
+folder from any directory, then yields to that folder's live router and procedures. It is separate
+from `/learn`: Research projects select among several project routes rather than one Module
+Teaching workspace. The source is `skills/research-project/`; its boundary is `docs/adr/0025-…`.
+
 ### Issue tracker
 
 GitHub Issues on this repository, via the `gh` CLI. `docs/agents/issue-tracker.md` carries the
@@ -135,9 +142,8 @@ exact-ID cleanup, interrupted-run reconciliation and the recovery boundary for r
 `docs/module-folder-contract.md` names, so renaming one there changes where an importer puts
 files. Read that repository's destination handling before touching the universal structure.
 
-**Module folder paths are configuration.** Nothing here hardcodes a path into the Owner's
-coursework — that path is precisely the thing being kept out of a public repository, so an
-automation that needs one reads it from a file the ignore rules cover. The `/learn` skill is the
-one exception, and `docs/adr/0017-…` argues it: a skill installed on a machine that holds nothing
-else of this system cannot read the system's configuration, so it discovers the folder instead and
-writes no path down.
+**Academic folder paths are configuration.** Nothing here hardcodes a path into the Owner's work —
+that path is precisely the thing being kept out of a public repository, so an automation that needs
+one reads it from a file the ignore rules cover. The installed router skills are the exceptions:
+`/learn` and `/research-project` run on machines that may hold nothing else of this system, so they
+discover a folder and write no path down. `docs/adr/0017-…` and `docs/adr/0025-…` argue each route.

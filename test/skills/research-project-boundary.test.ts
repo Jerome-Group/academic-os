@@ -47,7 +47,9 @@ describe("the research-project skill", () => {
     assert.doesNotMatch(text, /academic-os\.config\.json/u);
   });
 
-  it("executes against a missing mount family and deduplicates resolved aliases", async () => {
+  it("executes against a missing mount family and deduplicates resolved aliases", {
+    skip: process.platform !== "darwin",
+  }, async () => {
     const fixture = await mkdtemp(join(tmpdir(), "research-project-skill-"));
     const cloudRoot = join(fixture, "cloud");
     const volumesRoot = join(fixture, "volumes");

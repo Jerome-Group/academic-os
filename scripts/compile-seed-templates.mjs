@@ -11,7 +11,11 @@ const templateGroups = [
   {
     label: "module",
     source: "seed-templates/70 Learning/templates",
-    exclude: new Set(["preamble.tex"]),
+    exclude: new Set([
+      "chatgpt-logo.tex",
+      "mathematics-cheatsheet-preamble.tex",
+      "preamble.tex",
+    ]),
   },
   {
     label: "research-project",

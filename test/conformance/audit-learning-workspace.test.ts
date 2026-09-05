@@ -83,6 +83,9 @@ describe("auditLearningWorkspace", () => {
     const inventory = workspaceInventory();
     inventory.entries = inventory.entries.filter(
       ({ path }) =>
+        path !== "70 Learning/templates/chatgpt-logo.tex" &&
+        path !== "70 Learning/templates/mathematics-cheatsheet-preamble.tex" &&
+        path !== "70 Learning/templates/mathematics-cheatsheet.tex" &&
         path !== "70 Learning/templates/preferences.md" &&
         path !== "70 Learning/templates/preamble.tex",
     );
@@ -94,6 +97,21 @@ describe("auditLearningWorkspace", () => {
         .filter(({ status }) => status !== "pass")
         .map(({ ruleId, status, path }) => ({ ruleId, status, path })),
       [
+        {
+          ruleId: "MF-LEARNING-001",
+          status: "fail",
+          path: "70 Learning/templates/chatgpt-logo.tex",
+        },
+        {
+          ruleId: "MF-LEARNING-001",
+          status: "fail",
+          path: "70 Learning/templates/mathematics-cheatsheet-preamble.tex",
+        },
+        {
+          ruleId: "MF-LEARNING-001",
+          status: "fail",
+          path: "70 Learning/templates/mathematics-cheatsheet.tex",
+        },
         {
           ruleId: "MF-LEARNING-001",
           status: "fail",

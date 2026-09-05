@@ -346,7 +346,7 @@ describe("academic-os audit", () => {
     assert.deepEqual(firstReport.observation, {
       schemaVersion: 1,
       ruleSetVersion: 1,
-      contractVersion: 4,
+      contractVersion: 5,
       reportProvenance: {
         producer: "@jerome-group/academic-os",
         producerVersion: "0.1.0",
@@ -431,8 +431,8 @@ describe("academic-os audit", () => {
     await writeFile(
       definitionPath,
       (validModuleControls().definition ?? "").replace(
-        "contract_version: 4",
         "contract_version: 5",
+        "contract_version: 6",
       ),
     );
     const changedContract = await runCli(
@@ -444,8 +444,8 @@ describe("academic-os audit", () => {
     const changedReport = JSON.parse(changedContract.stdout) as JsonReport;
     assert.equal(changedReport.comparison.basis, "contract-version-changed");
     assert.deepEqual(changedReport.comparison.contractChange, {
-      from: 4,
-      to: 5,
+      from: 5,
+      to: 6,
     });
     assert.deepEqual(changedReport.comparison.new, []);
     assert.deepEqual(changedReport.comparison.resolved, []);

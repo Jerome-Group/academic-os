@@ -1,0 +1,513 @@
+\documentclass[a4paper]{article}
+\IfFileExists{mathematics-cheatsheet-preamble.tex}{%
+  \input{mathematics-cheatsheet-preamble.tex}%
+}{%
+  \providecommand{\ChatGPTLogoAsset}{../../templates/chatgpt-logo.tex}%
+  \input{../../templates/mathematics-cheatsheet-preamble.tex}%
+}
+\SheetSetup{title={MHXXXX <Test name> Cheatsheet}}
+
+% Course-neutral dense objects cover every semantic role so populated sheets can preserve the interface.
+\newcommand{\CorpusFoundations}{%
+\Topic{Relations, cardinality, and proof diagnostics}
+For a relation $R\subseteq A\times A$, distinguish reflexive, symmetric, antisymmetric, and transitive. Symmetric plus antisymmetric does not mean ``neither direction'': if both $aRb$ and $bRa$ occur, antisymmetry forces $a=b$. A partial order is reflexive, antisymmetric, transitive; a total order additionally compares every pair. An equivalence relation is reflexive, symmetric, transitive and partitions $A$ into disjoint nonempty classes. Conversely a partition defines equivalence by membership in the same cell.
+\Statement{Theorem}{2A}{Cantor's diagonal argument shows there is no surjection $A\to\mathcal P(A)$. Hence $|A|<|\mathcal P(A)|$ for every set $A$.}
+\Proof{Given $f:A\to\mathcal P(A)$, set $D=\{a\in A:a\notin f(a)\}$. If $D=f(d)$, then $d\in D\iff d\notin D$, contradiction.}
+Countability patterns: a subset of a countable set is countable; a finite product of countable sets is countable; a countable union of countable sets needs a selected enumeration. The rationals are countable by diagonal enumeration of integer pairs, while binary sequences are uncountable by changing the $n$th digit of the $n$th listed sequence.
+\Caution{Diagonal arguments construct an object outside an alleged exhaustive list. Specify that the constructed object belongs to the target set and explain why it differs from every listed entry.}
+\Example{1A}{To prove $\sqrt2$ irrational, assume $\sqrt2=p/q$ in lowest terms. Then $p^2=2q^2$, so $p$ is even; writing $p=2r$ yields $q^2=2r^2$, so $q$ is even, contradicting lowest terms. The lemma ``even square implies even integer'' follows by contraposition from odd squares being odd.}}
+\newcommand{\CorpusAlgebra}{%
+\Topic{Determinants, inner products, and normal forms}
+The determinant is the unique alternating multilinear map of the columns with $\det I=1$. Consequently $\det(AB)=\det A\det B$, $A$ is invertible iff $\det A\ne0$, and a row replacement preserves determinant while a row swap negates it. Cofactor expansion is a theorem, not the definition required in every argument.
+Use the convention that a complex inner product is linear in its first argument.
+\Statement{Theorem}{6A}{For an inner-product space, $|\langle u,v\rangle|\le\|u\|\|v\|$, with equality iff $u,v$ are linearly dependent. Thus $\|u+v\|\le\|u\|+\|v\|$.}
+\Proof{For $v\ne0$, nonnegativity of $\|u-tv\|^2$ at $t=\langle u,v\rangle/\|v\|^2$ gives $\|u\|^2-|\langle u,v\rangle|^2/\|v\|^2\ge0$. Equality means the residual is zero.}
+Gram--Schmidt replaces an independent list $v_1,\ldots,v_k$ by $u_j=v_j-\sum_{i<j}\langle v_j,e_i\rangle e_i$ and $e_j=u_j/\|u_j\|$. It preserves successive spans. QR factorization records the orthonormal columns as $Q$ and coefficients as upper-triangular $R$.
+\CompactTable{\begin{tabular}{@{}lll@{}}\toprule class&spectrum&form\\\midrule real symmetric&real; orthogonal basis&$Q\Lambda Q^T$\\ complex normal&orthonormal basis&$U\Lambda U^*$\\ real symmetric PD&positive&$LL^T$\\ complex Hermitian PD&positive&$LL^*$\\ arbitrary&singular values $\ge0$&$U\Sigma V^*$\\\bottomrule\end{tabular}}
+\Caution{Similarity $P^{-1}AP$ preserves eigenvalues; row reduction generally does not. Congruence $P^TAP$ belongs to quadratic forms and preserves inertia rather than the full spectrum.}}
+\newcommand{\CorpusCalculus}{%
+\Topic{ODEs and vector calculus}
+A first-order linear equation $y'+p(x)y=q(x)$ has integrating factor $\mu=e^{\int p}$ and $(\mu y)'=\mu q$. A separable equation $y'=g(x)h(y)$ permits division by $h(y)$ only after recording equilibrium solutions where $h(y)=0$. For $y'=ay(1-y/K)$ with $0<y(0)<K$, separation gives $y(t)=K/(1+Ce^{-at})$.
+\Statement{Theorem}{8A}{If $F=(P,Q)$ is continuously differentiable on a simply connected planar domain and $P_y=Q_x$, then $F=\nabla\phi$ and line integrals depend only on endpoints.}
+To find $\phi$, integrate $P$ in $x$: $\phi(x,y)=\int P(x,y)\,dx+C(y)$, then compare $\phi_y$ with $Q$. On domains with holes, curl zero need not imply a global potential; $(-y/(x^2+y^2),x/(x^2+y^2))$ is the standard warning.
+For $C^1$ fields on suitable piecewise-smooth oriented domains or surfaces,
+\[
+\begin{aligned}
+\oint_{\partial D}P\,dx+Q\,dy&=\iint_D(Q_x-P_y)\,dA,\\
+\iint_S(\nabla\times F)\cdot n\,dS&=\oint_{\partial S}F\cdot dr.
+\end{aligned}
+\]
+Orient boundary and normal consistently. The divergence theorem converts outward flux: $\iint_{\partial V}F\cdot n\,dS=\iiint_V\nabla\cdot F\,dV$.
+\Worked{W3A [CAL-C]}{optimization}{Minimize $x^2+y^2$ subject to $xy=1$, $x,y>0$.}{Lagrange equations $(2x,2y)=\lambda(y,x)$ imply $x=y$ after positivity; the constraint gives $x=y=1$, value $2$. Alternatively AM--GM gives $x^2+y^2\ge2xy=2$ with equality at $x=y$. Check that the feasible set is noncompact but the inequality supplies a global bound and equality case.}}
+\newcommand{\CorpusAnalysis}{%
+\Topic{Contraction and interchange principles}
+\Statement{Theorem}{13A}{If $(X,d)$ is nonempty and complete and $T:X\to X$ satisfies $d(Tx,Ty)\le qd(x,y)$ for some $0\le q<1$, then $T$ has a unique fixed point and every iteration $x_{n+1}=Tx_n$ converges to it.}
+\Proof{The increments obey $d(x_{n+1},x_n)\le q^nd(x_1,x_0)$, so the geometric tail makes $(x_n)$ Cauchy. Completeness gives $x_n\to x^*$; Lipschitz continuity gives $Tx^*=x^*$. Two fixed points would satisfy $d(x^*,y^*)\le qd(x^*,y^*)$, forcing equality.}
+For integrable $f_n$ on a compact interval, uniform convergence permits $\int f_n\to\int f$. Derivatives require more: if $f_n\in C^1([a,b])$, $f_n(x_0)$ converges at one point, and $f_n'$ converges uniformly, then $f_n$ converges uniformly to differentiable $f$ with $f'=\lim f_n'$.
+\CompactTable{\begin{tabular}{@{}p{.22\linewidth}p{.30\linewidth}p{.37\linewidth}@{}}\toprule change&control&warning\\\midrule limit/int.&uniform&pointwise may fail\\ sum/int.&domination&Tonelli if $\ge0$\\ deriv./limit&uniform $f_n'$ + anchor&uniform $f_n$ insufficient\\ prob. limit&dominated conv.&a.s. insufficient\\\bottomrule\end{tabular}}
+\Example{5A}{On $[0,1]$, $f_n(x)=x^n$ converges pointwise to a discontinuous limit but $\int_0^1x^n dx=1/(n+1)\to0$. The integrals happen to converge; this does not upgrade pointwise convergence to uniform convergence. Indeed $\sup_{x<1}x^n=1$.}}
+\newcommand{\CorpusProbability}{%
+\Topic{Combinatorial probability and stopping}
+For equally likely finite outcomes, $\mathbb P(A)=|A|/|\Omega|$ only after specifying the equiprobable sample space. Sampling $r$ objects without replacement from $N$ with $K$ marked objects gives
+\[
+\mathbb P(X=j)=\frac{\binom Kj\binom{N-K}{r-j}}{\binom Nr};
+\]
+the feasible range is $\max(0,r-N+K)\le j\le\min(r,K)$. With replacement, marked draws are binomial instead.
+\Statement{Method}{14A}{For a Markov model, condition on the first transition using a state that retains the restart property. Pair the resulting recurrence with boundary data and prove uniqueness, or identify the minimal nonnegative solution.}
+\Example{6A}{A simple symmetric random walk on $\{0,1,\ldots,N\}$ stops at $0$ or $N$. If $h_i$ is the chance of reaching $N$ first from $i$, then $h_i=(h_{i-1}+h_{i+1})/2$, $h_0=0$, $h_N=1$. Second differences vanish, so $h_i=i/N$. For a biased walk, solve $h_i=ph_{i+1}+(1-p)h_{i-1}$.}
+\Caution{A recurrence solution needs boundary data and uniqueness. Optional stopping requires hypotheses: bounded $T$ suffices; another standard regime is $\mathbb E T<\infty$ with a deterministic bound on martingale increments. Uniform integrability of the stopped family is another route.}}
+\newcommand{\CorpusStatistics}{%
+\Topic{Estimation and likelihood}
+For independent observations with densities or masses $f_{\theta,i}$, likelihood is $L(\theta;x)=\prod_i f_{\theta,i}(x_i)$; iid data use one $f_\theta$. With dependence use the joint density. View $L$ as a function of $\theta$, inspect boundaries, and compare candidates. An MLE need not be unbiased.
+\Worked{W6A [PRB-E2]}{likelihood}{For $n\ge1$ iid exponential observations with rate $\lambda>0$ and $\sum x_i>0$, find the MLE.}{$\ell(\lambda)=n\log\lambda-\lambda\sum x_i$. The score gives $\widehat\lambda=1/\bar x$ and $\ell''<0$. If all observations are zero, no finite rate maximizes the likelihood.}
+If $T$ has mean $\theta$ and variance $v$, the sample average of independent copies is unbiased with variance $v/n$. Mean-squared error decomposes as $\operatorname{MSE}(\widehat\theta)=\operatorname{Var}(\widehat\theta)+\operatorname{Bias}(\widehat\theta)^2$.
+\Statement{Definition}{16A}{A $(1-\alpha)$ confidence procedure is a random set $C(X)$ with $\mathbb P_\theta(\theta\in C(X))\ge1-\alpha$ for every allowed $\theta$. The parameter is fixed; the interval is random before data are observed.}
+\CompactTable{\begin{tabular}{@{}lll@{}}\toprule object&varies with&claim\\\midrule likelihood&parameter&relative support\\ estimator&sample&sampling law\\ confidence set&sample&coverage\\ posterior&parameter&conditional law\\\bottomrule\end{tabular}}}
+\newcommand{\CorpusDiscrete}{%
+\Topic{Generating functions and graph algorithms}
+For a sequence $(a_n)$, the ordinary generating function $A(z)=\sum_{n\ge0}a_nz^n$ turns shifts into multiplication: $\sum_{n\ge1}a_{n-1}z^n=zA(z)$. Solve the resulting algebraic equation, incorporate initial terms, then extract coefficients using known expansions or partial fractions.
+\Example{8A}{If $F_0=0,F_1=1,F_n=F_{n-1}+F_{n-2}$, then $F(z)=z+zF(z)+z^2F(z)$, hence $F(z)=z/(1-z-z^2)$. Factoring yields Binet's formula after coefficient extraction. The formal-power-series derivation does not require analytic convergence.}
+Breadth-first search on an unweighted graph explores vertices by nondecreasing distance and gives shortest paths. Depth-first search exposes discovery/finish structure and cycles. On a finite graph with nonnegative weights, a vertex settled by Dijkstra has final distance; every finite tentative label is a discovered path length, while unreached labels are $\infty$.
+\Statement{Invariant}{18A}{At each Dijkstra step, every settled vertex has its true shortest-path distance, and every finite tentative label is the length of a discovered path.}
+\Caution{Negative edges invalidate the greedy finalization step. A negative cycle reachable from the source means no finite shortest path to vertices reachable beyond it.}
+\CompactTable{\begin{tabular}{@{}lll@{}}\toprule task&method&cost\\\midrule reachability&BFS/DFS&$O(V+E)$\\ unit shortest path&BFS&$O(V+E)$\\ nonnegative weights&Dijkstra + heap&$O((V+E)\log V)$\\ all pairs&Floyd--Warshall&$O(V^3)$\\ spanning tree&Kruskal/Prim&$O(E\log V)$\\\bottomrule\end{tabular}}}
+\newcommand{\CorpusAbstract}{%
+\Topic{Rings, fields, and modular arithmetic}
+Let $R$ be a commutative ring with identity. An ideal $I\triangleleft R$ is an additive subgroup absorbing multiplication, so operations on $R/I$ are well-defined. Proper maximal ideals correspond to field quotients; proper prime ideals correspond to integral-domain quotients.
+\Statement{Theorem}{20A}{For integers $a,b$, there exist $x,y$ with $ax+by=\gcd(a,b)$. Hence, for $n\ge2$, $a$ is invertible modulo $n$ iff $\gcd(a,n)=1$.}
+\Proof{The Euclidean algorithm preserves the set of common divisors. Back-substitution expresses the final nonzero remainder as an integer combination. If $ax+ny=1$, then $ax\equiv1\pmod n$; conversely an inverse congruence rearranges to such a combination.}
+\Example{9A}{Solve $14x\equiv8\pmod{30}$. Since $\gcd(14,30)=2$ divides $8$, divide to $7x\equiv4\pmod{15}$. The inverse of $7$ modulo $15$ is $13$, so $x\equiv52\equiv7\pmod{15}$, producing two residue classes modulo $30$: $7,22$.}
+\Topic{Complex numbers and geometry}
+Write $z=re^{i\theta}$ with $r=|z|$. Products multiply moduli and add arguments; $n$th roots of $re^{i\theta}$ are $r^{1/n}e^{i(\theta+2\pi k)/n}$ for $k=0,\ldots,n-1$. Möbius maps $z\mapsto(az+b)/(cz+d)$ with $ad-bc\ne0$ send generalized circles to generalized circles.
+\Caution{Arguments are defined modulo $2\pi$. A chosen principal branch is discontinuous along a cut, and identities such as $\operatorname{Log}(zw)=\operatorname{Log}z+\operatorname{Log}w$ need branch control.}}
+\newcommand{\CorpusLogicNumber}{%
+\Topic{Divisibility and congruence methods}
+Euclidean division gives unique $q,r$ with $a=bq+r$ and $0\le r<|b|$ for $b\ne0$. Congruence respects addition and multiplication, so polynomial evaluation descends modulo $n$. Cancellation of $c$ in $ac\equiv bc\pmod n$ is valid when $\gcd(c,n)=1$; otherwise divide the modulus by the appropriate gcd.
+\Statement{Theorem}{2B}{If $p$ is prime and $p\mid ab$, then $p\mid a$ or $p\mid b$. Every integer $n>1$ factors uniquely into primes up to order.}
+\Proof{If $p\nmid a$, then $\gcd(p,a)=1$, so Bezout gives $px+ay=1$. Multiply by $b$; both $pxb$ and $aby$ are divisible by $p$, hence so is $b$. Existence of factorization follows by strong induction; the lemma strips matching primes to prove uniqueness.}
+\Identity{Chinese remainder}{\mathbb Z/(mn)\cong\mathbb Z/m\times\mathbb Z/n\quad\text{when }\gcd(m,n)=1}
+For simultaneous congruences $x\equiv a_i\pmod{n_i}$ with pairwise coprime moduli, set $N=\prod n_i$, $N_i=N/n_i$, and choose $u_iN_i\equiv1\pmod{n_i}$. Then $x\equiv\sum a_iu_iN_i\pmod N$. Check each modulus rather than trusting arithmetic.
+\Example{1B}{Solve $x\equiv2\pmod3$, $x\equiv3\pmod5$, $x\equiv2\pmod7$. Here $N=105$ and one construction is $x\equiv2(70)+3(21)+2(15)=233\equiv23\pmod{105}$, using inverses absorbed into the displayed coefficients. Direct substitution verifies all three.}}
+\newcommand{\CorpusLinearMethods}{%
+\Topic{Least squares and bilinear forms}
+For real inconsistent $Ax=b$, minimize $\|Ax-b\|^2$. The normal equations are $A^TAx=A^Tb$; over $\mathbb C$, replace transposes by adjoints. The residual is orthogonal to $\operatorname{col}A$. Independent columns give a unique minimizer. QR is usually preferable to forming $A^*A$.
+\Worked{W2A [ALG-B]}{projection}{Project $b=(1,2,0)^T$ onto the line spanned by $u=(1,1,1)^T$.}{The coefficient is $\langle b,u\rangle/\langle u,u\rangle=3/3=1$, so the projection is $u$ and the residual $(0,1,-1)^T$ is orthogonal to $u$.}
+\Statement{Definition}{6B}{A bilinear form $B$ has matrix $M$ in a basis when $B(x,y)=[x]^TM[y]$. Under basis change $[x]_{\mathcal B}=P[x]_{\mathcal C}$, the matrix changes by congruence $M_{\mathcal C}=P^TM_{\mathcal B}P$.}
+For a real symmetric form, Sylvester's law says the counts of positive, negative, and zero squares in a diagonal form are basis-independent. Completing squares is often faster than eigenvalue calculation. Positive definiteness tests: all eigenvalues positive; $x^TAx>0$ for $x\ne0$; or, for symmetric $A$, all leading principal minors positive.
+\Caution{Normal equations characterize stationary points because the objective is convex. In a general nonlinear least-squares problem, a zero gradient may not be the global minimum.}}
+\newcommand{\CorpusTopologyMeasure}{%
+\begin{minipage}[t]{\linewidth}
+\Topic{Topology and measure essentials}
+Open sets are closed under arbitrary unions and finite intersections. Closed sets reverse these operations. The closure $\overline A$ is the smallest closed set containing $A$; the interior $A^\circ$ is the largest open set contained in $A$; the boundary is $\partial A=\overline A\setminus A^\circ$. A point lies in $\overline A$ iff every neighborhood meets $A$.
+\end{minipage}
+\needspace{12pt}\Statement{Theorem}{13B}{A continuous image of a compact space is compact; a continuous real-valued function on a nonempty compact space attains its maximum and minimum.}
+\Proof{Pull back an open cover of the image to an open cover of the domain, take a finite subcover, then push it forward. A compact subset of $\mathbb R$ is closed and bounded, so its supremum and infimum belong to it.}
+Measure rules: countable additivity for disjoint sets implies monotonicity, continuity from below $\mu(\bigcup A_n)=\lim\mu(A_n)$ for $A_n\uparrow$, and continuity from above for $A_n\downarrow$ when $\mu(A_1)<\infty$. Fatou gives $\int\liminf f_n\le\liminf\int f_n$ for $f_n\ge0$.
+\CompactTable{\begin{tabular}{@{}p{.25\linewidth}p{.32\linewidth}p{.34\linewidth}@{}}\toprule theorem&functions&conclusion\\\midrule monotone conv.&$0\le f_n\uparrow f$&$\int f_n\uparrow\int f$\\ Fatou&$f_n\ge0$&lower semicontinuity\\ dominated conv.&$f_n\to f$, $|f_n|\le g\in L^1$&integrals converge\\ Fubini&absolute integrability&iterations agree\\\bottomrule\end{tabular}}
+\Caution{Continuity from above needs a finite starting measure. Fubini without absolute integrability can change or destroy an iterated integral.}}
+\newcommand{\CorpusStochastic}{%
+\Topic{Markov chains and Poisson processes}
+A transition matrix $P$ has nonnegative rows summing to one; $(P^n)_{ij}=\mathbb P(X_n=j\mid X_0=i)$. A distribution is stationary when $\pi P=\pi$. Detailed balance $\pi_iP_{ij}=\pi_jP_{ji}$ implies stationarity by summing over $i$, but stationarity need not imply reversibility.
+\Worked{W5A [PRB-E]}{stationary law}{For $P=\begin{pmatrix}.8&.2\\.3&.7\end{pmatrix}$, find $\pi$.}{Solve $\pi_1=.8\pi_1+.3\pi_2$ with $\pi_1+\pi_2=1$. Thus $.2\pi_1=.3\pi_2$, so $\pi=(.6,.4)$.}
+First-step analysis for a hitting probability $h_i$ gives $h_i=\sum_jP_{ij}h_j$ away from target boundaries. Expected hitting times satisfy $m_i=1+\sum_jP_{ij}m_j$. Infinite-state chains require care: a formal solution may not be the desired minimal nonnegative one.
+For a rate-$\lambda$ Poisson process, $N(t)\sim\operatorname{Poisson}(\lambda t)$, increments on disjoint intervals are independent, and waiting times are iid exponential$(\lambda)$. Conditional on $N(t)=n$, the unordered event times behave as iid uniform points on $[0,t]$; ordered times are their order statistics.
+\Example{6B}{Superposing independent Poisson processes of rates $\lambda_1,\lambda_2$ gives rate $\lambda_1+\lambda_2$. Given an arrival, its source label is 1 with probability $\lambda_1/(\lambda_1+\lambda_2)$, independently across arrivals.}}
+\newcommand{\CorpusInference}{%
+\Topic{Testing and asymptotic pivots}
+A test specifies a null hypothesis, alternative, statistic, and rejection region. Type I error is rejection under the null; its supremum is the size. Type II error is nonrejection under an alternative; power is one minus Type II error. A small $p$-value measures incompatibility of the observed statistic with the null, not the posterior probability that the null is true.
+\Statement{Definition}{16B}{A statistic $T(X)$ is sufficient for $\theta$ if the conditional law of the full data given $T$ does not depend on $\theta$. The factorization criterion writes $f_\theta(x)=g_\theta(T(x))h(x)$.}
+\Example{7A}{For iid Bernoulli$(p)$ observations, $\prod p^{x_i}(1-p)^{1-x_i}=p^{\sum x_i}(1-p)^{n-\sum x_i}$, so $T=\sum X_i$ is sufficient. It is also the natural basis for exact binomial tests and intervals.}
+If $X_i$ are iid with mean $\mu$ and variance $0<\sigma^2<\infty$, the central limit theorem gives $\sqrt n(\bar X_n-\mu)/\sigma\Rightarrow N(0,1)$. Slutsky permits replacing $\sigma$ by a consistent estimator. The approximation concerns distributions, not pointwise density equality.
+\CompactTable{\begin{tabular}{@{}p{.24\linewidth}p{.43\linewidth}p{.24\linewidth}@{}}\toprule quantity&interpretation&depends on\\\midrule level $\alpha$&false-positive bound&procedure\\ $p$-value&tail extremeness under $H_0$&data\\ power&rejection probability&alternative\\ confidence&long-run coverage&procedure\\\bottomrule\end{tabular}}
+\Caution{Multiple testing inflates familywise error. Bonferroni controls it by testing each of $m$ claims at level $\alpha/m$, regardless of dependence.}}
+\newcommand{\CorpusCombinatorics}{%
+\Topic{Posets, matchings, and flows}
+In a finite poset, a chain consists of mutually comparable elements and an antichain of mutually incomparable elements. A linear extension is a total order respecting the partial order. Topological sorting constructs one by repeatedly deleting a minimal element; a directed cycle is precisely the obstruction.
+\Statement{Theorem}{18B}{Hall's theorem: a finite bipartite graph with left part $L$ has a matching saturating $L$ iff $|N(S)|\ge|S|$ for every $S\subseteq L$.}
+Necessity follows because distinct matched neighbors of $S$ lie in $N(S)$. For sufficiency, augmenting-path algorithms either enlarge the matching or expose a deficient set; this is the algorithmic certificate. For counting perfect matchings, existence alone gives no enumeration formula.
+Network flow uses capacity constraints $0\le f(e)\le c(e)$ and conservation at internal vertices. The value equals net outflow from the source. Max-flow/min-cut states that the maximum value equals the minimum cut capacity; residual paths certify whether more flow can be sent.
+\Worked{W8A [DSP-F]}{double counting}{Prove $\sum_{k=0}^n k\binom nk=n2^{n-1}$.}{Count pairs $(S,x)$ with $S\subseteq[n]$ and $x\in S$. By set size, the count is the left side. By choosing $x$ first and then any subset of the other $n-1$ elements, it is $n2^{n-1}$.}
+\Caution{When double counting, define one finite set of objects and prove both expressions count every object exactly once.}}
+\newcommand{\CorpusFieldExtensions}{%
+\Topic{Polynomials and field extensions}
+For $F[x]$, division by a nonzero polynomial works because its leading coefficient is invertible. Thus the Euclidean algorithm computes gcds, irreducibles are prime, and for nonconstant $p$, $F[x]/(p)$ is a field iff $p$ is irreducible. Over an algebraically closed field, irreducibles are linear; over $\mathbb R$, they have degree one or two.
+\Statement{Theorem}{20B}{If $\alpha$ is algebraic over $F$ with minimal polynomial $m_\alpha$ of degree $d$, then $F(\alpha)\cong F[x]/(m_\alpha)$ and $1,\alpha,\ldots,\alpha^{d-1}$ is an $F$-basis.}
+\Proof{Evaluation $F[x]\to F(\alpha)$ has kernel $(m_\alpha)$ and image $F[\alpha]$. Division by $m_\alpha$ reduces every expression to degree below $d$. Because the quotient is a field, $F[\alpha]=F(\alpha)$; independence follows from minimality.}
+\Example{9B}{Over $\mathbb Q$, $x^3-2$ is irreducible by the rational-root test, so $[\mathbb Q(\sqrt[3]2):\mathbb Q]=3$. Every element is uniquely $a+b\sqrt[3]2+c\sqrt[3]4$.}
+The tower law says $[K:F]=[K:E][E:F]$ for finite extensions $F\subseteq E\subseteq K$. Therefore intermediate degrees divide the total degree. This divisibility is necessary, not sufficient for existence of an intermediate field.
+\Caution{A polynomial reducible over one field can be irreducible over a smaller field. Always state the coefficient field before applying a criterion.}}
+\newcommand{\ExtraFoundations}{%
+\Topic{Structural proof patterns}
+To prove two finite sets have equal size, a bijection is stronger than separate counting because it explains the identity. Injection both ways proves equal cardinality for arbitrary sets by Cantor--Schroeder--Bernstein. For recursively defined objects, verify existence, uniqueness, and closure at every stage.
+\Worked{W1C [FND-A]}{bijection}{Show $\sum_{k=0}^{n}\binom nk=2^n$.}{Count subsets of $[n]$. Grouping by size gives the sum; encoding membership by an $n$-bit word gives $2^n$. The correspondence sends $S$ to $(\mathbf1_{1\in S},\ldots,\mathbf1_{n\in S})$.}
+\Statement{Lemma}{3A}{If a finite directed acyclic graph has at least one vertex, it has a source and a sink.}
+\Proof{Starting at any vertex and repeatedly following an incoming edge cannot continue forever without repeating a vertex and creating a cycle, so it ends at a source. Reverse edges for a sink.}
+\CompactTable{\begin{tabular}{@{}ll@{}}\toprule proof failure&repair\\\midrule arbitrary example&bind a general object\\ circular step&state earlier theorem used\\ division by expression&split zero case first\\ infinite descent&name well-founded measure\\ dimension count&prove spanning/independence\\ equality of maps&evaluate arbitrary input\\ quotient map&prove representative independence\\\bottomrule\end{tabular}}
+\Example{1C}{The recurrence $a_0=2$, $a_{n+1}=a_n^2-2$ defines integers by induction. If one also claims $a_n\ge2$, include it in the induction invariant: equality persists from $a_0=2$. A formula guessed from initial terms remains conjectural until substituted and initial values checked.}}
+\newcommand{\ExtraAlgebra}{%
+\Topic{Canonical form and multilinear algebra}
+For a linear operator, the minimal polynomial divides the characteristic polynomial and has the same distinct roots. Cayley--Hamilton gives $\chi_A(A)=0$, allowing high powers to reduce modulo $\chi_A$. If $m_A(t)=\prod(t-\lambda_i)$ has distinct roots, spectral projections can be written
+\[
+P_i=\prod_{j\ne i}\frac{A-\lambda_jI}{\lambda_i-\lambda_j},\qquad A=\sum_i\lambda_iP_i.
+\]
+They satisfy $P_iP_j=0$ for $i\ne j$, $P_i^2=P_i$, and $\sum P_i=I$.
+\Statement{Theorem}{6C}{Every matrix over an algebraically closed field is similar to a direct sum of Jordan blocks $J_r(\lambda)$. The exponent of $(t-\lambda)$ in the minimal polynomial is the largest $\lambda$-block size.}
+\Example{2C}{If $N^3=0$ but $N^2\ne0$ on a four-dimensional space and $\operatorname{rank}N=2$, nilpotent blocks must have total size $4$, largest size $3$, and number of blocks $4-\operatorname{rank}N=2$. Thus the partition is $3+1$.}
+The exterior product is alternating: $v\wedge v=0$ and $v_{\sigma(1)}\wedge\cdots\wedge v_{\sigma(k)}=\operatorname{sgn}(\sigma)v_1\wedge\cdots\wedge v_k$. A linear map induces $\bigwedge^kT$; on top degree it multiplies by $\det T$. Hence determinant measures oriented volume and singularity.
+\Caution{Jordan form is sensitive to small perturbations and basis choices. Use it for exact structure; use Schur or singular-value decompositions for stable numerical work.}}
+\newcommand{\ExtraCalculus}{%
+\Topic{Numerical approximation checks}
+Composite trapezoidal and Simpson rules on $[a,b]$ with mesh $h$ have global errors $O(h^2)$ and $O(h^4)$ under their standard derivative bounds. Simpson uses an even number of subintervals. For $f\in C^2$ near a simple root, Newton iteration is locally quadratic, but may diverge from a poor initial guess.
+\Worked{W3C [CAL-C]}{Newton step}{Approximate $\sqrt2$ from $x_0=3/2$.}{For $f(x)=x^2-2$, $x_{n+1}=(x_n+2/x_n)/2$. Thus $x_1=17/12$ and $x_2=577/408$; both exceed $\sqrt2$, giving successive upper bounds.}
+\Identity{Central difference}{f'(x)=\frac{f(x+h)-f(x-h)}{2h}+O(h^2)\quad(f'''\text{ bounded near }x)}
+The truncation estimate improves as $h\downarrow0$, while floating-point cancellation worsens; numerical error balances both.}
+\newcommand{\ExtraAnalysis}{%
+\Topic{Connectedness and completeness consequences}
+A space is connected iff it has no separation into two disjoint nonempty open sets. Continuous images of connected sets are connected; connected subsets of $\mathbb R$ are intervals. Hence the intermediate value theorem is a topological statement: $f([a,b])$ is an interval containing the endpoint values.
+\Statement{Theorem}{13C}{In a complete metric space, a countable intersection of dense open sets is dense. Consequently a nonempty complete metric space cannot be a countable union of nowhere-dense closed sets.}
+Nested compact sets in a metric space: if $K_1\supseteq K_2\supseteq\cdots$ are nonempty compact sets, then $\bigcap_nK_n\ne\varnothing$. If their diameters tend to zero in a complete metric space, the intersection contains exactly one point.
+\Worked{W4C [ANA-D]}{fixed interval}{Suppose $f:[0,1]\to[0,1]$ is continuous. Prove $f(c)=c$ for some $c$.}{Let $g(x)=f(x)-x$. Then $g(0)=f(0)\ge0$ and $g(1)=f(1)-1\le0$. If an endpoint value is zero, finish; otherwise the intermediate value theorem gives a zero between them.}
+\CompactTable{\begin{tabular}{@{}lll@{}}\toprule property&preserved by&not generally by\\\midrule compactness&continuous images&arbitrary inverse images\\ connectedness&continuous images&subsets\\ completeness&closed subspaces&continuous images\\ closedness&finite unions&arbitrary unions\\ openness&arbitrary unions&infinite intersections\\\bottomrule\end{tabular}}
+\Caution{Connected does not mean path-connected in arbitrary spaces. Compact does not mean sequentially compact without suitable countability or metric hypotheses.}}
+\newcommand{\ExtraProbability}{%
+\Topic{Entropy and information inequalities}
+For finite-alphabet variables, $H(X)=-\sum_xp(x)\log p(x)$ with $0\log0=0$. Conditional entropy averages $H(X\mid Y=y)$; mutual information
+\[
+\begin{aligned}
+I(X;Y)&=\sum_{x,y}p(x,y)\log\frac{p(x,y)}{p(x)p(y)},\\
+&=H(X)-H(X\mid Y)\ge0.
+\end{aligned}
+\]
+It vanishes exactly when $X,Y$ are independent. Chain rule: $H(X,Y)=H(X)+H(Y\mid X)$. Conditioning cannot increase entropy on average.
+\Statement{Theorem}{14C}{Gibbs' inequality: $D(p\|q)=\sum_{p(x)>0}p(x)\log[p(x)/q(x)]\ge0$, with $D=\infty$ if some $q(x)=0<p(x)$, and equality iff $p=q$.}
+\Proof{Otherwise use $\log u\le u-1$ with $u=q(x)/p(x)$ over $p(x)>0$: $-D(p\|q)\le\sum_{p>0}q(x)-1\le0$.}
+\Example{6C}{A fair bit has entropy $\log2$. If it passes through a binary symmetric channel flipping with probability $\varepsilon$, then $H(Y)=\log2$ and $H(Y\mid X)=h(\varepsilon)$, so $I(X;Y)=\log2-h(\varepsilon)$. Information falls to zero at $\varepsilon=1/2$.}
+\Caution{Differential entropy may be negative and changes under coordinate scaling. Mutual information and relative entropy retain invariant operational meaning under bijective reparametrization.}}
+\newcommand{\ExtraInference}{%
+\Topic{Conjugacy and decision rules}
+With $a,b>0$ and conditionally independent Bernoulli trials, the prior $p\sim\operatorname{Beta}(a,b)$ updates after $s$ successes and $f$ failures to $\operatorname{Beta}(a+s,b+f)$. For $s+f>0$, its mean is a weighted average of prior mean and sample proportion.
+\Worked{W6C [PRB-E2]}{posterior prediction}{Under the beta--Bernoulli model, find the probability the next trial succeeds.}{Integrate the Bernoulli success probability against the posterior: $\mathbb P(X_{n+1}=1\mid x)=\mathbb E[p\mid x]=(a+s)/(a+b+n)$.}
+For loss $L(\theta,a)$, a Bayes action minimizes posterior expected loss. Squared error chooses posterior mean; absolute error chooses a posterior median; zero-one loss on a discrete parameter chooses a posterior mode. These conclusions follow by optimizing the conditional risk, not by naming a favorite estimator.
+\Statement{Theorem}{16C}{Neyman--Pearson: for a simple null versus simple alternative, a likelihood-ratio threshold gives a most powerful test; randomize on the threshold boundary when exact size is required.}
+\CompactTable{\begin{tabular}{@{}p{.27\linewidth}p{.34\linewidth}p{.30\linewidth}@{}}\toprule loss&Bayes action&summary\\\midrule $(a-\theta)^2$&posterior mean&balances tails\\ $|a-\theta|$&posterior median&half mass each side\\ $\mathbf1_{a\ne\theta}$&posterior mode&largest atom\\ asymmetric&posterior quantile&cost ratio\\\bottomrule\end{tabular}}
+\Caution{A prior is part of the model. Report sensitivity when plausible prior choices materially change the posterior or action.}}
+\newcommand{\ExtraDiscrete}{%
+\Topic{Partitions and asymptotic counting}
+The exponential generating function $A(z)=\sum a_nz^n/n!$ suits labeled structures. If a labeled object is an unordered set of connected components counted by $C(z)$, the exponential formula often gives $A(z)=\exp C(z)$. Ordinary and exponential generating functions encode different combinatorial products.
+\Statement{Theorem}{18C}{Stirling's approximation: $n!\sim\sqrt{2\pi n}(n/e)^n$. Hence $\binom{2n}{n}\sim4^n/\sqrt{\pi n}$.}
+\Example{8C}{For $n,k\ge0$, the number of surjections $[n]\to[k]$ is $\sum_{j=0}^k(-1)^j\binom kj(k-j)^n=k!S(n,k)$, with $0^0=1$. Inclusion--exclusion removes maps missing target values; the second form partitions the domain into $k$ nonempty fibers, then labels them.}
+For integer partitions $p(n)$, $\sum_{n\ge0}p(n)z^n=\prod_{m\ge1}(1-z^m)^{-1}$: the factor for part size $m$ chooses its multiplicity. Restricting to distinct parts replaces it by $1+z^m$.
+\Worked{W8C [DSP-F]}{recurrence extraction}{If $A(z)=1/(1-2z-z^2)$, derive a recurrence.}{Multiplying gives $(1-2z-z^2)\sum a_nz^n=1$. Coefficient comparison yields $a_0=1$, $a_1=2$, and $a_n=2a_{n-1}+a_{n-2}$ for $n\ge2$.}
+\Caution{An asymptotic equivalence $a_n\sim b_n$ controls the ratio, not the difference. It need not justify rounding for small $n$.}}
+\newcommand{\ExtraAbstract}{%
+\Topic{Representations and character checks}
+A finite-dimensional complex representation is a homomorphism $\rho:G\to\operatorname{GL}(V)$. Its character $\chi(g)=\operatorname{tr}\rho(g)$ is constant on conjugacy classes; equivalent representations have equal characters.
+\Statement{Theorem}{20C}{For a finite group and finite-dimensional complex representations, $\langle\chi,\psi\rangle=|G|^{-1}\sum_{g\in G}\chi(g)\overline{\psi(g)}$ makes irreducible characters orthonormal. Multiplicity of irreducible $U$ in $V$ is $\langle\chi_V,\chi_U\rangle$.}
+\Example{9C}{For the permutation action on a finite set $X$, the character value $\chi(g)$ equals the number of points fixed by $g$: the representing matrix permutes the basis $e_x$, and diagonal ones occur exactly at fixed points. Averaging $\chi$ recovers the number of orbits.}
+If $G$ is finite, each $\rho(g)$ has finite order, so its eigenvalues are roots of unity. Therefore character values are sums of roots of unity, not generally roots of unity themselves.
+\CompactTable{\begin{tabular}{@{}lll@{}}\toprule construction&space&character\\\midrule direct sum&$V\oplus W$&$\chi_V+\chi_W$\\ tensor product&$V\otimes W$&$\chi_V\chi_W$\\ dual&$V^*$&$\overline{\chi_V}$ for finite $G$\\ restriction&same $V$, subgroup&$\chi_V|_H$\\\bottomrule\end{tabular}}
+\Caution{State the group, field, generators, and action before interpreting a matrix or geometric symmetry.}}
+\newcommand{\SupplementalComplexOptimizationAndPDE}{%
+\SourceBlock{MIX-I2}{Further worked reference: optimization and PDEs}
+\CompactTable{\begin{tabular}{@{}p{.20\linewidth}p{.41\linewidth}p{.32\linewidth}@{}}\toprule singularity&Laurent principal part&test\\\midrule removable&none&bounded nearby\\ pole order $m$&finite through $(z-a)^{-m}$&$(z-a)^mf\to c\ne0$\\ essential&infinitely many negative powers&neither above\\ residue&coefficient of $(z-a)^{-1}$&contour contribution\\\bottomrule\end{tabular}}
+\Caution{A simply connected cut domain avoiding zero suffices to choose a branch of $z^\alpha$ or logarithm. Residues still require orientation and boundary-pole checks.}
+\Topic{Constrained optimization and duality}
+For differentiable convex $f$ and differentiable convex constraints $g_i(x)\le0$, the Lagrangian is $L(x,\lambda)=f(x)+\sum_i\lambda_ig_i(x)$ with $\lambda_i\ge0$. KKT combines primal and dual feasibility, stationarity, and complementary slackness. Under Slater's condition, KKT characterizes an optimum.
+\Worked{W14 [MIX-I]}{KKT}{Minimize $x^2+y^2$ subject to $x+y\ge1$.}{Write $g=1-x-y\le0$. Stationarity gives $2x-\lambda=0$, $2y-\lambda=0$. The unconstrained point is infeasible, so complementary slackness makes the boundary active: $x+y=1$. Hence $x=y=1/2$, $\lambda=1$, and the minimum is $1/2$.}
+The dual function $q(\lambda)=\inf_xL(x,\lambda)$ gives lower bounds. Weak duality requires no convexity. Convexity plus a qualification such as Slater gives standard sufficient conditions for strong duality; some nonconvex problems also have zero gap.
+\Topic{Finite differences and PDE patterns}
+For the one-dimensional Poisson equation $-u''=f$ with Dirichlet endpoints, a centered grid gives
+\[
+\frac{-u_{j-1}+2u_j-u_{j+1}}{h^2}=f(x_j).
+\]
+The matrix is symmetric positive definite. Consistency is local truncation error; stability controls amplification; convergence needs both in standard well-posed linear settings.
+\Statement{Principle}{25}{If $D$ is bounded and connected and real $u\in C^2(D)\cap C(\overline D)$ is harmonic, its maximum and minimum on $\overline D$ occur on $\partial D$. Uniqueness for Dirichlet data follows by applying this to a difference.}
+For $u_t=\kappa u_{xx}$ with $\kappa>0$, forward Euler with centered space uses $u_j^{n+1}=u_j^n+r(u_{j-1}^n-2u_j^n+u_{j+1}^n)$, $r=\kappa\Delta t/h^2$. On the standard one-dimensional grid, stability requires $0\le r\le1/2$.
+\Caution{A stable discretization may still solve the wrong equation if inconsistent. Mesh refinement studies should compare errors at fixed physical data and account for boundary approximation.}
+\Topic{Final proof and computation audit}
+\CompactTable{\begin{tabular}{@{}p{.27\linewidth}p{.64\linewidth}@{}}\toprule stage&question\\\midrule statement&Are domains, quantifiers, and conventions explicit?\\ hypotheses&Did every theorem assumption get checked locally?\\ transformation&Is each division, limit interchange, or representative choice valid?\\ computation&Do dimensions, units, signs, and boundary cases agree?\\ conclusion&Does the result answer every requested part at the right strength?\\ verification&Can a special case, inverse step, or independent method detect error?\\\bottomrule\end{tabular}}
+For long solutions, label the invariant or target before algebra, preserve exact expressions until the final line, and attach every alternative method to the same hypotheses. A correct calculation without its admissible cases is incomplete; a correct theorem name without its assumptions is not an argument.
+\Topic{Counterexample construction}
+To test a universal implication, probe empty, singleton, boundary, singular, and infinite cases before searching for elaborate objects. To refute ``$P$ implies $Q$,'' exhibit one object with $P$ true and $Q$ false, then verify both claims explicitly. For failed converses, reuse the same definitions rather than a nearby informal property. Negating $\forall x\,\exists y\,R(x,y)$ gives $\exists x\,\forall y\,\neg R(x,y)$; the witnesses change order. A numerical experiment suggests a candidate but does not establish the quantified counterexample until exact values and admissibility are checked.}
+\newcommand{\SupplementalConvexityFourierAndMartingales}{%
+\SourceBlock{MIX-H}{Further methods: convexity and Fourier analysis}
+\Topic{Convexity and inequalities}
+A function $f$ on a convex set is convex when $f(tx+(1-t)y)\le tf(x)+(1-t)f(y)$ for $0\le t\le1$. Strict convexity makes the inequality strict for distinct points and $0<t<1$. For $f\in C^2$, $f''\ge0$ on an interval, or a positive-semidefinite Hessian on a convex domain, implies convexity.
+\Statement{Theorem}{21}{Jensen: for weights $w_i\ge0$ summing to one, $f(\sum_iw_ix_i)\le\sum_iw_if(x_i)$. Equality for strictly convex $f$ forces all positive-weight $x_i$ equal.}
+\Proof{The two-point definition gives the finite statement by induction, combining the first $n-1$ normalized weights into one point. Approximation gives integral forms under suitable integrability.}
+\Example{10}{Taking $f(x)=-\log x$ gives weighted AM--GM. For $a,b\ge0$ and $p,q>1$ with $1/p+1/q=1$, Young's inequality $ab\le a^p/p+b^q/q$ follows from the same convexity pattern.}
+\Worked{W10 [MIX-H]}{convex optimization}{Minimize $e^x+e^y$ subject to $x+y=0$.}{Substitute $y=-x$. AM--GM gives $e^x+e^{-x}\ge2$, with equality iff $x=0$. Strict convexity proves uniqueness.}
+\Topic{Fourier and orthogonality}
+For a real $2\pi$-periodic $f\in L^2[-\pi,\pi]$,
+\[
+\begin{aligned}
+a_n&=\pi^{-1}\int_{-\pi}^{\pi}f(x)\cos nx\,dx,\\
+b_n&=\pi^{-1}\int_{-\pi}^{\pi}f(x)\sin nx\,dx.
+\end{aligned}
+\]
+Orthogonality makes these least-squares coefficients in the trigonometric span. Bessel gives $a_0^2/2+\sum_{n\ge1}(a_n^2+b_n^2)\le\pi^{-1}\int|f|^2$; equality is Parseval under $L^2$ completeness.
+\Example{11}{If $f$ is odd, all $a_n=0$; if even, all $b_n=0$. For piecewise smooth $f$, the series at a jump converges to the midpoint of the one-sided limits, not generally the assigned point value.}
+\Caution{Pointwise, uniform, and $L^2$ convergence are distinct. Parseval alone does not guarantee pointwise convergence everywhere.}
+\SourceBlock{MIX-I}{Further worked reference: martingales and concentration}
+\Topic{Martingales and concentration}
+Relative to a filtration $(\mathcal F_n)$, a martingale satisfies integrability, adaptation, and $\mathbb E[M_{n+1}\mid\mathcal F_n]=M_n$. Submartingales replace equality by $\ge$. Predictable bounded transforms preserve the martingale property when integrable.
+\Statement{Theorem}{23}{If $T$ is a bounded stopping time and $(M_n)$ a martingale, then $\mathbb E M_T=\mathbb E M_0$. More general optional-stopping forms require uniform integrability or appropriate boundedness conditions.}
+\Proof{Write $M_T=M_0+\sum_{k=1}^{N}\mathbf1_{\{T\ge k\}}(M_k-M_{k-1})$ for $T\le N$. The indicator is $\mathcal F_{k-1}$-measurable, so every increment term has expectation zero.}
+\Worked{W12 [MIX-I]}{gambler's ruin}{Let integer $N\ge1$. A walk starts at $i\in\{0,\ldots,N\}$, has independent symmetric $\pm1$ steps, and stops on hitting $0$ or $N$. Find the upper-hit probability.}{Each block of $N$ steps reaches a boundary with probability at least $2^{-N}$, so $\mathbb P(T>kN)\le(1-2^{-N})^k\to0$. Apply optional stopping to $T\wedge n$ and dominated convergence since stopped positions lie in $[0,N]$: $i=\mathbb ES_T=N\mathbb P(S_T=N)$, hence $i/N$.}
+If martingale differences satisfy $|M_k-M_{k-1}|\le c_k$, Azuma--Hoeffding gives $\mathbb P(M_n-M_0\ge t)\le\exp[-t^2/(2\sum c_k^2)]$. The bound uses bounded increments and a filtration, not independence of the levels $M_k$.
+\Topic{Holomorphic functions}
+For $f=u+iv$, complex differentiability with continuous first partials is equivalent to $u_x=v_y$, $u_y=-v_x$. Holomorphic functions are analytic.
+\Statement{Theorem}{24}{Let $\gamma$ be positively oriented, piecewise smooth, simple and closed; let $a$ lie strictly inside it; and let $f$ be holomorphic on an open neighbourhood of the curve and enclosed region. For every integer $n\ge0$,
+\[
+f^{(n)}(a)=\frac{n!}{2\pi i}\oint_\gamma\frac{f(z)}{(z-a)^{n+1}}\,dz.
+\]
+}
+This gives Cauchy estimates, Liouville's theorem, and the fundamental theorem of algebra. Contours may deform through regions of holomorphy without crossing singularities.
+\Worked{W13 [MIX-I]}{residue}{Evaluate the positively oriented $\oint_{|z|=2}\frac{e^z}{z(z-1)}\,dz$.}{Both simple poles lie inside. Their residues are $-1$ and $e$, so the integral is $2\pi i(e-1)$.}}
+
+\begin{document}
+\begin{CheatSheet}
+\setbox0=\hbox{\ReportMathFonts}
+
+\MajorBlock{FND-A}{Foundations: sets, maps, induction, and proof patterns}
+\Topic{Sets, quantifiers, and functions}
+\Statement{Definition}{1}{For sets $A,B$, a function $f:A\to B$ assigns each $a\in A$ exactly one value $f(a)\in B$. It is injective if $f(a)=f(a')\Rightarrow a=a'$, surjective if $\forall b\in B\,\exists a\in A:f(a)=b$, and bijective if both.}
+\FormalStatement{Theorem}{2}{FND-A}{inverse criterion}{A map $f:A\to B$ is bijective iff there exists $g:B\to A$ with $g\circ f=\operatorname{id}_A$ and $f\circ g=\operatorname{id}_B$. The two identities are both required unless injectivity or surjectivity is already known.}
+\Proof{If $f$ is bijective, define $g(b)$ as the unique preimage. Conversely, $g\circ f=\operatorname{id}$ implies injectivity: $f(a)=f(a')\Rightarrow a=g(f(a))=g(f(a'))=a'$. The other identity gives surjectivity since $b=f(g(b))$.}
+\Assumption{Unless stated otherwise, families indexed by the empty set have union $\varnothing$, intersection equal to the ambient universe, empty sum $0$, and empty product $1$.}
+\textbf{De Morgan:}\ $\textstyle(\bigcup_iA_i)^c=\bigcap_iA_i^c$ and $\textstyle(\bigcap_iA_i)^c=\bigcup_iA_i^c$.
+For predicates $P,Q$, remember $P\Rightarrow Q\equiv\neg P\lor Q$ and its contrapositive $\neg Q\Rightarrow\neg P$. Negating quantifiers swaps them: $\neg(\forall x\,P(x))\equiv\exists x\,\neg P(x)$, while $\neg(\exists x\,P(x))\equiv\forall x\,\neg P(x)$. A single counterexample refutes a universal claim; examples cannot prove it.
+\Topic{Induction and extremal arguments}
+\Statement{Principle}{3}{To prove $P(n)$ for all $n\ge n_0$, prove $P(n_0)$ and $P(k)\Rightarrow P(k+1)$ for arbitrary $k\ge n_0$. Strong induction may assume $P(n_0),\ldots,P(k)$; it is logically equivalent.}
+\Example{1}{Show $1+3+\cdots +(2n-1)=n^2$. The base case is $1=1^2$. If the claim holds at $n=k$, then adding $2k+1$ gives $k^2+2k+1=(k+1)^2$. State the arbitrary $k$ and close the quantified conclusion.}
+\Caution{Do not assume the desired statement at $k+1$, and do not hide a stronger induction hypothesis. For recurrences, check every initial index needed by the step.}
+An extremal proof selects a smallest or largest counterexample. Verify that the candidate set is nonempty and that the order is well founded. Minimal-counterexample template: assume failure; choose least $m$ failing; construct a smaller failing value or show all smaller values force $P(m)$, contradiction.
+\Worked{W1 [FND-A]}{equivalence relations}{Let $x\sim y$ iff $x-y\in\mathbb Z$ on $\mathbb R$. Describe the quotient.}{The relation is reflexive, symmetric, and transitive; $[x]=x+\mathbb Z$. Every class has exactly one representative in $[0,1)$, so the quotient is parametrized by that half-open interval.}
+\Alternative{fractional part}{Map $[x]\mapsto x-\lfloor x\rfloor$. Integer translation leaves fractional part unchanged. Two representatives in $[0,1)$ differing by an integer differ by $0$, proving uniqueness.}
+\CompactTable{\begin{tabular}{@{}lll@{}}\toprule Goal&Useful start&Typical finish\\\midrule $A=B$&two inclusions&element chase\\ uniqueness&assume two objects&force equality\\ nonexistence&suppose object exists&contradiction\\ iff&two directions&cite both\\\bottomrule\end{tabular}}
+\CorpusFoundations
+\CorpusLogicNumber
+\ExtraFoundations
+\MajorBlock{ALG-B}{Linear algebra: structure, coordinates, and operators}
+\Topic{Subspaces and bases}
+\Statement{Definition}{4}{A subset $W\subseteq V$ is a subspace when $0\in W$ and $au+bv\in W$ for all $u,v\in W$ and scalars $a,b$. Equivalently, $W$ is nonempty and closed under arbitrary linear combinations of two elements.}
+\FormalStatement{Theorem}{5}{ALG-B}{basis extension}{Every linearly independent list in a finite-dimensional vector space extends to a basis; every spanning list contains a basis. Consequently all bases have the same length, denoted $\dim V$.}
+\Proof{Add vectors from a fixed finite spanning list until the independent list spans. The exchange lemma bounds any independent list by the spanning-list length, so this terminates. Deleting redundant vectors from a spanning list gives a basis; exchange then shows all bases have equal length.}
+\columnbreak\begin{minipage}[t]{\linewidth}
+\Identity{ALG-B dimension formula}{\dim(U+W)=\dim U+\dim W-\dim(U\cap W)}
+\Proof{Choose a basis $c_1,\dots,c_r$ of $U\cap W$, extend it by $u_1,\dots,u_p$ to $U$ and by $w_1,\dots,w_q$ to $W$. The concatenated list $c,u,w$ spans $U+W$. If a linear combination vanishes, move the $u$-part to the $W$ side; it lies in $U\cap W$, and independence in each extended basis makes all coefficients zero. Count.}
+\end{minipage}
+\Topic{Matrices and changes of basis}
+For ordered bases $\mathcal B=(b_1,\ldots,b_n)$ and $\mathcal C=(c_1,\ldots,c_m)$, the matrix $[T]_{\mathcal C\leftarrow\mathcal B}$ has column $j$ equal to $[T(b_j)]_{\mathcal C}$. Thus
+\[
+ [T(v)]_{\mathcal C}=[T]_{\mathcal C\leftarrow\mathcal B}[v]_{\mathcal B},\qquad
+ [S\circ T]_{\mathcal D\leftarrow\mathcal B}=[S]_{\mathcal D\leftarrow\mathcal C}[T]_{\mathcal C\leftarrow\mathcal B}.
+\]
+If $P=[\operatorname{id}]_{\mathcal B\leftarrow\mathcal C}$, then $[v]_{\mathcal B}=P[v]_{\mathcal C}$ and the same operator has matrices $A_{\mathcal C}=P^{-1}A_{\mathcal B}P$. Read arrows before multiplying.
+\Worked{W2 [ALG-B]}{rank-nullity}{Let $T:\mathbb R^4\to\mathbb R^3$ have matrix $A=\begin{pmatrix}1&0&1&2\\0&1&1&1\\1&1&2&3\end{pmatrix}$. Find bases of kernel and image.}{Row three is the sum of rows one and two, while the first two rows are independent, so rank $A=2$ and nullity $2$. Solving $x_1+x_3+2x_4=0$, $x_2+x_3+x_4=0$ gives
+\[
+x=s\begin{pmatrix}-1\\-1\\1\\0\end{pmatrix}+t\begin{pmatrix}-2\\-1\\0\\1\end{pmatrix}.
+\]
+The first two columns are independent and pivot columns of the original matrix; they form an image basis.}
+\Caution{Pivot columns must be taken from the original matrix. Row operations preserve row space and rank, but generally change column space.}
+\Topic{Eigenvalues and diagonalization}
+\Statement{Theorem}{6}{For $A\in M_n(F)$, the following are equivalent: $A$ is diagonalizable; $F^n$ has a basis of eigenvectors; the sum of eigenspace dimensions is $n$; the minimal polynomial splits into distinct linear factors.}
+Algebraic multiplicity is the multiplicity of $\lambda$ in $\chi_A(t)$; geometric multiplicity is $\dim\ker(A-\lambda I)$. Always $1\le m_g(\lambda)\le m_a(\lambda)$. Distinct eigenvalues yield independent eigenvectors. A triangular matrix exposes eigenvalues on its diagonal but is not automatically diagonalizable.
+\Example{2}{$A=\begin{pmatrix}2&1\\0&2\end{pmatrix}$ has characteristic polynomial $(t-2)^2$ but eigenspace $\ker(A-2I)=\operatorname{span}(e_1)$, hence no eigenbasis. By contrast $2I$ has the same characteristic polynomial and a two-dimensional eigenspace.}
+\CorpusAlgebra
+\CorpusLinearMethods
+\ExtraAlgebra
+\MajorBlock{CAL-C}{Calculus: local approximation, integration, and series}
+\Topic{Differentiation and Taylor control}
+\FormalStatement{Theorem}{7}{CAL-C}{Taylor with remainder}{If $f\in C^{n+1}$ on an interval containing $a$ and $x$, then for some $\xi$ between them,
+\[
+f(x)=\sum_{k=0}^{n}\frac{f^{(k)}(a)}{k!}(x-a)^k+\frac{f^{(n+1)}(\xi)}{(n+1)!}(x-a)^{n+1}.
+\]
+Hence a bound $|f^{(n+1)}|\le M$ gives error at most $M|x-a|^{n+1}/(n+1)!$.}
+\Example{3}{For $|x|\le 1/2$, approximate $e^x$ by $1+x+x^2/2$. Since $e^\xi\le e^{1/2}$ on the interval, the absolute error is at most $e^{1/2}|x|^3/6$. The bound follows from the theorem; decimal agreement is not a proof.}
+\Identity{Product and chain rules}{(fg)'=f'g+fg',\qquad(f\circ g)'=(f'\circ g)g'}
+\Identity{Inverse derivative}{(f^{-1})'(y)=1/f'(f^{-1}(y))\quad(f'\ne0)}
+\Caution{The inverse rule is local and assumes an inverse branch. For $x^2$, specify $x>0$ or $x<0$. At a cusp or endpoint, one-sided behavior may replace differentiability.}
+\Topic{Integration patterns}
+\[
+\begin{aligned}
+\int_a^b fg'\,dx&=[fg]_a^b-\int_a^b f'g\,dx,\\
+\int_{g(a)}^{g(b)}h(u)\,du&=\int_a^b h(g(x))g'(x)\,dx.
+\end{aligned}
+\]
+For improper integrals, introduce limits before applying algebra: $\int_1^\infty f=\lim_{R\to\infty}\int_1^R f$. Absolute convergence implies convergence; conditional convergence does not justify arbitrary rearrangement.
+\begin{minipage}[t]{\linewidth}
+\Topic{Improper-integral tests}
+\CompactTable{\begin{tabular}{@{}lll@{}}\toprule Integral/test&Condition&Conclusion\\\midrule $\int_1^\infty x^{-p}dx$&$p>1$&converges\\ $\int_0^1x^{-p}dx$&$p<1$&converges\\ comparison&$0\le f\le g$, $\int g<\infty$&$\int f<\infty$\\ limit comparison&$f/g\to c\in(0,\infty)$&same behavior\\\bottomrule\end{tabular}}
+\end{minipage}
+\Worked{W3 [CAL-C]}{parameter integral}{Evaluate $I(a)=\int_0^1\frac{x^a-1}{\log x}\,dx$ for $a>-1$.}{Differentiate under the integral sign after domination on compact $a$-intervals: $I'(a)=\int_0^1x^a\,dx=1/(a+1)$. Since $I(0)=0$, integration gives $I(a)=\log(a+1)$.}
+\Alternative{Fubini}{Use $(x^a-1)/\log x=\int_0^a x^t\,dt$ and interchange integrals; absolute integrability on a bounded $t$-interval supplies the justification.}
+\Topic{Sequences and power series}
+\Statement{Theorem}{8}{A power series $\sum_{n\ge0}a_n(x-c)^n$ has a radius $R\in[0,\infty]$: it converges absolutely for $|x-c|<R$ and diverges for $|x-c|>R$. Endpoints require separate tests. Inside the interval it may be differentiated and integrated termwise without changing $R$.}
+\[
+\begin{aligned}
+(1-x)^{-1}&=\sum_{n\ge0}x^n,& e^x&=\sum_{n\ge0}x^n/n!,\\
+\log(1+x)&=\sum_{n\ge1}(-1)^{n+1}x^n/n.&&
+\end{aligned}
+\]
+valid respectively for $|x|<1$, all $x$, and $-1<x\le1$ with endpoint analysis. Ratio test: if $|a_{n+1}/a_n|\to L$, then the scalar series converges absolutely for $L<1$ and diverges for $L>1$; $L=1$ says nothing.
+\Example{4}{$\sum n^{-1}$ diverges although terms tend to zero. The alternating harmonic series converges by the alternating-series test but not absolutely. Its truncation error after $N$ terms is at most $1/(N+1)$ and has the sign of the first omitted term.}
+\CorpusCalculus
+\ExtraCalculus
+\MajorBlock{ANA-D}{Real analysis: limits, compactness, and continuity}
+\Topic{Metric language and sequential tests}
+\Statement{Definition}{9}{In a metric space $(X,d)$, $x_n\to x$ means $\forall\varepsilon>0\,\exists N\,\forall n\ge N:d(x_n,x)<\varepsilon$. A sequence is Cauchy when $\forall\varepsilon>0\,\exists N\,\forall m,n\ge N:d(x_m,x_n)<\varepsilon$. Completeness means every Cauchy sequence converges in $X$.}
+\FormalStatement{Theorem}{10}{ANA-D}{closed-set criterion}{A subset $F$ of a metric space is closed iff every sequence $(x_n)\subset F$ converging in $X$ has its limit in $F$.}
+\Proof{If $F$ is closed and $x\notin F$, the open complement contains a ball about $x$, eventually contradicting $x_n\in F$. Conversely, if $F$ is not closed, choose $x\in\overline F\setminus F$ and $x_n\in F\cap B(x,1/n)$; then $x_n\to x\notin F$.}
+\Statement{Theorem}{11}{In $\mathbb R^n$, compactness, closed-and-bounded, and sequential compactness are equivalent. In a general metric space, closed-and-bounded need not imply compactness.}
+\Example{5}{The set $\{e_n:n\ge1\}\subset\ell^2$ is closed and bounded, but $\|e_m-e_n\|=\sqrt2$ for $m\ne n$, so no subsequence is Cauchy and hence none converges.}
+\Topic{Continuity and uniform continuity}
+\Statement{Definition}{12}{$f:X\to Y$ is continuous at $x$ if $\forall\varepsilon>0\,\exists\delta>0:d_X(x,y)<\delta\Rightarrow d_Y(f(x),f(y))<\varepsilon$. It is uniformly continuous if one $\delta$ works simultaneously for all $x,y\in X$.}
+\FormalStatement{Theorem}{13}{ANA-D}{Heine--Cantor}{A continuous map from a compact metric space to a metric space is uniformly continuous.}
+\Proof{If not, some $\varepsilon_0>0$ admits pairs $x_n,y_n$ with $d(x_n,y_n)<1/n$ but $d(f(x_n),f(y_n))\ge\varepsilon_0$. Compactness gives $x_{n_k}\to x$; then $y_{n_k}\to x$. Continuity sends both image subsequences to $f(x)$, contradicting the fixed separation.}
+\Caution{For ordinary continuity $\delta$ may depend on the base point; for uniform continuity it may not. The function $x^2$ is uniformly continuous on every bounded interval but not on all of $\mathbb R$.}
+\Worked{W4 [ANA-D]}{epsilon proof}{Prove $x^2$ is continuous at $a\in\mathbb R$.}{Given $\varepsilon>0$, impose $|x-a|<1$, so $|x+a|\le |x-a|+2|a|<1+2|a|$. Choose $\delta=\min\{1,\varepsilon/(1+2|a|)\}$. Then $|x^2-a^2|=|x-a||x+a|<\varepsilon$.}
+\CorpusAnalysis
+\CorpusTopologyMeasure
+\ExtraAnalysis
+\SupplementalConvexityFourierAndMartingales
+\Topic{Long worked problem with continuation}
+\Question{5}{ANA-D}{Let $(f_n)$ be continuous on $[0,1]$, suppose $f_n\to f$ pointwise, and assume a common Lipschitz bound $|f_n(x)-f_n(y)|\le L|x-y|$. Prove $f$ is continuous and determine whether convergence is uniform.}
+\QuestionPart{a}{limit structure}{ANA-D}{Show that the pointwise limit retains the Lipschitz bound.}{For fixed $x,y$, pass to the limit in $|f_n(x)-f_n(y)|\le L|x-y|$. Continuity of absolute value gives $|f(x)-f(y)|\le L|x-y|$, so $f$ is Lipschitz and hence uniformly continuous.}
+\QuestionPart{b}{finite-net argument}{ANA-D}{Prove uniform convergence using compactness and the common bound.}{Fix $\varepsilon>0$. Choose a finite $\delta$-net with $\delta=\varepsilon/(3L)$ when $L>0$. Pointwise convergence at the finitely many net points gives a single index after which every net-point error is below $\varepsilon/3$. For arbitrary $x$, choose a nearby net point $x_j$ and split
+\[
+\begin{aligned}
+|f_n(x)-f(x)|\le{}&|f_n(x)-f_n(x_j)|\\
+&+|f_n(x_j)-f(x_j)|+|f(x_j)-f(x)|.
+\end{aligned}
+\]
+The first and third terms are at most $L\delta$, and the middle term is controlled by finiteness. The final selection of constants and the $L=0$ case continue on the next page.}
+
+\end{CheatSheet}
+\newpage
+\begin{CheatSheet}
+\Continuation{Q5(b) [ANA-D]}With $\delta=\varepsilon/(3L)$, each summand is at most $\varepsilon/3$. Hence $\lVert f_n-f\rVert_\infty<\varepsilon$ for all sufficiently large $n$. If $L=0$, every $f_n$ and $f$ is constant, and convergence at one point is already uniform. Compactness is used precisely to make the net finite.
+\Alternative{contradiction by subsequences}{If convergence were not uniform, choose $n_k\uparrow\infty$ and $x_k$ with $|f_{n_k}(x_k)-f(x_k)|\ge\varepsilon_0$. A convergent subsequence $x_{k_j}\to x$ and the common Lipschitz bound reduce the error to the pointwise error at $x$, contradiction.}
+\Caution{Pointwise convergence of continuous functions alone does not imply uniform convergence or continuity of the limit: $x^n\to 0$ on $[0,1)$ and $x^n\to1$ at $1$. The shared modulus of continuity is the decisive extra hypothesis.}
+\MajorBlock{PRB-E}{Probability: conditioning, expectation, and transforms}
+\Topic{Events and conditioning}
+\Statement{Definition}{14}{A probability space is $(\Omega,\mathcal F,\mathbb P)$, where $\mathcal F$ is a sigma-algebra on $\Omega$, $\mathbb P:\mathcal F\to[0,1]$ is countably additive, and $\mathbb P(\Omega)=1$. For $\mathbb P(B)>0$, $\mathbb P(A\mid B)=\mathbb P(A\cap B)/\mathbb P(B)$.}
+\Identity{Total probability}{\mathbb P(A)=\sum_i\mathbb P(A\mid B_i)\mathbb P(B_i)}
+\Identity{Bayes}{\mathbb P(B_j\mid A)=\frac{\mathbb P(A\mid B_j)\mathbb P(B_j)}{\sum_i\mathbb P(A\mid B_i)\mathbb P(B_i)}}
+The partition $(B_i)$ must be disjoint, exhaustive, and have positive probabilities when conditional terms are used; Bayes also requires $\mathbb P(A)>0$. Pairwise independence concerns pairs; mutual independence requires the product rule for every finite subfamily.
+\Worked{W5 [PRB-E]}{Bayesian update}{A device comes from lines 1 and 2 with probabilities $.6,.4$; defect rates are $.02,.05$. Given a defect, find the probability it came from line 2.}{The defect probability is $.6(.02)+.4(.05)=.032$. Thus $\mathbb P(L_2\mid D)=.4(.05)/.032=5/8$.}
+\Topic{Random variables and expectation}
+For nonnegative $X$, Tonelli gives the tail formulas
+\[
+\begin{aligned}
+\mathbb E X&=\int_0^\infty\mathbb P(X>t)\,dt,\\
+\mathbb E X&=\sum_{k\ge1}\mathbb P(X\ge k)\quad(X\text{ integer-valued}).
+\end{aligned}
+\]
+For finite sums, linearity $\mathbb E(\sum a_iX_i)=\sum a_i\mathbb EX_i$ needs integrability, not independence. With finite second moments, variance obeys $\operatorname{Var}(X)=\mathbb E(X^2)-(\mathbb EX)^2$ and
+\[
+\begin{aligned}
+\operatorname{Var}(\textstyle\sum_iX_i)&=\sum_i\operatorname{Var}(X_i)\\
+&\quad+2\sum_{i<j}\operatorname{Cov}(X_i,X_j).
+\end{aligned}
+\]
+\Example{6}{For indicators $I_i=\mathbf1_{A_i}$, $\mathbb E\sum I_i=\sum\mathbb P(A_i)$. Counting fixed points of a uniformly random permutation gives expectation $n(1/n)=1$, despite dependence among the indicators.}
+\CorpusProbability
+\CorpusStochastic
+\ExtraProbability
+\SourceBlock{PRB-E2}{Probability continued: distributions and inequalities}
+\Topic{Transforms and named laws}
+\CompactTable{\begin{tabular}{@{}llll@{}}\toprule Law&support&mean&variance\\\midrule Bernoulli$(p)$&$0,1$&$p$&$p(1-p)$\\ Binomial$(n,p)$&$0{:}n$&$np$&$np(1-p)$\\ Poisson$(\lambda)$&$\mathbb N_0$&$\lambda$&$\lambda$\\ Geometric$(p)$&$1,2,\ldots$&$1/p$&$(1-p)/p^2$\\ Exponential$(\lambda)$&$x\ge0$&$1/\lambda$&$1/\lambda^2$\\ Normal$(\mu,\sigma^2)$&$\mathbb R$&$\mu$&$\sigma^2$\\\bottomrule\end{tabular}}
+Parameters: binomial $n\in\mathbb N_0$, Bernoulli/binomial $p\in[0,1]$, geometric $p\in(0,1]$, Poisson/exponential $\lambda>0$, and nondegenerate normal $\sigma^2>0$.
+The moment generating function $M_X(t)=\mathbb E(e^{tX})$, when finite on a neighborhood of $0$, determines the law and satisfies $M_X^{(k)}(0)=\mathbb E(X^k)$. Independence gives $M_{X+Y}=M_XM_Y$. Probability generating functions $G_X(s)=\mathbb E(s^X)$ are often safer for nonnegative integer-valued variables.
+\Statement{Theorem}{15}{Markov: for $X\ge0$ and $a>0$, $\mathbb P(X\ge a)\le\mathbb EX/a$. Chebyshev: if $\operatorname{Var}(X)<\infty$, then $\mathbb P(|X-\mathbb EX|\ge a)\le\operatorname{Var}(X)/a^2$.}
+\Proof{Since $X\ge a\mathbf1_{\{X\ge a\}}$, take expectations for Markov. Apply Markov to $(X-\mathbb EX)^2$ for Chebyshev.}
+\Question{6}{PRB-E2}{Let $X_1,\dots,X_n$ be independent with mean $\mu$ and variance $\sigma^2<\infty$. For $\varepsilon>0$, bound $\mathbb P(|\bar X_n-\mu|\ge\varepsilon)$ and identify the limiting conclusion.}
+\QuestionPart{a}{variance scaling}{PRB-E2}{Compute the variance of the sample mean.}{Independence kills covariance terms, so $\operatorname{Var}(\bar X_n)=n^{-2}\sum_i\sigma^2=\sigma^2/n$.}
+\QuestionPart{b}{weak law}{PRB-E2}{Give a bound and limit.}{Chebyshev yields $\mathbb P(|\bar X_n-\mu|\ge\varepsilon)\le\sigma^2/(n\varepsilon^2)\to0$. Thus $\bar X_n\to\mu$ in probability. This proof does not assert almost-sure convergence or a central-limit approximation.}
+\Alternative{bounded observations}{If independent $X_i\in[a,b]$ with $a<b$, Hoeffding gives $2\exp[-2n\varepsilon^2/(b-a)^2]$. If $a=b$, the variables are deterministic.}
+\columnbreak\Topic{Conditional expectation}
+\Continuation{PRB-E2 conditional expectation}
+\Statement{Definition}{16}{For $X\in L^1$ and sub-sigma-algebra $\mathcal G\subseteq\mathcal F$, $\mathbb E[X\mid\mathcal G]$ is a $\mathcal G$-measurable integrable $Y$ satisfying $\int_GY\,d\mathbb P=\int_GX\,d\mathbb P$ for every $G\in\mathcal G$. It is unique a.s.}
+Key rules: $\mathbb E(\mathbb E[X\mid\mathcal G])=\mathbb EX$; if $Z$ is bounded and $\mathcal G$-measurable, $\mathbb E[ZX\mid\mathcal G]=Z\mathbb E[X\mid\mathcal G]$; and for $\mathcal H\subseteq\mathcal G$, $\mathbb E(\mathbb E[X\mid\mathcal G]\mid\mathcal H)=\mathbb E[X\mid\mathcal H]$.
+\Example{7}{If $X,Y$ are jointly normal, then $\mathbb E[X\mid Y]=\mathbb EX+\operatorname{Cov}(X,Y)\operatorname{Var}(Y)^{-1}(Y-\mathbb EY)$ when $\operatorname{Var}(Y)>0$. The linear formula relies on joint normality; zero covariance alone does not usually imply independence.}
+\Topic{Small dependency diagram}
+\par{\centering
+\begin{tikzpicture}[x=5mm,y=2mm,>=Stealth,font=\fontsize{4}{4.2}\selectfont]
+\node (h) at (0,1) {$H$}; \node (x) at (-1,0) {$X$}; \node (y) at (1,0) {$Y$}; \node (z) at (0,-1) {$Z$};
+\draw[->,line width=.2pt] (h)--(x); \draw[->,line width=.2pt] (h)--(y); \draw[->,line width=.2pt] (x)--(z); \draw[->,line width=.2pt] (y)--(z);
+\node[align=center] at (0,-2.0) {latent cause $H$; observed $X,Y$;\\response $Z$};
+\end{tikzpicture}
+\par}
+\Caution{A diagram records a proposed factorization only after the graph semantics are declared. Arrows do not by themselves prove causality.}
+\CorpusStatistics
+\CorpusInference
+\ExtraInference
+\MajorBlock{DSP-F}{Discrete structures: counting, graphs, and recurrence}
+\Topic{Counting toolkit}
+\Identity{Binomial theorem}{(x+y)^n=\sum_{k=0}^n\binom nkx^ky^{n-k}}
+\Identity{Vandermonde}{\sum_k\binom rk\binom s{n-k}=\binom{r+s}{n}\quad(r,s,n\in\mathbb N_0;\ \binom ab=0\text{ outside }0\le b\le a)}
+\Identity{Inclusion--exclusion}{\left|\bigcup_{i=1}^nA_i\right|=\sum_{\varnothing\ne I\subseteq[n]}(-1)^{|I|+1}\left|\bigcap_{i\in I}A_i\right|}
+For $n\ge0,k\ge1$, stars and bars gives $\binom{n+k-1}{k-1}$ nonnegative solutions of $\sum x_i=n$. Positive solutions number $\binom{n-1}{k-1}$ when $n\ge k$, otherwise zero. Shift lower bounds and check the remaining total.
+\Worked{W7 [DSP-F]}{bounded compositions}{Count solutions of $x_1+x_2+x_3=12$ with $0\le x_i\le5$.}{Unrestricted count is $\binom{14}{2}=91$. If $x_i\ge6$, shift that coordinate to leave total $6$, giving $\binom82=28$ for each of three events. Two coordinates at least $6$ force the unique remainder total $0$, so each pair contributes $1$; three are impossible. Answer $91-3(28)+3=10$.}
+\Alternative{generating function}{Extract $[z^{12}](1+z+\cdots+z^5)^3=[z^{12}](1-z^6)^3(1-z)^{-3}$. The same alternating coefficients encode inclusion--exclusion.}
+\Topic{Graphs and trees}
+\Statement{Theorem}{17}{For a finite graph $G=(V,E)$, $\sum_{v\in V}\deg(v)=2|E|$.}
+\Statement{Corollary}{17.1}{In a finite graph, the number of odd-degree vertices is even.}
+\Statement{Theorem}{18}{For a finite nonempty simple graph, the following are equivalent: connected and acyclic; connected with $|V|-1$ edges; acyclic with $|V|-1$ edges; a unique simple path joins every pair.}
+\Proof{The singleton is the base case. A tree with at least two vertices has a leaf; delete it and induct for the edge count. Adding any missing edge creates a cycle, while removing any edge disconnects.}
+\Example{8}{Every tree with at least two vertices has at least two leaves: take a longest simple path. An endpoint with another neighbor would extend the path; a neighbor already on the path would create a cycle.}
+\Topic{Linear recurrences}
+For a genuine order-$k$ recurrence $a_n=c_1a_{n-1}+\cdots+c_ka_{n-k}$ with $c_k\ne0$, solve $r^k-c_1r^{k-1}-\cdots-c_k=0$. A nonzero root $r$ of multiplicity $m$ contributes $(A_0+\cdots+A_{m-1}n^{m-1})r^n$; zero roots require separate transient handling.
+\Question{8}{DSP-F}{Solve $a_n=4a_{n-1}-4a_{n-2}+2^n$, $a_0=0$, $a_1=1$.}
+\begin{minipage}[t]{\linewidth}
+\QuestionPart{a}{resonant recurrence}{DSP-F}{Find the general form.}{The characteristic polynomial is $(r-2)^2$, so $a_n^{(h)}=(A+Bn)2^n$. Since the forcing $2^n$ resonates with multiplicity two, try $a_n^{(p)}=Cn^2 2^n$. Substitution gives $2C\,2^n=2^n$, hence $C=1/2$.}
+\end{minipage}
+\columnbreak\Continuation{Q8(b) [DSP-F]}\QuestionPart{b}{initial data}{DSP-F}{Determine constants.}{$a_0=A=0$. Then $a_1=(B+1/2)2=1$, so $B=0$. Therefore $a_n=n^2 2^{n-1}$. Directly check both initial values and one recurrence index.}
+\CorpusDiscrete
+\CorpusCombinatorics
+\ExtraDiscrete
+\MajorBlock{ABS-G}{Abstract structures and compact reference tables}
+\Topic{Groups, quotients, and actions}
+\Statement{Definition}{19}{A group is a set $G$ with an associative product, identity $e$, and inverse $g^{-1}$ for each $g$. A subgroup $H\le G$ is nonempty and closed under $xy^{-1}$. A normal subgroup satisfies $gHg^{-1}=H$ for all $g$, precisely the condition making coset multiplication well defined.}
+\FormalStatement{Theorem}{20}{ABS-G}{first isomorphism theorem}{For a homomorphism $\varphi:G\to K$, the kernel is normal, the image is a subgroup, and $G/\ker\varphi\cong\operatorname{im}\varphi$ via $g\ker\varphi\mapsto\varphi(g)$.}
+\Proof{Well-definedness: $g\ker\varphi=g'\ker\varphi$ iff $g^{-1}g'\in\ker\varphi$, iff $\varphi(g)=\varphi(g')$. The induced map is a homomorphism, surjective onto the image, and injective by the same equivalence.}
+\Caution{Construct the quotient in order: raw cosets or equivalence classes, equivalence relation, quotient set, induced operation, well-definedness, then group structure. Do not multiply representatives before proving the result is representative-independent.}
+For an action $G\curvearrowright X$, stabilizer $G_x=\{g:gx=x\}$ and orbit $Gx=\{gx:g\in G\}$. For finite $G$, orbit--stabilizer gives $|Gx|=[G:G_x]$; for finite $G$ and $X$, Burnside counts orbits:
+\[
+|X/G|=\frac1{|G|}\sum_{g\in G}|\operatorname{Fix}(g)|.
+\]
+\Worked{W9 [ABS-G]}{Burnside}{How many colorings of the vertices of a square with $q$ colors are distinct under rotations?}{The identity fixes $q^4$. Rotations by $90^\circ$ and $270^\circ$ each force one color, contributing $q$ each. The $180^\circ$ rotation has two vertex cycles, contributing $q^2$. Average over four rotations: $(q^4+q^2+2q)/4$.}
+\Topic{Multivariable differential patterns}
+For $f:\mathbb R^n\to\mathbb R$, differentiability at $a$ means $f(a+h)=f(a)+Df(a)h+o(\|h\|)$. Partial derivatives at one point do not suffice. If $f\in C^2$ near $a$, $\nabla f(a)=0$, and the Hessian is nonsingular, positive definite gives a strict local minimum, negative definite a maximum, and indefinite a saddle.
+\[
+\begin{aligned}
+D(g\circ f)(a)&=Dg(f(a))Df(a),\\
+(f\circ\gamma)'(t)&=Df(\gamma(t))\gamma'(t).
+\end{aligned}
+\]
+\CompactTable{\begin{tabular}{@{}llll@{}}\toprule $2\times2$ Hessian&$f_{xx}$&$D=f_{xx}f_{yy}-f_{xy}^2$&type\\\midrule &${}>0$&${}>0$&minimum\\ &${}<0$&${}>0$&maximum\\ &any&${}<0$&saddle\\ &any&$=0$&inconclusive\\\bottomrule\end{tabular}}
+\Topic{Case split and aligned derivation}
+\Example{9}{For parameter $a$, solve $|x-a|\le x+1$. Necessarily $x+1\ge0$. Squaring is then safe:
+\[
+\begin{aligned}
+(x-a)^2&\le(x+1)^2\\
+-2(a+1)x&\le1-a^2.
+\end{aligned}
+\qquad
+\begin{cases}
+x\ge(a-1)/2,&a>-1,\\
+\text{all }x\ge-1,&a=-1,\\
+x\le(a-1)/2,&a<-1.
+\end{cases}
+\]
+Intersect every branch with $x\ge-1$. At $a=-1$, the original inequality is equality for all $x\ge-1$.}
+\Topic{Symbols and final checks}
+\CompactTable{\begin{tabular}{@{}ll|ll@{}}\toprule symbol&meaning&symbol&meaning\\\midrule $\iff$&two directions&$\hookrightarrow$&injective\\ $\twoheadrightarrow$&surjective&$\sqcup$&disjoint union\\ $\langle x,y\rangle$&inner product&$\operatorname{span}S$&linear span\\ $O(g)$&bounded ratio&$o(g)$&ratio $\to0$\\\bottomrule\end{tabular}}
+Before using a formula: identify hypotheses, domains, boundary cases, and zero denominators. Before ending a proof: bind every introduced variable, state the quantified conclusion, and separate necessity from sufficiency. \columnbreak\Continuation{final checks}Before reporting a numerical result, retain exact form, check sign and scale, and test a simple special case. Cross-reference examples by \SourceRef{FND-A}, \SourceRef{CAL-C}, or concept label \ConceptRef{finite-net argument}; tags remain readable when PDF links are unavailable.
+\CorpusAbstract
+\CorpusFieldExtensions
+\ExtraAbstract
+\SupplementalComplexOptimizationAndPDE
+\end{CheatSheet}
+\end{document}

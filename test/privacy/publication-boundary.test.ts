@@ -69,6 +69,35 @@ it("keeps every tracked or untracked publication candidate inside the boundary",
   assert.deepEqual(findPublicationBoundaryViolations(files), []);
 });
 
+it("admits the exact generic compiled cheatsheet example", () => {
+  assert.deepEqual(
+    findPublicationBoundaryViolations([
+      {
+        path: "docs/examples/mathematics-cheatsheet.pdf",
+        contents: "%PDF-1.7",
+      },
+    ]),
+    [],
+  );
+});
+
+it("keeps neighboring compiled PDFs outside the specimen allowance", () => {
+  assert.deepEqual(
+    findPublicationBoundaryViolations([
+      {
+        path: "docs/examples/mathematics-cheatsheet-copy.pdf",
+        contents: "%PDF-1.7",
+      },
+    ]),
+    [
+      {
+        path: "docs/examples/mathematics-cheatsheet-copy.pdf",
+        kind: "academic-content",
+      },
+    ],
+  );
+});
+
 it("admits a seed-source template carrying its destination's name", () => {
   const files = [
     {

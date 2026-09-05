@@ -176,7 +176,7 @@ describe("Research-project audit observations", () => {
       JSON.stringify({
         schemaVersion: 1,
         ruleSetVersion: 1,
-        contractVersion: 4,
+        contractVersion: 5,
         target: {
           moduleCode: "MH2100",
           semester: "Y2S1",

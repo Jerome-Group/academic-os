@@ -5,10 +5,10 @@ with an applicable rule here is wrong, and a rule that is not here is not a rule
 outside a module folder is governed too, and it is the only one: the shared Textbook shelf at
 `Modules/Textbooks`, which every module cuts its chapters from.
 
-**Contract version: 4.** Increase it when a normative requirement, applicability rule or allowed
+**Contract version: 5.** Increase it when a normative requirement, applicability rule or allowed
 structure changes. Editorial clarification and repaired citations do not change it. Definition and
 Curation-register schema versions advance independently, which is how the register reached version 2
-while this contract stayed at 4.
+while this contract reached 5.
 
 Rules have stable IDs. **Deterministic** rules are decided without judgment; **judgment** rules
 must expose their evidence for an agent or person to resolve. The folders live outside this
@@ -152,11 +152,11 @@ schema and contract versions, module identity, offering, applicable context-deri
 declared importer roots and their evidence. It contains module-relative paths only: no absolute
 Drive paths, credentials, deadlines, prose workflows, inventories or learner progress.
 
-The schema version 2 shape for contract version 4 is:
+The schema version 2 shape for contract version 5 is:
 
 ```yaml
 schema_version: 2
-contract_version: 4
+contract_version: 5
 module: {code: MH2100, title: Calculus III}
 offering: {academic_year: 2026-2027, semester: 1, status: active}
 structure:
@@ -314,20 +314,26 @@ own `records/`, beside `templates/`, `GLOSSARY.md`, `RESOURCES.md` and `REVISIT.
 creates every one of them for every module, whether or not that module will ever use them, and
 writes this repository's LaTeX template set and teaching preferences into `templates/`.
 
-`templates/` holds exactly these eight, each required by name, so a module keeps the set it was
-seeded rather than holding an empty directory:
+`templates/` holds these eleven files, each required by name:
 
 ```text
-graded-feedback.tex               reference-sheet.tex
-lecture-walkthrough.tex           revision-notes.tex
-preamble.tex                      tutorial-concepts-consolidation.tex
-preferences.md                    tutorial-solution-writeup.tex
+chatgpt-logo.tex                   mathematics-cheatsheet.tex
+graded-feedback.tex               preamble.tex
+lecture-walkthrough.tex            preferences.md
+mathematics-cheatsheet-preamble.tex reference-sheet.tex
+revision-notes.tex                 tutorial-concepts-consolidation.tex
+tutorial-solution-writeup.tex
 ```
 
-The seven `.tex` files are required by name alone and their contents are free: a module edits one
-where the difference is functional, and the rendered page stays the same across modules.
-`preferences.md` is the exception, pinned byte for byte under MF-AGENTS-004, because that argument
-is about how a preference is amended rather than about a rendered page.
+The ten `.tex` files are required by name alone and their contents are free: a module edits one
+where the difference is functional, and its rendered page follows the selected seeded artifact
+type. `preferences.md` is pinned byte for byte under MF-AGENTS-004.
+
+The six existing teaching artifact types use `preamble.tex`. The mathematics cheatsheet uses its
+own preamble and portable logo dependency. It includes solved questions and proofs; the reference
+sheet remains the formulas-and-conditions type. The filled cheatsheet specimen contains original
+generic demonstration mathematics. Coursework, source quotations and personal source paths belong
+in module folders.
 
 Enforcement stops at the activity area. What a folder inside one holds — a Lecture-unit, a
 tutorial, a revision topic, a past paper — is the seeded Teaching procedure's business, and this

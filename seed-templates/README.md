@@ -44,22 +44,20 @@ contract's own text:
 
 ## The LaTeX set
 
-`70 Learning/templates/` seeds `preamble.tex`, one file per artifact type named for that type, and
-`preferences.md`. The preamble holds every visual decision, and holds them exactly as the Owner
-chose them on `prototype/teaching-session-artifacts`: Latin Modern on a tight monochrome page,
-run-in theorem heads, warnings as red-edged boxes on the shared theorem counter. What the preamble
-adds beyond that branch is the semantic interface — the header macro and the environments the six
-types write against — which is where a one-type prototype had nothing to say. A type file carries
-structure and placeholder prose and no styling at all, and that separation is what lets a module's
-divergence stay functional rather than visual.
+`70 Learning/templates/` seeds seven artifact types, their preambles, a portable logo dependency
+and `preferences.md`. The six ordinary teaching types retain their shared `preamble.tex` and
+existing appearance. `mathematics-cheatsheet.tex` is the filled original specimen for the separate
+compact monochrome interface in `mathematics-cheatsheet-preamble.tex`; `chatgpt-logo.tex` carries
+its local vector asset. Type files carry semantic structure and content. Their selected preamble
+carries visual decisions, including fixed typography and the actual font sizes used by large
+operators.
 
 Two things a reader would otherwise find out the hard way:
 
-- **A type file reaches the preamble from either place.** Its input line tries `preamble.tex` beside
-  it and falls back two levels up, so the same file compiles here in `templates/` and as a copy in a
-  unit folder, with no path to edit.
-- **They compile in their seeded form, not this one** — here the preamble is still
-  `preamble.template.tex`. `npm run templates:check` strips the infix into a temporary directory and
-  runs `latexmk -pdf -outdir=build` over each type. CI runs it too, on a runner it installs TeX Live
-  onto, so a broken template cannot merge; run it locally as well, because the round trip through a
-  red job is the slow way to find a missing brace.
+- **A type file reaches its selected preamble from either place.** Its input line tries the
+  preamble beside it and falls back two levels up, so the same file compiles here in `templates/`
+  and as a copy in a unit folder, with no path to edit.
+- **They compile in their seeded form, not this one** — here support files still carry the
+  `.template` infix. `npm run templates:check` materializes seeded filenames in a temporary
+  workspace and compiles each document against its declared support files. CI runs the same check
+  after installing TeX Live.

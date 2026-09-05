@@ -401,7 +401,7 @@ function lastFailure(journal: SeedJournal): string {
 function unresolvedPlaceholders(operations: SeedOperation[]): string[] {
   return operations.flatMap(({ path, contents }) =>
     contents !== undefined &&
-    /\{\{[^}]+\}\}|<[^>\n]*(?:TODO|PLACEHOLDER|official URL)[^>\n]*>/iu.test(
+    /\{\{[^}\\]+\}\}|<[^>\n]*(?:TODO|PLACEHOLDER|official URL)[^>\n]*>/iu.test(
       contents,
     )
       ? [`Unresolved placeholder in ${path}.`]

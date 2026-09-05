@@ -132,12 +132,15 @@ page, a video series, a solutions archive — each with a line saying what it is
 
 ## Templates
 
-`templates/` is seeded with six types — lecture walkthrough, tutorial solution writeup, tutorial
-concepts consolidation, graded feedback, revision/topic notes, reference sheet — beside the shared
-preamble and the preferences file. Start every artifact from the type that matches it.
+`templates/` is seeded with six ordinary teaching types — lecture walkthrough, tutorial solution
+writeup, tutorial concepts consolidation, graded feedback, revision/topic notes, reference sheet —
+and a mathematics cheatsheet for dense results, proofs and solved questions. Start each artifact
+from its matching type. The ordinary types use `preamble.tex`; the cheatsheet uses
+`mathematics-cheatsheet-preamble.tex` and `chatgpt-logo.tex`. The filled cheatsheet is an interface
+specimen: replace its original generic examples with the artifact's audited content.
 
 **Divergence is functional, never visual.** A module adds what makes writing its own LaTeX easier:
-macros, environments, notation shortcuts. The page it renders to stays the seeded page, so PDFs
+macros, environments, notation shortcuts. The page it renders to stays the selected type's seeded page, so PDFs
 look identical across every module. A change that would show in a rendered page is a change to the
 seeded set, and so the Owner's.
 

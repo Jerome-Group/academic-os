@@ -736,7 +736,7 @@ them in Module Admin, `40 Source Map.yaml` is seeded declaring no units; the Lec
 workspace reads it for are filled in from the module research. `30 Task Register.yaml` is seeded the
 same way — `tasks: []` and no list, which `tasks provision` fills — and `50 Textbook Register.yaml`
 as `extractions: []`, which the Textbook procedure appends to as chapters are cut off the shelf. The
-eight files in `templates/` are required by name, so the set survives; a `.tex` among them is the
+eleven files in `templates/` are required by name, so the set survives; a `.tex` among them is the
 module's to edit where the difference is functional, so audit checks that it is there rather than
 diffing it back. `preferences.md` is the exception and is diffed, under MF-AGENTS-004 with the rest
 of the pinned set.

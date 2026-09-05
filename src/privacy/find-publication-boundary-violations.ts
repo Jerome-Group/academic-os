@@ -52,6 +52,9 @@ const allowedSyntheticOrNormativeText = new Set([
 ]);
 const seedSourceTemplatePath =
   /^seed-templates\/(?:[^/]+\/)*[^/]+\.template\.[^/.]+$/u;
+const allowedSyntheticArtifacts = new Set([
+  "docs/examples/mathematics-cheatsheet.pdf",
+]);
 const privateStatePath =
   /(?:^|\/)(?:observations|journals|reports|academic-os-state|drive-api-responses|calendar-provider-responses)(?:\/|$)|^calendar\/|\.calendar-provider-response\.json$/u;
 const credentialPath =
@@ -79,8 +82,9 @@ export function findPublicationBoundaryViolations(
 
 function isAcademicPath(path: string): boolean {
   return (
-    isAcademicDirectory(path) ||
-    (!isInspectableSeedTemplate(path) && namesCourseworkFile(path))
+    !allowedSyntheticArtifacts.has(path) &&
+    (isAcademicDirectory(path) ||
+      (!isInspectableSeedTemplate(path) && namesCourseworkFile(path)))
   );
 }
 

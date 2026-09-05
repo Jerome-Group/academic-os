@@ -398,12 +398,37 @@ describe("auditModuleControls", () => {
     );
   });
 
+  it("requires a version-4 module to transition to version 5", () => {
+    const controls = validModuleControls();
+    controls.definition =
+      controls.definition?.replace(
+        "contract_version: 5",
+        "contract_version: 4",
+      ) ?? "";
+
+    const result = auditModuleControls(
+      {
+        moduleCode: "MH2100",
+        semester: "Y2S1",
+        controls,
+      },
+      testModuleContract,
+    );
+
+    assert.equal(result.outcome, "deviation");
+    assert.match(
+      result.findings.find(({ ruleId }) => ruleId === "MF-DEFINITION-001")
+        ?.evidence ?? "",
+      /contract_version 4 requires upgrade to requested version 5/u,
+    );
+  });
+
   it("fails unsupported schema and contract versions explicitly", () => {
     const controls = validModuleControls();
     controls.definition =
       controls.definition
         ?.replace("schema_version: 2", "schema_version: 3")
-        .replace("contract_version: 4", "contract_version: 5") ?? "";
+        .replace("contract_version: 5", "contract_version: 6") ?? "";
 
     const result = auditModuleControls(
       {
@@ -423,7 +448,7 @@ describe("auditModuleControls", () => {
     );
     assert.match(
       versionFinding?.evidence ?? "",
-      /Unsupported contract_version 5/u,
+      /Unsupported contract_version 6/u,
     );
     assert.equal(
       result.findings.filter(({ ruleId }) => ruleId === "MF-DEFINITION-001")

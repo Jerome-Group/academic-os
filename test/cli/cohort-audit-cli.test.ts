@@ -454,7 +454,7 @@ it("queues a lagging cohort module for transition and touches nothing [MF-TRANSI
     module.findings.find(
       ({ ruleId }: { ruleId: string }) => ruleId === "MF-DEFINITION-001",
     )?.evidence ?? "",
-    /contract_version 3 requires upgrade to requested version 4/u,
+    /contract_version 3 requires upgrade to requested version 5/u,
   );
   recordBehaviorEvidence("MF-TRANSITION-001", () => {
     assert.equal(

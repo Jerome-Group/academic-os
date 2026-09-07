@@ -247,10 +247,58 @@ describe("auditModule governed content", () => {
         "20 Tutorials/MH2100_tutorial_1.pdf",
         "30 Assessments/40 Finals/MH2100_Final_2026.PDF",
         "90 Resources/00 Unclassified/MH2100_01.pdf",
-        "10 Learning Materials/30 Personal Notes/MH2100_Note_ABC.pdf",
       ],
     );
     recordFindingEvidence(findings, "MF-NAMING-002");
+  });
+
+  it("preserves semantic filename tokens and scopes support ownership [MF-NAMING-002]", () => {
+    const target = inventory();
+    const valid = [
+      "20 Tutorials/MH2100_Tutorial_01_TA_Annotated.pdf",
+      "20 Tutorials/MH2100_Career_LinkedIn_NTU.pdf",
+      "30 Assessments/30 Midterms/MH2100_Test_2025-2026_Practice_1.pdf",
+      "10 Learning Materials/30 Personal Notes/support/aid/history/raw source.TEX",
+    ];
+    const invalid = [
+      "20 Tutorials/MH2100_Test_2025-2027.pdf",
+      "20 Tutorials/MH2100_Test_123.pdf",
+      "20 Tutorials/MH2100__Notes.pdf",
+      "10 Learning Materials/30 Personal Notes/support-other/raw source.TEX",
+      "10 Learning Materials/30 Personal Notes/raw source.TEX",
+    ];
+    for (const path of [...valid, ...invalid]) add(target, path, "file");
+    assert.deepEqual(
+      audit(target)
+        .findings.filter(
+          (f) => f.ruleId === "MF-NAMING-002" && f.status === "fail",
+        )
+        .map((f) => f.path),
+      invalid,
+    );
+  });
+
+  it("permits direct assessment compilation output without opening academic nesting [MF-ASSESSMENTS-001]", () => {
+    const target = inventory();
+    add(target, "30 Assessments/30 Midterms/MH2100_Test_01.tex", "file");
+    for (const path of [
+      "30 Assessments/30 Midterms/build",
+      "30 Assessments/30 Midterms/build/cache",
+      "30 Assessments/30 Midterms/Extra",
+      "30 Assessments/30 Midterms/Extra/build",
+    ])
+      add(target, path);
+    assert.deepEqual(
+      audit(target)
+        .findings.filter(
+          (f) => f.ruleId === "MF-ASSESSMENTS-001" && f.status === "fail",
+        )
+        .map((f) => f.path),
+      [
+        "30 Assessments/30 Midterms/Extra",
+        "30 Assessments/30 Midterms/Extra/build",
+      ],
+    );
   });
 
   it("preserves declared importer descendants and classifies undeclared roots [MF-CURATION-002] [MF-IMPORTER-001]", () => {
@@ -282,7 +330,7 @@ describe("auditModule governed content", () => {
     });
   });
 
-  it("accepts workspace build layouts and rejects root and scratch builds [MF-LATEX-001]", () => {
+  it("accepts workspace and disposable scratch builds but rejects root and orphan builds [MF-LATEX-001]", () => {
     const target = inventory();
     for (const path of [
       "40 Projects and Labs/Poster",
@@ -301,7 +349,7 @@ describe("auditModule governed content", () => {
 
     assert.deepEqual(
       findings.map(({ path }) => path),
-      [".scratch/draft/build", "40 Projects and Labs/Orphan/build", "build"],
+      ["40 Projects and Labs/Orphan/build", "build"],
     );
     assert.equal(
       findings.some(({ path }) => path === "40 Projects and Labs/Poster/build"),

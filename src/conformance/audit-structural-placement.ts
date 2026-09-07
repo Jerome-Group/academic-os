@@ -96,12 +96,14 @@ function assessmentFlatnessFindings(inventory: Inventory): Finding[] {
       (candidate) => path.startsWith(`${candidate}/`) || path === candidate,
     );
     if (home === undefined || path === home || kind !== "directory") return [];
+    if (path === `${home}/build` || path.startsWith(`${home}/build/`))
+      return [];
     return [
       deterministicFailure(
         "MF-ASSESSMENTS-001",
         path,
         `Inventory contains nested assessment directory ${path}.`,
-        "Assessment-category contents must remain flat.",
+        "Assessment artifacts remain flat; only the category-local build subtree is exempt.",
       ),
     ];
   });
@@ -109,7 +111,7 @@ function assessmentFlatnessFindings(inventory: Inventory): Finding[] {
     failures,
     "MF-ASSESSMENTS-001",
     "30 Assessments",
-    "No assessment category contains a nested directory.",
+    "Assessment categories contain no nested academic directory beyond compilation build output.",
     "Flatness applies only inside contract-defined assessment homes.",
   );
 }

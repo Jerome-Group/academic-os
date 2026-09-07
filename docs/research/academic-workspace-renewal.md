@@ -17,22 +17,22 @@ LaTeX seed documents compile. Four calendar regression suites pass all 87 tests.
 calendar PR was superseded by already merged fixes. Historical morning reports were reviewed and
 their remaining decisions consolidated into #221 without marking academic tasks complete.
 
-| Subsystem | Finding and decision |
-| --- | --- |
+| Subsystem                          | Finding and decision                                                                                                                                                                                              |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Contract, conformance and controls | Profile and Source Map validators reject useful current detail; Research validation describes an abandoned parallel workspace. Update semantic interfaces and keep deterministic findings distinct from judgment. |
-| Seeding and mounted writes | Keep configured-root discovery, materialization checks, staged exclusive creation and resumable journals. Add recoverable selective updates rather than reseeding occupied workspaces. |
-| Cohort and observations | Active selection and separate Research observations work. Preserve before/after evidence; a contract-version change remains migration evidence. |
-| Drive inventory and repair | Retain read-only paginated inventory and ID-bound recovery. This campaign primarily changes backed-up controls and artifact organization, not importer trees. |
-| Curation and textbooks | Repeated source departures and unclassified metadata need recorded decisions. Preserve append-only history, placed copies and the existing shelf system. |
-| Tasks | Pulls preserve provider identity but rewrite entire YAML even when unchanged; the file store has no fresh-byte precondition or original-byte backup. Strengthen this before increasing cadence. |
-| Calendar | Current recurrence and milestone fixes work. Preserve preview, conflict checking, verified promotion and live authority; improve mirror freshness. |
-| Morning routine | Structured results and per-module isolation work. Update model/instructions and ensure a one-time actionable source signal remains visible until settled. |
-| Launchd | Calendar refresh is daily; task refresh is part of the morning pass. Add bounded periodic state refresh with private status and quiet healthy runs. |
-| Operations server | Keep target-specific verified task operations. Exercise the improved register store through the existing command/tool paths. |
-| Skills and instructions | Routes repeatedly encode approval pauses and assume one activity target per lecture unit. Clarify authorization and select actual activity targets. |
-| CLI and reports | Keep human/JSON parity, explicit unsafe/stale outcomes and private metadata reports. |
-| Publication and CI | Baseline checks pass; no dependency PR is pending. Use synthetic fixtures and public design findings, not copied academic material. |
-| Repository guidance | Retain organisation-owned workflow, attribution and standards; add precise pointers for the new local interfaces. |
+| Seeding and mounted writes         | Keep configured-root discovery, materialization checks, staged exclusive creation and resumable journals. Add recoverable selective updates rather than reseeding occupied workspaces.                            |
+| Cohort and observations            | Active selection and separate Research observations work. Preserve before/after evidence; a contract-version change remains migration evidence.                                                                   |
+| Drive inventory and repair         | Retain read-only paginated inventory and ID-bound recovery. This campaign primarily changes backed-up controls and artifact organization, not importer trees.                                                     |
+| Curation and textbooks             | Repeated source departures and unclassified metadata need recorded decisions. Preserve append-only history, placed copies and the existing shelf system.                                                          |
+| Tasks                              | Pulls preserve provider identity but rewrite entire YAML even when unchanged; the file store has no fresh-byte precondition or original-byte backup. Strengthen this before increasing cadence.                   |
+| Calendar                           | Current recurrence and milestone fixes work. Preserve preview, conflict checking, verified promotion and live authority; improve mirror freshness.                                                                |
+| Morning routine                    | Structured results and per-module isolation work. Update model/instructions and ensure a one-time actionable source signal remains visible until settled.                                                         |
+| Launchd                            | Calendar refresh is daily; task refresh is part of the morning pass. Add bounded periodic state refresh with private status and quiet healthy runs.                                                               |
+| Operations server                  | Keep target-specific verified task operations. Exercise the improved register store through the existing command/tool paths.                                                                                      |
+| Skills and instructions            | Routes repeatedly encode approval pauses and assume one activity target per lecture unit. Clarify authorization and select actual activity targets.                                                               |
+| CLI and reports                    | Keep human/JSON parity, explicit unsafe/stale outcomes and private metadata reports.                                                                                                                              |
+| Publication and CI                 | Baseline checks pass; no dependency PR is pending. Use synthetic fixtures and public design findings, not copied academic material.                                                                               |
+| Repository guidance                | Retain organisation-owned workflow, attribution and standards; add precise pointers for the new local interfaces.                                                                                                 |
 
 ### Current Module practice
 
@@ -97,15 +97,15 @@ Each route states its editable files and regions before writing. User authorizat
 the requested task. Routine reversible steps proceed; a question is reserved for an unresolved
 choice that materially changes the result. Distinguish these boundaries:
 
-| Material | Edit mode |
-| --- | --- |
-| Importer originals, supervisor originals, Owner attempts | Read or copy; retain original bytes. |
-| Session records, curation history, adopted contribution history, ADRs | Append or supersede; retain prior entries and stable references. |
-| Profile facts, source mappings, glossary entries, current ledgers | Update the identified section, row or stable key; preserve other content. |
-| Live Task/Calendar state | Use the authoritative tool/CLI, verify the push, then refresh; preserve IDs and unrelated fields. |
-| Generated mathematics | Edit the requested artifact region, retain provenance/status, compile and review the resulting artifact. |
-| Shared instructions | Refresh from reviewed repository sources after comparing local changes. |
-| Local mathematical choices | Keep in local preferences, vocabulary and decisions; inspect schema/links rather than byte-pin them. |
+| Material                                                              | Edit mode                                                                                                |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Importer originals, supervisor originals, Owner attempts              | Read or copy; retain original bytes.                                                                     |
+| Session records, curation history, adopted contribution history, ADRs | Append or supersede; retain prior entries and stable references.                                         |
+| Profile facts, source mappings, glossary entries, current ledgers     | Update the identified section, row or stable key; preserve other content.                                |
+| Live Task/Calendar state                                              | Use the authoritative tool/CLI, verify the push, then refresh; preserve IDs and unrelated fields.        |
+| Generated mathematics                                                 | Edit the requested artifact region, retain provenance/status, compile and review the resulting artifact. |
+| Shared instructions                                                   | Refresh from reviewed repository sources after comparing local changes.                                  |
+| Local mathematical choices                                            | Keep in local preferences, vocabulary and decisions; inspect schema/links rather than byte-pin them.     |
 
 ## Decisions and implementation scope
 
@@ -246,6 +246,24 @@ portable compiled cheatsheet. Keep backups until all these checks succeed; they 
 by exact journal identity. A retained backup is preferable to an uncertain cleanup.
 
 ## Delivery order and completion
+
+### Final audit addition: artifact names and disposable output
+
+The projected migration audit adds #231 before live application. Preserve semantic filename tokens:
+uppercase initialisms, internal-capital proper names, adjacent full academic-year ranges and one- or
+two-digit source/artifact counters. New sequences default to two digits. Keep module prefixes,
+underscore boundaries, text tokens and lowercase extensions checked. The dedicated Personal Notes
+`support/` tree is artifact-owned support, with its own manifest and provenance rather than curated
+release filename rules.
+
+Treat `.scratch/` as an open disposable interior, including runtime dependencies and build output.
+Keep module-root `build/` prohibited and ordinary build directories tied to TeX workspaces. Permit
+a category-local `build/` subtree beside flat assessment artifacts. These changes resolve current
+false findings without renaming useful academic artifacts. Private Definition updates retain the
+source facts while replacing importer-interior locators with stable source names.
+
+Land this conformance slice before the backed-up transition and include its synthetic boundary
+tests and projected audits in final acceptance.
 
 1. Review and merge this complete plan before implementation.
 2. Land the Module interface/instruction slice with regression tests and router checks.

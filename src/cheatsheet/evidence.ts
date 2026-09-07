@@ -21,7 +21,7 @@ export async function loadCheatsheetEvidence(input: {
   manifestPath: string;
 }): Promise<CheatsheetEvidence> {
   const manifestText = await readFile(
-    resolveModuleFile(input.moduleRoot, input.manifestPath),
+    await resolveModuleFile(input.moduleRoot, input.manifestPath),
     "utf8",
   );
   const manifest = parseCheatsheetManifest(manifestText);
@@ -30,7 +30,7 @@ export async function loadCheatsheetEvidence(input: {
     throw new Error(`Manifest path must be ${expectedManifestPath}.`);
   }
   const coverageText = await readFile(
-    resolveModuleFile(input.moduleRoot, manifest.coverage),
+    await resolveModuleFile(input.moduleRoot, manifest.coverage),
     "utf8",
   );
   const coverage = parseCheatsheetCoverage({
@@ -39,7 +39,7 @@ export async function loadCheatsheetEvidence(input: {
   });
   for (const source of manifest.sources) {
     const bytes = await readFile(
-      resolveModuleFile(input.moduleRoot, source.path),
+      await resolveModuleFile(input.moduleRoot, source.path),
     );
     if (sha256Bytes(bytes) !== source.sha256) {
       throw new Error(`${source.path} no longer matches its declared SHA-256.`);
@@ -50,7 +50,7 @@ export async function loadCheatsheetEvidence(input: {
     authoring: manifest.authoring,
   });
   const releaseSource = await readFile(
-    resolveModuleFile(input.moduleRoot, manifest.artifact.releaseTex),
+    await resolveModuleFile(input.moduleRoot, manifest.artifact.releaseTex),
     "utf8",
   );
   if (releaseSource !== built.source) {
@@ -62,7 +62,7 @@ export async function loadCheatsheetEvidence(input: {
     throw new Error("Release TeX digest does not describe the current source.");
   }
   const releasedPdf = await readFile(
-    resolveModuleFile(input.moduleRoot, manifest.artifact.releasePdf),
+    await resolveModuleFile(input.moduleRoot, manifest.artifact.releasePdf),
   );
   if (manifest.release.pdfSha256 !== sha256Bytes(releasedPdf)) {
     throw new Error("Release PDF digest does not describe the current PDF.");

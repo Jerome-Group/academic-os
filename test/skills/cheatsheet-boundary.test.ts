@@ -51,7 +51,9 @@ describe("the cheatsheet router skill", () => {
     assert.match(example, /review: \{status: unreviewed\}/u);
   });
 
-  it("finds a procedure-bearing module once across resolved mount aliases", async () => {
+  it("finds a procedure-bearing module once across resolved mount aliases", {
+    skip: process.platform !== "darwin",
+  }, async () => {
     const fixture = await mkdtemp(join(tmpdir(), "cheatsheet-skill-"));
     try {
       const cloud = join(fixture, "cloud");

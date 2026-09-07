@@ -139,6 +139,35 @@ it("rejects a body-size marker that overstates the rendered body font", {
   }
 });
 
+it("ignores invisible text when enforcing the rendered body font floor", {
+  skip: !latexAvailable,
+}, async () => {
+  const root = await mkdtemp(join(tmpdir(), "portable-release-hidden-font-"));
+  try {
+    const lyingSource = source.replace(
+      "{\\fontsize{14}{16}\\selectfont Heading}\\par\n\\fontsize{10}{12}\\selectfont Portable mathematical source: $a^2+b^2=c^2$.",
+      "\\pdfliteral direct {3 Tr}{\\fontsize{10}{12}\\selectfont Invisible body repeated repeated repeated repeated repeated repeated repeated repeated repeated repeated repeated repeated repeated repeated repeated repeated repeated repeated repeated repeated.}\\pdfliteral direct {0 Tr}\\par\n{\\fontsize{2}{2.4}\\selectfont Visible mathematical source: $a^2+b^2=c^2$.}",
+    );
+    await writeFile(join(root, "sheet.tex"), lyingSource);
+    await run(
+      "latexmk",
+      ["-pdf", "-interaction=nonstopmode", "-halt-on-error", "sheet.tex"],
+      { cwd: root },
+    );
+    await assert.rejects(
+      verifyPortableCheatsheetRelease({
+        source: lyingSource,
+        releasedPdf: await readFile(join(root, "sheet.pdf")),
+        filename: "sheet.tex",
+        constraints,
+      }),
+      /does not match the PDF's dominant text size/u,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 it("rejects vertical overflow from an isolated build", {
   skip: !latexAvailable,
 }, async () => {

@@ -3993,10 +3993,10 @@ var require_resolve_block_map = __commonJS({
       let offset = bm.offset;
       let commentEnd = null;
       for (const collItem of bm.items) {
-        const { start, key, sep, value } = collItem;
+        const { start, key, sep: sep2, value } = collItem;
         const keyProps = resolveProps.resolveProps(start, {
           indicator: "explicit-key-ind",
-          next: key ?? sep?.[0],
+          next: key ?? sep2?.[0],
           offset,
           onError,
           parentIndent: bm.indent,
@@ -4010,7 +4010,7 @@ var require_resolve_block_map = __commonJS({
             else if ("indent" in key && key.indent !== bm.indent)
               onError(offset, "BAD_INDENT", startColMsg);
           }
-          if (!keyProps.anchor && !keyProps.tag && !sep) {
+          if (!keyProps.anchor && !keyProps.tag && !sep2) {
             commentEnd = keyProps.end;
             if (keyProps.comment) {
               if (map.comment)
@@ -4034,7 +4034,7 @@ var require_resolve_block_map = __commonJS({
         ctx.atKey = false;
         if (utilMapIncludes.mapIncludes(ctx, map.items, keyNode))
           onError(keyStart, "DUPLICATE_KEY", "Map keys must be unique");
-        const valueProps = resolveProps.resolveProps(sep ?? [], {
+        const valueProps = resolveProps.resolveProps(sep2 ?? [], {
           indicator: "map-value-ind",
           next: value,
           offset: keyNode.range[2],
@@ -4050,7 +4050,7 @@ var require_resolve_block_map = __commonJS({
             if (ctx.options.strict && keyProps.start < valueProps.found.offset - 1024)
               onError(keyNode.range, "KEY_OVER_1024_CHARS", "The : indicator must be at most 1024 chars after the start of an implicit block mapping key");
           }
-          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : composeEmptyNode(ctx, offset, sep, null, valueProps, onError);
+          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : composeEmptyNode(ctx, offset, sep2, null, valueProps, onError);
           if (ctx.schema.compat)
             utilFlowIndentCheck.flowIndentCheck(bm.indent, value, onError);
           offset = valueNode.range[2];
@@ -4141,7 +4141,7 @@ var require_resolve_end = __commonJS({
       let comment = "";
       if (end) {
         let hasSpace = false;
-        let sep = "";
+        let sep2 = "";
         for (const token of end) {
           const { source, type } = token;
           switch (type) {
@@ -4155,13 +4155,13 @@ var require_resolve_end = __commonJS({
               if (!comment)
                 comment = cb;
               else
-                comment += sep + cb;
-              sep = "";
+                comment += sep2 + cb;
+              sep2 = "";
               break;
             }
             case "newline":
               if (comment)
-                sep += source;
+                sep2 += source;
               hasSpace = true;
               break;
             default:
@@ -4204,18 +4204,18 @@ var require_resolve_flow_collection = __commonJS({
       let offset = fc.offset + fc.start.source.length;
       for (let i = 0; i < fc.items.length; ++i) {
         const collItem = fc.items[i];
-        const { start, key, sep, value } = collItem;
+        const { start, key, sep: sep2, value } = collItem;
         const props = resolveProps.resolveProps(start, {
           flow: fcName,
           indicator: "explicit-key-ind",
-          next: key ?? sep?.[0],
+          next: key ?? sep2?.[0],
           offset,
           onError,
           parentIndent: fc.indent,
           startOnNewline: false
         });
         if (!props.found) {
-          if (!props.anchor && !props.tag && !sep && !value) {
+          if (!props.anchor && !props.tag && !sep2 && !value) {
             if (i === 0 && props.comma)
               onError(props.comma, "UNEXPECTED_TOKEN", `Unexpected , in ${fcName}`);
             else if (i < fc.items.length - 1)
@@ -4269,8 +4269,8 @@ var require_resolve_flow_collection = __commonJS({
             }
           }
         }
-        if (!isMap && !sep && !props.found) {
-          const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep, null, props, onError);
+        if (!isMap && !sep2 && !props.found) {
+          const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep2, null, props, onError);
           coll.items.push(valueNode);
           offset = valueNode.range[2];
           if (isBlock(value))
@@ -4282,7 +4282,7 @@ var require_resolve_flow_collection = __commonJS({
           if (isBlock(key))
             onError(keyNode.range, "BLOCK_IN_FLOW", blockMsg);
           ctx.atKey = false;
-          const valueProps = resolveProps.resolveProps(sep ?? [], {
+          const valueProps = resolveProps.resolveProps(sep2 ?? [], {
             flow: fcName,
             indicator: "map-value-ind",
             next: value,
@@ -4293,8 +4293,8 @@ var require_resolve_flow_collection = __commonJS({
           });
           if (valueProps.found) {
             if (!isMap && !props.found && ctx.options.strict) {
-              if (sep)
-                for (const st of sep) {
+              if (sep2)
+                for (const st of sep2) {
                   if (st === valueProps.found)
                     break;
                   if (st.type === "newline") {
@@ -4311,7 +4311,7 @@ var require_resolve_flow_collection = __commonJS({
             else
               onError(valueProps.start, "MISSING_CHAR", `Missing , or : between ${fcName} items`);
           }
-          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : valueProps.found ? composeEmptyNode(ctx, valueProps.end, sep, null, valueProps, onError) : null;
+          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : valueProps.found ? composeEmptyNode(ctx, valueProps.end, sep2, null, valueProps, onError) : null;
           if (valueNode) {
             if (isBlock(value))
               onError(valueNode.range, "BLOCK_IN_FLOW", blockMsg);
@@ -4491,7 +4491,7 @@ var require_resolve_block_scalar = __commonJS({
           chompStart = i + 1;
       }
       let value = "";
-      let sep = "";
+      let sep2 = "";
       let prevMoreIndented = false;
       for (let i = 0; i < contentStart; ++i)
         value += lines[i][0].slice(trimIndent) + "\n";
@@ -4508,24 +4508,24 @@ var require_resolve_block_scalar = __commonJS({
           indent = "";
         }
         if (type === Scalar.Scalar.BLOCK_LITERAL) {
-          value += sep + indent.slice(trimIndent) + content;
-          sep = "\n";
+          value += sep2 + indent.slice(trimIndent) + content;
+          sep2 = "\n";
         } else if (indent.length > trimIndent || content[0] === "	") {
-          if (sep === " ")
-            sep = "\n";
-          else if (!prevMoreIndented && sep === "\n")
-            sep = "\n\n";
-          value += sep + indent.slice(trimIndent) + content;
-          sep = "\n";
+          if (sep2 === " ")
+            sep2 = "\n";
+          else if (!prevMoreIndented && sep2 === "\n")
+            sep2 = "\n\n";
+          value += sep2 + indent.slice(trimIndent) + content;
+          sep2 = "\n";
           prevMoreIndented = true;
         } else if (content === "") {
-          if (sep === "\n")
+          if (sep2 === "\n")
             value += "\n";
           else
-            sep = "\n";
+            sep2 = "\n";
         } else {
-          value += sep + content;
-          sep = " ";
+          value += sep2 + content;
+          sep2 = " ";
           prevMoreIndented = false;
         }
       }
@@ -4707,25 +4707,25 @@ var require_resolve_flow_scalar = __commonJS({
       if (!match)
         return source;
       let res = match[1];
-      let sep = " ";
+      let sep2 = " ";
       let pos = first.lastIndex;
       line.lastIndex = pos;
       while (match = line.exec(source)) {
         if (match[1] === "") {
-          if (sep === "\n")
-            res += sep;
+          if (sep2 === "\n")
+            res += sep2;
           else
-            sep = "\n";
+            sep2 = "\n";
         } else {
-          res += sep + match[1];
-          sep = " ";
+          res += sep2 + match[1];
+          sep2 = " ";
         }
         pos = line.lastIndex;
       }
       const last = /[ \t]*(.*)/sy;
       last.lastIndex = pos;
       match = last.exec(source);
-      return res + sep + (match?.[1] ?? "");
+      return res + sep2 + (match?.[1] ?? "");
     }
     function doubleQuotedValue(source, onError) {
       let res = "";
@@ -5535,14 +5535,14 @@ var require_cst_stringify = __commonJS({
         }
       }
     }
-    function stringifyItem({ start, key, sep, value }) {
+    function stringifyItem({ start, key, sep: sep2, value }) {
       let res = "";
       for (const st of start)
         res += st.source;
       if (key)
         res += stringifyToken(key);
-      if (sep)
-        for (const st of sep)
+      if (sep2)
+        for (const st of sep2)
           res += st.source;
       if (value)
         res += stringifyToken(value);
@@ -6709,18 +6709,18 @@ var require_parser = __commonJS({
         if (this.type === "map-value-ind") {
           const prev = getPrevProps(this.peek(2));
           const start = getFirstKeyStartProps(prev);
-          let sep;
+          let sep2;
           if (scalar.end) {
-            sep = scalar.end;
-            sep.push(this.sourceToken);
+            sep2 = scalar.end;
+            sep2.push(this.sourceToken);
             delete scalar.end;
           } else
-            sep = [this.sourceToken];
+            sep2 = [this.sourceToken];
           const map = {
             type: "block-map",
             offset: scalar.offset,
             indent: scalar.indent,
-            items: [{ start, key: scalar, sep }]
+            items: [{ start, key: scalar, sep: sep2 }]
           };
           this.onKeyLine = true;
           this.stack[this.stack.length - 1] = map;
@@ -6873,15 +6873,15 @@ var require_parser = __commonJS({
                 } else if (isFlowToken(it.key) && !includesToken(it.sep, "newline")) {
                   const start2 = getFirstKeyStartProps(it.start);
                   const key = it.key;
-                  const sep = it.sep;
-                  sep.push(this.sourceToken);
+                  const sep2 = it.sep;
+                  sep2.push(this.sourceToken);
                   delete it.key;
                   delete it.sep;
                   this.stack.push({
                     type: "block-map",
                     offset: this.offset,
                     indent: this.indent,
-                    items: [{ start: start2, key, sep }]
+                    items: [{ start: start2, key, sep: sep2 }]
                   });
                 } else if (start.length > 0) {
                   it.sep = it.sep.concat(start, this.sourceToken);
@@ -7075,13 +7075,13 @@ var require_parser = __commonJS({
             const prev = getPrevProps(parent);
             const start = getFirstKeyStartProps(prev);
             fixFlowSeqItems(fc);
-            const sep = fc.end.splice(1, fc.end.length);
-            sep.push(this.sourceToken);
+            const sep2 = fc.end.splice(1, fc.end.length);
+            sep2.push(this.sourceToken);
             const map = {
               type: "block-map",
               offset: fc.offset,
               indent: fc.indent,
-              items: [{ start, key: fc, sep }]
+              items: [{ start, key: fc, sep: sep2 }]
             };
             this.onKeyLine = true;
             this.stack[this.stack.length - 1] = map;
@@ -7362,69 +7362,6 @@ var require_dist = __commonJS({
 // src/cheatsheet/cli.ts
 import { readFile as readFile5 } from "node:fs/promises";
 
-// src/cheatsheet/evidence.ts
-import { readFile as readFile2 } from "node:fs/promises";
-
-// src/checksum.ts
-import { createHash } from "node:crypto";
-function sha256(contents) {
-  return createHash("sha256").update(contents, "utf8").digest("hex");
-}
-function sha256Bytes(bytes) {
-  return createHash("sha256").update(bytes).digest("hex");
-}
-
-// src/cheatsheet/authoring.ts
-import { readFile } from "node:fs/promises";
-
-// src/cheatsheet/module-path.ts
-import { isAbsolute, relative, resolve } from "node:path";
-function resolveModuleFile(moduleRoot, path) {
-  const root = resolve(moduleRoot);
-  const target = resolve(root, path);
-  const child = relative(root, target);
-  if (child === "" || child === ".." || child.startsWith("../") || isAbsolute(child)) {
-    throw new Error(`${path} does not name a file inside the module folder.`);
-  }
-  return target;
-}
-
-// src/cheatsheet/authoring.ts
-async function provedText(root, path, digest) {
-  const body = await readFile(resolveModuleFile(root, path), "utf8");
-  if (sha256(body) !== digest) {
-    throw new Error(`${path} no longer matches its declared SHA-256.`);
-  }
-  return body;
-}
-async function buildCheatsheetReleaseSource(input) {
-  if (input.authoring.kind === "self-contained") {
-    const source2 = await provedText(
-      input.moduleRoot,
-      input.authoring.path,
-      input.authoring.sha256
-    );
-    return {
-      source: source2,
-      sha256: sha256(source2),
-      inputs: [input.authoring.path]
-    };
-  }
-  const fragments = await Promise.all(
-    input.authoring.fragments.map(async (fragment) => ({
-      path: fragment.path,
-      body: await provedText(input.moduleRoot, fragment.path, fragment.sha256)
-    }))
-  );
-  const source = `${fragments.map(({ body }) => body.trimEnd()).join("\n\n")}
-`;
-  return {
-    source,
-    sha256: sha256(source),
-    inputs: fragments.map(({ path }) => path)
-  };
-}
-
 // src/cheatsheet/coverage.ts
 var columns = [
   "item_id",
@@ -7436,6 +7373,7 @@ var columns = [
   "artifact_locator",
   "note"
 ];
+var cheatsheetCoverageHeader = columns.join(",");
 var priorities = /* @__PURE__ */ new Set([
   "required",
   "high",
@@ -7476,8 +7414,8 @@ function csvCells(line) {
 function parseCheatsheetCoverage(input) {
   const lines = input.csv.split(/\r?\n/u).filter((line) => line.trim() !== "");
   const header = lines.shift();
-  if (header === void 0 || csvCells(header).join(",") !== columns.join(",")) {
-    throw new Error(`coverage header must be ${columns.join(",")}.`);
+  if (header === void 0 || csvCells(header).join(",") !== cheatsheetCoverageHeader) {
+    throw new Error(`coverage header must be ${cheatsheetCoverageHeader}.`);
   }
   const ids = /* @__PURE__ */ new Set();
   return lines.map((line, index) => {
@@ -7533,6 +7471,90 @@ function parseCheatsheetCoverage(input) {
       ...note ? { note } : {}
     };
   });
+}
+
+// src/cheatsheet/evidence.ts
+import { readFile as readFile2 } from "node:fs/promises";
+
+// src/checksum.ts
+import { createHash } from "node:crypto";
+function sha256(contents) {
+  return createHash("sha256").update(contents, "utf8").digest("hex");
+}
+function sha256Bytes(bytes) {
+  return createHash("sha256").update(bytes).digest("hex");
+}
+
+// src/cheatsheet/authoring.ts
+import { readFile } from "node:fs/promises";
+
+// src/cheatsheet/module-path.ts
+import { lstat, realpath } from "node:fs/promises";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
+function isOutside(root, target) {
+  const child = relative(root, target);
+  return child === "" || child === ".." || child.startsWith(`..${sep}`) || isAbsolute(child);
+}
+async function resolveModuleFile(moduleRoot, path) {
+  const root = resolve(moduleRoot);
+  const target = resolve(root, path);
+  if (isOutside(root, target)) {
+    throw new Error(`${path} does not name a file inside the module folder.`);
+  }
+  const canonicalRoot = await realpath(root);
+  const segments = relative(root, target).split(sep);
+  let candidate = canonicalRoot;
+  for (const [index, segment] of segments.entries()) {
+    candidate = join(candidate, segment);
+    const metadata = await lstat(candidate);
+    if (metadata.isSymbolicLink()) {
+      throw new Error(`${path} traverses a symbolic link.`);
+    }
+    if (index === segments.length - 1 && !metadata.isFile()) {
+      throw new Error(`${path} does not name an ordinary file.`);
+    }
+  }
+  const canonicalTarget = await realpath(candidate);
+  if (isOutside(canonicalRoot, canonicalTarget)) {
+    throw new Error(`${path} resolves outside the module folder.`);
+  }
+  return canonicalTarget;
+}
+
+// src/cheatsheet/authoring.ts
+async function provedText(root, path, digest) {
+  const body = await readFile(await resolveModuleFile(root, path), "utf8");
+  if (sha256(body) !== digest) {
+    throw new Error(`${path} no longer matches its declared SHA-256.`);
+  }
+  return body;
+}
+async function buildCheatsheetReleaseSource(input) {
+  if (input.authoring.kind === "self-contained") {
+    const source2 = await provedText(
+      input.moduleRoot,
+      input.authoring.path,
+      input.authoring.sha256
+    );
+    return {
+      source: source2,
+      sha256: sha256(source2),
+      inputs: [input.authoring.path]
+    };
+  }
+  const fragments = await Promise.all(
+    input.authoring.fragments.map(async (fragment) => ({
+      path: fragment.path,
+      body: await provedText(input.moduleRoot, fragment.path, fragment.sha256)
+    }))
+  );
+  const source = `${fragments.map(({ body }) => body.trimEnd()).join("\n\n")}
+`;
+  return {
+    source,
+    sha256: sha256(source),
+    inputs: fragments.map(({ path }) => path)
+  };
 }
 
 // src/cheatsheet/manifest.ts
@@ -7782,7 +7804,7 @@ function parseCheatsheetManifest(yaml) {
 // src/cheatsheet/evidence.ts
 async function loadCheatsheetEvidence(input) {
   const manifestText = await readFile2(
-    resolveModuleFile(input.moduleRoot, input.manifestPath),
+    await resolveModuleFile(input.moduleRoot, input.manifestPath),
     "utf8"
   );
   const manifest = parseCheatsheetManifest(manifestText);
@@ -7791,7 +7813,7 @@ async function loadCheatsheetEvidence(input) {
     throw new Error(`Manifest path must be ${expectedManifestPath}.`);
   }
   const coverageText = await readFile2(
-    resolveModuleFile(input.moduleRoot, manifest.coverage),
+    await resolveModuleFile(input.moduleRoot, manifest.coverage),
     "utf8"
   );
   const coverage = parseCheatsheetCoverage({
@@ -7800,7 +7822,7 @@ async function loadCheatsheetEvidence(input) {
   });
   for (const source of manifest.sources) {
     const bytes = await readFile2(
-      resolveModuleFile(input.moduleRoot, source.path)
+      await resolveModuleFile(input.moduleRoot, source.path)
     );
     if (sha256Bytes(bytes) !== source.sha256) {
       throw new Error(`${source.path} no longer matches its declared SHA-256.`);
@@ -7811,7 +7833,7 @@ async function loadCheatsheetEvidence(input) {
     authoring: manifest.authoring
   });
   const releaseSource = await readFile2(
-    resolveModuleFile(input.moduleRoot, manifest.artifact.releaseTex),
+    await resolveModuleFile(input.moduleRoot, manifest.artifact.releaseTex),
     "utf8"
   );
   if (releaseSource !== built.source) {
@@ -7823,7 +7845,7 @@ async function loadCheatsheetEvidence(input) {
     throw new Error("Release TeX digest does not describe the current source.");
   }
   const releasedPdf = await readFile2(
-    resolveModuleFile(input.moduleRoot, manifest.artifact.releasePdf)
+    await resolveModuleFile(input.moduleRoot, manifest.artifact.releasePdf)
   );
   if (manifest.release.pdfSha256 !== sha256Bytes(releasedPdf)) {
     throw new Error("Release PDF digest does not describe the current PDF.");
@@ -7956,7 +7978,7 @@ import {
   writeFile
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { basename, join } from "node:path";
+import { basename, join as join2 } from "node:path";
 import { promisify } from "node:util";
 var run = promisify(execFile);
 var fontMeasurementZoom = 3;
@@ -8032,31 +8054,31 @@ async function renderedDigests(root, pdf, prefix) {
   await command("pdftoppm", ["-png", "-r", "180", pdf, prefix], root);
   const names = (await readdir(root)).filter((name) => name.startsWith(`${prefix}-`) && name.endsWith(".png")).sort();
   return Promise.all(
-    names.map(async (name) => sha256Bytes(await readFile3(join(root, name))))
+    names.map(async (name) => sha256Bytes(await readFile3(join2(root, name))))
   );
 }
 async function verifyPortableCheatsheetRelease(input) {
   if (/\\(?:resizebox|scalebox)\b/u.test(input.source)) {
     throw new Error("Release source uses hidden geometric scaling.");
   }
-  const workspace = await mkdtemp(join(tmpdir(), "cheatsheet-portable-"));
+  const workspace = await mkdtemp(join2(tmpdir(), "cheatsheet-portable-"));
   try {
-    const buildRoot = join(workspace, "build");
-    const referenceRoot = join(workspace, "reference");
-    const renderRoot = join(workspace, "renders");
+    const buildRoot = join2(workspace, "build");
+    const referenceRoot = join2(workspace, "reference");
+    const renderRoot = join2(workspace, "renders");
     const texName = basename(input.filename);
     if (!texName.endsWith(".tex")) {
       throw new Error("Release filename must end in .tex.");
     }
     const builtPdfName = texName.replace(/\.tex$/u, ".pdf");
     await Promise.all([
-      mkdir(join(buildRoot, "aux"), { recursive: true }),
+      mkdir(join2(buildRoot, "aux"), { recursive: true }),
       mkdir(referenceRoot),
       mkdir(renderRoot)
     ]);
-    const referencePdf = join(referenceRoot, "released.pdf");
+    const referencePdf = join2(referenceRoot, "released.pdf");
     await Promise.all([
-      writeFile(join(buildRoot, texName), input.source, "utf8"),
+      writeFile(join2(buildRoot, texName), input.source, "utf8"),
       writeFile(referencePdf, input.releasedPdf)
     ]);
     await command(
@@ -8071,7 +8093,7 @@ async function verifyPortableCheatsheetRelease(input) {
       buildRoot
     );
     const latexLog = await readFile3(
-      join(buildRoot, "aux", texName.replace(/\.tex$/u, ".log")),
+      join2(buildRoot, "aux", texName.replace(/\.tex$/u, ".log")),
       "utf8"
     );
     if (/Overfull \\[hv]box|Missing character:/u.test(latexLog)) {
@@ -8080,13 +8102,12 @@ async function verifyPortableCheatsheetRelease(input) {
       );
     }
     const declaredBodyPointSize = /^CHEATSHEET-BODY-PT=([0-9]+(?:\.[0-9]+)?)$/mu.exec(latexLog)?.[1];
-    const builtPdf = join(buildRoot, builtPdfName);
+    const builtPdf = join2(buildRoot, builtPdfName);
     const bodyPointSize = dominantBodyPointSize(
       await command(
         "pdftohtml",
         [
           "-xml",
-          "-hidden",
           "-i",
           "-q",
           "-zoom",
@@ -8159,9 +8180,9 @@ async function verifyPortableCheatsheetRelease(input) {
 // src/cheatsheet/review-package.ts
 import { randomUUID } from "node:crypto";
 import { mkdir as mkdir2, readFile as readFile4, rename, rm as rm2, writeFile as writeFile2 } from "node:fs/promises";
-import { basename as basename2, dirname, join as join2 } from "node:path";
+import { basename as basename2, dirname, join as join3 } from "node:path";
 async function addFile(input) {
-  const destination = join2(input.root, input.path);
+  const destination = join3(input.root, input.path);
   await mkdir2(dirname(destination), { recursive: true });
   await writeFile2(destination, input.bytes);
   input.checksums.push(
@@ -8173,7 +8194,7 @@ async function verifyChecksums(root, checksums) {
     const separator = line.indexOf("  ");
     const expected = line.slice(0, separator);
     const path = line.slice(separator + 2);
-    if (sha256Bytes(await readFile4(join2(root, path))) !== expected) {
+    if (sha256Bytes(await readFile4(join3(root, path))) !== expected) {
       throw new Error(`Packaged checksum failed for ${path}.`);
     }
   }
@@ -8182,7 +8203,7 @@ async function createCheatsheetReviewPackage(input) {
   const evidence = await loadCheatsheetEvidence(input);
   const parent = dirname(input.destination);
   await mkdir2(parent, { recursive: true });
-  const staging = join2(parent, `.cheatsheet-review-${randomUUID()}`);
+  const staging = join3(parent, `.cheatsheet-review-${randomUUID()}`);
   await mkdir2(staging);
   try {
     const checksums = [];
@@ -8220,7 +8241,7 @@ async function createCheatsheetReviewPackage(input) {
         );
         const bundlePath = `authoring/${relativeFragment}`;
         const bytes = await readFile4(
-          resolveModuleFile(input.moduleRoot, fragment.path)
+          await resolveModuleFile(input.moduleRoot, fragment.path)
         );
         if (sha256Bytes(bytes) !== fragment.sha256) {
           throw new Error(
@@ -8237,8 +8258,8 @@ async function createCheatsheetReviewPackage(input) {
       }
     }
     const verification = await verifyPortableCheatsheetRelease({
-      source: await readFile4(join2(staging, texName), "utf8"),
-      releasedPdf: await readFile4(join2(staging, pdfName)),
+      source: await readFile4(join3(staging, texName), "utf8"),
+      releasedPdf: await readFile4(join3(staging, pdfName)),
       filename: texName,
       constraints: evidence.manifest.constraints
     });
@@ -8252,14 +8273,14 @@ async function createCheatsheetReviewPackage(input) {
     });
     checksums.sort();
     await writeFile2(
-      join2(staging, "SHA256SUMS"),
+      join3(staging, "SHA256SUMS"),
       `${checksums.join("\n")}
 `,
       "utf8"
     );
     await verifyChecksums(staging, checksums);
     await writeFile2(
-      join2(staging, "README.md"),
+      join3(staging, "README.md"),
       `# Cheatsheet review package
 
 This exact package passed isolated compilation and release comparison. Recompile its single dependency-free top-level release source from this directory:
@@ -8329,19 +8350,11 @@ var inputSchema = {
       "coverage",
       "release"
     ],
-    sourceAuthorities: [
-      "owner-constraint",
-      "issued-current",
-      "official-solution",
-      "module-derived",
-      "registered-textbook",
-      "historical",
-      "original-example"
-    ]
+    sourceAuthorities: cheatsheetAuthorities
   },
   coverage: {
     format: "CSV",
-    exactHeader: "item_id,source_id,locator,topic_id,priority,disposition,artifact_locator,note"
+    exactHeader: cheatsheetCoverageHeader
   },
   measurements: {
     format: "JSON",

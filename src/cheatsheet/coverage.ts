@@ -14,6 +14,7 @@ const columns = [
   "artifact_locator",
   "note",
 ] as const;
+export const cheatsheetCoverageHeader = columns.join(",");
 const priorities = new Set<CheatsheetPriority>([
   "required",
   "high",
@@ -61,9 +62,9 @@ export function parseCheatsheetCoverage(input: {
   const header = lines.shift();
   if (
     header === undefined ||
-    csvCells(header).join(",") !== columns.join(",")
+    csvCells(header).join(",") !== cheatsheetCoverageHeader
   ) {
-    throw new Error(`coverage header must be ${columns.join(",")}.`);
+    throw new Error(`coverage header must be ${cheatsheetCoverageHeader}.`);
   }
   const ids = new Set<string>();
   return lines.map((line, index) => {

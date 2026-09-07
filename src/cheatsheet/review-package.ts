@@ -86,7 +86,7 @@ export async function createCheatsheetReviewPackage(input: {
         );
         const bundlePath = `authoring/${relativeFragment}`;
         const bytes = await readFile(
-          resolveModuleFile(input.moduleRoot, fragment.path),
+          await resolveModuleFile(input.moduleRoot, fragment.path),
         );
         if (sha256Bytes(bytes) !== fragment.sha256) {
           throw new Error(

@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
@@ -21,6 +28,42 @@ try {
 } catch {
   latexAvailable = false;
 }
+
+it("rejects symbolic links in module-relative evidence paths", async () => {
+  const fixture = await mkdtemp(join(tmpdir(), "cheatsheet-symlink-source-"));
+  try {
+    const moduleRoot = join(fixture, "module");
+    const outside = join(fixture, "outside");
+    await Promise.all([mkdir(moduleRoot), mkdir(outside)]);
+    await writeFile(join(outside, "source.tex"), "outside");
+    await symlink(join(outside, "source.tex"), join(moduleRoot, "source.tex"));
+    await symlink(outside, join(moduleRoot, "linked-directory"));
+    await assert.rejects(
+      buildCheatsheetReleaseSource({
+        moduleRoot,
+        authoring: {
+          kind: "self-contained",
+          path: "source.tex",
+          sha256: sha256("outside"),
+        },
+      }),
+      /symbolic link/u,
+    );
+    await assert.rejects(
+      buildCheatsheetReleaseSource({
+        moduleRoot,
+        authoring: {
+          kind: "self-contained",
+          path: "linked-directory/source.tex",
+          sha256: sha256("outside"),
+        },
+      }),
+      /symbolic link/u,
+    );
+  } finally {
+    await rm(fixture, { recursive: true, force: true });
+  }
+});
 
 it("validates coupled evidence and packages exact independently compiled bytes", {
   skip: !latexAvailable,

@@ -187,7 +187,6 @@ export async function verifyPortableCheatsheetRelease(input: {
         "pdftohtml",
         [
           "-xml",
-          "-hidden",
           "-i",
           "-q",
           "-zoom",

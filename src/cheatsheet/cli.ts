@@ -2,11 +2,12 @@
 
 import { readFile } from "node:fs/promises";
 
+import { cheatsheetCoverageHeader } from "./coverage.js";
 import { loadCheatsheetEvidence } from "./evidence.js";
 import { planCheatsheetFit } from "./fit.js";
 import { verifyPortableCheatsheetRelease } from "./portable-release.js";
 import { createCheatsheetReviewPackage } from "./review-package.js";
-import type { CheatsheetMeasurements } from "./types.js";
+import { cheatsheetAuthorities, type CheatsheetMeasurements } from "./types.js";
 
 const usage = `Usage:
   cheatsheet-tool schema
@@ -44,20 +45,11 @@ const inputSchema = {
       "coverage",
       "release",
     ],
-    sourceAuthorities: [
-      "owner-constraint",
-      "issued-current",
-      "official-solution",
-      "module-derived",
-      "registered-textbook",
-      "historical",
-      "original-example",
-    ],
+    sourceAuthorities: cheatsheetAuthorities,
   },
   coverage: {
     format: "CSV",
-    exactHeader:
-      "item_id,source_id,locator,topic_id,priority,disposition,artifact_locator,note",
+    exactHeader: cheatsheetCoverageHeader,
   },
   measurements: {
     format: "JSON",

@@ -8,7 +8,7 @@ async function provedText(
   path: string,
   digest: string,
 ): Promise<string> {
-  const body = await readFile(resolveModuleFile(root, path), "utf8");
+  const body = await readFile(await resolveModuleFile(root, path), "utf8");
   if (sha256(body) !== digest) {
     throw new Error(`${path} no longer matches its declared SHA-256.`);
   }

@@ -18,7 +18,7 @@ belongs in that module's `CONTEXT.md`". There is no per-module branch in that ro
 already one text by construction, so the pin adds no constraint — it checks a property the file
 asserts about itself, and turns a silent drift into a finding.
 
-The `.tex` set is the opposite. A module is *supposed* to diverge there — macros, environments,
+The `.tex` set is the opposite. A module is _supposed_ to diverge there — macros, environments,
 notation shortcuts — so long as the rendered page does not move. Pinning them would forbid what the
 contract invites, which is the obvious option and the wrong one: it would read the eight files as
 one policy because they share a directory.
@@ -37,7 +37,7 @@ that was allowed becomes forbidden — only something undefined becomes defined.
 ## The contract version holds at 4
 
 This adds a normative requirement, and the version rule says to increase it when one changes. It
-does not, and the reason is what the version is *for*: it gates a folder missing structure the
+does not, and the reason is what the version is _for_: it gates a folder missing structure the
 current contract requires, which MF-TRANSITION-001 installs one module at a time on the Owner's
 approval. No folder is missing this structure. Seeding has written all eight files since the
 Teaching workspace existed, and all six Y2S1 modules hold them, with `preferences.md`
@@ -74,3 +74,9 @@ before it reopens the pin.
 The template set changes shape — a type added or retired. The names are enumerated in
 `learning-workspace.ts` and a new template must join them, or it is seeded and unenforced, which is
 the state this record ended.
+
+## Partial supersession
+
+[ADR-0027](0027-module-controls-follow-current-practice.md) supersedes the location of
+module-specific teaching preferences: optional `70 Learning/preferences.local.md` now carries
+those preferences. The shared preference pin and named LaTeX requirements remain in force.

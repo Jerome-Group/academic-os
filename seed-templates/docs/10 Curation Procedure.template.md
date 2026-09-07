@@ -10,6 +10,11 @@ steps against the same register. The Owner being present changes one thing, said
 Read `docs/00 Structure and Naming.md` first. Destinations and curated names are its rules; this
 procedure decides which of them an item gets.
 
+Before writing, name the importer items read, copies created or replaced, and register append
+positions. Importer bytes stay unchanged and the register is append-only. Authorization for the
+requested pass persists through precedented reversible decisions; ask only for an unresolved
+classification, conflict, or overwrite choice.
+
 ## Identity
 
 Two things together identify an item, and the pass establishes both from the files in front of it:
@@ -201,11 +206,14 @@ One line per decision, appended, JSON:
 
 - `schema_version` is 3 — the version that carries `withdrawn`. Version 1 and version 2 lines are
   valid history, read as they stand; nothing rewrites them.
-- `source_id` is the item's unnumbered identity, `source_path` its path inside the importer root as
-  walked, and `checksum` the sha-256 this pass computed. A `withdrawn` line carries no `checksum`:
+- `source_id` is the item's unnumbered identity. An importer line's `source_path` is its path inside
+  that root as walked. Integration `user` or a name ending `-manual` marks a manual origin and may
+  retain the absolute path where the Owner supplied it. `checksum` is the sha-256 this pass computed. A
+  `withdrawn` line carries no `checksum`:
   its source is not there to read, and the digest of bytes nobody hashed is an assertion.
 - `integration` names the importer root the item came from; `role` says what the item is to this
-  module.
+  module. For a manual origin, `integration` is `user` or names its source with a `-manual` suffix;
+  it does not declare an importer root.
 - `destination` is module-relative and belongs to `curated` lines. A `rederived` line carries the
   derived artifacts' paths in `derived` instead, and a `withdrawn` line carries neither.
 - `evidence` says why — the precedent followed, the Owner's words, the module ADR the rule lives

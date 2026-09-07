@@ -4,6 +4,11 @@
 shelf becomes a PDF in `10 Learning Materials/20 Textbook Chapters/` and an entry in
 `00 Module Admin/50 Textbook Register.yaml`.
 
+Before writing, name the indexed book, page range, destination file, and register append. The shelf
+stays read-only and the register preserves unrelated entries. Authorization for the requested cut
+persists through these reversible steps; ask when book identity, range, title, or a collision remains
+unresolved.
+
 ## The shelf and its index
 
 Whole books live on the **Textbook shelf** — the `Textbooks` folder beside the semester roots —

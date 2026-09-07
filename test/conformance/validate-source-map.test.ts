@@ -29,6 +29,103 @@ describe("validateSourceMap", () => {
     recordFindingEvidence([seeded, declared], "MF-LEARNING-002");
   });
 
+  it("accepts strict tutorial blocks without flattening their source evidence", () => {
+    const structured = `units:
+  Unit One:
+    topics: [Generic topic]
+    lectures: []
+    textbook: []
+    tutorials:
+      - block: Block A
+        exercises: Exercises 1-2
+        sources:
+          - file: 20 Tutorials/Generic Questions.pdf
+            locator: pages 1-2
+            role: questions
+          - file: 20 Tutorials/Generic Solutions.pdf
+            locator: solutions 1-2
+            role: solutions
+            missing: [Exercise 2]
+`;
+
+    assert.equal(validateSourceMap(structured).status, "pass");
+  });
+
+  it("accepts the typed current unit extensions and rejects malformed values", () => {
+    const extended = populated.replace(
+      "    topics:",
+      `    teaching_weeks: [1, 2]\n    supplementary_materials: [10 Learning Materials/10 Lecture Materials/Generic Recap.pdf]\n    past_papers: [30 Assessments/20 Tests/Generic Questions.pdf]\n    practice_tests: [30 Assessments/20 Tests/Generic Mock.pdf]\n    historical_reference: [90 Resources/00 Unclassified/Generic Reference.pdf]\n    topics:`,
+    );
+    assert.equal(validateSourceMap(extended).status, "pass");
+
+    const malformed = validateSourceMap(
+      extended
+        .replace("teaching_weeks: [1, 2]", "teaching_weeks: [1, 1]")
+        .replace(
+          "30 Assessments/20 Tests/Generic Mock.pdf",
+          "../Generic Mock.pdf",
+        ),
+    );
+    assert.equal(malformed.status, "fail");
+    assert.match(
+      malformed.evidence,
+      /teaching_weeks must be a non-empty sequence/u,
+    );
+    assert.match(
+      malformed.evidence,
+      /practice_tests entries must be non-empty module-relative paths/u,
+    );
+  });
+
+  it("rejects malformed tutorial blocks and unknown machine fields", () => {
+    const malformed = `units:
+  Unit One:
+    topics: []
+    lectures: []
+    textbook: []
+    tutorials:
+      - block: ''
+        exercises: ''
+        sources:
+          - file: /external/questions.pdf
+            locator: ''
+            role: ''
+            missing: []
+            guess: true
+`;
+
+    const finding = validateSourceMap(malformed);
+    assert.equal(finding.status, "fail");
+    assert.match(finding.evidence, /requires a non-empty block/u);
+    assert.match(finding.evidence, /requires a non-empty exercises locator/u);
+    assert.match(
+      finding.evidence,
+      /file must be a non-empty module-relative path/u,
+    );
+    assert.match(finding.evidence, /unknown field "guess"/u);
+
+    const unknownUnitField = validateSourceMap(
+      populated.replace(
+        "    tutorials:",
+        "    inferred_mastery: true\n    tutorials:",
+      ),
+    );
+    assert.equal(unknownUnitField.status, "fail");
+    assert.match(
+      unknownUnitField.evidence,
+      /unknown field "inferred_mastery"/u,
+    );
+  });
+
+  it("rejects misplaced target fields at the document root", () => {
+    const finding = validateSourceMap("units: {}\npast_papers: [paper.pdf]\n");
+    assert.equal(finding.status, "fail");
+    assert.match(
+      finding.evidence,
+      /Source Map has unknown field "past_papers"/u,
+    );
+  });
+
   it("reports an absent, unparseable, or shapeless map", () => {
     const absent = validateSourceMap(undefined);
     const unparseable = validateSourceMap("units: [\n");
@@ -78,7 +175,7 @@ describe("validateSourceMap", () => {
     assert.equal(escaping.status, "fail");
     assert.match(
       escaping.evidence,
-      /lists tutorials entry .*, which is not module-relative/u,
+      /tutorials entry 1 .* is not module-relative/u,
     );
   });
 });

@@ -90,8 +90,14 @@ function validateEvent(value: unknown, line: number): string[] {
       problems.push(`Line ${line} requires non-empty ${field}.`);
     }
   }
-  if (nonEmptyString(value.source_path) && !isRelative(value.source_path)) {
-    problems.push(`Line ${line} source_path must be source-relative.`);
+  if (
+    nonEmptyString(value.source_path) &&
+    !isRelative(value.source_path) &&
+    !isManualOrigin(value.integration)
+  ) {
+    problems.push(
+      `Line ${line} importer source_path must be integration-relative; absolute observed locators are allowed only for manual integration user or a name ending -manual.`,
+    );
   }
   if (value.checksum !== undefined && !nonEmptyString(value.checksum)) {
     problems.push(`Line ${line} checksum must be non-empty when present.`);
@@ -115,6 +121,13 @@ function validateEvent(value: unknown, line: number): string[] {
     problems.push(`Line ${line} supersedes must be non-empty when present.`);
   }
   return problems;
+}
+
+function isManualOrigin(integration: unknown): boolean {
+  return (
+    nonEmptyString(integration) &&
+    (integration === "user" || integration.endsWith("-manual"))
+  );
 }
 
 // Where the item's content went: a curated line names the copy's destination, a rederived line

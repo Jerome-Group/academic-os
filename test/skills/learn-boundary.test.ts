@@ -33,6 +33,26 @@ describe("the learn skill", () => {
     assert.equal(compileInvocation.test(await readSkillText()), false);
   });
 
+  it("delegates continuation and record interpretation to the live procedure", async () => {
+    const skill = await readFile("skills/learn/SKILL.md", "utf8");
+    assert.match(
+      skill,
+      /Resolve an activity target named in the invocation first/u,
+    );
+    assert.match(skill, /1\. Resolve the activity and target/u);
+    assert.match(skill, /That step owns target order,/u);
+    assert.doesNotMatch(
+      skill,
+      /earliest target|compare `target` plus `status`/u,
+    );
+  });
+
+  it("reads the optional module preference overlay after shared preferences", async () => {
+    const skill = await readFile("skills/learn/SKILL.md", "utf8");
+
+    assert.match(skill, /70 Learning\/preferences\.local\.md/u);
+  });
+
   // One decision, and each harness spells it in its own file, so a harness added without its
   // encoding is a skill that quietly starts firing on its own there.
   it("fires only when the Owner invokes it, in every harness it is installed into", async () => {

@@ -133,12 +133,13 @@ describe("auditLearningWorkspace", () => {
       "70 Learning/10 Lectures/Topic A/build",
       "70 Learning/20 Tutorials/Sheet One",
       "70 Learning/40 Past Papers/Earlier Paper",
+      "70 Learning/preferences.local.md",
       "70 Learning/templates/local-macros.tex",
     ]) {
       inventory.entries.push({
         path,
         kind: path.endsWith(".tex") ? "file" : "directory",
-        ...(path.endsWith(".tex") ? { size: 4 } : {}),
+        ...(path.endsWith(".tex") || path.endsWith(".md") ? { size: 4 } : {}),
         modifiedAt: "2026-08-11T00:00:00.000Z",
       });
     }

@@ -5,10 +5,10 @@ with an applicable rule here is wrong, and a rule that is not here is not a rule
 outside a module folder is governed too, and it is the only one: the shared Textbook shelf at
 `Modules/Textbooks`, which every module cuts its chapters from.
 
-**Contract version: 5.** Increase it when a normative requirement, applicability rule or allowed
+**Contract version: 6.** Increase it when a normative requirement, applicability rule or allowed
 structure changes. Editorial clarification and repaired citations do not change it. Definition and
-Curation-register schema versions advance independently, which is how the register reached version 2
-while this contract reached 5.
+Curation-register schema versions advance independently, which is how the register reached version 3
+while this contract reached 6.
 
 Rules have stable IDs. **Deterministic** rules are decided without judgment; **judgment** rules
 must expose their evidence for an agent or person to resolve. The folders live outside this
@@ -116,7 +116,8 @@ them, so this rule is the mount's alone.
 
 ### Profile
 
-**MF-PROFILE-001 (deterministic).** `00 Module Profile.md` uses this exact heading order:
+**MF-PROFILE-001 (deterministic).** `00 Module Profile.md` contains these seven anchor headings,
+each exactly once and in this order:
 
 ```markdown
 # MODULE_CODE — Module Title
@@ -130,11 +131,19 @@ them, so this rule is the mount's alone.
 ## Known Gaps
 ```
 
-Offering uses `Field | Value | Evidence`; Assessment Structure uses
-`Component | Weight | Timing | Evidence`; Source Authority uses
-`Rank | Source | Role | Governs | Evidence`; Workspaces uses
+Additional `##` fact sections are allowed in place when every `##` heading remains unique. Nested
+headings, prose, lists, links, mathematics and additional tables are allowed under any section.
+The canonical table for a required section is its first contiguous pipe table before any nested
+heading; nested tables do not extend or replace it.
+
+Offering uses `Field | Value | Evidence`. Assessment Structure has unique named columns:
+`Component`, `Weight`, one column beginning `Timing`, zero or more module-detail columns, and final
+`Evidence`. Source Authority uses `Rank | Source | Role | Governs`, followed by `Evidence` or
+`Checked`. Workspaces uses
 `Workspace | Purpose | Pointer`; Known Gaps uses `Gap | Consequence | Next evidence`. Scope and
-Teaching Structure are concise prose or bullets.
+Teaching Structure are concise prose or bullets. Every canonical data cell is non-empty and uses
+the word `unknown` rather than an ambiguous placeholder. Provenance is read from its named column,
+never inferred from the final substantive value.
 
 **MF-PROFILE-002 (judgment).** The Profile contains confirmed human-facing facts and explicit
 unknowns. It excludes executable rules, full inventories, per-file curation state, live task
@@ -144,6 +153,8 @@ it: an Evidence cell names `NTULearn/Last synced.md`, because a day copied out o
 the next sync.
 
 **MF-PROFILE-003 (deterministic).** Profile identity and offering agree with the Definition.
+Academic-year separators are typography: a hyphen, en dash or em dash between the same years has
+the same value.
 
 ### Definition
 
@@ -152,11 +163,11 @@ schema and contract versions, module identity, offering, applicable context-deri
 declared importer roots and their evidence. It contains module-relative paths only: no absolute
 Drive paths, credentials, deadlines, prose workflows, inventories or learner progress.
 
-The schema version 2 shape for contract version 5 is:
+The schema version 2 shape for contract version 6 is:
 
 ```yaml
 schema_version: 2
-contract_version: 5
+contract_version: 6
 module: {code: MH2100, title: Calculus III}
 offering: {academic_year: 2026-2027, semester: 1, status: active}
 structure:
@@ -212,10 +223,10 @@ its standing decisions, both read before content is classified, named or organis
 by `Read \`AGENTS.md\` completely before working in this module folder.` It never contains an
 independent rule copy. Required AGENTS pointers resolve.
 
-**MF-AGENTS-003 (judgment).** A change to a doc agents read here — `AGENTS.md`, the four procedure
-files, `CONTEXT.md`, an ADR — is approved before it is applied, and the gate is who is present.
-With the Owner in the session, the drafted wording is shown in the exchange that raised it, and
-their yes on that exact wording is the approval. Unattended, a run writes `CONTEXT.md` and
+**MF-AGENTS-003 (judgment).** Before writing, a route names the files and identified sections, rows,
+stable keys or append positions it will edit. Authorization for the requested task persists through
+its routine reversible steps. Ask only when an unresolved choice materially changes the result;
+show the concrete proposed wording or operation then. Unattended, a run writes `CONTEXT.md` and
 `docs/adr/` directly only with the domain-modeling discipline loaded and its tests applied, and
 surfaces every such write in its report; precedent is its only resolver, and an ambiguity without
 precedent parks.
@@ -225,13 +236,14 @@ precedent parks.
 repository's canonical seed-source template in `seed-templates/`, modulo `MODULE_CODE`
 interpolation. Seeding writes them from those templates and audit diffs them back against the same
 files, so a copy differing by one byte is a deviation, repaired by rewriting the copy rather than by
-editing it. The preferences file is pinned because it amends at the seeded set: a preference the
-Owner accepts changes every module's copy at once, and one true of a single module is a `CONTEXT.md`
-entry instead, so no module has its own text to keep —
-[`docs/adr/0015`](adr/0015-teaching-preferences-are-pinned-and-latex-is-not.md).
+editing it. The shared preferences file is pinned because it amends at the seeded set. A standing
+preference true of one module uses the optional local overlay described below —
+[`docs/adr/0027`](adr/0027-module-controls-follow-current-practice.md).
 
-Module-specific content never enters a pinned file; it belongs in `CONTEXT.md`, `docs/adr/` or the
-Profile.
+Module-specific content never enters a pinned file; it belongs in `CONTEXT.md`, `docs/adr/`, the
+Profile, or the optional module-owned `70 Learning/preferences.local.md`. That overlay holds only
+standing teaching preferences for this module, is created only from actual Owner evidence, and is
+read after the shared preferences. It is not seeded, pinned or inferred from one session.
 
 **MF-CONTEXT-001 (deterministic).** `CONTEXT.md` is a glossary only, holding the module's
 organisational terms — what its material is called, and how that changes where a file goes or what
@@ -256,13 +268,16 @@ require a decision.
 
 **MF-CURATION-001 (deterministic).** `20 Curation Register.jsonl` is empty at seed. Each later line
 is one append-only curation-decision event recording schema version, stable source identity,
-integration and role, source-relative path and checksum when available, decision, where the item's
+integration and role, observed source locator and checksum when available, decision, where the item's
 content went, evidence, timestamp and any superseded event.
 
 Version 1 uses `schema_version`, `source_id`, `integration`, `role`, `source_path`, optional
 `checksum`, `decision`, conditional `destination`, `evidence`, `timestamp` and optional
-`supersedes`. Its decisions are curated, source-only or requires-decision. Paths are relative, the
-timestamp is ISO-compatible, and a curated event requires a destination.
+`supersedes`. Its decisions are curated, source-only or requires-decision. An importer integration's
+`source_path` is relative to that importer root. Integration `user` or a name ending `-manual`
+explicitly marks a manual origin and may retain the absolute path where the Owner supplied it; that
+path is an observed locator, not an importer root or portable pointer. Destinations and derived paths remain
+module-relative. The timestamp is ISO-compatible, and a curated event requires a destination.
 
 Version 2 adds the fourth decision `rederived`: the item's content reached the module through
 derived artifacts rather than through a copy, and the line names them in `derived` — a non-empty
@@ -327,7 +342,9 @@ tutorial-solution-writeup.tex
 
 The ten `.tex` files are required by name alone and their contents are free: a module edits one
 where the difference is functional, and its rendered page follows the selected seeded artifact
-type. `preferences.md` is pinned byte for byte under MF-AGENTS-004.
+type. `preferences.md` is pinned byte for byte under MF-AGENTS-004. A module may add
+`70 Learning/preferences.local.md` only for evidenced, standing preferences specific to that
+module; absence is the ordinary state.
 
 The six existing teaching artifact types use `preamble.tex`. The mathematics cheatsheet uses its
 own preamble and portable logo dependency. It includes solved questions and proofs; the reference
@@ -341,13 +358,21 @@ contract reads none of it.
 
 **MF-LEARNING-002 (deterministic).** `00 Module Admin/40 Source Map.yaml` is the workspace's spine,
 and it sits in Module Admin because it is machine-read module state rather than workspace content.
-Its `units` mapping is keyed exactly as the module numbers its Lecture-units — a week or a lecture
+The root has only `units`. That mapping is keyed exactly as the module numbers its Lecture-units — a week or a lecture
 in the module's own words, never a subdivision this system invented — and every unit carries
 `topics`, `lectures`, `textbook` and `tutorials`, each of them a sequence, written out even when
 empty — a unit with no textbook chapter says `textbook: []`, so a missing key is a malformed unit
-rather than a quiet nothing. `topics` names ideas in the module's language; the other three hold
-paths relative to the module folder, which is where the module's own material sits rather than the
-workspace that studies it.
+rather than a quiet nothing. `topics` names ideas in the module's language. `lectures` and
+`textbook` hold module-relative paths. Each `tutorials` entry is either a legacy module-relative
+path or a typed block with a non-empty `block`, non-empty `exercises` locator, and non-empty `sources`.
+A source has a module-relative `file`, a `locator`, a free module role, and optional non-empty
+`missing` descriptions. These closed fields keep source roles and missing-solution evidence without
+turning mathematical vocabulary into an enum.
+
+A unit may additionally carry `teaching_weeks`, as unique positive integers, and module-relative
+path sequences named `supplementary_materials`, `past_papers`, `practice_tests`, or
+`historical_reference`. The names distinguish current teaching sources, assessment practice, and
+historical context while leaving undeclared machine fields detectable.
 
 ```yaml
 units:
@@ -358,12 +383,21 @@ units:
     textbook:
       - 10 Learning Materials/20 Textbook Chapters/MH2100_Stewart_Chapter_14.pdf
     tutorials:
-      - 20 Tutorials/MH2100_Tutorial_03_Questions.pdf
+      - block: Block A
+        exercises: Exercises 1-2
+        sources:
+          - file: 20 Tutorials/MH2100_Tutorial_03_Questions.pdf
+            locator: questions 1-2
+            role: questions
+          - file: 20 Tutorials/MH2100_Tutorial_03_Solutions.pdf
+            locator: solutions 1-2
+            role: solutions
+            missing: [Exercise 2]
 ```
 
 Seeding writes an empty `units`, which grows as the module's material lands. A folder in
-`10 Lectures` is named for a key here, and a Learning record's `unit` is one of them, so which files
-a unit means is a lookup rather than a judgment.
+`10 Lectures` is named for a key here. Every Learning record names its governing `unit` and its
+activity `target`; tutorial and past-paper targets remain distinct even when they share a unit.
 
 ## The Textbook library
 
@@ -516,8 +550,9 @@ document's **file name**, exactly as the mirror writes it; or the document **nam
 is what the importer's own generic names such as `ultraDocumentBody.md` leave no alternative to. A
 path into the interior records the item's position, and a position moves whenever NTULearn inserts
 above it. This binds the Profile's Evidence cells, the Definition's `evidence.<key>.source` and a
-Task row's `provenance.source`. The Curation register is untouched: its `source_path` records where
-the walk saw an item, which is an observation rather than a pointer —
+Task row's `provenance.source`. The Curation register is untouched: an importer line's relative
+`source_path` records where the walk saw an item, while a `user` or `-manual` line may preserve the
+absolute place the Owner supplied it. Both are observations rather than pointers —
 [`docs/adr/0014`](adr/0014-evidence-cites-ntulearn-and-never-a-path-into-it.md).
 
 **MF-CURATION-002 (judgment).** Curation preserves an importer source and creates a renamed copy in

@@ -217,7 +217,7 @@ describe("academic-os seed", () => {
     recordBehaviorEvidence("MF-AGENTS-003", () => {
       assert.equal(
         agents.includes(
-          "Propose a change by showing the Owner the exact new wording before",
+          "Authorization for the requested\ntask persists through routine reversible changes",
         ),
         true,
       );

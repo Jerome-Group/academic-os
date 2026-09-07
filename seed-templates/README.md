@@ -24,8 +24,8 @@ as instructions for this repository, and it is what marks a file as seeded — t
 infix and reaches no module.
 
 `MODULE_CODE` is the only token seeding substitutes, and so the only thing that may differ between
-two modules' copies. A template that wants to say something true of one module has found something
-belonging in that module's `CONTEXT.md`, `docs/adr/` or profile.
+two modules' copies. Module-specific content belongs in `CONTEXT.md`, `docs/adr/`, the Profile, or
+the optional unseeded `70 Learning/preferences.local.md` for evidenced standing teaching conduct.
 
 Inside `research-project/`, the path after that directory is the Research-project destination and
 the `.template` infix is removed. `{{PROJECT_NAME}}` is its sole interpolation token. A template
@@ -38,7 +38,7 @@ A change here reaches every module folder by transition or repair, which makes i
 contract's own text:
 
 - Load `/mattpocock-skills:writing-for-agents` and apply its levers alongside the change.
-- Show the Owner the exact new wording before applying it.
+- Name the exact file and section before editing; use the authorization already given for the task.
 - A change that outruns `docs/module-folder-contract.md` is a contract change, and lands in the
   same pull request.
 

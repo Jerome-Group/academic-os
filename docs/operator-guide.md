@@ -726,8 +726,9 @@ decisions; an empty ADR directory means no qualifying decision has yet been reco
 the six pinned files — the `AGENTS.md` router, the four `docs/` procedures and the teaching
 preferences in `70 Learning/templates/` — from this repository's `seed-templates/`, with
 `MODULE_CODE` replaced by the module's code. They are the module's whole instruction set, and audit
-diffs each copy back against its template, so a module that needs to say something of its own says
-it in `CONTEXT.md`, `docs/adr/` or the Profile.
+diffs each copy back against its template. Module-specific facts and decisions belong in
+`CONTEXT.md`, `docs/adr/` or the Profile; an evidenced standing teaching preference may use the
+optional unseeded `70 Learning/preferences.local.md` overlay.
 
 The Teaching workspace is seeded whole, for every module, whether or not that module will use it:
 the four activity areas under `70 Learning` with their `records/`, the LaTeX template set and
@@ -831,7 +832,8 @@ That previews. It says, for every module and pinned document, whether the copy i
 missing, and for a stale one it names the first differing line — the same words the audit's own
 finding uses. Read it before applying: a module's local edit to a pinned file is exactly what this
 discards, and MF-AGENTS-004 is why that is right, but the preview is what stops it being silent.
-Whatever a module needed to say belongs in `CONTEXT.md`, `docs/adr/` or the Profile.
+Whatever a module needed to say belongs in `CONTEXT.md`, `docs/adr/`, the Profile, or the optional
+module-owned teaching-preference overlay.
 
 ```bash
 node dist/src/cli.js pinned refresh --config academic-os.config.json --apply

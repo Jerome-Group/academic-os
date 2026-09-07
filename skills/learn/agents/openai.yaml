@@ -1,5 +1,5 @@
 interface:
   display_name: "Learn"
-  short_description: "Teach the Owner one unit of a module"
+  short_description: "Teach one module activity target"
 policy:
   allow_implicit_invocation: false

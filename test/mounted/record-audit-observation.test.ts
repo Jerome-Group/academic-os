@@ -263,7 +263,7 @@ async function record(
       controls: validModuleControls(),
       result,
       observedAt,
-      contractVersion: 5,
+      contractVersion: 6,
     },
     publisher,
   );

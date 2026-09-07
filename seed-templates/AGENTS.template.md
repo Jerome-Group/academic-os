@@ -19,8 +19,9 @@ Read the route's procedure before acting in its area.
   `docs/10 Curation Procedure.md`, recording in
   `00 Module Admin/20 Curation Register.jsonl`.
 - **Teaching** — lectures, revision and past papers in `70 Learning/`:
-  `docs/20 Teaching Procedure.md`, with lecture-units in
-  `00 Module Admin/40 Source Map.yaml`.
+  `docs/20 Teaching Procedure.md`, with activity targets in
+  `00 Module Admin/40 Source Map.yaml` and optional module conduct in
+  `70 Learning/preferences.local.md`.
 - **Tutorials** — curated sheets in `20 Tutorials/`; attempts, grading and
   writeups in `70 Learning/20 Tutorials/`: `docs/20 Teaching Procedure.md`.
 - **Textbooks** — chapters into `10 Learning Materials/20 Textbook Chapters/`:
@@ -66,6 +67,8 @@ not.
 - Importer roots (`NTULearn` and any declared sibling) are read-only —
   curation copies out of them, leaving names and layout untouched.
 - Registers change only through their procedures.
+- Issued sources and Owner attempts retain their original bytes; teaching writes beside them.
+- Records append or supersede. Their existence proves neither completion nor understanding.
 - Structure changes only through the structure doc — a directory it does
   not name is an Owner decision.
 
@@ -73,9 +76,10 @@ not.
 
 This file and the four docs it names are pinned: their text is the
 contract's, identical in every module, and the auditor flags a stale copy.
-Propose a change by showing the Owner the exact new wording before
-applying it. Module-specific knowledge lives in `CONTEXT.md`,
-`docs/adr/` or the profile — never here.
+Before editing, name the exact file and section. Authorization for the requested
+task persists through routine reversible changes; ask only when an unresolved
+choice changes the result. Module-specific knowledge lives in `CONTEXT.md`,
+`docs/adr/`, the profile, or `70 Learning/preferences.local.md` — never here.
 
 Draft any change to a doc agents read — this file, the four docs,
 `CONTEXT.md`, an ADR — with the writing-for-agents discipline before

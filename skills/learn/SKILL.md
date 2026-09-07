@@ -1,13 +1,13 @@
 ---
 name: learn
-description: Teach the Owner one unit of a module — explain, then check by asking for something back — in that module's own Teaching workspace.
+description: Teach the Owner one activity target in a module — explain, then check by asking for something back — in that module's own Teaching workspace.
 disable-model-invocation: true
 argument-hint: "<module code> [what to work on]"
 ---
 
 # Learn
 
-The Owner wants to be taught one unit of a module.
+The Owner wants to work through one activity target in a module.
 
 This file is a **route**, and it ends at step 4. How a session is conducted — what it produces,
 where an artifact goes, what a record holds, how anything is compiled, what earns an entry in the
@@ -45,26 +45,21 @@ They are the module's, not this skill's, and a remembered copy is a stale one:
   too, as it says to
 - `docs/20 Teaching Procedure.md` — how a session is conducted and what it leaves behind
 - `70 Learning/templates/preferences.md` — how the Owner is taught
+- `70 Learning/preferences.local.md`, when present — standing preferences for this module
 - `00 Module Admin/40 Source Map.yaml` — the units, and which files each one means
 
-## 3. Propose the unit, and ask when it is not obvious
+## 3. Resolve the activity target
 
-The Owner's invocation says what kind of work this is, and the procedure maps that to one activity
-area. Ask which when the invocation does not say — the areas are not interchangeable, and each
-keeps its own records.
+Resolve an activity target named in the invocation first. For continuation, follow **Session path →
+1. Resolve the activity and target** in the live Teaching Procedure. That step owns target order,
+record interpretation and ambiguity handling.
 
-Then read the units that area's existing records name, and diff them against the Source map's unit
-keys. The proposal is the earliest key the records do not cover.
-
-**Ask instead of choosing** when the area has no records, when the Source map declares no units,
-or when more than one key has an equal claim. A first session in an area is the ordinary case of
-this, not an error: there is nothing to read off, so the Owner says where to start.
-
-Say which unit the session is on before work begins. An invocation that already named one still
-has to resolve to a key the Source map holds — say which key it resolved to, and ask when it
-matches none.
+State the resolved area, target, governing unit and sources before handing the session to the
+procedure. Completion: one target is resolved, or the procedure's material ambiguity is with the
+Owner for settlement.
 
 ## 4. Run the session
 
-Under the procedure and the preferences you read in step 2, on the unit step 3 settled, with the
-Owner in the room throughout.
+Under the procedure and preferences read in step 2, on the target step 3 settled, with the Owner in
+the room throughout. Complete its verification, truthful record, and authoritative closeout before
+ending the route.

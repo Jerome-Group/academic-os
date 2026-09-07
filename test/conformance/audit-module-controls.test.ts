@@ -398,12 +398,99 @@ describe("auditModuleControls", () => {
     );
   });
 
-  it("requires a version-4 module to transition to version 5", () => {
+  it("accepts unique Profile extensions while retaining the ordered anchors", () => {
+    const controls = validModuleControls();
+    controls.profile = (controls.profile ?? "")
+      .replace(
+        "## Scope",
+        "## Requisites\nConfirmed prerequisite facts.\n\n## Scope",
+      )
+      .replace(
+        "## Assessment Structure",
+        "## Reading Material\nConfirmed reading facts.\n\n## Assessment Structure",
+      );
+
+    const result = auditModuleControls(
+      { moduleCode: "MH2100", semester: "Y2S1", controls },
+      testModuleContract,
+    );
+
+    assert.equal(result.outcome, "conformant");
+
+    controls.profile = `${controls.profile ?? ""}\n## Requisites\nDuplicate.\n`;
+    const duplicate = auditModuleControls(
+      { moduleCode: "MH2100", semester: "Y2S1", controls },
+      testModuleContract,
+    );
+    assert.equal(
+      duplicate.findings.find(({ ruleId }) => ruleId === "MF-PROFILE-001")
+        ?.status,
+      "fail",
+    );
+  });
+
+  it("isolates canonical Profile tables from nested topic tables", () => {
+    const controls = validModuleControls();
+    controls.profile = (controls.profile ?? "").replace(
+      "\n## Scope",
+      "\n### Offering note\n| Detail | Value |\n| --- | --- |\n| Unchecked | TBD |\n\n## Scope",
+    );
+
+    const result = auditModuleControls(
+      { moduleCode: "MH2100", semester: "Y2S1", controls },
+      testModuleContract,
+    );
+
+    assert.equal(result.outcome, "conformant");
+  });
+
+  it("accepts current assessment detail, provenance, and academic-year variants", () => {
+    for (const assessmentColumn of ["Coverage", "Policy", "Permitted aid"]) {
+      const controls = validModuleControls();
+      controls.profile = (controls.profile ?? "")
+        .replace("2026-2027", "2026–2027")
+        .replace(
+          "| Component | Weight | Timing | Evidence |\n| --- | --- | --- | --- |\n| Midterm | 30% | Week 7 | NTULearn |",
+          `| Component | Weight | Timing and coverage | ${assessmentColumn} | Evidence |\n| --- | --- | --- | --- | --- |\n| Midterm | 30% | Week 7 | Confirmed detail | NTULearn |`,
+        )
+        .replace(
+          "| Rank | Source | Role | Governs | Evidence |",
+          "| Rank | Source | Role | Governs | Checked |",
+        );
+
+      const result = auditModuleControls(
+        { moduleCode: "MH2100", semester: "Y2S1", controls },
+        testModuleContract,
+      );
+      assert.equal(result.outcome, "conformant", assessmentColumn);
+    }
+  });
+
+  it("does not treat Governs as Source Authority provenance", () => {
+    const controls = validModuleControls();
+    controls.profile = (controls.profile ?? "")
+      .replace(" | Evidence |", " | Evidence |")
+      .replace(
+        "| Rank | Source | Role | Governs | Evidence |\n| --- | --- | --- | --- | --- |\n| 1 | NTULearn | Primary | Offering | Current course |",
+        "| Rank | Source | Role | Governs |\n| --- | --- | --- | --- |\n| 1 | NTULearn | Primary | Offering |",
+      );
+
+    const result = auditModuleControls(
+      { moduleCode: "MH2100", semester: "Y2S1", controls },
+      testModuleContract,
+    );
+    assert.equal(
+      result.findings.find(({ ruleId }) => ruleId === "MF-PROFILE-001")?.status,
+      "fail",
+    );
+  });
+
+  it("requires a version-5 module to transition to version 6", () => {
     const controls = validModuleControls();
     controls.definition =
       controls.definition?.replace(
+        "contract_version: 6",
         "contract_version: 5",
-        "contract_version: 4",
       ) ?? "";
 
     const result = auditModuleControls(
@@ -419,7 +506,7 @@ describe("auditModuleControls", () => {
     assert.match(
       result.findings.find(({ ruleId }) => ruleId === "MF-DEFINITION-001")
         ?.evidence ?? "",
-      /contract_version 4 requires upgrade to requested version 5/u,
+      /contract_version 5 requires upgrade to requested version 6/u,
     );
   });
 
@@ -428,7 +515,7 @@ describe("auditModuleControls", () => {
     controls.definition =
       controls.definition
         ?.replace("schema_version: 2", "schema_version: 3")
-        .replace("contract_version: 5", "contract_version: 6") ?? "";
+        .replace("contract_version: 6", "contract_version: 7") ?? "";
 
     const result = auditModuleControls(
       {
@@ -448,7 +535,7 @@ describe("auditModuleControls", () => {
     );
     assert.match(
       versionFinding?.evidence ?? "",
-      /Unsupported contract_version 6/u,
+      /Unsupported contract_version 7/u,
     );
     assert.equal(
       result.findings.filter(({ ruleId }) => ruleId === "MF-DEFINITION-001")

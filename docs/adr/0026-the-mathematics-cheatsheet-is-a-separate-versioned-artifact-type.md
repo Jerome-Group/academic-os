@@ -34,3 +34,6 @@ new seed files through the existing Owner-approved procedure and moves the Defin
 The `.tex` bodies remain module-editable by name. `preferences.md` remains the only pinned file in
 the directory. Coursework, source quotations and personal paths stay in module folders; the public
 specimen contains original generic mathematics only.
+
+[ADR-0029](0029-cheatsheet-releases-are-source-led-and-portable.md) adds the source-led release,
+fitting, portability and exact-review contract around this semantic artifact type.

@@ -61,6 +61,7 @@ describe("controlPaths", () => {
       "docs/10 Curation Procedure.md",
       "docs/20 Teaching Procedure.md",
       "docs/30 Textbook Procedure.md",
+      "docs/40 Cheatsheet Procedure.md",
       "70 Learning/templates/preferences.md",
     ]);
   });

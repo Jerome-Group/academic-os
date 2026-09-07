@@ -99,6 +99,12 @@ folder from any directory, then yields to that folder's live router and procedur
 from `/learn`: Research projects select among several project routes rather than one Module
 Teaching workspace. The source is `skills/research-project/`; its boundary is `docs/adr/0025-…`.
 
+### `/cheatsheet`, the source-led release router
+
+`/cheatsheet <module code> <operation>` finds one Module and selects create, revise, audit, verify or
+package-review. Its pinned `docs/40 Cheatsheet Procedure.md` owns conduct. The source is
+`skills/cheatsheet/`; its boundary is `docs/adr/0029-…`.
+
 ### Issue tracker
 
 GitHub Issues on this repository, via the `gh` CLI. `docs/agents/issue-tracker.md` carries the

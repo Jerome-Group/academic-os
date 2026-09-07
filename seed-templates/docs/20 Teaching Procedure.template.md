@@ -10,12 +10,12 @@ for this module. `docs/00 Structure and Naming.md` governs anything that leaves 
 
 ## Activity targets
 
-| Area | Target | Pattern |
-| --- | --- | --- |
-| `10 Lectures/` | Source-map unit key | lecture |
-| `20 Tutorials/` | tutorial path, or a structured tutorial block's `block` | tutorial |
-| `30 Revision/` | exact Source-map topic | lecture |
-| `40 Past Papers/` | exact paper or paper folder | tutorial |
+| Area              | Target                                                  | Pattern  |
+| ----------------- | ------------------------------------------------------- | -------- |
+| `10 Lectures/`    | Source-map unit key                                     | lecture  |
+| `20 Tutorials/`   | tutorial path, or a structured tutorial block's `block` | tutorial |
+| `30 Revision/`    | exact Source-map topic                                  | lecture  |
+| `40 Past Papers/` | exact paper or paper folder                             | tutorial |
 
 A target is the item worked. Its `unit` is the Source-map key that governs it. Several tutorials or
 papers may share one unit and remain separate targets. Each area keeps `records/` beside its target
@@ -143,4 +143,6 @@ it schedules nothing.
 `templates/` contains the ordinary teaching types and the mathematics cheatsheet type. Ordinary
 types use `preamble.tex`; the cheatsheet uses `mathematics-cheatsheet-preamble.tex` and
 `chatgpt-logo.tex`. Start from the matching type. A module may add functional macros, environments,
-or notation shortcuts; visible shared design changes belong to the seeded set.
+or notation shortcuts; visible shared design changes for ordinary teaching types belong to the seeded set.
+For creating, revising, auditing, verifying or packaging a cheatsheet, follow
+`docs/40 Cheatsheet Procedure.md`; its artifact constraints govern the configured layout.

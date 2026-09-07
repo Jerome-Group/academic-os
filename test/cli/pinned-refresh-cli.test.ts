@@ -114,7 +114,7 @@ describe("academic-os pinned refresh", () => {
     const report = JSON.parse(result.stdout);
     assert.equal(report.command, "pinned refresh");
     assert.equal(report.outcome, "current");
-    assert.deepEqual(report.counts, { current: 12, stale: 0, missing: 0 });
+    assert.deepEqual(report.counts, { current: 14, stale: 0, missing: 0 });
     assert.deepEqual(await readdir(fixture.stateRoot), []);
   });
 
@@ -263,7 +263,7 @@ describe("academic-os pinned refresh", () => {
     assert.equal(report.unresolved[0].module, "MH2100");
     assert.equal(report.rewrites.length, 1);
     assert.equal(report.rewrites[0].module, "CC0006");
-    assert.deepEqual(report.counts, { current: 5, stale: 1, missing: 0 });
+    assert.deepEqual(report.counts, { current: 6, stale: 1, missing: 0 });
   });
 
   it("rejects an unknown flag rather than guessing", async () => {

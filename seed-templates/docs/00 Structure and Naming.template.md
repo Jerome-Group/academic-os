@@ -54,6 +54,7 @@ MODULE_CODE/
     ├── 10 Curation Procedure.md
     ├── 20 Teaching Procedure.md
     ├── 30 Textbook Procedure.md
+    ├── 40 Cheatsheet Procedure.md
     └── adr/
 ```
 
@@ -68,7 +69,7 @@ MODULE_CODE/
 | `90 Resources/` | Reference material that is not teaching material; `00 Unclassified/` holds what has no declared category. |
 | `.scratch/` | Working files nothing else reads. Nothing durable lives here, and a LaTeX `build/` never does. |
 | `NTULearn/` | The importer's mirror — read-only, and the source curation copies out of. |
-| `docs/` | The four pinned procedure docs and this module's own ADRs. |
+| `docs/` | The five pinned procedure docs and this module's own ADRs. |
 
 Module root holds the three control files and nothing loose beside them.
 

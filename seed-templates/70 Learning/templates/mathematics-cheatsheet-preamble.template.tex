@@ -1,4 +1,14 @@
-\usepackage[a4paper,left=1.8mm,right=1.8mm,top=4mm,bottom=5.47mm]{geometry}
+% Set these before loading the preamble when the manifest requires different native layout.
+\providecommand{\SheetLeftMargin}{1.8mm}
+\providecommand{\SheetRightMargin}{1.8mm}
+\providecommand{\SheetTopMargin}{4mm}
+\providecommand{\SheetBottomMargin}{5.47mm}
+\providecommand{\SheetColumns}{4}
+\providecommand{\SheetBodyPointSize}{4}
+\providecommand{\SheetBodyLeading}{4.1}
+\providecommand{\SheetMathScriptPointSize}{3}
+\providecommand{\SheetMathScriptScriptPointSize}{2.4}
+\usepackage[a4paper,left=\SheetLeftMargin,right=\SheetRightMargin,top=\SheetTopMargin,bottom=\SheetBottomMargin]{geometry}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
 \usepackage{amsmath,amssymb,mathtools}
@@ -30,8 +40,8 @@
 \makeatother
 
 % Keep text and operators native-sized so dense pages remain inspectable without geometric distortion.
-\newcommand{\SheetBodyFont}{\fontsize{4}{4.1}\selectfont}
-\DeclareMathSizes{4}{4}{3}{2.4}
+\newcommand{\SheetBodyFont}{\fontsize{\SheetBodyPointSize}{\SheetBodyLeading}\selectfont}
+\DeclareMathSizes{\SheetBodyPointSize}{\SheetBodyPointSize}{\SheetMathScriptPointSize}{\SheetMathScriptScriptPointSize}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{0pt}
 \setlength{\columnsep}{0.6mm}
@@ -70,6 +80,7 @@
     \AtPageUpperLeft{\put(\LenToUnit{2mm},\LenToUnit{-3.15mm}){\makebox[0pt][l]{\SheetBodyFont\bfseries\sheet@title}}}%
     \AtPageUpperLeft{\put(\LenToUnit{208mm},\LenToUnit{-3.15mm}){\makebox[0pt][r]{\SheetBodyFont\raisebox{.45ex}[0pt][0pt]{\sheet@logo}\kern.7mm\sheet@credit}}}%
     \AtPageLowerLeft{\put(\LenToUnit{2mm},\LenToUnit{1.6mm}){\makebox[0pt][l]{\SheetBodyFont\sheet@disclaimer}}}%
+    \AtPageLowerLeft{\put(\LenToUnit{105mm},\LenToUnit{1.6mm}){\makebox[0pt][c]{\SheetBodyFont\thepage}}}%
     \AtPageLowerLeft{\put(\LenToUnit{208mm},\LenToUnit{1.6mm}){\makebox[0pt][r]{\SheetBodyFont\sheet@publisher}}}%
   }%
 }
@@ -77,9 +88,11 @@
 
 \newcommand{\SourceRef}[1]{\hyperlink{source:#1}{[\textbf{#1}]}}
 \newcommand{\ConceptRef}[1]{\textbf{#1}}
+\newcommand{\SheetMapItem}[2]{\hyperlink{topic:#1}{\textbf{#1} #2}}
+\newcommand{\SheetMap}[1]{\par\textbf{Map:}\ #1\par\vspace{.2pt}\hrule\vspace{.2pt}}
 \newcommand{\MajorBlock}[2]{%
   \SheetNeedspace{12pt}\par\vspace{0.15pt}%
-  \hypertarget{source:#1}{}%
+  \hypertarget{source:#1}{}\hypertarget{topic:#1}{}%
   {\setlength{\fboxsep}{0.35pt}\colorbox{black}{\parbox{\dimexpr\linewidth-2\fboxsep\relax}{\color{white}\sffamily\bfseries\SheetBodyFont #1\enspace #2}}}%
   \par\vspace{0.05pt}%
 }
@@ -87,8 +100,10 @@
   \SheetNeedspace{8pt}\par\vspace{0.1pt}\hypertarget{source:#1}{}%
   {\sffamily #1\enspace\bfseries #2}\par\vspace{-1.45pt}\rule{\linewidth}{0.15pt}\par\vspace{0.05pt}%
 }
-\newcommand{\Topic}[1]{%
-  \SheetNeedspace{11pt}\par\vspace{0.15pt}{\sffamily\bfseries #1}\par\vspace{-1.55pt}\rule{\linewidth}{0.2pt}\par\vspace{0.05pt}%
+\newcommand{\Topic}[2][]{%
+  \SheetNeedspace{11pt}\par\vspace{0.15pt}%
+  \if\relax\detokenize{#1}\relax\else\hypertarget{topic:#1}{}\fi%
+  {\sffamily\bfseries\if\relax\detokenize{#1}\relax\else #1\enspace\fi #2}\par\vspace{-1.55pt}\rule{\linewidth}{0.2pt}\par\vspace{0.05pt}%
 }
 \newcommand{\DisplayStatementKind}[1]{#1}
 \newcommand{\Statement}[3]{\par\textbf{\uline{\DisplayStatementKind{#1} #2.}}\ #3\par}
@@ -116,7 +131,9 @@
 \newenvironment{CheatSheet}{\SheetFurniture\SheetBodyFont\baselineskip=3.78pt\lineskip=.15pt\lineskiplimit=.1pt\spaceskip=.92pt plus .52pt minus .18pt\xspaceskip=1pt plus .52pt minus .18pt%
   \setlength{\abovedisplayskip}{0.45pt}\setlength{\belowdisplayskip}{0.45pt}%
   \setlength{\abovedisplayshortskip}{0.2pt}\setlength{\belowdisplayshortskip}{0.2pt}%
-  \begin{multicols}{4}}{\end{multicols}}
+  \typeout{CHEATSHEET-BODY-PT=\SheetBodyPointSize}%
+  \typeout{CHEATSHEET-COLUMNS=\SheetColumns}%
+  \begin{multicols}{\SheetColumns}}{\end{multicols}}
 
 \newcommand{\ReportMathFonts}{%
   \begingroup$\displaystyle\sum_{i=1}^{n}x_i$%

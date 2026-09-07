@@ -92,6 +92,7 @@ MODULE_CODE/
     ├── 10 Curation Procedure.md
     ├── 20 Teaching Procedure.md
     ├── 30 Textbook Procedure.md
+    ├── 40 Cheatsheet Procedure.md
     └── adr/
 ```
 
@@ -216,11 +217,11 @@ carries no git, GitHub, pull-request, generic coding-standard or repository work
 are these six, in this order: What this folder is; Start here; Routes; Domain language; Safety;
 Updating these instructions.
 
-Routes are these eight, each a bullet opening with its area in bold and pointing at the procedure
+Routes are these nine, each a bullet opening with its area in bold and pointing at the procedure
 or file the work runs by:
 
 ```text
-Curation  Teaching  Tutorials  Textbooks  Tasks  Assessments  Projects/Labs  Maintenance
+Curation  Teaching  Cheatsheets  Tutorials  Textbooks  Tasks  Assessments  Projects/Labs  Maintenance
 ```
 
 Domain language points at `CONTEXT.md` for the module's organisational terms and `docs/adr/` for
@@ -238,7 +239,7 @@ show the concrete proposed wording or operation then. Unattended, a run writes `
 surfaces every such write in its report; precedent is its only resolver, and an ambiguity without
 precedent parks.
 
-**MF-AGENTS-004 (deterministic).** `AGENTS.md`, the four `docs/` procedure files and
+**MF-AGENTS-004 (deterministic).** `AGENTS.md`, the five `docs/` procedure files and
 `70 Learning/templates/preferences.md` are pinned: each module's copy is byte-identical to this
 repository's canonical seed-source template in `seed-templates/`, modulo `MODULE_CODE`
 interpolation. Seeding writes them from those templates and audit diffs them back against the same
@@ -259,7 +260,7 @@ only after an ambiguity has been resolved. A new term appends; an existing meani
 place as the deliberate point of the change, never as a side effect of other work. The file keeps
 no superseded entry.
 
-**MF-DOCS-001 (deterministic).** General documentation belongs in `docs/`, which holds the four
+**MF-DOCS-001 (deterministic).** General documentation belongs in `docs/`, which holds the five
 pinned procedure files and `docs/adr/`. Every module contains `docs/adr/`, even when it is empty.
 An ADR records a standing rule this contract does not force, whose reversal would strand the
 records built on it; a decision that touches one item once is a register line instead. ADRs are
@@ -405,6 +406,45 @@ units:
 Seeding writes an empty `units`, which grows as the module's material lands. A folder in
 `10 Lectures` is named for a key here. Every Learning record names its governing `unit` and its
 activity `target`; tutorial and past-paper targets remain distinct even when they share a unit.
+
+## Cheatsheet artifacts
+
+**MF-CHEATSHEET-001 (deterministic).** A cheatsheet release is one matching `.tex` and `.pdf` pair
+directly in `10 Learning Materials/30 Personal Notes/`. Durable authoring, provenance, coverage,
+review evidence and history live under `support/<artifact-id>/`. Reproducible fitting output lives
+under `.scratch/cheatsheets/<artifact-id>/<run-id>/`. A release TeX compiles when copied alone to a
+fresh directory; required TeX-distribution packages are declared prerequisites rather than hidden
+file dependencies.
+
+**MF-CHEATSHEET-002 (deterministic).** `support/<artifact-id>/manifest.yaml` declares schema version
+1, the release pair, user constraints, sources with module-relative paths, locators, SHA-256 digests
+and authority, a coverage table, exactly one authoring authority, release hashes and review state.
+The authority is either the self-contained release TeX or an ordered list of digested fragments
+under `support/<artifact-id>/content/`. A passed review names the exact released PDF hash.
+
+**MF-CHEATSHEET-003 (deterministic).** Coverage records every required item or question part and
+every exclusion with a source, locator, stable topic ID, priority, disposition and artifact locator
+where included. Required content remains included. Current assessment scope and issued sources lead;
+audited module work, registered textbooks and historical material follow. An original example fills
+only an identified need and remains identified as original.
+
+**MF-CHEATSHEET-004 (judgment).** Fitting begins at the preferred native body size and measures each
+revision. Sparse output restores required detail and expands rigorous source-backed content from
+highest priority downward before adjusting spacing. Overflow removes duplicate framing,
+cross-references repeats, shortens reasoning without dropping conditions, then cuts optional content
+from lowest priority upward. Page limit, required coverage and font floor pass together; an
+incompatible set returns to the Owner as a measured choice.
+
+**MF-CHEATSHEET-005 (deterministic).** Verification compiles only the release TeX in isolation and
+checks A4 size and page count, native font floor, embedded fonts, missing glyphs, horizontal and
+vertical overflow, extracted text and rendered-page equality. A review package resolves its manifest
+and coverage together, contains their exact bytes with the release pair and authoritative fragments,
+verifies every checksum, and records a successful isolated compile of the packaged release. Passed
+review state names the exact packaged PDF.
+
+**MF-CHEATSHEET-006 (judgment).** Visual and mathematical review inspects every page and column for
+clearance, clipping and collision; confirms stable navigation and identified continuations; and
+checks every required item, condition and mathematical qualification against its cited source.
 
 ## The Textbook library
 

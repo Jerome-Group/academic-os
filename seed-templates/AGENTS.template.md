@@ -22,6 +22,8 @@ Read the route's procedure before acting in its area.
   `docs/20 Teaching Procedure.md`, with activity targets in
   `00 Module Admin/40 Source Map.yaml` and optional module conduct in
   `70 Learning/preferences.local.md`.
+- **Cheatsheets** — source-led releases in `10 Learning Materials/30 Personal Notes/`:
+  `docs/40 Cheatsheet Procedure.md`.
 - **Tutorials** — curated sheets in `20 Tutorials/`; attempts, grading and
   writeups in `70 Learning/20 Tutorials/`: `docs/20 Teaching Procedure.md`.
 - **Textbooks** — chapters into `10 Learning Materials/20 Textbook Chapters/`:
@@ -74,13 +76,13 @@ not.
 
 ## Updating these instructions
 
-This file and the four docs it names are pinned: their text is the
+This file and the five docs it names are pinned: their text is the
 contract's, identical in every module, and the auditor flags a stale copy.
 Before editing, name the exact file and section. Authorization for the requested
 task persists through routine reversible changes; ask only when an unresolved
 choice changes the result. Module-specific knowledge lives in `CONTEXT.md`,
 `docs/adr/`, the profile, or `70 Learning/preferences.local.md` — never here.
 
-Draft any change to a doc agents read — this file, the four docs,
+Draft any change to a doc agents read — this file, the five docs,
 `CONTEXT.md`, an ADR — with the writing-for-agents discipline before
 showing or writing it.

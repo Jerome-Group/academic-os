@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { it } from "node:test";
 
+import { recordBehaviorEvidence } from "../support/rule-evidence.js";
+
 const root = "seed-templates/70 Learning/templates";
 
 it("ships the separate portable mathematics-cheatsheet interface", async () => {
@@ -17,17 +19,16 @@ it("ships the separate portable mathematics-cheatsheet interface", async () => {
     true,
   );
   assert.match(preamble, /\\usepackage\[a4paper,[^\]]+\]\{geometry\}/u);
-  const bodySize = preamble.match(/\\fontsize\{([0-9.]+)\}\{([0-9.]+)\}/u);
+  const bodySize = preamble.match(
+    /\\providecommand\{\\SheetBodyPointSize\}\{([0-9.]+)\}/u,
+  );
   assert.notEqual(bodySize, null);
   assert.equal(Number(bodySize?.[1]) >= 3.835, true);
-  assert.equal(Number(bodySize?.[2]) > 0, true);
-  assert.match(
-    preamble,
-    new RegExp(
-      String.raw`\\DeclareMathSizes\{${bodySize?.[1]}\}\{${bodySize?.[1]}\}\{[0-9.]+\}\{[0-9.]+\}`,
-      "u",
-    ),
-  );
+  assert.match(preamble, /\\DeclareMathSizes\{\\SheetBodyPointSize\}/u);
+  assert.match(preamble, /\\begin\{multicols\}\{\\SheetColumns\}/u);
+  assert.match(preamble, /\\newcommand\{\\SheetMap\}/u);
+  assert.match(preamble, /\\newcommand\{\\Topic\}\[2\]\[\]/u);
+  assert.match(preamble, /\\thepage/u);
   assert.equal(preamble.includes("\\input{\\ChatGPTLogoAsset}"), true);
   assert.doesNotMatch(
     [type, preamble].join("\n"),
@@ -37,4 +38,8 @@ it("ships the separate portable mathematics-cheatsheet interface", async () => {
   assert.equal(example.includes("mathematics-cheatsheet.pdf"), true);
   assert.equal(example.includes("mathematics-cheatsheet.template.tex"), true);
   assert.doesNotMatch([type, preamble, logo, example].join("\n"), /\/Users\//u);
+  recordBehaviorEvidence("MF-CHEATSHEET-006", () => {
+    assert.match(preamble, /\\newcommand\{\\SheetMap\}/u);
+    assert.match(preamble, /\\newcommand\{\\Continuation\}/u);
+  });
 });

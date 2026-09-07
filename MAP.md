@@ -30,7 +30,8 @@ Start here: `README.md`, then `AGENTS.md`.
 | Domain language | The glossary — this repository's ubiquitous language | `CONTEXT.md` |
 | Decisions | Architecture decision records | `docs/adr/` |
 | Agent skills | The routines an agent follows here, one file per skill, reached by a pointer in `AGENTS.md` | `docs/agents/` |
-| Installed skills | User-invoked harness routes installed at user scope: `/learn` reaches one Module Teaching procedure; `/research-project` reaches one Research project's live router | `skills/`, `docs/adr/0017-…`, `docs/adr/0025-…`, `docs/machine-setup.md` |
+| Installed skills | User-invoked harness routes installed at user scope: `/learn` reaches one Module Teaching procedure; `/cheatsheet` reaches one Module Cheatsheet procedure; `/research-project` reaches one Research project's live router | `skills/`, `docs/adr/0017-…`, `docs/adr/0025-…`, `docs/adr/0029-…`, `docs/machine-setup.md` |
+| Cheatsheet workflow | Source manifests, coverage, measured fitting, isolated release verification and dependency-complete review packages | `src/cheatsheet/`, `seed-templates/docs/40 Cheatsheet Procedure.template.md`, `docs/adr/0029-…` |
 | Research | Primary-source evidence that informs contracts, decisions and agent procedures | `docs/research/` |
 | Automation | The workflows that run on a pull request or on a new issue, and dependency updates | `.github/` |
 | Quality gates | Cross-file rule coverage, publication checks, and the seeded LaTeX set's compile check — all invoked by package scripts and CI | `scripts/check-contract-rule-coverage.mjs`, `src/privacy/`, `scripts/compile-seed-templates.mjs` |

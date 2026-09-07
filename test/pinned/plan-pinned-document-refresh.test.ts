@@ -31,7 +31,7 @@ describe("planPinnedDocumentRefresh", () => {
     });
 
     assert.equal(plan.outcome, "current");
-    assert.deepEqual(plan.counts, { current: 12, stale: 0, missing: 0 });
+    assert.deepEqual(plan.counts, { current: 14, stale: 0, missing: 0 });
     assert.deepEqual(plan.rewrites, []);
   });
 

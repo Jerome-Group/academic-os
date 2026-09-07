@@ -15,6 +15,7 @@ const agentSections = [
 const routes = [
   "Curation",
   "Teaching",
+  "Cheatsheets",
   "Tutorials",
   "Textbooks",
   "Tasks",
@@ -42,7 +43,7 @@ export function validateAgents(source: string | undefined): Finding {
         "MF-AGENTS-001",
         agentsPath,
         "pass",
-        "AGENTS.md has the six local sections, all eight route pointers, and both domain-documentation pointers.",
+        "AGENTS.md has the six local sections, all nine route pointers, and both domain-documentation pointers.",
         "Module instructions are a concise local router.",
       )
     : failedControl("MF-AGENTS-001", agentsPath, problems);

@@ -5,9 +5,23 @@ import type { Finding } from "./types.js";
 import { isRecord, nonEmptyString } from "./value-shape.js";
 
 const sourceMapPath = writtenControlPaths.sourceMap;
-const unitKeys = ["topics", "lectures", "textbook", "tutorials"] as const;
-// `topics` names ideas in the module's language; every other key holds module-relative paths.
-const pathKeys = new Set<string>(unitKeys.filter((key) => key !== "topics"));
+const requiredUnitKeys = [
+  "topics",
+  "lectures",
+  "textbook",
+  "tutorials",
+] as const;
+const optionalPathKeys = [
+  "supplementary_materials",
+  "past_papers",
+  "practice_tests",
+  "historical_reference",
+] as const;
+const allowedUnitKeys = [
+  ...requiredUnitKeys,
+  ...optionalPathKeys,
+  "teaching_weeks",
+];
 
 export function validateSourceMap(source: string | undefined): Finding {
   if (source === undefined) {
@@ -26,7 +40,10 @@ export function validateSourceMap(source: string | undefined): Finding {
     ]);
   }
   const units = Object.entries(value.units);
-  const problems = units.flatMap(([key, unit]) => unitProblems(key, unit));
+  const problems = [
+    ...undeclaredFields(value, ["units"], "Source Map"),
+    ...units.flatMap(([key, unit]) => unitProblems(key, unit)),
+  ];
   return problems.length === 0
     ? controlFinding(
         "MF-LEARNING-002",
@@ -42,22 +59,129 @@ function unitProblems(key: string, unit: unknown): string[] {
   if (key.trim() === "") return ["A unit key is empty."];
   const unitName = `Unit ${JSON.stringify(key)}`;
   if (!isRecord(unit)) return [`${unitName} is not a mapping.`];
-  return unitKeys.flatMap((unitKey) => {
-    const entries = unit[unitKey];
-    if (!Array.isArray(entries)) {
-      return [`${unitName} requires ${unitKey} as a sequence.`];
-    }
-    return entries.flatMap((entry) => {
-      if (!nonEmptyString(entry)) {
-        return [`${unitName} has an empty ${unitKey} entry.`];
+  return [
+    ...undeclaredFields(unit, allowedUnitKeys, unitName),
+    ...requiredUnitKeys.flatMap((unitKey) => {
+      const entries = unit[unitKey];
+      if (!Array.isArray(entries)) {
+        return [`${unitName} requires ${unitKey} as a sequence.`];
       }
-      return pathKeys.has(unitKey) && !isModuleRelative(entry)
-        ? [
-            `${unitName} lists ${unitKey} entry ${JSON.stringify(entry)}, which is not module-relative.`,
-          ]
-        : [];
-    });
-  });
+      return entries.flatMap((entry, index) => {
+        if (unitKey === "tutorials") {
+          return tutorialProblems(
+            entry,
+            `${unitName} tutorials entry ${index + 1}`,
+          );
+        }
+        if (!nonEmptyString(entry)) {
+          return [`${unitName} has an empty ${unitKey} entry.`];
+        }
+        return unitKey !== "topics" && !isModuleRelative(entry)
+          ? [
+              `${unitName} lists ${unitKey} entry ${JSON.stringify(entry)}, which is not module-relative.`,
+            ]
+          : [];
+      });
+    }),
+    ...optionalPathKeys.flatMap((pathKey) =>
+      unit[pathKey] === undefined
+        ? []
+        : pathSequenceProblems(unit[pathKey], `${unitName} ${pathKey}`),
+    ),
+    ...teachingWeekProblems(unit.teaching_weeks, unitName),
+  ];
+}
+
+function pathSequenceProblems(value: unknown, name: string): string[] {
+  if (!Array.isArray(value)) return [`${name} must be a sequence.`];
+  return value.flatMap((entry) =>
+    nonEmptyString(entry) && isModuleRelative(entry)
+      ? []
+      : [`${name} entries must be non-empty module-relative paths.`],
+  );
+}
+
+function teachingWeekProblems(value: unknown, unitName: string): string[] {
+  if (value === undefined) return [];
+  if (
+    !Array.isArray(value) ||
+    value.length === 0 ||
+    value.some((week) => !Number.isInteger(week) || Number(week) < 1) ||
+    new Set(value).size !== value.length
+  ) {
+    return [
+      `${unitName} teaching_weeks must be a non-empty sequence of unique positive integers.`,
+    ];
+  }
+  return [];
+}
+
+function tutorialProblems(entry: unknown, name: string): string[] {
+  if (nonEmptyString(entry)) {
+    return isModuleRelative(entry)
+      ? []
+      : [`${name} ${JSON.stringify(entry)} is not module-relative.`];
+  }
+  if (!isRecord(entry))
+    return [`${name} is neither a path nor a tutorial block.`];
+  const problems = undeclaredFields(
+    entry,
+    ["block", "exercises", "sources"],
+    name,
+  );
+  if (!nonEmptyString(entry.block))
+    problems.push(`${name} requires a non-empty block.`);
+  if (!nonEmptyString(entry.exercises)) {
+    problems.push(`${name} requires a non-empty exercises locator.`);
+  }
+  if (!Array.isArray(entry.sources) || entry.sources.length === 0) {
+    problems.push(`${name} requires a non-empty sources sequence.`);
+  } else {
+    for (const [index, source] of entry.sources.entries()) {
+      problems.push(
+        ...tutorialSourceProblems(source, `${name} source ${index + 1}`),
+      );
+    }
+  }
+  return problems;
+}
+
+function tutorialSourceProblems(source: unknown, name: string): string[] {
+  if (!isRecord(source)) return [`${name} is not a mapping.`];
+  const problems = undeclaredFields(
+    source,
+    ["file", "locator", "role", "missing"],
+    name,
+  );
+  if (!nonEmptyString(source.file) || !isModuleRelative(source.file)) {
+    problems.push(`${name} file must be a non-empty module-relative path.`);
+  }
+  if (!nonEmptyString(source.locator))
+    problems.push(`${name} requires a non-empty locator.`);
+  if (!nonEmptyString(source.role))
+    problems.push(`${name} requires a non-empty role.`);
+  if (source.missing !== undefined && !nonEmptyStringList(source.missing)) {
+    problems.push(
+      `${name} missing must be a non-empty sequence of non-empty descriptions.`,
+    );
+  }
+  return problems;
+}
+
+function undeclaredFields(
+  value: Record<string, unknown>,
+  allowed: string[],
+  name: string,
+): string[] {
+  return Object.keys(value)
+    .filter((field) => !allowed.includes(field))
+    .map((field) => `${name} has unknown field ${JSON.stringify(field)}.`);
+}
+
+function nonEmptyStringList(value: unknown): boolean {
+  return (
+    Array.isArray(value) && value.length > 0 && value.every(nonEmptyString)
+  );
 }
 
 function isModuleRelative(path: string): boolean {

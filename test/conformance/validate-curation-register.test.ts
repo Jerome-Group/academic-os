@@ -169,6 +169,32 @@ describe("validateCurationRegister", () => {
     );
   });
 
+  it("accepts an absolute observed locator only for an explicit manual origin", () => {
+    const manual = validateCurationRegister(
+      line({
+        integration: "downloads-manual",
+        source_path: "/external/inbox/generic-source.pdf",
+      }),
+    );
+    const importer = validateCurationRegister(
+      line({ source_path: "/external/importer/generic-source.pdf" }),
+    );
+    const ownerSupplied = validateCurationRegister(
+      line({
+        integration: "user",
+        source_path: "/external/inbox/owner-supplied.pdf",
+      }),
+    );
+
+    assert.equal(manual.status, "pass");
+    assert.equal(ownerSupplied.status, "pass");
+    assert.equal(importer.status, "fail");
+    assert.match(
+      importer.evidence,
+      /importer source_path must be integration-relative/u,
+    );
+  });
+
   it("carries a clean copy and its annotated copy as two standing lines [MF-CURATION-003]", () => {
     const clean = line({
       source_id:

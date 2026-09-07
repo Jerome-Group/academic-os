@@ -46,7 +46,7 @@ Multivariable calculus.
 | None | None | None |
 `,
     definition: `schema_version: 2
-contract_version: 5
+contract_version: 6
 module: {code: MH2100, title: Calculus III}
 offering: {academic_year: 2026-2027, semester: 1, status: active}
 structure:

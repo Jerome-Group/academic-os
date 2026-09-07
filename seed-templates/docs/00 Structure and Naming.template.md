@@ -3,6 +3,10 @@
 Where a file goes in the MODULE_CODE folder, what it is called, and what may move once it is
 there. Every route in `AGENTS.md` presumes these rules; work that cannot satisfy one parks.
 
+Before writing, name the source object, destination, and exact rename, move, row, key, or section.
+Authorization for the requested task persists through routine reversible steps. Ask when the rules
+below leave a material choice unresolved.
+
 ## The universal tree
 
 Every module folder holds exactly this, whatever the module is:

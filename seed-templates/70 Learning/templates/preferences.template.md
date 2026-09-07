@@ -1,10 +1,9 @@
 # Teaching preferences
 
-How the Owner is taught: the standing notes a session reads before it starts, seeded identically
-into every module and pinned, so this copy stays that one text. `docs/20 Teaching Procedure.md` is
-the conduct — what a session produces and where it goes. This file is the register that conduct
-runs in. Where a new preference goes is at the foot of this file; an edit made here instead is a
-deviation the audit reports.
+How the Owner is taught: the shared notes every session reads before it starts, seeded identically
+into every module and pinned. `docs/20 Teaching Procedure.md` owns session conduct. If
+`70 Learning/preferences.local.md` exists, read it after this file for evidenced standing
+preferences specific to this module.
 
 ## The Owner is in the room
 
@@ -67,6 +66,7 @@ Owner will find it, and going back to it is theirs to start — nothing here sch
 
 ## Where a new preference goes
 
-A preference this file does not carry is learned the way the rest were — the Owner says it in a
-session. Put it back to them as exact wording, and their yes makes it a change to the seeded set.
-A preference true of one module alone belongs in that module's `CONTEXT.md`.
+A preference this file does not carry needs evidence from the Owner. A shared preference changes
+the reviewed seeded set. A standing preference for one module belongs in
+`70 Learning/preferences.local.md`, with its evidence stated there. A request for one session stays
+in that session's record and creates no standing preference.

@@ -89,12 +89,19 @@ async function provisionModule(
     target.semester,
     target.module,
   );
-  const { moduleRoot } = await resolveTarget(configured);
+  const { moduleRoot, stateRoot } = await resolveTarget(configured);
   return await provisionModuleTaskList({
     module: { semester: target.semester, module: target.module },
     reader: createGoogleTaskListReader(tasks.credentials.scheduledRead),
     writer: createGoogleTaskListWriter(tasks.credentials.interactiveWrite),
-    registerStore: createFileTaskRegisterStore(moduleRoot),
+    registerStore: createFileTaskRegisterStore(
+      moduleRoot,
+      undefined,
+      undefined,
+      {
+        stateRoot,
+      },
+    ),
     apply,
   });
 }

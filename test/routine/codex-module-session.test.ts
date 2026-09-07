@@ -24,8 +24,8 @@ function flagValue(flag: string): string | undefined {
 describe("the Codex invocation a module pass runs under", () => {
   it("runs headless, on the named model at the named effort", () => {
     assert.equal(arguments_[0], "exec");
-    assert.equal(MORNING_SESSION_MODEL, "gpt-5.6-luna");
-    assert.equal(MORNING_SESSION_REASONING_EFFORT, "max");
+    assert.equal(MORNING_SESSION_MODEL, "gpt-6-astra");
+    assert.equal(MORNING_SESSION_REASONING_EFFORT, "medium");
     assert.ok(
       arguments_.includes("--model") &&
         arguments_[arguments_.indexOf("--model") + 1] === MORNING_SESSION_MODEL,

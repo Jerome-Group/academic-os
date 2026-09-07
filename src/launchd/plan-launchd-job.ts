@@ -33,6 +33,15 @@ export function planLaunchdJob(input: {
       input.hostTimeZone,
     );
   }
+  if (
+    description.schedule.kind === "interval" &&
+    (!Number.isSafeInteger(description.schedule.seconds) ||
+      description.schedule.seconds < 1)
+  ) {
+    throw new Error(
+      `${target.label} requires a positive integer interval in seconds.`,
+    );
+  }
   const job = {
     programArguments: description.programArguments,
     schedule: description.schedule,

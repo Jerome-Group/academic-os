@@ -10,7 +10,8 @@ Nobody is awake to answer a question. Precedent is your only resolver: where the
 ## Steps
 
 1. Read \`AGENTS.md\` and take its **Curation** route. Run \`docs/10 Curation Procedure.md\` end to end. Done when every item the arrival walk found is either already decided in the Curation register or newly decided by this pass — curated, rederived, superseded, withdrawn or parked.
-2. Apply the derived-docs mandate to what step 1 touched, and to nothing else: a \`CONTEXT.md\` term or a module ADR earns its place only from an ambiguity this morning's arrivals or decisions actually bit on. Load the domain-modeling discipline before writing either, and keep an ADR immutable — a change of mind is a new superseding ADR.
+2. Preserve actionable assessment, survey and quiz signals in the Curation register and report them in \`parked\` until a recorded follow-up settles them. Cite the exact source and any unresolved date. A source-only classification does not settle its required action.
+3. Apply the derived-docs mandate to what step 1 touched, and to nothing else: a \`CONTEXT.md\` term or a module ADR earns its place only from an ambiguity this morning's arrivals or decisions actually bit on. Load the domain-modeling discipline before writing either, and keep an ADR immutable — a change of mind is a new superseding ADR.
 
 ## Your final message is the report
 

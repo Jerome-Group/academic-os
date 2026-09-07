@@ -1,6 +1,6 @@
-import { readFile } from "node:fs/promises";
-import { isAbsolute, join, normalize } from "node:path";
-import { parse, stringify } from "yaml";
+import { isAbsolute, normalize } from "node:path";
+import { isDeepStrictEqual } from "node:util";
+import { isMap, isSeq, parseDocument, stringify } from "yaml";
 
 import {
   taskProvenanceKeys,
@@ -8,7 +8,7 @@ import {
   taskStatuses,
 } from "../contract/task-register.js";
 import { OperationalError } from "../operational-error.js";
-import { writeFileAtomically } from "../write-file-atomically.js";
+import { recoverableRegisterFile } from "./recoverable-register-file.js";
 import { isDoDate } from "./do-date.js";
 import type {
   TaskRegister,
@@ -22,6 +22,7 @@ export function createFileTaskRegisterStore(
   targetRoot: string,
   registerPath = taskRegisterPath,
   provenanceKeys: readonly (keyof TaskRegisterProvenance)[] = taskProvenanceKeys,
+  options: { stateRoot?: string } = {},
 ): TaskRegisterStore {
   if (
     registerPath.length === 0 ||
@@ -37,33 +38,53 @@ export function createFileTaskRegisterStore(
       "A Task-register path must be a normalized relative path inside its target root.",
     );
   }
-  const absoluteRegisterPath = join(targetRoot, registerPath);
+  const file = recoverableRegisterFile({
+    targetRoot,
+    registerPath,
+    ...options,
+  });
+  let observed = false;
+  let original: string | undefined;
+  const read = async (): Promise<TaskRegister | undefined> => {
+    original = await file.read();
+    const register =
+      original === undefined
+        ? undefined
+        : parseRegister(original, registerPath, provenanceKeys);
+    observed = true;
+    return register;
+  };
   return {
-    read: async () =>
-      await readRegister(absoluteRegisterPath, registerPath, provenanceKeys),
-    write: async (register) =>
-      await writeFileAtomically(
-        absoluteRegisterPath,
-        serializeRegister(register, provenanceKeys),
-      ),
+    read,
+    write: async (register) => {
+      if (!observed) await read();
+      const serialized = serializeRegister(register, provenanceKeys);
+      const intended = parseRegister(serialized, registerPath, provenanceKeys);
+      const previous =
+        original === undefined
+          ? undefined
+          : parseRegister(original, registerPath, provenanceKeys);
+      const contents = isDeepStrictEqual(previous, intended)
+        ? (original as string)
+        : original === undefined
+          ? serialized
+          : updateDocument(original, previous as TaskRegister, intended);
+      await file.replace(original, contents);
+      original = contents;
+    },
   };
 }
 
-async function readRegister(
-  absoluteRegisterPath: string,
+function parseRegister(
+  contents: string,
   registerPath: string,
   provenanceKeys: readonly (keyof TaskRegisterProvenance)[],
-): Promise<TaskRegister | undefined> {
-  let contents: string;
-  try {
-    contents = await readFile(absoluteRegisterPath, "utf8");
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
-    throw invalidRegister(registerPath);
-  }
+): TaskRegister {
   let value: unknown;
   try {
-    value = parse(contents);
+    const document = parseDocument(contents);
+    if (document.errors.length > 0) throw invalidRegister(registerPath);
+    value = document.toJS();
   } catch {
     throw invalidRegister(registerPath);
   }
@@ -71,9 +92,70 @@ async function readRegister(
   const listId = readListId(value.list_id, registerPath);
   const tasks = value.tasks ?? [];
   if (!Array.isArray(tasks)) throw invalidRegister(registerPath);
+  const entries = tasks.map((entry) =>
+    readEntry(entry, registerPath, provenanceKeys),
+  );
+  const ids = entries.flatMap((entry) =>
+    entry.taskId === undefined ? [] : [entry.taskId],
+  );
+  if (new Set(ids).size !== ids.length || ids.includes(""))
+    throw invalidRegister(registerPath);
+  return { ...(listId === undefined ? {} : { listId }), tasks: entries };
+}
+
+function updateDocument(
+  original: string,
+  previous: TaskRegister,
+  intended: TaskRegister,
+): string {
+  const document = parseDocument(original);
+  if (previous.listId !== intended.listId) {
+    if (intended.listId === undefined) document.delete("list_id");
+    else document.set("list_id", intended.listId);
+  }
+  const sequence = document.get("tasks");
+  if (!isSeq(sequence) && previous.tasks.length > 0)
+    throw invalidRegister("Task register");
+  const oldNodes = isSeq(sequence) ? sequence.items : [];
+  const used = new Set<number>();
+  const nodes = intended.tasks.map((entry) => {
+    const index = previous.tasks.findIndex(
+      (old, i) =>
+        !used.has(i) &&
+        (entry.taskId === undefined
+          ? old.taskId === undefined && isDeepStrictEqual(old, entry)
+          : old.taskId === entry.taskId),
+    );
+    if (index < 0) return document.createNode(entryFields(entry));
+    used.add(index);
+    const node = oldNodes[index];
+    if (!isMap(node)) throw invalidRegister("Task register");
+    const before = entryFields(previous.tasks[index] as TaskRegisterEntry);
+    for (const [key, value] of Object.entries(entryFields(entry))) {
+      if (isDeepStrictEqual(before[key], value)) continue;
+      if (value === undefined) node.delete(key);
+      else node.set(key, value);
+    }
+    return node;
+  });
+  // Register operations retain history. Refuse a transformation whose identity cannot retain it.
+  if (used.size !== previous.tasks.length)
+    throw invalidRegister("Task register: unmatched existing rows");
+  if (isSeq(sequence)) {
+    if (sequence.items.length === 0 && nodes.length > 0) sequence.flow = false;
+    sequence.items = nodes;
+  } else document.set("tasks", document.createNode(nodes));
+  return document.toString();
+}
+
+function entryFields(entry: TaskRegisterEntry): Record<string, unknown> {
   return {
-    ...(listId === undefined ? {} : { listId }),
-    tasks: tasks.map((entry) => readEntry(entry, registerPath, provenanceKeys)),
+    task_id: entry.taskId,
+    title: entry.title,
+    do_date: entry.doDate,
+    status: entry.status,
+    notes: entry.notes,
+    provenance: entry.provenance,
   };
 }
 

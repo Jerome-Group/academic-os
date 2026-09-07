@@ -109,6 +109,7 @@ function researchTaskTarget(
           })
         ).projectRoot,
       registerPath: researchTaskRegisterPath,
+      stateRoot: config.stateRoot,
       provenanceKeys: researchTaskProvenanceKeys,
     }),
   };

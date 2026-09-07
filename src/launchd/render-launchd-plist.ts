@@ -35,6 +35,12 @@ export function renderLaunchdPlist(input: {
 }
 
 function renderSchedule(schedule: LaunchdSchedule): string[] {
+  if (schedule.kind === "interval") {
+    return [
+      "<key>StartInterval</key>",
+      `<integer>${schedule.seconds}</integer>`,
+    ];
+  }
   if (schedule.kind === "keep-alive") {
     return ["<key>KeepAlive</key>", "<true/>"];
   }

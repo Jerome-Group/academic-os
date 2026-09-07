@@ -11,6 +11,7 @@ export interface LaunchdKeepAliveSchedule {
 
 export type LaunchdSchedule =
   | LaunchdCalendarIntervalSchedule
+  | { kind: "interval"; seconds: number }
   | LaunchdKeepAliveSchedule;
 
 export interface LaunchdJobDescription {

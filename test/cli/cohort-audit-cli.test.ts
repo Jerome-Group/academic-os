@@ -154,7 +154,7 @@ async function writeConformantResearchProject(
       profile: "ureca",
     },
     profile: validResearchProfile(folder),
-    definition: `contract_version: 1
+    definition: `contract_version: 2
 project:
   key: example-project
   folder: ${folder}

@@ -1,5 +1,7 @@
 # Research projects are a distinct aggregate
 
+> Superseded in part by ADR-0028 for the universal research tree and where ordinary work lives.
+
 A **Research project** is configured, seeded and audited beside a Module, not as one. It has its
 own identity and contract while reusing the same mounted-write safety, task-authority and
 calendar-authority boundaries.

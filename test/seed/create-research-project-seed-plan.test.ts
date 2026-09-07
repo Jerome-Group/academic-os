@@ -20,7 +20,7 @@ const target: ResolvedResearchProject = {
   taskListTitle: "URECA Y2",
 };
 
-const definition = `contract_version: 1
+const definition = `contract_version: 2
 project:
   key: ureca-y2
   folder: URECA Y2
@@ -35,7 +35,7 @@ evidence:
 const profile = "# URECA Y2\n\nOwner-supplied project identity.\n";
 
 const contract: ResearchProjectContract = {
-  version: 1,
+  version: 2,
   ruleIds: ["RP-UNIVERSAL-001", "RP-PROFILE-STRUCTURE-001"],
   universalStructure: researchProjectUniversalStructure,
   profiles: { generic: [], ureca: urecaResearchProjectStructure },
@@ -60,7 +60,7 @@ describe("createResearchProjectSeedPlan", () => {
       key: "ureca-y2",
       folder: "URECA Y2",
     });
-    assert.equal(plan.contractVersion, 1);
+    assert.equal(plan.contractVersion, 2);
     assert.deepEqual(plan.blockers, []);
     assert.ok(
       plan.operations.some(({ path }) => path === "30 Deliverables/30 Paper"),

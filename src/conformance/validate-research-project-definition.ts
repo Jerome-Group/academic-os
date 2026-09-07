@@ -8,7 +8,7 @@ import type {
 import { isDirectoryName, isRecord, nonEmptyString } from "./value-shape.js";
 
 const definitionPath = "00 Project Admin/10 Project Definition.yaml";
-export const supportedResearchContractVersion = 1 as const;
+export const supportedResearchContractVersion = 2 as const;
 
 export function validateResearchProjectDefinition(
   source: string | undefined,
@@ -21,7 +21,7 @@ export function validateResearchProjectDefinition(
         "RP-DEFINITION-001",
         "fail",
         parsed.problems.join(" "),
-        "The Definition must use the closed research-project v1 shape.",
+        "The Definition must use the closed research-project v2 shape.",
       ),
       finding(
         "RP-DEFINITION-002",
@@ -36,7 +36,7 @@ export function validateResearchProjectDefinition(
     "RP-DEFINITION-001",
     shapeProblems.length === 0 ? "pass" : "fail",
     shapeProblems.length === 0
-      ? "Definition uses contract version 1 and the closed project, profile, and evidence fields."
+      ? "Definition uses contract version 2 and the closed project, profile, and evidence fields."
       : shapeProblems.join(" "),
     "The Definition carries one supported machine-readable project declaration.",
   );
@@ -119,9 +119,13 @@ function validateShape(value: Record<string, unknown>): string[] {
     "Definition",
     problems,
   );
-  if (value.contract_version !== supportedResearchContractVersion) {
+  if (value.contract_version === 1) {
     problems.push(
-      `contract_version is ${render(value.contract_version)}; supported version is 1.`,
+      "contract_version 1 requires an explicit migration to meeting-centred version 2; preview the projected state and write the Definition last.",
+    );
+  } else if (value.contract_version !== supportedResearchContractVersion) {
+    problems.push(
+      `contract_version is ${render(value.contract_version)}; supported version is 2.`,
     );
   }
   if (!isRecord(value.project)) {

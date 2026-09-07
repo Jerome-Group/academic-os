@@ -6,6 +6,7 @@ import {
   validateResearchProjectClaims,
   validateResearchProjectDeliverableRegister,
   validateResearchProjectMap,
+  validateResearchProjectMeetings,
   validateResearchProjectProfile,
   validateResearchProjectQuestions,
   validateResearchProjectSourcePlacement,
@@ -24,7 +25,7 @@ const target: ResolvedResearchProject = {
   profile: "ureca",
 };
 
-const definition = `contract_version: 1
+const definition = `contract_version: 2
 project:
   key: example-project
   folder: Example Project
@@ -157,6 +158,7 @@ describe("research-project deterministic controls", () => {
     title: Primary reference
     authority: primary
     role: core
+    storage: project
     locator: https://example.edu/source-1
     local_file: 10 Source Materials/20 Core Sources/source-1.pdf
     citation_key: SourceOne
@@ -168,6 +170,7 @@ describe("research-project deterministic controls", () => {
     title: Primary reference
     authority: hearsay
     role: core
+    storage: project
     locator: https://example.edu/source-1
     status: reading
     evidence: Publisher record.
@@ -176,6 +179,7 @@ describe("research-project deterministic controls", () => {
     title: Duplicate
     authority: secondary
     role: reference
+    storage: project
     locator: ../outside.pdf
     status: queued
     evidence: Index entry.
@@ -199,6 +203,7 @@ describe("research-project deterministic controls", () => {
     title: Programme guide
     authority: primary
     role: programme
+    storage: project
     locator: https://example.edu/programme
     local_file: 10 Source Materials/10 Programme and Project/guide.pdf
     status: read
@@ -207,6 +212,7 @@ describe("research-project deterministic controls", () => {
     title: Core paper
     authority: primary
     role: core
+    storage: project
     locator: https://example.edu/core
     local_file: 10 Source Materials/20 Core Sources/core.pdf
     citation_key: Core2026
@@ -216,6 +222,7 @@ describe("research-project deterministic controls", () => {
     title: Background
     authority: secondary
     role: reference
+    storage: project
     locator: https://example.edu/reference
     local_file: 10 Source Materials/30 Reference Sources/reference.pdf
     citation_key: Reference2026
@@ -225,6 +232,7 @@ describe("research-project deterministic controls", () => {
     title: Prior proposal
     authority: primary
     role: historical
+    storage: project
     locator: local historical record
     local_file: 90 Resources/10 Preparation Archive/prior.md
     status: retired
@@ -233,6 +241,7 @@ describe("research-project deterministic controls", () => {
     title: Generated orientation
     authority: generated
     role: reference
+    storage: project
     locator: local generated record
     local_file: 90 Resources/20 Research Aids/orientation.md
     citation_key: GeneratedAid
@@ -304,7 +313,7 @@ tasks:
     provenance:
       source: source-1
       claim: claim-1
-      meeting: 20 Supervisor Meetings/2026-09-01 Scope.md
+      meeting: 20 Supervisor Meetings/2026-09-01 Scope/Meeting.md
       deliverable: paper
       milestone: Academic/paper-event
 `);
@@ -343,6 +352,7 @@ tasks:
     title: Source
     authority: primary
     role: core
+    storage: project
     locator: https://example.edu/source
     citation_key: SourceOne
     status: reading
@@ -365,7 +375,7 @@ tasks:
         projectKey: "example-project",
         entries: [
           {
-            path: "20 Supervisor Meetings/2026-09-01 Scope.md",
+            path: "20 Supervisor Meetings/2026-09-01 Scope/Meeting.md",
             kind: "file" as const,
           },
         ],
@@ -379,7 +389,7 @@ tasks:
     provenance:
       source: source-1
       claim: claim-1
-      meeting: 20 Supervisor Meetings/2026-09-01 Scope.md
+      meeting: 20 Supervisor Meetings/2026-09-01 Scope/Meeting.md
       deliverable: paper
       milestone: Academic/paper-event
 `;
@@ -391,7 +401,7 @@ tasks:
       taskRegister: taskRegister
         .replace("source: source-1", "source: absent-source")
         .replace("claim: claim-1", "claim: absent-claim")
-        .replace("2026-09-01 Scope.md", "2026-09-02 Missing.md")
+        .replace("2026-09-01 Scope/Meeting.md", "2026-09-02 Missing/Meeting.md")
         .replace("deliverable: paper", "deliverable: poster")
         .replace("Academic/paper-event", "paper-window"),
       ...controls,
@@ -437,26 +447,135 @@ tasks:
     assert.match(invalidQuestions.evidence, /stable-key/u);
   });
 
-  it("validates typed Research-map rows and workspace-specific pointers", () => {
+  it("validates dated meeting containers, notes, records, and schedule rows", () => {
+    const directory = "20 Supervisor Meetings/2026-09-08 Scope";
+    const entries = [
+      { path: directory, kind: "directory" as const },
+      { path: `${directory}/Meeting.md`, kind: "file" as const },
+      { path: `${directory}/Sources`, kind: "directory" as const },
+      { path: `${directory}/10 Learning`, kind: "directory" as const },
+      { path: `${directory}/10 Learning/records`, kind: "directory" as const },
+      {
+        path: `${directory}/10 Learning/records/0001-session.md`,
+        kind: "file" as const,
+      },
+      { path: `${directory}/20 Exercises`, kind: "directory" as const },
+      { path: `${directory}/20 Exercises/records`, kind: "directory" as const },
+      { path: "20 Supervisor Meetings/SCHEDULE.md", kind: "file" as const },
+    ];
+    const note = `---
+date: 2026-09-08
+participants: [Owner, Supervisor]
+status: confirmed
+---
+
+# Scope
+`;
+    const valid = validateResearchProjectMeetings({
+      inventory: { projectKey: "example-project", entries },
+      schedule: `# Supervisor meeting workspaces
+
+| Date | Folder | State |
+| --- | --- | --- |
+| 2026-09-08 | \`${directory}/\` | confirmed |
+`,
+      meetingNotes: { [`${directory}/Meeting.md`]: note },
+    });
+    const invalid = validateResearchProjectMeetings({
+      inventory: {
+        projectKey: "example-project",
+        entries: [
+          ...entries,
+          {
+            path: `${directory}/10 Learning/01 Unit/nested`,
+            kind: "directory" as const,
+          },
+          {
+            path: `${directory}/20 Exercises/Unnumbered`,
+            kind: "directory" as const,
+          },
+        ],
+      },
+      schedule: `| Date | Folder | State |
+| --- | --- | --- |
+| tomorrow | Scope | done |
+`,
+      meetingNotes: {
+        [`${directory}/Meeting.md`]: note
+          .replace("date: 2026-09-08", "date: 2026-09-09")
+          .replace("participants: [Owner, Supervisor]", "participants: []"),
+      },
+    });
+
+    assert.equal(valid.status, "pass");
+    assert.equal(invalid.status, "fail");
+    assert.match(invalid.evidence, /date must be 2026-09-08/u);
+    assert.match(invalid.evidence, /participants must be a sequence/u);
+    assert.match(
+      invalid.evidence,
+      /must be a direct NN Short title directory/u,
+    );
+    assert.match(invalid.evidence, /Schedule row 1/u);
+    assert.match(invalid.evidence, /Schedule omits meeting directory/u);
+    recordResearchFindingEvidence([invalid], "RP-MEETINGS-001");
+
+    const duplicateYaml = validateResearchProjectMeetings({
+      inventory: { projectKey: "example-project", entries },
+      schedule: `| Date | Folder | State |\n| --- | --- | --- |\n| 2026-09-08 | \`${directory}/\` | confirmed |\n`,
+      meetingNotes: {
+        [`${directory}/Meeting.md`]: note.replace(
+          "status: confirmed",
+          "status: draft\nstatus: confirmed",
+        ),
+      },
+    });
+    assert.equal(duplicateYaml.status, "fail");
+    assert.match(duplicateYaml.evidence, /front matter is not valid YAML/u);
+  });
+
+  it("validates typed meeting-centred Research-map rows", () => {
     const sourceRegister = `sources:
   - id: source-1
     title: Registered source
     authority: primary
     role: core
+    storage: project
     locator: https://example.edu/source-1
     citation_key: SourceOne
     status: reading
     evidence: Publisher record.
 `;
+    const questions = `# Questions
+
+## question-1 — First question
+
+- Status: open
+`;
     const inventory = {
       projectKey: "example-project",
       entries: [
         {
-          path: "70 Research/10 Reading/source-1.md",
+          path: "20 Supervisor Meetings/2026-09-01 Scope/Meeting.md",
           kind: "file" as const,
         },
         {
-          path: "70 Research/20 Mathematics/thread-1.tex",
+          path: "20 Supervisor Meetings/2026-09-01 Scope/10 Learning/01 Unit",
+          kind: "directory" as const,
+        },
+        {
+          path: "20 Supervisor Meetings/2026-09-01 Scope/20 Exercises/01 Set",
+          kind: "directory" as const,
+        },
+        {
+          path: "20 Supervisor Meetings/2026-09-01 Scope/10 Learning/records/0001-session.md",
+          kind: "file" as const,
+        },
+        {
+          path: "70 Research/10 Concepts/thread-1/thread-1.tex",
+          kind: "file" as const,
+        },
+        {
+          path: "70 Research/20 Research Notes/thread-1/thread-1.tex",
           kind: "file" as const,
         },
       ],
@@ -464,28 +583,41 @@ tasks:
     const valid = validateResearchProjectMap({
       source: `threads:
   - key: thread-1
+    order: 1
     title: First question
+    question: question-1
     status: open
+    progress: Initial meeting work recorded.
     sources: [source-1]
-    reading: [70 Research/10 Reading/source-1.md]
-    mathematics: [70 Research/20 Mathematics/thread-1.tex]
-    experiments: []
+    meeting_work:
+      - meeting: 20 Supervisor Meetings/2026-09-01 Scope/Meeting.md
+        status: discussed
+        progress: Unit discussed; proof remains open.
+        learning_units: [20 Supervisor Meetings/2026-09-01 Scope/10 Learning/01 Unit]
+        exercise_sets: [20 Supervisor Meetings/2026-09-01 Scope/20 Exercises/01 Set]
+        session_records: [20 Supervisor Meetings/2026-09-01 Scope/10 Learning/records/0001-session.md]
+    promoted:
+      concepts: [70 Research/10 Concepts/thread-1/thread-1.tex]
+      research_notes: [70 Research/20 Research Notes/thread-1/thread-1.tex]
 `,
       sourceRegister,
+      questions,
       inventory,
     });
     const invalid = validateResearchProjectMap({
       source: `threads:
   - key: thread-1
+    order: 0
     title: First question
+    question: absent-question
     status: drafting
     sources: source-1
-    reading: [30 Deliverables/note.md]
-    mathematics: []
-    experiments: []
+    meeting_work: []
+    promoted: []
     proof: done
 `,
       sourceRegister,
+      questions,
       inventory,
     });
 
@@ -494,102 +626,45 @@ tasks:
     assert.match(invalid.evidence, /unsupported fields proof/u);
     assert.match(invalid.evidence, /status must be open, parked, closed/u);
     assert.match(invalid.evidence, /sources must be a sequence/u);
-    assert.match(invalid.evidence, /under 70 Research\/10 Reading\//u);
+    assert.match(invalid.evidence, /question absent-question/u);
+    assert.match(invalid.evidence, /order must be a positive integer/u);
+    assert.match(invalid.evidence, /promoted must be a mapping/u);
     recordResearchFindingEvidence([invalid], "RP-RESEARCH-001");
   });
 
-  it("rejects a Research-map Source ID absent from the Source Register", () => {
+  it("rejects absent Research-map identities and typed paths", () => {
     const result = validateResearchProjectMap({
       source: `threads:
   - key: thread-1
+    order: 1
     title: First question
+    question: question-1
     status: open
     sources: [absent-source]
-    reading: []
-    mathematics: []
-    experiments: []
+    meeting_work:
+      - meeting: 20 Supervisor Meetings/2026-09-01 Scope/Meeting.md
+        status: active
+        learning_units: [20 Supervisor Meetings/2026-09-01 Scope/10 Learning/01 Unit/nested]
+        exercise_sets: []
+        session_records: []
+    promoted:
+      concepts: [70 Research/10 Concepts/other-thread/missing.tex]
+      research_notes: []
 `,
-      sourceRegister: `sources:
-  - id: source-1
-    title: Registered source
-    authority: primary
-    role: core
-    locator: https://example.edu/source-1
-    citation_key: SourceOne
-    status: reading
-    evidence: Publisher record.
+      sourceRegister: "sources: []\n",
+      questions: `# Questions
+
+## question-1 — First question
+
+- Status: open
 `,
       inventory: { projectKey: "example-project", entries: [] },
     });
 
     assert.equal(result.status, "fail");
     assert.match(result.evidence, /not an existing Source-register ID/u);
-  });
-
-  it("rejects a Research-map Reading pointer absent from inventory", () => {
-    const result = validateResearchProjectMap({
-      source: `threads:
-  - key: thread-1
-    title: First question
-    status: open
-    sources: []
-    reading: [70 Research/10 Reading/missing.md]
-    mathematics: []
-    experiments: []
-`,
-      sourceRegister: "sources: []\n",
-      inventory: { projectKey: "example-project", entries: [] },
-    });
-
-    assert.equal(result.status, "fail");
-    assert.match(
-      result.evidence,
-      /reading pointer .* does not identify an inventoried file/u,
-    );
-  });
-
-  it("rejects a Research-map Mathematics pointer absent from inventory", () => {
-    const result = validateResearchProjectMap({
-      source: `threads:
-  - key: thread-1
-    title: First question
-    status: open
-    sources: []
-    reading: []
-    mathematics: [70 Research/20 Mathematics/missing.tex]
-    experiments: []
-`,
-      sourceRegister: "sources: []\n",
-      inventory: { projectKey: "example-project", entries: [] },
-    });
-
-    assert.equal(result.status, "fail");
-    assert.match(
-      result.evidence,
-      /mathematics pointer .* does not identify an inventoried file/u,
-    );
-  });
-
-  it("rejects a Research-map Experiment pointer absent from inventory", () => {
-    const result = validateResearchProjectMap({
-      source: `threads:
-  - key: thread-1
-    title: First question
-    status: open
-    sources: []
-    reading: []
-    mathematics: []
-    experiments: [70 Research/30 Experiments/missing.md]
-`,
-      sourceRegister: "sources: []\n",
-      inventory: { projectKey: "example-project", entries: [] },
-    });
-
-    assert.equal(result.status, "fail");
-    assert.match(
-      result.evidence,
-      /experiments pointer .* does not identify an inventoried file/u,
-    );
+    assert.match(result.evidence, /does not identify an inventoried file/u);
+    assert.match(result.evidence, /has the wrong project home/u);
   });
 
   it("keeps URECA-derived Deliverable folders distinct from generic folders", () => {
@@ -642,6 +717,7 @@ tasks:
       validateResearchProjectMap({
         source: "threads: []\n",
         sourceRegister: "sources: []\n",
+        questions: "# Questions\n",
         inventory: { projectKey: "example-project", entries: [] },
       }).status,
       "pass",

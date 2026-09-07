@@ -50,7 +50,7 @@ describe("seedMountedResearchProject", () => {
       key: "ureca-y2",
       folder: "URECA Y2",
     });
-    await access(join(fixture.projectRoot, "70 Research", "20 Mathematics"));
+    await access(join(fixture.projectRoot, "70 Research", "20 Research Notes"));
     assert.equal(
       await readFile(join(fixture.projectRoot, "Icon\r"), "utf8"),
       "",
@@ -68,7 +68,7 @@ describe("seedMountedResearchProject", () => {
     const journal = await onlyResearchJournal(fixture.stateRoot);
     assert.equal(journal[0]?.target.kind, "research-project");
     assert.equal(journal[0]?.target.projectKey, "ureca-y2");
-    assert.equal(journal[0]?.preconditions.contractVersion, 1);
+    assert.equal(journal[0]?.preconditions.contractVersion, 2);
     assert.equal(journal.at(-1)?.outcome, "completed");
   });
 
@@ -361,7 +361,7 @@ async function researchSeedFixture(
     },
   };
   const contract = await loadResearchProjectContract();
-  const definition = `contract_version: 1
+  const definition = `contract_version: 2
 project:
   key: ureca-y2
   folder: URECA Y2

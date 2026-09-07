@@ -1,94 +1,60 @@
 # Sources and Provenance
 
-How evidence enters {{PROJECT_NAME}}, stays reopenable, and supports later mathematics. The Source
-Register identifies sources; `references.bib` owns bibliographic facts; Research artifacts carry
-the precise locators actually used.
+The Source Register identifies evidence. `references.bib` holds bibliographic facts for canonical
+literature. Meeting folders hold the exact local material used there.
 
-Read `docs/00 Structure and Naming.md` first.
+## Intake classes
 
-## Intake
+### Canonical source
 
-For each candidate source:
+A complete book, paper, official programme document or project authority reused across meetings.
+Place its durable original in `10 Source Materials/10 Programme and Project/` or
+`10 Source Materials/20 Core Sources/`, register one immutable Source ID and add literature to
+`references.bib`.
 
-1. Open the durable original: an official page or document, DOI record, publisher page, arXiv
-   record, or supervisor-provided artifact.
-2. Decide its authority (`primary`, `secondary` or `generated`) and role (`programme`, `project`,
-   `core`, `reference` or `historical`) from evidence.
-3. Give it one immutable Source ID and place any local file in its role home: Programme and
-   Project, Core Sources, Reference Sources, URECA Preparation Archive, or Research Aids. A
-   generated file uses Research Aids or Unclassified regardless of its role.
-4. Add literature bibliography once to `10 Source Materials/references.bib`; record its BibTeX key
-   rather than repeating bibliographic facts.
-5. Add one Source-register row with a durable locator, local path when present, status and the
-   evidence for its classification.
+### Meeting source
 
-Intake completes when the source can be reopened from its row and another reader can tell why it
-has its authority and role. A search result, generated summary or inaccessible citation does not
-meet that bound.
+An email, photograph, handout, excerpt or other bounded artifact tied to a meeting. Place it in the
+meeting's `Sources/` and register its Source ID, origin and exact locator. A scoped extract points to
+its canonical full source. It is not a second bibliographic work.
 
-## Source authority
+When the same meeting source is needed later, copy it into the later meeting and verify its hash.
+The Source-register row lists the origin copy and every active use copy. Attribution follows the
+origin; location follows actual use.
 
-**Primary** means the source itself: official programme guidance, the accepted project brief, a
-paper or book being studied, a supervisor-provided statement. **Secondary** interprets a primary
-source. **Generated** is an aid produced by a model or tool. Generated material may help locate or
-question a source; it does not support a Claim.
+## Intake steps
 
-Programme authority and mathematical authority are separate. An official URECA page governs a
-deliverable requirement but proves no theorem. A published paper may support mathematics but does
-not confirm this project's registration or deadline.
+1. Open the supplied original and establish who supplied or published it.
+2. Choose canonical or meeting placement from actual use.
+3. Preserve the original filename when stable; otherwise lead with the Source ID.
+4. Record Source ID, authority, role, current paths, status and classification evidence.
+5. Add a precise locator wherever a session or Research artifact relies on it.
 
-Research-policy authority is another branch. Before data collection or external release, register
-and check the applicable programme, GenAI, data/confidentiality, intellectual-property and
-human-subject rules. A pure-mathematics project may record a branch `not applicable` only with
-evidence. Unknown ownership, confidentiality or ethics approval parks collection or release.
+Intake completes when another reader can reopen the exact bytes and explain why they are there.
+Search results, speculative citations and generated summaries do not qualify.
 
-When sources disagree, register both, describe the exact conflict and leave its consequence in the
-Profile's Known Gaps or Research Questions. Recency resolves only where the newer source identifies
-the same governed fact and carries equal or higher authority.
+## Learning from a source
 
-## Reading
+Learning occurs under the active meeting's `10 Learning/`, not in Source Materials and not yet in
+Research. Use the source's own order, record every locator in the numbered session record and build
+walkthrough PDFs from `60 Templates/learning-walkthrough.tex`.
 
-Start from a registered Source ID. Copy `70 Research/templates/reading-note.md` into
-`70 Research/10 Reading/` and name it for that ID.
+Reading completes only when the session record says what the Owner can reconstruct and what remains
+unclear. Coverage alone remains `kind: session`.
 
-- Record pages, sections, theorem numbers or another precise locator.
-- Separate the source's statement from the Owner's paraphrase, reconstruction and questions.
-- Trace prerequisites to their own registered sources.
-- Add mathematical terms to `70 Research/GLOSSARY.md` only when the work relies on them.
-- Add unresolved mathematical questions to `70 Research/QUESTIONS.md`; actionable reading steps
-  become Tasks.
+## Promotion
 
-Reading completes when the Owner can state what the selected passage claims, where it says so, and
-which part remains unclear. A summary without a locator remains an aid.
+A meeting walkthrough supports promotion but is not itself a Research artifact. When the Owner
+chooses to reuse a concept, rewrite it through the promotion gate in `docs/20 Research Procedure.md`.
+The promoted artifact points back to the meeting records that evidence reconstruction and cites
+every applicable canonical Source ID and locator. Source-free work instead preserves its exact
+Owner-question or supervisor-assignment basis.
 
-## Core and Reference
+## Authority and safety
 
-A Reference source becomes Core when a Research artifact or Claim directly relies on it. Move the
-local file, keep its Source ID, update the row's role and `local_file`, and update pointers in one
-reviewed change. A Core source becomes retired only when every standing Claim and artifact either
-keeps a valid pointer to it or names its replacement.
+Primary sources and attributed supervisor guidance outrank aids. Programme authority proves no
+mathematics; literature proves no project decision. Generated aids never support Claims. Apply the
+registered GenAI, integrity, data, IP and human-subject rules before collection or release.
 
-The Source Register is current state, not reading history. Reading artifacts retain what was
-learned; Source rows retain identity, authority and placement.
-
-## Historical and generated material
-
-Historical project material keeps the authority it had: a proposal, abandoned plan or earlier
-reading record does not become current because it is useful. Register it as historical and state
-what it can evidence. URECA Historical files live in Preparation Archive; Generic Historical files
-remain Unclassified.
-
-Generated research aids live in a declared Research Aids directory or
-`90 Resources/00 Unclassified/`. If one materially affects adopted work, register its provenance
-and record the adoption in `00 Project Admin/60 Contribution and AI Use.md`. Its cited originals,
-not the aid, support Claims.
-
-Confidential, sensitive or personal data remains outside external tools unless the current policy's
-conditions and authorisation are proved. The stricter rule of a programme, journal, conference or
-other recipient governs what leaves the workspace.
-
-## Parking
-
-Park a source whose durable original cannot be found, whose identity collides, whose authority is
-unclear, whose file differs from the cited version, or whose move would strand a pointer. Leave its
-bytes untouched and name the evidence needed to settle it.
+Park mismatched versions, unclear ownership, missing originals, conflicting authority or any move
+that would strand a pointer.

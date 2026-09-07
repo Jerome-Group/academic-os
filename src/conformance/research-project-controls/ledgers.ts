@@ -8,7 +8,7 @@ export const claimStatuses = [
   "refuted",
   "superseded",
 ] as const;
-const questionStatuses = ["open", "parked", "settled"] as const;
+export const questionStatuses = ["open", "parked", "settled"] as const;
 
 export interface MarkdownLedgerRead {
   keys: Set<string>;

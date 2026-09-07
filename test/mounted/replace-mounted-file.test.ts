@@ -61,6 +61,31 @@ describe("replaceMountedFile", () => {
     assert.equal(await readFile(path, "utf8"), "changed by somebody else\n");
     assert.deepEqual(await readdir(root), ["AGENTS.md"]);
   });
+
+  it("rechecks the source after staging and refuses a concurrent change before publication", async () => {
+    const root = await temporaryRoot();
+    const path = join(root, "AGENTS.md");
+    await writeFile(path, "before\n", "utf8");
+    let reads = 0;
+
+    await assert.rejects(
+      replaceMountedFile({
+        path,
+        contents: "after\n",
+        expectedSha256: sha256("before\n"),
+        readContents: async (candidate) => {
+          reads += 1;
+          if (reads === 2) {
+            await writeFile(candidate, "changed while staging\n", "utf8");
+          }
+          return await readContents(candidate);
+        },
+      }),
+      /changed while its replacement was staged/u,
+    );
+    assert.equal(await readFile(path, "utf8"), "changed while staging\n");
+    assert.deepEqual(await readdir(root), ["AGENTS.md"]);
+  });
 });
 
 describe("createMountedFile", () => {

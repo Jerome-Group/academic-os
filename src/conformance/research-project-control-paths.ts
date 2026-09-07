@@ -8,6 +8,7 @@ export const researchProjectControlPaths = {
   contributionAndAiUse: "00 Project Admin/60 Contribution and AI Use.md",
   claims: "70 Research/CLAIMS.md",
   questions: "70 Research/QUESTIONS.md",
+  schedule: "20 Supervisor Meetings/SCHEDULE.md",
   agents: "AGENTS.md",
   claude: "CLAUDE.md",
   context: "CONTEXT.md",
@@ -17,6 +18,8 @@ export const researchProjectControlPaths = {
   deliverablesProcedure: "docs/30 Deliverables Procedure.md",
 } as const;
 
-export type ResearchProjectControls = Partial<
-  Record<keyof typeof researchProjectControlPaths, string>
->;
+export interface ResearchProjectControls
+  extends Partial<Record<keyof typeof researchProjectControlPaths, string>> {
+  meetingNotes?: Readonly<Record<string, string>>;
+  sharedControls?: Readonly<Record<string, string>>;
+}

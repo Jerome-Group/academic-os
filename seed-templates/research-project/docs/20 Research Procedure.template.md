@@ -1,90 +1,111 @@
 # Research Procedure
 
-How {{PROJECT_NAME}} turns sources and questions into understanding the Owner can reconstruct.
-The durable outputs are reading notes, mathematics, experiments, meeting notes, Claims and
-Research-map pointers—not conversation transcripts.
+The ordinary flow is supervisor meeting -> learning or exercises -> session record. Research
+promotion is an optional gated follow-up. A meeting can contain any number of sessions.
 
-Read `docs/10 Sources and Provenance.md` before relying on a source.
+## Meeting cycle
 
-## Choose one question
+Use the calendar-confirmed folder in `20 Supervisor Meetings/`. It contains `Meeting.md`, `Sources/`,
+`10 Learning/` and `20 Exercises/`. `Meeting.md` records lifecycle status, the agenda, attributed
+guidance, decisions, assignments, follow-ups and promotion decisions; it is not the teaching
+transcript.
 
-Start with one explicit mathematical question from `70 Research/QUESTIONS.md` or a Research-map
-thread. Name its scope tightly enough that a session can produce evidence: a definition to
-reconstruct, an example to compute, an implication to prove, or a counterexample to seek.
+Route ordinary mathematical work to one meeting before creating an artifact. Source-led learning,
+source-free Owner questions, exploratory mathematics and research discussion use `10 Learning/`;
+assigned problems use `20 Exercises/`. Continue an existing unit or set whenever the object is the
+same. If no meeting owns the work, park for Owner meeting selection; Research is not a fallback.
+Maintenance, canonical source intake and Deliverables follow their own routes.
 
-Find its registered sources and existing Reading, Mathematics and Experiment artifacts through
-`00 Project Admin/40 Research Map.yaml`. Where none exists, source work comes first.
+Create only the next few confirmed meeting folders. A calendar occurrence needs no empty folder
+months in advance.
 
-## Work the question
+## Session records
 
-Use one or more of these modes, preserving the question across them:
+Every invocation that teaches or works exercises writes one sequential record from
+`60 Templates/session-record.md` in the relevant area's `records/`. One unit or exercise set may
+have several records. The record distinguishes:
 
-- **Reading** — work a precise source passage with the reading-note template. State the source's
-  claim, reconstruct it in the Owner's words and expose every unresolved step.
-- **Mathematics** — use the mathematics-note template for definitions, examples, proof attempts
-  and proofs. Mark assumptions and status; a proof attempt stays an attempt until every step is
-  checked by the Owner.
-- **Experiment** — use the experiment-record template for finite examples or computation. Record
-  input, method, environment and output so another run can reproduce it. An experiment motivates
-  or tests a Claim; it does not prove a general one.
+- `kind: session` — guided work or coverage;
+- `kind: understanding` — the stated scope was demonstrated unaided.
 
-Agents may explain a source, ask the Owner to recover a step, search for references, test examples,
-compile LaTeX and critique an argument. Candidate agent-written mathematics stays in `.scratch/`.
-It moves into Research only as the Owner's reconstructed or rewritten version, after citations and
-dependencies are checked. Record material adopted help in
-`00 Project Admin/60 Contribution and AI Use.md`.
+Records name the source passage, Owner question or supervisor assignment that started the work;
+Source IDs and locators appear only when used. They also name artifacts, what landed, unresolved
+work and promotion candidates. They supersede rather than disappear.
 
-The pass completes when it leaves one durable artifact and the Owner can state what changed: a
-question narrowed, a source understood, an example reproduced, a proof advanced, or a Claim
-settled. Coverage alone is not completion.
+## Learning
 
-## Claims and questions
+Use `10 Learning/` for source-led reconstruction, source-free Owner questions, exploratory
+mathematics and research discussion. Create one numbered unit for the bounded subject, not for each
+invocation. Continue the same unit across later sessions and add a new record each time.
 
-`70 Research/CLAIMS.md` is the human ledger for statements the project may rely on. Each entry
-carries a heading `## stable-key — Short label`, one `- Status: value` line and:
+Read `60 Templates/preferences.md`. For source-led work, follow source order. For a source-free
+question, preserve the exact Owner question or supervisor assignment and work in dependency order.
+State the result or current target, explain it at the Owner's depth, test an example, then ask for
+something back. Start every durable walkthrough from `60 Templates/learning-walkthrough.tex`. The
+`.tex` exists during the session; compile and inspect its PDF when the Owner is ready to retain it.
 
-- a stable short key and status: `candidate`, `checked`, `refuted` or `superseded`;
-- the statement with assumptions and scope;
-- Source IDs with precise locators;
-- the Owner-authored Mathematics or Experiment artifact that checks it;
-- remaining dependencies or a superseding Claim.
+## Exercises
 
-A Claim becomes `checked` only when the Owner can reconstruct the argument and has verified every
-citation. A counterexample makes it `refuted`; a corrected statement supersedes rather than erases
-it.
+Use `20 Exercises/` for supervisor exercises and assigned problem sets. One set has one numbered
+folder and can span many sessions. Follow the Academic OS exercise pattern:
 
-`70 Research/QUESTIONS.md` holds mathematical unknowns, not work scheduling. Strike or move a
-question only after naming what settled it; park one with the reason and evidence needed. Its
-heading uses the same stable-key interface and its status is `open`, `parked` or `settled`. An
-actionable next step becomes a Google Task rather than turning the Questions file into a plan.
+1. Preserve the Owner's attempt when one exists, suffixed `_Attempt`.
+2. Work question by question from the Owner's reasoning. After discussing a question, give and
+   retain the full model solution before moving on.
+3. If grading is requested or an attempt exists, write specific feedback and honest marks using
+   `60 Templates/graded-feedback.tex`; state what authority the grading used.
+4. Produce the complete solution set from `60 Templates/exercise-solutions.tex`.
+5. Produce a distinct concepts consolidation from `60 Templates/exercise-concepts.tex`, based on
+   session records rather than repeating solutions.
 
-## Research map
+Generated solutions are guided-session artifacts, not evidence of unaided mastery. Unworked or
+artifact-only questions remain explicitly incomplete.
 
-One Research-map thread ties a topic's Source IDs to its Reading, Mathematics and Experiment
-artifacts. Update the thread after the durable artifact exists. The map carries no prose proof,
-deadline, task queue or cursor. Close a thread only when its named question is settled or the Owner
-records why the project no longer pursues it.
+## Research promotion
 
-## Supervisor meetings
+`70 Research/` holds selected project-facing results; it is not the ordinary working or teaching
+workspace. Promotion may follow a session in the same invocation or later, but only when the Owner
+has explicitly selected and adopted the material. Promotion requires:
 
-Before a meeting, copy the meeting template and fill the questions brought, current evidence and
-decisions sought. Afterwards, record the guidance in attributed language and separate it from the
-Owner's interpretation.
+1. the Owner selects a concept, argument or synthesis worth retaining;
+2. the relevant session records and every applicable Source locator are complete;
+3. the Owner reconstructs, rewrites or explicitly adopts the mathematics;
+4. assistance is recorded when material;
+5. a promotion record from `60 Templates/promotion-record.md` names the meeting inputs and target.
 
-The Owner confirms the note before it becomes durable in `20 Supervisor Meetings/`, named
-`YYYY-MM-DD Topic.md`. Turn explicit follow-ups into Tasks. A supervisor suggestion changes a
-Claim, source role or Research-map thread only after the Owner works through and records the
-effect.
+Reusable concepts go to `70 Research/10 Concepts/<thread>/` from
+`60 Templates/research-concept.tex`. Synthesis, proof work and project-facing mathematical PDFs go
+to `70 Research/20 Research Notes/<thread>/` from `60 Templates/research-note.tex`. Meeting PDFs
+remain where they were created.
 
-## Glossary
+A session closes normally without promotion. Record a candidate or `none`; neither creates a
+Research artifact or leaves the session incomplete.
 
-`70 Research/GLOSSARY.md` defines the mathematics used in this project, with a Source ID and locator
-where the definition is not the Owner's. Project-organisational words belong in `CONTEXT.md`. Apply
-that split before adding either.
+## Research Map, Questions and Claims
 
-## Parking
+The Research Map joins stable threads to meeting units, exercise sets, session records and promoted
+artifacts. It creates no separate teaching workspace. Update it after paths exist.
 
-Park a step whose source cannot be reopened, whose argument has a gap the Owner cannot reconstruct,
-whose computation cannot be reproduced, or whose supervisor guidance remains ambiguous. Preserve
-the partial artifact, label its status accurately and name the next evidence rather than smoothing
-over the gap.
+`QUESTIONS.md` holds mathematical unknowns. `CLAIMS.md` holds candidate, checked, refuted or
+superseded statements. A Claim becomes checked only from an Owner-adopted Research artifact with
+verified locators; a meeting session alone cannot check it. `GLOSSARY.md` holds subject language.
+
+## Meeting settlement
+
+After the meeting:
+
+1. attribute guidance and settle every assignment row;
+2. ensure every learning/exercise invocation has a record;
+3. change Tasks only for work explicitly reported complete and next actions explicitly accepted;
+   use academic-os task tools, verify the provider result, then refresh the register;
+4. resolve an exact meeting or deliverable date only through Calendar preview and verified promotion;
+5. perform only promotions whose Owner selection and adoption are already explicit;
+6. obtain Owner confirmation;
+7. mark the meeting confirmed and verify all registered paths.
+
+Never infer completion, acceptance, a do-date, a confirmed meeting or a promotion from coverage or
+an unattended closeout.
+
+An unconfirmed cycle remains in `20 Supervisor Meetings/` with honest `Meeting.md` status.
+Incomplete mathematics can remain there with honest artifact status.
+No Research promotion is required for settlement.

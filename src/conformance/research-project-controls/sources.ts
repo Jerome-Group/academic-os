@@ -14,6 +14,7 @@ import {
   requiredText,
   researchControlFinding,
 } from "./shared.js";
+import { isMeetingSourcePath } from "./meeting-paths.js";
 
 export function validateResearchProjectSourceRegister(
   source: string | undefined,
@@ -41,13 +42,24 @@ export function validateResearchProjectSourceRegister(
         "title",
         "authority",
         "role",
+        "storage",
         "locator",
         "local_file",
+        "related_files",
         "citation_key",
         "status",
         "evidence",
       ],
-      ["id", "title", "authority", "role", "locator", "status", "evidence"],
+      [
+        "id",
+        "title",
+        "authority",
+        "role",
+        "storage",
+        "locator",
+        "status",
+        "evidence",
+      ],
       `Source ${position}`,
       rowProblems,
     );
@@ -68,6 +80,13 @@ export function validateResearchProjectSourceRegister(
       row,
       "role",
       ["programme", "project", "core", "reference", "historical"],
+      `Source ${position}`,
+      rowProblems,
+    );
+    enumField(
+      row,
+      "storage",
+      ["project", "meeting"],
       `Source ${position}`,
       rowProblems,
     );
@@ -98,6 +117,12 @@ export function validateResearchProjectSourceRegister(
         `Source ${position} local_file must be a normalized project-relative path.`,
       );
     }
+    if (row.storage === "meeting" && !nonEmptyString(row.local_file)) {
+      rowProblems.push(
+        `Source ${position} storage meeting requires local_file.`,
+      );
+    }
+    relatedFileProblems(row.related_files, position, rowProblems);
     if (
       (row.role === "core" || row.role === "reference") &&
       !nonEmptyString(row.citation_key)
@@ -137,30 +162,57 @@ export function validateResearchProjectSourcePlacement(input: {
     input.inventory.entries.map((entry) => [entry.path, entry]),
   );
   const problems = parsed.rows.flatMap((row, index) => {
-    if (!isRecord(row) || row.local_file === undefined) return [];
+    if (!isRecord(row)) return [];
     const position = index + 1;
-    const localFile = row.local_file;
-    if (!isProjectRelativePath(localFile)) {
-      return [
-        `Source ${position} local_file must be a normalized project-relative path before placement can be checked.`,
-      ];
-    }
-    const entry = entries.get(localFile);
     const rowProblems: string[] = [];
-    if (entry?.kind !== "file") {
-      rowProblems.push(
-        `Source ${position} local_file ${localFile} does not identify an inventoried file.`,
-      );
+    const localFile = row.local_file;
+    if (localFile !== undefined) {
+      if (!isProjectRelativePath(localFile)) {
+        rowProblems.push(
+          `Source ${position} local_file must be a normalized project-relative path before placement can be checked.`,
+        );
+      } else {
+        if (entries.get(localFile)?.kind !== "file") {
+          rowProblems.push(
+            `Source ${position} local_file ${localFile} does not identify an inventoried file.`,
+          );
+        }
+        if (row.storage === "meeting") {
+          if (!isMeetingSourcePath(localFile)) {
+            rowProblems.push(
+              `Source ${position} local_file ${localFile} must be beneath a dated meeting Sources directory.`,
+            );
+          }
+        } else {
+          const homes = sourceHomes(row, input.profile);
+          if (homes.length === 0) {
+            rowProblems.push(
+              `Source ${position} has no valid project placement because its authority or role is unsupported.`,
+            );
+          } else if (!homes.some((home) => isBeneath(localFile, home))) {
+            rowProblems.push(
+              `Source ${position} local_file ${localFile} must be beneath ${homes.join(" or ")}.`,
+            );
+          }
+        }
+      }
     }
-    const homes = sourceHomes(row, input.profile);
-    if (homes.length === 0) {
-      rowProblems.push(
-        `Source ${position} has no valid placement because its authority or role is unsupported.`,
-      );
-    } else if (!homes.some((home) => isBeneath(localFile, home))) {
-      rowProblems.push(
-        `Source ${position} local_file ${localFile} must be beneath ${homes.join(" or ")}.`,
-      );
+    if (Array.isArray(row.related_files)) {
+      for (const [relatedIndex, related] of row.related_files.entries()) {
+        if (!isRecord(related) || !nonEmptyString(related.path)) continue;
+        if (
+          !isProjectRelativePath(related.path) ||
+          !isMeetingSourcePath(related.path)
+        ) {
+          rowProblems.push(
+            `Source ${position} related file ${relatedIndex + 1} path must be beneath a dated meeting Sources directory.`,
+          );
+        } else if (entries.get(related.path)?.kind !== "file") {
+          rowProblems.push(
+            `Source ${position} related file ${relatedIndex + 1} path ${related.path} does not identify an inventoried file.`,
+          );
+        }
+      }
     }
     return rowProblems;
   });
@@ -169,8 +221,54 @@ export function validateResearchProjectSourcePlacement(input: {
     problems,
     path,
     `Every registered local source exists in its authority and role home (${parsed.rows.length.toString()} source row${parsed.rows.length === 1 ? "" : "s"} checked).`,
-    "Local source placement applies to each Source-register row with local_file.",
+    "Local source placement applies to canonical and related files declared by each Source-register row.",
   );
+}
+
+function relatedFileProblems(
+  value: unknown,
+  sourcePosition: number,
+  problems: string[],
+): void {
+  if (value === undefined) return;
+  if (!Array.isArray(value)) {
+    problems.push(`Source ${sourcePosition} related_files must be a sequence.`);
+    return;
+  }
+  const seen = new Set<string>();
+  for (const [index, related] of value.entries()) {
+    const label = `Source ${sourcePosition} related file ${index + 1}`;
+    if (!isRecord(related)) {
+      problems.push(`${label} is not a mapping.`);
+      continue;
+    }
+    exactKeys(
+      related,
+      ["path", "relation", "use"],
+      ["path", "relation", "use"],
+      label,
+      problems,
+    );
+    requiredText(related, ["path"], label, problems);
+    enumField(related, "relation", ["exact-copy", "extract"], label, problems);
+    enumField(
+      related,
+      "use",
+      ["meeting-source", "study", "exercise-reference"],
+      label,
+      problems,
+    );
+    if (nonEmptyString(related.path)) {
+      if (!isProjectRelativePath(related.path)) {
+        problems.push(
+          `${label} path must be a normalized project-relative path.`,
+        );
+      } else if (seen.has(related.path)) {
+        problems.push(`${label} repeats path ${related.path}.`);
+      }
+      seen.add(related.path);
+    }
+  }
 }
 
 function sourceHomes(

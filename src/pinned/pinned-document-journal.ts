@@ -9,11 +9,10 @@ interface PinnedDocumentJournalEnvelope {
   recordedAt: string;
 }
 
-export interface PinnedDocumentJournalSubject {
-  module: string;
-  semester: string;
-  path: string;
-}
+export type PinnedDocumentJournalSubject = { path: string } & (
+  | { module: string; semester: string; researchProject?: never }
+  | { researchProject: string; module?: never; semester?: never }
+);
 
 type PinnedDocumentJournalBody =
   | {
@@ -21,7 +20,9 @@ type PinnedDocumentJournalBody =
       state: "stale" | "missing";
       from: string | null;
       to: string;
+      backup?: string;
     }
+  | { type: "backup"; from: string; backup: string }
   | { type: "result"; outcome: "rewritten" }
   | { type: "refused"; evidence: string };
 
@@ -32,6 +33,7 @@ export type PinnedDocumentJournalEvent = PinnedDocumentJournalEnvelope &
   PinnedDocumentJournalEntry;
 
 export interface PinnedDocumentJournal {
+  runId: string;
   path: string;
   append(entry: PinnedDocumentJournalEntry): Promise<void>;
 }
@@ -51,6 +53,7 @@ export async function openPinnedDocumentJournal(
   await mkdir(dirname(path), { recursive: true, mode: 0o700 });
   let sequence = 0;
   return {
+    runId,
     path,
     async append(entry) {
       const envelope: PinnedDocumentJournalEnvelope = {

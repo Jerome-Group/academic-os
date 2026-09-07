@@ -20,6 +20,7 @@ export const researchContractRuleEnforcement = {
   "RP-NAMING-002": "judgment",
   "RP-NAMING-003": "deterministic",
   "RP-LATEX-001": "deterministic",
+  "RP-MEETINGS-001": "deterministic",
   "RP-PROFILE-001": "deterministic",
   "RP-PROFILE-002": "judgment",
   "RP-PROFILE-003": "deterministic",

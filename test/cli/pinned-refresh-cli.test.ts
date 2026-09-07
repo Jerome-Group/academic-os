@@ -16,6 +16,8 @@ import {
   pinnedDocumentNames,
   pinnedDocumentPaths,
 } from "../../src/contract/pinned-documents.js";
+import { loadResearchProjectContract } from "../../src/contract/load-research-project-contract.js";
+import { researchProjectSharedControlPaths } from "../../src/contract/research-project-structure.js";
 import { testModuleContract } from "../fixtures/module-contract.js";
 import { runCli } from "../support/run-cli.js";
 
@@ -32,6 +34,7 @@ async function cohortFixture(): Promise<{
   configPath: string;
   stateRoot: string;
   moduleRoots: Map<string, string>;
+  researchRoot: string;
 }> {
   const root = await mkdtemp(join(tmpdir(), "academic-os-pinned-cli-"));
   temporaryRoots.push(root);
@@ -52,6 +55,20 @@ async function cohortFixture(): Promise<{
       );
     }
   }
+  const researchRoot = join(driveMount, "Research", "Example Project");
+  const researchContract = await loadResearchProjectContract();
+  for (const path of researchProjectSharedControlPaths) {
+    const target = join(researchRoot, path);
+    await mkdir(dirname(target), { recursive: true });
+    await writeFile(
+      target,
+      (researchContract.seedFiles[path] ?? "").replaceAll(
+        "{{PROJECT_NAME}}",
+        "Example Project",
+      ),
+      "utf8",
+    );
+  }
   const configPath = join(root, "academic-os.config.json");
   await writeFile(
     configPath,
@@ -66,10 +83,19 @@ async function cohortFixture(): Promise<{
           modules: ["CC0006", "MH2100"],
         },
       },
+      research: {
+        root: "Research",
+        projects: {
+          "example-project": {
+            folder: "Example Project",
+            status: "active",
+          },
+        },
+      },
     }),
     "utf8",
   );
-  return { configPath, stateRoot, moduleRoots };
+  return { configPath, stateRoot, moduleRoots, researchRoot };
 }
 
 describe("academic-os pinned refresh", () => {
@@ -139,6 +165,55 @@ describe("academic-os pinned refresh", () => {
       ),
     );
     assert.match(String(report.journal), /journals\/pinned-documents\//u);
+    const events = (await readFile(report.journal, "utf8"))
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    const backup = events.find(({ type }) => type === "intent")?.backup;
+    assert.equal(await readFile(backup, "utf8"), "# Edited in the module\n");
+  });
+
+  it("refreshes only one Research project's shared controls with an original backup", async () => {
+    const fixture = await cohortFixture();
+    const target = join(fixture.researchRoot, "AGENTS.md");
+    await writeFile(target, "# Local stale router\n", "utf8");
+
+    const preview = await runCli(
+      "pinned",
+      "refresh",
+      "--config",
+      fixture.configPath,
+      "--research-project",
+      "example-project",
+      "--json",
+    );
+    assert.equal(preview.exitCode, 1, preview.stderr);
+    assert.equal(JSON.parse(preview.stdout).rewrites.length, 1);
+    assert.equal(await readFile(target, "utf8"), "# Local stale router\n");
+
+    const applied = await runCli(
+      "pinned",
+      "refresh",
+      "--config",
+      fixture.configPath,
+      "--research-project",
+      "example-project",
+      "--apply",
+      "--json",
+    );
+    assert.equal(applied.exitCode, 0, applied.stderr);
+    const report = JSON.parse(applied.stdout);
+    assert.deepEqual(report.target, {
+      kind: "research-project",
+      key: "example-project",
+    });
+    assert.equal(report.rewritten, 1);
+    const events = (await readFile(report.journal, "utf8"))
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    const backup = events.find(({ type }) => type === "intent")?.backup;
+    assert.equal(await readFile(backup, "utf8"), "# Local stale router\n");
   });
 
   it("names the stale copy in human output and stops without --apply", async () => {

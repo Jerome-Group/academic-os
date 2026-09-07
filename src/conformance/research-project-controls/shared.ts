@@ -183,6 +183,7 @@ export function researchControlFinding(
     | "RP-SOURCES-002"
     | "RP-TASKS-001"
     | "RP-RESEARCH-001"
+    | "RP-MEETINGS-001"
     | "RP-DELIVERABLES-001",
   problems: readonly string[],
   path: string,

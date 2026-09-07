@@ -202,15 +202,16 @@ _Avoid_: Project profile, manifest, structure list — profile derives the addit
 
 **Source register**:
 The current-state catalogue connecting one Research project's sources to durable locators, local
-files, bibliographic keys, authority and role, kept at `00 Project Admin/20 Source Register.yaml`.
-It identifies evidence; `references.bib` owns bibliographic facts and Research artifacts own the
-precise passage used.
+files, meeting copies or extracts, bibliographic keys, authority, role and storage, kept at
+`00 Project Admin/20 Source Register.yaml`. It identifies evidence; `references.bib` owns
+bibliographic facts and artifacts own the precise passage used.
 _Avoid_: bibliography, reading history, Source map — each owns a different relation.
 
 **Research map**:
-The machine-readable mapping from one Research project's stable topic threads to its sources,
-reading, mathematics and experiments, kept at `00 Project Admin/40 Research Map.yaml`. It maps
-durable work and carries no task queue, deadline or proof text.
+The machine-readable mapping from one Research project's stable Questions to source IDs,
+meeting-local work and optional promoted Concepts or Research Notes, kept at
+`00 Project Admin/40 Research Map.yaml`. It carries coarse lifecycle and local progress, with no
+task queue, deadline or proof text.
 _Avoid_: research plan, task list, Source map — the Source map keys taught Module material by
 Lecture-unit.
 
@@ -415,11 +416,11 @@ _Avoid_: notes. Personal notes are `10 Learning Materials/30 Personal Notes`, wh
 thing done for a different reason.
 
 **Research workspace**:
-The `70 Research` part of a Research project: source-by-source Reading, Owner-authored Mathematics,
-reproducible Experiments, and the Glossary, Questions and Claims that connect them. It is organised
-by a Research map rather than a taught sequence.
-_Avoid_: Teaching workspace — understanding here advances an open question rather than a module's
-Lecture-units; deliverables — they consume Research but have programme-owned requirements.
+The optional `70 Research` part of a Research project: Owner-adopted Concepts and Research Notes,
+plus the Glossary, Questions, Claims and promotion records that connect them. Ordinary sources,
+Learning and Exercises remain inside their supervisor meeting.
+_Avoid_: supervisor meeting workspace — that is where work begins; Deliverables — they consume
+Research but have programme-owned requirements.
 
 **Claim**:
 A mathematical statement the Research project may rely on, recorded with assumptions, status,

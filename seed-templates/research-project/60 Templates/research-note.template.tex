@@ -1,0 +1,47 @@
+% Research note --- synthesis or proof work produced from promoted concepts.
+% Copy it into 70 Research/20 Research Notes/<thread>/ and replace every <...> placeholder.
+\documentclass[a4paper,10pt]{article}
+\IfFileExists{preamble.tex}{\input{preamble.tex}}{\IfFileExists{../../../../../60 Templates/preamble.tex}{\input{../../../../../60 Templates/preamble.tex}}{\IfFileExists{../../../../60 Templates/preamble.tex}{\input{../../../../60 Templates/preamble.tex}}{\input{../../../60 Templates/preamble.tex}}}}
+\begin{document}
+\ArtifactHeader{\ProjectCode}{<Research-map key>}{<what this research note establishes>}{<YYYY-MM-DD>}%
+  {<promoted concepts, meeting session records and applicable Source IDs with exact locators>}
+
+\section{Question and status}
+<The Research Question or Claim, current status, assumptions and dependencies.>
+
+\section{<The first idea>}
+
+\begin{defn}[<term>]
+<The definition in the project's notation, plus any alternative source notation actually used.>
+\end{defn}
+
+\begin{example}
+<The smallest computation that makes the definition concrete, worked rather than cited.>
+\end{example}
+
+\begin{thm}[<name>]
+<The statement with its hypotheses spelled out, since later arguments depend on them.>
+\end{thm}
+
+\begin{proof}
+<The argument and its adopted status. Cite the exact locator when a source supplies the proof.>
+\end{proof}
+
+\begin{remark}
+<Why a hypothesis is there, what the notation hides, or how this connects back to a one-variable
+result already known.>
+\end{remark}
+
+\begin{warning}
+<The mistake the idea invites, with the counterexample that settles it. Warnings share the
+theorem counter, so this one is citable like any other numbered thing.>
+\end{warning}
+
+\section{<The second idea>}
+<One section per idea, in dependency order or the relevant source order.>
+
+\begin{checkyourself}
+  \item <Something to rebuild unaided --- the test of whether this landed.>
+  \item <The unresolved step or check that determines the next research pass.>
+\end{checkyourself}
+\end{document}

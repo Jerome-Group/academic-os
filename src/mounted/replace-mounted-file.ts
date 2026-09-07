@@ -29,6 +29,12 @@ export async function replaceMountedFile(input: {
     await file.close();
   }
   try {
+    const fresh = await input.readContents(input.path);
+    if (fresh === undefined || sha256(fresh) !== input.expectedSha256) {
+      throw new Error(
+        "the copy changed while its replacement was staged; nothing was published.",
+      );
+    }
     await rename(temporary, input.path);
   } catch (error) {
     await unlink(temporary).catch(() => undefined);

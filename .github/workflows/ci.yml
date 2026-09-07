@@ -75,6 +75,27 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Cache the TeX Live and Poppler packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/rule-coverage-archives
+          key: rule-coverage-tex-poppler-${{ hashFiles('.github/tex-live-packages.txt') }}
+      - name: Install TeX Live and Poppler
+        env:
+          APT_ACQUIRE: >-
+            -o Acquire::Retries=3
+            -o Acquire::http::Timeout=20
+            -o Acquire::https::Timeout=20
+        run: |
+          mkdir -p ~/rule-coverage-archives/partial
+          chmod -R 777 ~/rule-coverage-archives
+          sudo find /etc/apt/sources.list.d -type f ! -name ubuntu.sources -delete
+          sudo apt-get update $APT_ACQUIRE
+          xargs -a .github/tex-live-packages.txt sudo apt-get install -y \
+            --no-install-recommends \
+            $APT_ACQUIRE \
+            -o Dir::Cache::archives="$HOME/rule-coverage-archives" \
+            poppler-utils
       - run: npm run rule-coverage:check
 
   privacy:

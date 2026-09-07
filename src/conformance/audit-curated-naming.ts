@@ -74,6 +74,7 @@ function isExemptPath(
   return (
     [...importerRoots].some((root) => isInsideRoot(path, root)) ||
     isInsideRoot(path, textbookChaptersPath) ||
+    isInsideRoot(path, "10 Learning Materials/30 Personal Notes/support") ||
     path.split("/").includes("build")
   );
 }
@@ -84,20 +85,21 @@ function isCuratedFileName(name: string, moduleCode: string): boolean {
   const stem = name.slice(0, -extension.length);
   if (!stem.startsWith(`${moduleCode}_`)) return false;
   const tokens = stem.slice(moduleCode.length + 1).split("_");
-  const titleCase = (token: string) => /^[A-Z][a-z0-9]*$/u.test(token);
-  const romanNumeral = (token: string) =>
-    /^(?:I|II|III|IV|V|VI|VII|VIII|IX|X)$/u.test(token);
+  const titleCase = (token: string) => /^[A-Z][A-Za-z0-9]*$/u.test(token);
   const numericQualifier = (token: string) =>
-    /^\d{2}$/u.test(token) ||
+    /^\d{1,2}$/u.test(token) ||
+    isAcademicYearRange(token) ||
     /^\d{4}$/u.test(token) ||
     /^\d{4}-\d{2}-\d{2}$/u.test(token);
   return (
     tokens.some(titleCase) &&
-    tokens.every(
-      (token) =>
-        titleCase(token) || romanNumeral(token) || numericQualifier(token),
-    )
+    tokens.every((token) => titleCase(token) || numericQualifier(token))
   );
+}
+
+function isAcademicYearRange(token: string): boolean {
+  const match = /^(\d{4})-(\d{4})$/u.exec(token);
+  return match !== null && Number(match[2]) === Number(match[1]) + 1;
 }
 
 function hasFinalVersionSuffix(name: string): boolean {

@@ -123,11 +123,17 @@ each exactly once and in this order:
 # MODULE_CODE — Module Title
 
 ## Offering
+
 ## Scope
+
 ## Teaching Structure
+
 ## Assessment Structure
+
 ## Source Authority
+
 ## Workspaces
+
 ## Known Gaps
 ```
 
@@ -168,21 +174,22 @@ The schema version 2 shape for contract version 6 is:
 ```yaml
 schema_version: 2
 contract_version: 6
-module: {code: MH2100, title: Calculus III}
-offering: {academic_year: 2026-2027, semester: 1, status: active}
+module: { code: MH2100, title: Calculus III }
+offering: { academic_year: 2026-2027, semester: 1, status: active }
 structure:
-  tutorials: {layout: grouped, groups: [CC0001, CC0002], evidence: [course-site]}
+  tutorials:
+    { layout: grouped, groups: [CC0001, CC0002], evidence: [course-site] }
   assessments:
-    quizzes: {enabled: true, evidence: [assessment-profile]}
-    tests: {enabled: false}
-    assignments: {enabled: true, evidence: [assessment-profile]}
-  projects: {enabled: false}
-  labs: {enabled: false}
+    quizzes: { enabled: true, evidence: [assessment-profile] }
+    tests: { enabled: false }
+    assignments: { enabled: true, evidence: [assessment-profile] }
+  projects: { enabled: false }
+  labs: { enabled: false }
   resource_categories:
-    - {name: 10 Formula Sheets, evidence: [course-site]}
+    - { name: 10 Formula Sheets, evidence: [course-site] }
 sources:
   ntulearn:
-    - {role: primary, destination: NTULearn, evidence: [course-site]}
+    - { role: primary, destination: NTULearn, evidence: [course-site] }
 evidence:
   assessment-profile:
     source: <official URL or NTULearn reference>
@@ -446,10 +453,10 @@ chapters this module cut, one entry per cut. Seeding writes `extractions: []`.
 
 ```yaml
 extractions:
-  - book: Rosen              # the key, into the Shelf index
-    number: 3                # as the book prints it; roman recorded verbatim
-    title: Algorithms        # the full table-of-contents title
-    pages: [187, 244]        # absolute PDF pages, inclusive
+  - book: Rosen # the key, into the Shelf index
+    number: 3 # as the book prints it; roman recorded verbatim
+    title: Algorithms # the full table-of-contents title
+    pages: [187, 244] # absolute PDF pages, inclusive
     file: MODULE_CODE_Rosen_Chapter_03_Algorithms.pdf
     source_sha256: <the book's checksum at cut time>
 ```
@@ -505,7 +512,9 @@ those sessions leave. Curated files in either layout still follow the file-namin
 
 Midterms and Finals are universal. Definition enables Quizzes, Tests and Assignments. Uncommon
 graded formats such as posters, presentations, panel discussions and vivas belong in Assignments.
-Assessment-category contents are flat; filenames distinguish occurrences and artifacts.
+Assessment-category academic contents are flat; filenames distinguish occurrences and artifacts.
+A direct `build/` subtree is compilation output and is exempt from flatness; MF-LATEX-001 still
+requires a TeX workspace beside it.
 
 ### Projects and Labs
 
@@ -534,8 +543,8 @@ uses its exact five children; contents beneath them may nest:
 allows nesting beneath them. Resources requires `00 Unclassified` and allows Definition-declared
 additional categories, each declared by exact `name` with evidence. Projects/Labs workspace
 children allow nesting. The interiors of `docs`, `.scratch` and every declared importer root are
-outside structural enforcement, with two exceptions: `docs` holds the pinned procedure files and
-`adr/` that MF-UNIVERSAL-001 names, and `.scratch` may not contain a LaTeX `build/`. `70 Learning`
+outside structural enforcement, except that `docs` holds the pinned procedure files and `adr/`
+that MF-UNIVERSAL-001 names. Disposable builds inside `.scratch` follow MF-LATEX-001. `70 Learning`
 is enforced as deep as MF-LEARNING-001 reaches and open below it.
 
 ## Importer roots and curation
@@ -637,14 +646,18 @@ names and declared importer roots are the explicit exceptions.
 
 **MF-NAMING-002 (deterministic).** A file deliberately placed in Learning Materials, Tutorials,
 Assessments, Projects/Labs or Resources is curated. Its name begins with the uppercase module code,
-then Title Case underscore-separated tokens. Sequences use two digits, dates `YYYY-MM-DD`, years
-four digits and extensions lowercase. A sequence number is read from the source's own naming — the
+then Title Case underscore-separated tokens, including uppercase initialisms and internal-capital
+proper names. Source and artifact counters may use one or two digits; dates use `YYYY-MM-DD`, years
+use four digits, adjacent academic-year ranges use `YYYY-YYYY`, and extensions are lowercase. A sequence number is read from the source's own naming — the
 item's title, or the attachment's own filename — so an importer mirror's `NN ` prefix stays that
 importer's ordering, and a source numbering itself nowhere is an ambiguity to park. Files inside
 importer roots, `.scratch`, `build`, `docs`, `70 Learning`, plus root controls, are exempt, as is
-`10 Learning Materials/20 Textbook Chapters`, whose names MF-TEXTBOOK-004 fixes exactly.
+`10 Learning Materials/20 Textbook Chapters`, whose names MF-TEXTBOOK-004 fixes exactly. The dedicated
+`10 Learning Materials/30 Personal Notes/support/` tree is artifact-owned support and is exempt;
+its release pairs outside that tree remain governed.
 
-**MF-NAMING-003 (judgment).** Useful qualifiers include `Questions`, `Solutions`, `Draft_01`,
+**MF-NAMING-003 (judgment).** New sequences default to two-digit padding; retain meaningful source
+or artifact identifiers already in use. Useful qualifiers include `Questions`, `Solutions`, `Draft_01`,
 `Annotated` and `Graded`. A completed file has no `Final` version suffix; `Final` names the final
 examination. Avoid `(1)`, `copy` and `final-final`. On collision, compare duplicates and otherwise
 add a meaningful year, sequence, source or version.
@@ -659,9 +672,9 @@ MH2100_Quiz_02_2026-09-14_Graded.pdf
 
 ## LaTeX builds
 
-**MF-LATEX-001 (deterministic).** Keep `.scratch` at module root. Do not seed a module-root
-`build/` or place one inside `.scratch`. Create `build/` beside each compilation workspace only
-when LaTeX appears. Simple files sharing a directory may share its build directory; independent
+**MF-LATEX-001 (deterministic).** Keep `.scratch` at module root as an open disposable interior,
+including build output and runtime dependencies. Do not seed a module-root `build/`. Outside
+`.scratch`, create `build/` beside each compilation workspace only when LaTeX appears. Simple files sharing a directory may share its build directory; independent
 projects use independent builds. Put user-facing PDFs beside their source or in `50 Submissions`.
 
 ## Auditing and lifecycle

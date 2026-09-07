@@ -74,6 +74,25 @@ when someone sends it. A machine that holds the repository for other reasons may
 Any further harness takes the same directory wherever it keeps user-scope skills, and gets its own
 manifest beside `SKILL.md` if it needs one to know the skill fires only when the Owner says so.
 
+## Optional: install the `/cheatsheet` skill
+
+`/cheatsheet <module code> <operation>` discovers one synced Module and hands create, revise, audit,
+verify or package-review to its pinned Cheatsheet procedure. Its boundary is
+[ADR-0029](adr/0029-cheatsheet-releases-are-source-led-and-portable.md). Install or update the same
+way as `/learn`. The copied directory includes the Node 24 helper runtime; it does not use a clone or
+Academic OS configuration:
+
+```sh
+for harness in .claude .codex; do
+  rsync -a "<clone>/skills/cheatsheet/" \
+    "<machine>:~/$harness/skills/cheatsheet/"
+done
+```
+
+Verify the installed interface with
+`~/.codex/skills/cheatsheet/scripts/cheatsheet-tool.mjs schema` (and the corresponding `.claude`
+path). The command reports every operation and required input.
+
 ## Optional: install the `/research-project` skill
 
 `/research-project <project identity> [-- what to work on]` starts from any directory, discovers

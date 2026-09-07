@@ -1,0 +1,29 @@
+schema_version: 1
+artifact:
+  id: final-aid
+  title: Final aid
+  scope: Current issued syllabus
+  release_tex: 10 Learning Materials/30 Personal Notes/Final Aid.tex
+  release_pdf: 10 Learning Materials/30 Personal Notes/Final Aid.pdf
+  support: 10 Learning Materials/30 Personal Notes/support/final-aid
+authoring:
+  kind: self-contained
+  path: 10 Learning Materials/30 Personal Notes/Final Aid.tex
+  sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+constraints:
+  paper: A4
+  pages: {exact: 2}
+  color: monochrome
+  columns: 4
+  body_pt: {preferred: 4.2, floor: 3.9}
+sources:
+  - id: issued-1
+    path: NTULearn/assessment.pdf
+    sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    authority: issued-current
+    locators: [questions 1-4]
+coverage: 10 Learning Materials/30 Personal Notes/support/final-aid/coverage.csv
+release:
+  tex_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  pdf_sha256: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+  review: {status: unreviewed}

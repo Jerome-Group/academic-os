@@ -1,0 +1,5 @@
+interface:
+  display_name: "Cheatsheet"
+  short_description: "Build and verify a module cheatsheet"
+policy:
+  allow_implicit_invocation: false

@@ -28,5 +28,6 @@ export const universalPaths = [
   ["docs/10 Curation Procedure.md", "file"],
   ["docs/20 Teaching Procedure.md", "file"],
   ["docs/30 Textbook Procedure.md", "file"],
+  ["docs/40 Cheatsheet Procedure.md", "file"],
   ["docs/adr", "directory"],
 ] as const;

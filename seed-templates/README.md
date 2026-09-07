@@ -6,7 +6,7 @@ files, and never a copy in Drive, are what "pinned" means.
 
 ## What reads them
 
-`AGENTS.md` and the four `docs/` templates are what `src/seed/create-module-seed-plan.ts` writes
+`AGENTS.md` and the five `docs/` templates are what `src/seed/create-module-seed-plan.ts` writes
 into a module folder, and what `src/conformance/validate-pinned-documents.ts` diffs each module's
 copy back against under MF-AGENTS-004.
 
@@ -14,6 +14,9 @@ copy back against under MF-AGENTS-004.
 procedures are pinned under RP-AGENTS-004; its controls and Research templates are canonical seed
 bodies, with caller-supplied Profile and Definition taking their two destination paths. Research
 templates are starting interfaces rather than pinned local instructions.
+
+Module `docs/40 Cheatsheet Procedure.template.md` is the conduct source reached by the
+user-invoked `/cheatsheet` router.
 
 ## The path is the destination
 

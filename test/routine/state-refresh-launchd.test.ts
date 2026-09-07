@@ -184,7 +184,9 @@ describe("periodic private state refresh", () => {
       );
   });
 
-  it("previews installer wiring without changing the scheduler", async () => {
+  it("previews installer wiring without changing the scheduler", {
+    skip: process.platform !== "darwin",
+  }, async () => {
     const input = await fixture();
     const installer = fileURLToPath(
       new URL(

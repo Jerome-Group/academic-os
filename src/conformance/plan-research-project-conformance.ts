@@ -1,6 +1,7 @@
 import { parseDocument } from "yaml";
 
 import type { ResolvedResearchProject } from "../config/index.js";
+import { researchProjectSharedControlPaths } from "../contract/research-project-structure.js";
 import type { ResearchProjectContract } from "./research-project-contract.js";
 import { applicableResearchRuleIds } from "./research-project-contract.js";
 import {
@@ -21,6 +22,7 @@ import {
   validateResearchProjectClaims,
   validateResearchProjectDeliverableRegister,
   validateResearchProjectMap,
+  validateResearchProjectMeetings,
   validateResearchProjectProfile,
   validateResearchProjectQuestions,
   validateResearchProjectSourcePlacement,
@@ -115,7 +117,13 @@ export function planResearchProjectConformance(input: {
     validateResearchProjectMap({
       source: input.controls.researchMap,
       sourceRegister: input.controls.sourceRegister,
+      questions: input.controls.questions,
       inventory: input.inventory,
+    }),
+    validateResearchProjectMeetings({
+      inventory: input.inventory,
+      schedule: input.controls.schedule,
+      meetingNotes: input.controls.meetingNotes,
     }),
     validateResearchProjectClaims(input.controls.claims),
     validateResearchProjectQuestions(input.controls.questions),
@@ -212,15 +220,24 @@ function rootPlacementFinding(
   const rootPaths = new Set(
     expected.filter(([path]) => !path.includes("/")).map(([path]) => path),
   );
-  const unexpected = inventory.entries
+  const unclassified = inventory.entries
     .filter(({ path }) => !path.includes("/") && !rootPaths.has(path))
     .sort((left, right) => left.path.localeCompare(right.path));
+  const transient = unclassified.filter(
+    ({ path, kind }) => kind === "directory" && ["build", "tmp"].includes(path),
+  );
+  const unexpected = unclassified.filter(
+    ({ path, kind }) =>
+      !(kind === "directory" && ["build", "tmp"].includes(path)),
+  );
   if (unexpected.length === 0) {
     return finding(
       "RP-ROOT-002",
-      "pass",
+      transient.length === 0 ? "pass" : "warning",
       ".",
-      "Inventory contains no unclassified Research-project root entry.",
+      transient.length === 0
+        ? "Inventory contains no unclassified Research-project root entry."
+        : `Inventory contains advisory generated-output roots: ${transient.map(({ path }) => path).join(", ")}. They are not seeded academic structure or evidence.`,
       "Root placement applies to every Research project.",
     );
   }
@@ -273,16 +290,17 @@ function agentsRouterFinding(source: string | undefined): ResearchFinding {
     "# What this folder is",
     "## Start here",
     "## Routes",
-    "## Domain language",
+    "## Stable identities",
     "## Safety",
     "## Updating these instructions",
   ];
   const headings = source?.match(/^#{1,2} .+$/gmu) ?? [];
   const routes = [
+    "Meeting cycle",
     "Sources",
-    "Meetings",
-    "Research",
     "Learning",
+    "Exercises",
+    "Research",
     "Deliverables",
     "Tasks",
     "Maintenance",
@@ -295,7 +313,7 @@ function agentsRouterFinding(source: string | undefined): ResearchFinding {
     matches ? "pass" : "fail",
     researchProjectControlPaths.agents,
     matches
-      ? "AGENTS has the six router sections and all seven routes."
+      ? "AGENTS has the six router sections and all eight routes."
       : "AGENTS does not match the required router surface.",
     "The local router is required in every Research project.",
   );
@@ -315,36 +333,30 @@ function claudeFinding(source: string | undefined): ResearchFinding {
   );
 }
 
-const pinnedControls = [
-  "agents",
-  "structureAndNaming",
-  "sourcesAndProvenance",
-  "researchProcedure",
-  "deliverablesProcedure",
-] as const satisfies ReadonlyArray<keyof ResearchProjectControls>;
-
 function pinnedDocumentsFinding(input: {
   contract: ResearchProjectContract;
   target: ResolvedResearchProject;
   controls: ResearchProjectControls;
 }): ResearchFinding {
-  const different = pinnedControls.filter((name) => {
-    const path = researchProjectControlPaths[name];
+  const different = researchProjectSharedControlPaths.filter((path) => {
     const expected = input.contract.seedFiles[path]?.replaceAll(
       "{{PROJECT_NAME}}",
       input.target.folder,
     );
-    return expected === undefined || input.controls[name] !== expected;
+    return (
+      expected === undefined ||
+      input.controls.sharedControls?.[path] !== expected
+    );
   });
   return finding(
     "RP-AGENTS-004",
     different.length === 0 ? "pass" : "fail",
     different.length === 0
       ? researchProjectControlPaths.agents
-      : researchProjectControlPaths[different[0] ?? "agents"],
+      : (different[0] ?? researchProjectControlPaths.agents),
     different.length === 0
-      ? "AGENTS and all four procedures are byte-identical to interpolated seed sources."
-      : `Pinned controls differ from seed sources: ${different.join(", ")}.`,
+      ? "Every shared control is byte-identical to its interpolated seed source."
+      : `Shared controls differ from seed sources: ${different.join(", ")}.`,
     "Pinned Research-project documents carry the contract's own text.",
   );
 }
@@ -356,14 +368,15 @@ function contextFinding(
   const expected = `# ${folder} — context`;
   const matches =
     source?.startsWith(`${expected}\n`) === true &&
-    source.includes("## Language");
+    /^## \S/mu.test(source) &&
+    source.includes("70 Research/GLOSSARY.md");
   return finding(
     "RP-CONTEXT-001",
     matches ? "pass" : "fail",
     researchProjectControlPaths.context,
     matches
-      ? "CONTEXT has the exact project heading and Language home."
-      : `CONTEXT must start ${expected} and contain ## Language.`,
+      ? "CONTEXT has the exact project heading and points subject language to the Research glossary."
+      : `CONTEXT must start ${expected}, contain a project-language section and point subject definitions to 70 Research/GLOSSARY.md.`,
     "Every Research project has a project-organisational glossary.",
   );
 }
@@ -430,12 +443,12 @@ function latexFinding(inventory: ResearchProjectInventory): ResearchFinding {
   const rootBuild = inventory.entries.find(({ path }) => path === "build");
   return finding(
     "RP-LATEX-001",
-    rootBuild === undefined ? "pass" : "fail",
+    rootBuild === undefined ? "pass" : "warning",
     rootBuild?.path ?? ".scratch",
     rootBuild === undefined
       ? "No project-root build directory is present; .scratch remains the disposable root."
-      : "A project-root build directory is prohibited.",
-    "LaTeX builds live beside a real workspace and are never universal seed structure.",
+      : "A project-root build directory is advisory generated output; it is not seeded, registered or promoted.",
+    "Canonical LaTeX and its reviewed PDF stay in their meeting or Research workspace; generated output carries no academic authority.",
   );
 }
 
@@ -571,9 +584,13 @@ function addScopedFindings(
     ),
     finding(
       "RP-TRANSITION-001",
-      "not-applicable",
+      readContractVersion(input.controls.definition) === input.contract.version
+        ? "not-applicable"
+        : "requires-decision",
       researchProjectControlPaths.definition,
-      `Definition targets current contract version ${input.contract.version}; no transition is being planned.`,
+      readContractVersion(input.controls.definition) === input.contract.version
+        ? `Definition targets current contract version ${input.contract.version}; no transition is being planned.`
+        : `Definition must be migrated explicitly to contract version ${input.contract.version}; preview the projected state and write the Definition last.`,
       "This rule applies to a pre-contract or earlier-version project.",
     ),
   );
@@ -607,7 +624,7 @@ function proposedOperations(
 function assertUsableContract(contract: ResearchProjectContract): void {
   const rules = applicableResearchRuleIds(contract);
   if (
-    contract.version !== 1 ||
+    contract.version !== 2 ||
     contract.ruleIds.length === 0 ||
     rules.size !== contract.ruleIds.length ||
     contract.universalStructure.length === 0 ||

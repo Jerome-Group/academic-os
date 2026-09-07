@@ -66,7 +66,7 @@ describe("academic-os research-project CLI", () => {
     const report = JSON.parse(audit.stdout);
     assert.equal(report.mode, "research-project");
     assert.equal(report.outcome, "conformant");
-    assert.equal(report.contractVersion, 1);
+    assert.equal(report.contractVersion, 2);
     assert.equal(report.inventoryProvenance.source, "mounted");
     assert.equal(report.proposedOperations.length, 0);
     assert.equal(report.observation.schemaVersion, 1);
@@ -260,7 +260,7 @@ async function setupFixture() {
   await writeFile(profilePath, validProfile());
   await writeFile(
     definitionPath,
-    `contract_version: 1
+    `contract_version: 2
 project:
   key: example-project
   folder: Example Project

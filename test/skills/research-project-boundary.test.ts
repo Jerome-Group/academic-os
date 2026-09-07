@@ -123,18 +123,9 @@ describe("the research-project skill", () => {
       );
     }
 
-    for (const route of [
-      "Sources",
-      "Meetings",
-      "Research",
-      "Learning",
-      "Deliverables",
-      "Tasks",
-      "Maintenance",
-    ]) {
-      assert.match(text, new RegExp(`\\b${route}\\b`, "u"));
-    }
-    assert.match(text, /Read every document that route names/u);
+    assert.match(text, /Read the routes from the live `AGENTS\.md`/u);
+    assert.match(text, /Read every document that route\s+names/u);
+    assert.doesNotMatch(text, /Meeting cycle, Sources/u);
   });
 
   it("contains neither project-specific identity nor copied research conduct", async () => {

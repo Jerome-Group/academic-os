@@ -5,6 +5,7 @@ export {
 } from "./research-project-controls/ledgers.js";
 export { validateResearchProjectProfile } from "./research-project-controls/profile.js";
 export { validateResearchProjectMap } from "./research-project-controls/research-map.js";
+export { validateResearchProjectMeetings } from "./research-project-controls/meetings.js";
 export {
   validateResearchProjectSourcePlacement,
   validateResearchProjectSourceRegister,

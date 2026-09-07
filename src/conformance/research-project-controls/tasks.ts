@@ -10,6 +10,7 @@ import type {
 } from "../research-types.js";
 import { isRecord, nonEmptyString } from "../value-shape.js";
 import { claimStatuses, readMarkdownLedger } from "./ledgers.js";
+import { isMeetingNotePath } from "./meeting-paths.js";
 import {
   checkRegisteredPointer,
   enumField,
@@ -106,9 +107,7 @@ export function validateResearchProjectTaskProvenance(input: {
     input.inventory.entries
       .filter(
         ({ path: entryPath, kind }) =>
-          kind === "file" &&
-          entryPath.startsWith("20 Supervisor Meetings/") &&
-          entryPath.endsWith(".md"),
+          kind === "file" && isMeetingNotePath(entryPath),
       )
       .map(({ path: entryPath }) => entryPath),
   );
@@ -228,9 +227,7 @@ function researchTaskRowProblems(row: unknown, position: number): string[] {
       const meeting = row.provenance.meeting;
       if (
         meeting !== undefined &&
-        (!isProjectRelativePath(meeting) ||
-          !meeting.startsWith("20 Supervisor Meetings/") ||
-          !meeting.endsWith(".md"))
+        (!isProjectRelativePath(meeting) || !isMeetingNotePath(meeting))
       ) {
         problems.push(
           `Task ${position} provenance meeting must be a project-relative Markdown path beneath 20 Supervisor Meetings.`,

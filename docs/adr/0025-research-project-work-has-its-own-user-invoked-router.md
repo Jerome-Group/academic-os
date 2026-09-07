@@ -10,8 +10,8 @@ scope beside `/learn`, and fires only when the Owner invokes it.
 `/learn` resolves a Module code one semester below `Modules/`, reads the Module's Teaching
 procedure, chooses one Source-map unit and stays with the Owner through a teaching session. A
 Research project has neither that identity nor that single route: its Definition supplies a stable
-project identity, and its router separates Sources, Meetings, Research, Learning, Deliverables,
-Tasks and Maintenance.
+project identity, and its router separates Meeting cycle, Sources, Learning, Exercises, Research,
+Deliverables, Tasks and Maintenance.
 
 Making `/learn` detect both folder kinds would give one word two contracts. It would also make an
 invocation that named only a project decide whether the Owner wanted Learning, source work or a
@@ -55,5 +55,5 @@ at `AGENTS.md`; the skill adds a route in, not a second procedure.
 
 The skill may need amendment if Research projects move out of `Modules/Research/`, a third mount
 family becomes supported, or project identity leaves the Definition. A change to research conduct
-does not amend the skill; it changes the canonical pinned documents, then reaches each project by
-an Owner-approved transition until a project-pinned refresh surface exists.
+does not amend the skill; it changes the canonical pinned documents, then reaches an exact project
+through previewed, backed-up `pinned refresh --research-project <key>`.

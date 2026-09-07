@@ -74,6 +74,7 @@ export {
   validateResearchProjectClaims,
   validateResearchProjectDeliverableRegister,
   validateResearchProjectMap,
+  validateResearchProjectMeetings,
   validateResearchProjectProfile,
   validateResearchProjectQuestions,
   validateResearchProjectSourcePlacement,

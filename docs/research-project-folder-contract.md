@@ -6,7 +6,7 @@ not a rule. A Research project is the distinct aggregate recorded in
 [`docs/adr/0024`](adr/0024-research-projects-are-not-modules.md); it is not a Module and inherits no
 semester, module-code or NTULearn requirement.
 
-**Contract version: 1.** Increase it when a normative requirement, applicability rule or allowed
+**Contract version: 2.** Increase it when a normative requirement, applicability rule or allowed
 structure changes. Rules have stable IDs. **Deterministic** rules are decided without judgment;
 **judgment** rules expose evidence for a person or agent to resolve. Project contents live outside
 this public repository under [`docs/adr/0002`](adr/0002-the-contract-lives-here-and-the-coursework-does-not.md).
@@ -74,7 +74,9 @@ its stable machine identity; the folder is its human-facing identity. Resolve th
 beneath the exact configured root and reject root escapes, symlinks, duplicate targets, case
 variants and unresolved cloud placeholders before inventory or writes.
 
-**RP-UNIVERSAL-001 (deterministic).** Every Research project folder contains:
+**RP-UNIVERSAL-001 (deterministic).** Every Research project folder contains the fixed controls,
+source homes, meeting index, Deliverables home, shared templates, optional Research homes and Resource
+home shown here:
 
 ```text
 PROJECT_NAME/
@@ -92,22 +94,26 @@ PROJECT_NAME/
 │   ├── 30 Reference Sources/
 │   └── references.bib
 ├── 20 Supervisor Meetings/
+│   ├── SCHEDULE.md
+│   └── YYYY-MM-DD Topic/
+│       ├── Meeting.md
+│       ├── Sources/
+│       ├── 10 Learning/
+│       │   ├── records/
+│       │   └── NN Unit/
+│       └── 20 Exercises/
+│           ├── records/
+│           └── NN Exercise Set/
 ├── 30 Deliverables/
+├── 60 Templates/
 ├── 70 Research/
-│   ├── 10 Reading/
-│   ├── 20 Mathematics/
-│   ├── 30 Experiments/
-│   ├── templates/
-│   │   ├── reading-note.md
-│   │   ├── mathematics-note.tex
-│   │   ├── experiment-record.md
-│   │   ├── meeting-note.md
-│   │   └── deliverable-check.md
+│   ├── 10 Concepts/
+│   ├── 20 Research Notes/
+│   ├── records/
 │   ├── GLOSSARY.md
 │   ├── QUESTIONS.md
 │   └── CLAIMS.md
-├── 90 Resources/
-│   └── 00 Unclassified/
+├── 90 Resources/00 Unclassified/
 ├── .scratch/
 ├── AGENTS.md
 ├── CLAUDE.md
@@ -120,10 +126,10 @@ PROJECT_NAME/
     └── adr/
 ```
 
-`00 Project Admin` holds controls; `10 Source Materials` holds evidence and literature;
-`20 Supervisor Meetings` holds durable meeting notes; `30 Deliverables` holds programme outputs;
-`70 Research` holds the Owner's reading, mathematics and experiments; `90 Resources` holds aids
-that are useful but are not evidence; `.scratch` holds disposable working files.
+`20 Supervisor Meetings` holds ordinary sources, learning, exercises and their records together.
+`70 Research` is optional promotion of Owner-adopted work. `60 Templates` holds the twelve blank
+Markdown and LaTeX starting points named by the universal structure. Programme profiles continue to
+derive Deliverable homes. Missing containers may be seeded; seeding never manufactures academic work.
 
 **RP-ROOT-002 (deterministic).** Loose project contents at root are errors. An unknown root
 directory requires a decision; it is neither silently adopted nor automatically removed. The
@@ -181,11 +187,11 @@ generic seed-source template never does.
 ### Definition
 
 **RP-DEFINITION-001 (deterministic).** `10 Project Definition.yaml` is the closed machine authority
-for contract version, project identity, programme profile and identity-evidence status. Version 1
+for contract version, project identity, programme profile and identity-evidence status. Version 2
 has exactly this shape:
 
 ```yaml
-contract_version: 1
+contract_version: 2
 project:
   key: example-project
   folder: Example Project
@@ -203,6 +209,10 @@ evidence:
 The file has no paths outside the project, credentials, dates, Calendar IDs, Tasks IDs, arbitrary
 structure, inventories or research progress.
 
+A v1 Definition reports a migration requirement. Preview the complete meeting-centred projected
+state, preserve every historical artifact and pointer, then write the Definition last. Existing
+contents never become v2 merely because some v2 paths happen to exist.
+
 **RP-DEFINITION-002 (deterministic).** Definition key, folder, status and profile agree with the
 configured target; an omitted configuration profile resolves to `generic`. The declared profile
 alone derives context structure. A missing structure is not guessed from files already in the
@@ -211,9 +221,9 @@ folder, and project content never becomes evidence for enabling a profile.
 ### Agent and domain controls
 
 **RP-AGENTS-001 (deterministic).** `AGENTS.md` is the project's local router. Its sections are
-these six, in order: What this folder is; Start here; Routes; Domain language; Safety; Updating
-these instructions. Routes cover Sources, Meetings, Research, Learning, Deliverables, Tasks and
-Maintenance, each pointing at one procedure or control.
+these six, in order: What this folder is; Start here; Routes; Stable identities; Safety; Updating
+these instructions. Routes cover Meeting cycle, Sources, Learning, Exercises, Research, Deliverables,
+Tasks and Maintenance, each pointing at the live procedure, register or template that owns it.
 
 **RP-AGENTS-002 (deterministic).** `CLAUDE.md` contains exactly a `# Claude Code` heading followed
 by `Read \`AGENTS.md\` completely before working in this research-project folder.` It carries no
@@ -227,15 +237,16 @@ tests applied; precedent resolves, and ambiguity parks. Every unattended domain-
 surfaced in the run report. Mechanical register writes follow their own authority and procedure and
 are outside this instruction-writing gate.
 
-**RP-AGENTS-004 (deterministic).** `AGENTS.md` and the four numbered `docs/` procedures are pinned:
-each project's copy is byte-identical to its canonical file under
-`seed-templates/research-project/`, modulo `{{PROJECT_NAME}}` interpolation and removal of the
-`.template` infix. A difference is repaired from the seed source. Project-specific knowledge lives
-in `CONTEXT.md`, `docs/adr/`, the Profile or a register.
+**RP-AGENTS-004 (deterministic).** The shared controls are `AGENTS.md`, `CLAUDE.md`, the four
+numbered `docs/` procedures, and the blank `deliverable-check.md`, `meeting-note.md`,
+`promotion-record.md` and `session-record.md` templates in `60 Templates/`. Each is byte-identical
+to its canonical seed after `{{PROJECT_NAME}}` interpolation. Refresh only an exact configured
+Research-project target after preview; prove all target paths and hashes first, back up every existing
+original under private state, then replace atomically.
 
-The five Research templates are seeded canonical starting points and required by name. Their
-copies may be adapted to make the Owner's writing easier; they are not standing instructions and
-are not pinned.
+The other eight LaTeX and preference templates remain locally editable. Project context, registers,
+meeting prose, mathematical vocabulary, session records, local ADRs and promoted work are never
+byte-pinned.
 
 **RP-CONTEXT-001 (deterministic).** `CONTEXT.md` is a glossary of project-organisational terms:
 what the project calls an object and how that changes where it goes or how it is named. Seed its
@@ -253,9 +264,11 @@ controls. Additional admin files or subdirectories require a contract change.
 
 ### Registers and human controls
 
-**RP-SOURCES-001 (deterministic).** `20 Source Register.yaml` starts as `sources: []`. A later row
-identifies one source by immutable `id`, `title`, `authority`, `role`, durable `locator`, optional
-`local_file`, optional `citation_key`, `status` and `evidence`:
+**RP-SOURCES-001 (deterministic).** `20 Source Register.yaml` starts as `sources: []`. Each row
+has immutable `id`, `title`, `authority`, `role`, `storage`, durable `locator`, `status` and
+`evidence`; `local_file`, `related_files` and `citation_key` are optional. `storage` is `project` or
+`meeting`. Each related file has exactly `path`, relation `exact-copy` or `extract`, and use
+`meeting-source`, `study` or `exercise-reference`. A meeting-stored row requires `local_file`.
 
 ```yaml
 sources:
@@ -263,17 +276,22 @@ sources:
     title: Example title
     authority: primary
     role: core
+    storage: project
     locator: https://example.org/durable-record
     local_file: 10 Source Materials/20 Core Sources/example.pdf
+    related_files:
+      - path: 20 Supervisor Meetings/2026-09-08 Topic/Sources/example.pdf
+        relation: exact-copy
+        use: meeting-source
     citation_key: Example2026
     status: reading
     evidence: Why this classification is supported.
 ```
 
 `authority` is `primary`, `secondary` or `generated`; `role` is `programme`, `project`, `core`,
-`reference` or `historical`; `status` is `queued`, `reading`, `read` or `retired`. A literature row
-uses `citation_key` into `references.bib`, which owns bibliographic facts. A generated aid may be
-registered for provenance but cannot support a mathematical claim.
+`reference` or `historical`; `status` is `queued`, `reading`, `read` or `retired`. One Source ID joins
+a canonical work, its exact meeting copies and scoped extracts. A generated aid cannot support a
+mathematical claim.
 
 **RP-TASKS-001 (deterministic).** `30 Task Register.yaml` mirrors the configured project's Google
 Tasks list and starts as `tasks: []` with no `list_id`. It follows MF-TASKS-001's row shape and
@@ -290,10 +308,19 @@ calendar. A Task milestone must already occur in a Deliverable-register row and 
 selected deliverable when both pointers are present. The register records the pointer; the Live
 calendar remains the authority for the event's existence and current state.
 
-**RP-RESEARCH-001 (deterministic).** `40 Research Map.yaml` starts as `threads: []`. A thread maps
-an immutable key and title to a status (`open`, `parked` or `closed`) and lists relative pointers
-under `sources`, `reading`, `mathematics` and `experiments`. It maps durable work; it carries no
-task queue, deadline, proof text or live cursor.
+At meeting or session closeout, change Tasks only for work explicitly reported complete and next
+actions explicitly accepted. Push through the target-specific task operation, verify the provider
+result, then refresh the register. Never infer completion, acceptance or a new do-date. Resolve an
+exact deadline through Calendar preview and verified promotion.
+
+**RP-RESEARCH-001 (deterministic).** `40 Research Map.yaml` starts as `threads: []`. Each row has
+an immutable `key`, unique positive `order`, `title`, existing Questions-ledger key, coarse status
+`open`, `parked` or `closed`, Source IDs, `meeting_work` and `promoted`; optional `progress` holds
+local finer state. Meeting work names a dated `Meeting.md`, status, optional progress, and typed
+Learning-unit, Exercise-set and session-record paths. Promoted paths name files under
+`70 Research/10 Concepts/<Research-map key>/` or
+`70 Research/20 Research Notes/<Research-map key>/`. Every identity and path resolves. The map
+carries no task queue, deadline, proof text or live cursor.
 
 **RP-DELIVERABLES-001 (deterministic).** `50 Deliverable Register.yaml` starts as
 `deliverables: []`. Each profile-derived deliverable later carries immutable `key`, exact `folder`,
@@ -319,14 +346,11 @@ conditions being proved.
 
 ## Source materials and provenance
 
-**RP-SOURCES-002 (deterministic).** Every Source-register `local_file` identifies an inventoried
-file. Programme and Project files live under `10 Programme and Project`; Core files under
-`20 Core Sources`; Reference files under `30 Reference Sources`. A generated file lives under the
-profile's `Research Aids` home or `90 Resources/00 Unclassified`. A URECA Historical file lives
-under `90 Resources/10 Preparation Archive`; a Generic Historical file remains Unclassified.
-Generated authority takes placement precedence over role. `references.bib` is the bibliographic
-source of truth. Moving a source from Reference to Core updates its register row and preserves its
-stable ID.
+**RP-SOURCES-002 (deterministic).** Every `local_file` and related-file path identifies an
+inventoried file. A `meeting` source and every related file live beneath a valid dated meeting's
+`Sources/`. A `project` source follows the existing programme/project, Core, Reference, historical
+or generated home. `references.bib` owns bibliographic facts. Moving or copying a source preserves
+its stable ID; an exact copy must preserve bytes.
 
 **RP-SOURCES-003 (judgment).** Every claim taken from a source names a Source-register ID and a
 locator precise enough to re-open the supporting passage. Prefer an official page, DOI, arXiv
@@ -336,33 +360,33 @@ may point to sources; they never stand in for them.
 
 ## Human-first research
 
-**RP-RESEARCH-002 (judgment).** One research pass begins with a named question, works against
-registered sources, and leaves only durable artifacts the Owner can resume: a reading note,
-mathematics note, experiment record, Claim entry, Question entry or Research-map pointer. Coverage
-alone does not settle a question. A claim is settled only when the Owner can reconstruct its
-argument and its cited support.
+**RP-RESEARCH-002 (judgment).** Ordinary work begins inside one meeting with a named Source
+passage, Owner question or supervisor assignment. Learning and Exercises keep numbered session
+records in their meeting areas. Coverage is not demonstrated understanding. A session may complete
+with no promotion.
 
-`70 Research/10 Reading` holds source-by-source reading notes; `20 Mathematics` holds definitions,
-examples, proof attempts and proofs in the Owner's notation; `30 Experiments` holds computations
-and finite examples with enough input, method and output to reproduce them. `QUESTIONS.md` is the
-human queue of mathematical unknowns, `CLAIMS.md` is the human claim ledger, and `GLOSSARY.md` is
-the subject speaking.
-
-Claim entries use `## stable-key — Short label` and one status: `candidate`, `checked`, `refuted`
-or `superseded`. Question entries use the same heading interface and one status: `open`, `parked`
-or `settled`. The stable lowercase kebab key does not change when the label or status changes.
+`QUESTIONS.md` and `CLAIMS.md` retain stable lowercase keys and their closed statuses. Work enters
+`70 Research/10 Concepts` or `20 Research Notes` only after the Owner reconstructs or rewrites it,
+checks applicable sources and explicitly adopts it. A promotion record retains the meeting and
+session provenance.
 
 **RP-RESEARCH-003 (judgment).** Agents route, locate sources, explain, ask checks, compile, test,
-compare and critique. Agent-authored candidate mathematics remains in `.scratch` until the Owner
-has reconstructed or rewritten it, verified every citation and chosen to adopt it. Adoption moves
-the Owner's version into Research or a Deliverable and records material assistance under
-RP-INTEGRITY-001. The artifact, not the conversation transcript, is the durable record.
+compare and critique within the exact requested region. Importer or supervisor originals and Owner
+attempts are read or copied without changing their bytes. Generated candidate mathematics remains
+clearly identified until Owner adoption. The artifact and its record, rather than the transcript, are
+durable.
 
-**RP-RESEARCH-004 (judgment).** A supervisor meeting uses the meeting template and records the
-date, participants, questions brought, guidance received, decisions, follow-ups and evidence
-status. The Owner confirms the note before it becomes durable. Follow-ups become Tasks when they
-are actionable; mathematical guidance changes a claim or thread only after the Owner works it
-through.
+**RP-MEETINGS-001 (deterministic).** Each direct meeting directory is `YYYY-MM-DD Topic` using a real
+calendar date. It contains only `Meeting.md`, `Sources`, `10 Learning` and `20 Exercises` directly;
+each activity area contains `records/`. `Meeting.md` front matter has exactly date, non-empty
+participants and status `scaffold`, `planned`, `draft`, `confirmed`, `cancelled` or `rescheduled`.
+`SCHEDULE.md` has exactly one full-path row per meeting, with matching date and note status.
+Learning units and Exercise sets are direct `NN Short title` directories; their area-local records
+are direct `NNNN-slug.md` files.
+
+**RP-RESEARCH-004 (judgment).** Calendar owns confirmed dates; the schedule is an index; attributed
+meeting prose owns guidance and settlement. Meeting-note evidence and Owner confirmation require
+human review.
 
 ## Deliverables and programme profiles
 
@@ -399,25 +423,24 @@ and embargo rules do not apply to URECA or generic projects.
 
 ## Naming and builds
 
-**RP-NAMING-001 (deterministic).** Fixed paths use their exact spelling and case. Project content
-uses descriptive human-readable names. Source files preserve a publisher or programme filename
-when that name is stable; otherwise the Source-register ID leads the name. Meeting notes use
-`YYYY-MM-DD Topic.md`; reading notes use their Source-register ID; related mathematics and
-experiment artifacts use the Research-map thread key followed by a short title.
+**RP-NAMING-001 (deterministic).** Fixed paths use their exact spelling and case.
 
 **RP-NAMING-002 (judgment).** Versions use `_Draft_01`, `_Draft_02` and so on. A completed artifact
 has no `Final` suffix. On collision, compare the artifacts first, then distinguish them by date,
 source ID or draft number. Programme-mandated submission names override this rule and are recorded
-in the Deliverable register's authority evidence.
+in the Deliverable register's authority evidence. Project content uses descriptive human-readable
+names. Source files preserve a publisher or programme filename when that name is stable; otherwise
+the Source-register ID leads the name.
 
 **RP-NAMING-003 (deterministic).** Everything inside `.scratch`, a LaTeX `build/`, and the pinned
 `docs/` procedures is exempt from content naming. Source-register identity, BibTeX keys and
 Research-map keys remain stable when a display filename changes.
 
-**RP-LATEX-001 (deterministic).** Keep `.scratch` at project root. Put a `build/` beside each LaTeX
-workspace only when compilation begins; never seed one. User-facing PDFs sit beside their source
-or in the matching Deliverable workspace. The mathematics-note template is a starting interface,
-not a generated proof.
+**RP-LATEX-001 (deterministic).** Keep `.scratch` at project root. User-facing TeX and inspected PDF
+stay together in the meeting, Research or Deliverable workspace they serve. Generated `build` or
+`tmp` roots are advisory output, never seeded structure or academic evidence. The shared preamble is
+a semantic interface; locally editable LaTeX templates may add project notation without becoming
+pinned instructions.
 
 ## Tasks and Calendar
 
@@ -468,10 +491,9 @@ semester and is unchanged. One Research project's operational failure does not d
 Module or Research-project reports. Observations carry paths and metadata, never project contents,
 and live outside git.
 
-**RP-TRANSITION-001 (judgment).** A pre-contract research folder reaches version 1 by inventorying
-it read-only, classifying each existing artifact by provenance and drafting an additive destination
-plan. Preserve human work and authoritative sources; carry generated aids only as aids; exclude
-build output, duplicate exports, transcripts and disposable scratch. Apply only after target-scoped
-Owner approval, including an explicit request that names the target and asks for its migration,
-through the mounted-write proof in `docs/agents/safe-drive-testing.md`. Definition contract version
-moves last, after the target audits conformant.
+**RP-TRANSITION-001 (judgment).** A pre-contract or v1 folder reaches version 2 through a private,
+target-scoped plan. Inventory it read-only; map existing meeting sources, Learning, Exercises,
+records and Research artifacts without changing their meaning; preserve originals and every stable
+identity. Preview exact paths, edit regions and hashes. Apply only under explicit target authority,
+with independent backups, fresh preconditions and a journal. Definition contract version moves
+last, after the projected target is complete and the migrated target audits conformant.

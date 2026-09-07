@@ -73,14 +73,15 @@ journal, exclusive creation and final verification as the canonical seed. Public
 reports carry destinations only. Reproduction and interrupted resume use the unchanged manifest
 and local sources; a changed or missing source refuses plan reconstruction.
 
-The pinned refresh is the fourth writer and binds neither recovery, for the same reason a
-transition does not: what it overwrites is a file this repository authored and still holds, so the
-seed source **is** the recovery. It writes nothing else — a module's academic contents are not its
-to touch. A copy that cannot prove itself refuses the whole run before anything is written, which is
-what keeps a half-written cohort rare rather than impossible: a write that fails after earlier ones
-have landed stops the run and reports itself as partially rewritten, because no rollback can unwrite
-a file without holding its original. The journal is what says how far a run got. Its authority is
-MF-AGENTS-004, the rule saying a differing copy is repaired by rewriting rather than by editing.
+The pinned refresh is the fourth writer. It copies every existing original into private state and
+verifies its checksum before the first replacement. It writes only Module-pinned controls or the
+shared controls of one exact Research-project target. A copy that cannot prove itself or cannot be
+backed up refuses the whole run before any replacement. Backups preserve raw bytes; invalid UTF-8
+refuses before any live write. Every read re-proves ordinary ancestors and containment within the
+configured Module or project root, and a replacement re-reads the original immediately before its
+atomic rename. A later write failure reports
+`partially-rewritten`; the journal names the completed paths and each backup needed for recovery.
+Its authority is MF-AGENTS-004 or RP-AGENTS-004.
 
 Through the API, paths are human evidence, not mutation identity: inventory and mutation use Drive
 IDs, request every page, reject incomplete results, and treat absent checksums or revisions as

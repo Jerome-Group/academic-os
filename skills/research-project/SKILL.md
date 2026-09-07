@@ -58,9 +58,9 @@ rules.
 
 ## 4. Choose the route
 
-Map the requested work to exactly one route named by the live `AGENTS.md`: Sources, Meetings,
-Research, Learning, Deliverables, Tasks or Maintenance. Read every document that route names,
-including its register or template, before acting.
+Read the routes from the live `AGENTS.md`, then map the requested work to exactly one route it names.
+Read every document that route names, including its register or template, before acting. Do not
+substitute an installed skill's remembered route list for the live router.
 
 Ask which route when the request genuinely fits more than one or names no meaningful area. Do not
 invent a route or use `/learn`: that skill resolves Module teaching workspaces, not Research

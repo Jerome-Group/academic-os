@@ -820,9 +820,17 @@ already selects. It reads the templates from the checkout it runs in, so run it 
 merged: a module's agents follow the copy in their own `docs/`, and an amended procedure governs
 nothing in the cohort until this has rewritten them.
 
-Research-project pinned files live under `seed-templates/research-project/` and audit under
-RP-AGENTS-004. This command does not rewrite them; transition an existing Research project only on
-the Owner's approval until a project-pinned refresh surface exists.
+Research-project shared controls live under `seed-templates/research-project/` and audit under
+RP-AGENTS-004. Select one exact configured project; there is no all-project Research rewrite:
+
+```bash
+node dist/src/cli.js pinned refresh --config academic-os.config.json \
+  --research-project example-project
+```
+
+That previews only the shared router, procedures and blank Markdown templates. It leaves project
+context, registers, meeting prose, records, mathematics, preferences and locally adapted LaTeX
+unchanged. Add `--apply` only after reviewing every difference.
 
 ```bash
 node dist/src/cli.js pinned refresh --config academic-os.config.json
@@ -846,12 +854,15 @@ node dist/src/cli.js pinned refresh --config academic-os.config.json --apply
 | 2 | The run was refused, stopped part-way, or a module could not be read |
 
 Each write proves itself before it happens, under `docs/agents/safe-drive-testing.md`: the target
-resolves inside the Drive mount, it is an ordinary file rather than a symlink, it holds real bytes
+resolves inside its exact configured target root, it is an ordinary file rather than a symlink, it holds real bytes
 rather than a dataless placeholder, and its checksum still matches what the preview read. A target
 that disagrees refuses the **run**, not the one file, and the whole proving pass finishes before
 anything is written. A copy that is there arrives through a temporary and one rename, so no reader
 meets it half-written; one that is missing is created exclusively, so a name that filled in since
-the preview is never clobbered.
+the preview is never clobbered. Before the first replacement, every existing original is copied
+under `stateRoot/backups/pinned-documents/<run>/`, reread and checksum-verified.
+The backup preserves raw bytes. Invalid UTF-8, a non-ordinary ancestor, a path outside the exact
+configured target or a source change immediately before publication refuses the write.
 
 Should a write still fail after earlier ones have landed — an unwritable folder, a full disk — the
 run stops and reports `partially-rewritten`. Nothing can unwrite the copies already replaced, so the
@@ -859,8 +870,8 @@ journal is the record of exactly how far it got. A module the cohort names but t
 is listed as `Unresolved` and does not stop the others; the run exits 2 to say so.
 
 Every rewrite is journalled under `stateRoot` at `journals/pinned-documents/<run>.jsonl`, carrying
-the checksum replaced and the checksum written. A cohort that was already current writes no journal
-at all.
+the checksum replaced, checksum written and backup path where an original existed. A target already
+current writes no journal or backup.
 
 ## Curation register identity
 

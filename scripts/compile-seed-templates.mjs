@@ -3,7 +3,15 @@
 // `latexmk` on PATH, so it stays out of `npm run check` — CI has no TeX. A failed compilation
 // keeps its workspace so the log can be read.
 import { execFileSync } from "node:child_process";
-import { cp, mkdtemp, readdir, rename, rm } from "node:fs/promises";
+import {
+  cp,
+  mkdtemp,
+  readFile,
+  readdir,
+  rename,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -19,8 +27,8 @@ const templateGroups = [
   },
   {
     label: "research-project",
-    source: "seed-templates/research-project/70 Research/templates",
-    exclude: new Set(),
+    source: "seed-templates/research-project/60 Templates",
+    exclude: new Set(["preamble.tex"]),
   },
 ];
 const seededName = (name) => name.replace(".template.", ".");
@@ -34,6 +42,17 @@ for (const group of templateGroups) {
   await cp(group.source, workspace, { recursive: true });
   for (const name of await readdir(workspace)) {
     await rename(join(workspace, name), join(workspace, seededName(name)));
+  }
+  if (group.label === "research-project") {
+    for (const name of await readdir(workspace)) {
+      const path = join(workspace, name);
+      const body = await readFile(path, "utf8");
+      await writeFile(
+        path,
+        body.replaceAll("{{PROJECT_NAME}}", "Example Project"),
+        "utf8",
+      );
+    }
   }
   const documents = (await readdir(workspace))
     .filter((name) => name.endsWith(".tex") && !group.exclude.has(name))

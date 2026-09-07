@@ -1,0 +1,49 @@
+% Learning walkthrough --- one learning or mathematical-discussion pass within a meeting.
+% Copy it into the meeting's 10 Learning/<unit>/ folder and replace every <...> placeholder.
+\documentclass[a4paper,10pt]{article}
+\IfFileExists{preamble.tex}{\input{preamble.tex}}{\IfFileExists{../../../../../60 Templates/preamble.tex}{\input{../../../../../60 Templates/preamble.tex}}{\IfFileExists{../../../../60 Templates/preamble.tex}{\input{../../../../60 Templates/preamble.tex}}{\input{../../../60 Templates/preamble.tex}}}}
+\begin{document}
+\ArtifactHeader{\ProjectCode}{<meeting and existing Research-map key or unit>}{<what this walkthrough covers>}{<YYYY-MM-DD>}%
+  {<Source IDs and locators, or the exact Owner-question or supervisor-assignment basis>}
+
+\section{Question and evidence}
+<The bounded question and where this session starts. Name the exact meeting-scoped source passage
+when one is used; otherwise name the Owner question or attributed supervisor assignment.>
+
+\section{<The first idea>}
+
+\begin{defn}[<term>]
+<The definition in the project's notation, plus any source notation actually used.>
+\end{defn}
+
+\begin{example}
+<The smallest computation that makes the definition concrete, worked rather than cited.>
+\end{example}
+
+\begin{thm}[<name>]
+<The statement with its hypotheses spelled out, since later arguments depend on them.>
+\end{thm}
+
+\begin{proof}
+<The argument and its status: sourced, reconstructed, exploratory or unresolved. Drop this
+environment where no proof is being worked.>
+\end{proof}
+
+\begin{remark}
+<Why a hypothesis is there, what the notation hides, or how this connects back to a one-variable
+result already known.>
+\end{remark}
+
+\begin{warning}
+<The mistake the idea invites, with the counterexample that settles it. Warnings share the
+theorem counter, so this one is citable like any other numbered thing.>
+\end{warning}
+
+\section{<The second idea>}
+<One section per idea. Follow source order when source-led; otherwise follow dependency order.>
+
+\begin{checkyourself}
+  \item <Something to rebuild unaided --- the test of whether this landed.>
+  \item <A question from the assigned material, named by pointer and never copied here.>
+\end{checkyourself}
+\end{document}

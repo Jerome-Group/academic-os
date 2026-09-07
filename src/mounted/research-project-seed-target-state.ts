@@ -8,6 +8,7 @@ import {
   type ResearchProjectInventory,
 } from "../conformance/index.js";
 import { loadResearchProjectContract } from "../contract/load-research-project-contract.js";
+import { researchProjectSharedControlPaths } from "../contract/research-project-structure.js";
 import type { ResearchProjectSeedPlan } from "../seed/index.js";
 import { seedFileByteLength } from "../seed/seed-operation-bytes.js";
 import { ensureMaterialized } from "./ensure-materialized.js";
@@ -108,12 +109,20 @@ export async function auditProjectedResearchProjectSeedTarget(input: {
       .filter(({ contents }) => contents !== undefined)
       .map(({ path, contents }) => [path, contents ?? ""]),
   );
-  const controls = Object.fromEntries(
-    Object.entries(researchProjectControlPaths).flatMap(([name, path]) => {
-      const contents = contentsByPath.get(path);
-      return contents === undefined ? [] : [[name, contents]];
-    }),
-  ) as ResearchProjectControls;
+  const controls = {
+    ...Object.fromEntries(
+      Object.entries(researchProjectControlPaths).flatMap(([name, path]) => {
+        const contents = contentsByPath.get(path);
+        return contents === undefined ? [] : [[name, contents]];
+      }),
+    ),
+    sharedControls: Object.fromEntries(
+      researchProjectSharedControlPaths.flatMap((path) => {
+        const contents = contentsByPath.get(path);
+        return contents === undefined ? [] : [[path, contents]];
+      }),
+    ),
+  } as ResearchProjectControls;
   return await auditResearchInventory({
     project: input.project,
     inventory: {

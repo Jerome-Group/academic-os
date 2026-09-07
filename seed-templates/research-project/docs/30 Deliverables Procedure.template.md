@@ -26,7 +26,7 @@ Use the exact profile-derived directory under `30 Deliverables/`. Keep within it
 - the Owner's source and rendered artifact;
 - the programme template, if one was supplied;
 - attributed supervisor or reviewer feedback;
-- a copy of `70 Research/templates/deliverable-check.md` for requirement checks;
+- a copy of `60 Templates/deliverable-check.md` for requirement checks;
 - submission or acceptance evidence when it exists.
 
 Name drafts `_Draft_01`, `_Draft_02` and so on unless the programme mandates a name. Keep LaTeX

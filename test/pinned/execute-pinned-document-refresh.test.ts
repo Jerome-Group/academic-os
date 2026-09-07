@@ -159,11 +159,17 @@ describe("executePinnedDocumentRefresh", () => {
     assert.deepEqual(
       events.map(({ type, sequence }) => [type, sequence]),
       [
-        ["intent", 0],
-        ["result", 1],
+        ["backup", 0],
+        ["intent", 1],
+        ["result", 2],
       ],
     );
-    const [intent, result] = events;
+    const [backup, intent, result] = events;
+    assert.equal(
+      await readFile(String(backup?.backup), "utf8"),
+      "# Edited in the module\n",
+    );
+    assert.equal(backup?.from, intent?.from);
     assert.equal(intent?.path, teachingProcedure);
     assert.equal(intent?.module, "MH2100");
     assert.match(String(intent?.from), /^[0-9a-f]{64}$/u);
@@ -171,6 +177,53 @@ describe("executePinnedDocumentRefresh", () => {
     assert.notEqual(intent?.from, intent?.to);
     assert.equal(result?.outcome, "rewritten");
     assert.equal(intent?.runId, result?.runId);
+  });
+
+  it("backs up the exact original UTF-8 bytes, including a BOM", async () => {
+    const tree = await cohortTree();
+    const target = join(
+      tree.moduleRoots.get("MH2100") ?? "",
+      teachingProcedure,
+    );
+    const original = Buffer.from([0xef, 0xbb, 0xbf, ...Buffer.from("stale\n")]);
+    await writeFile(target, original);
+
+    const report = await executePinnedDocumentRefresh({
+      plan: await planFor(tree.moduleRoots),
+      cohort: cohortOf(tree),
+      mode: "apply",
+    });
+
+    assert.equal(report.outcome, "current");
+    const events = (await readFile(report.journal ?? "", "utf8"))
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line) as Record<string, unknown>);
+    const backup = events.find(({ type }) => type === "backup");
+    assert.deepEqual(await readFile(String(backup?.backup)), original);
+  });
+
+  it("refuses invalid UTF-8 before any target is rewritten", async () => {
+    const tree = await cohortTree(["CC0006", "MH2100"]);
+    const first = join(tree.moduleRoots.get("CC0006") ?? "", teachingProcedure);
+    const invalid = join(
+      tree.moduleRoots.get("MH2100") ?? "",
+      teachingProcedure,
+    );
+    await writeFile(first, "# Stale but valid\n", "utf8");
+    await writeFile(invalid, Uint8Array.of(0xff));
+
+    const report = await executePinnedDocumentRefresh({
+      plan: await planFor(tree.moduleRoots),
+      cohort: cohortOf(tree),
+      mode: "apply",
+    });
+
+    assert.equal(report.outcome, "refused");
+    assert.equal(report.rewritten, 0);
+    assert.match(report.refusals.join(" "), /not valid UTF-8/u);
+    assert.equal(await readFile(first, "utf8"), "# Stale but valid\n");
+    assert.deepEqual(await readFile(invalid), Buffer.from([0xff]));
   });
 
   it("creates a copy that was missing, and journals it with no prior checksum", async () => {
@@ -256,6 +309,72 @@ describe("executePinnedDocumentRefresh", () => {
     assert.equal(await readFile(outside, "utf8"), "# Edited in the module\n");
   });
 
+  it("refuses an ordinary target reached through an ancestor outside its configured root", async () => {
+    const tree = await cohortTree();
+    const moduleRoot = tree.moduleRoots.get("MH2100") ?? "";
+    const outsideDocs = join(tree.driveMount, "Other Project", "docs");
+    await mkdir(outsideDocs, { recursive: true });
+    await writeFile(
+      join(outsideDocs, "20 Teaching Procedure.md"),
+      "# Outside project\n",
+      "utf8",
+    );
+    await rm(join(moduleRoot, "docs"), { recursive: true });
+    await symlink(outsideDocs, join(moduleRoot, "docs"));
+
+    const report = await executePinnedDocumentRefresh({
+      plan: await planFor(tree.moduleRoots),
+      cohort: cohortOf(tree),
+      mode: "apply",
+    });
+
+    assert.equal(report.outcome, "refused");
+    assert.equal(report.rewritten, 0);
+    assert.match(
+      report.refusals.join(" "),
+      /ancestor docs is not an ordinary directory/u,
+    );
+    assert.equal(
+      await readFile(join(outsideDocs, "20 Teaching Procedure.md"), "utf8"),
+      "# Outside project\n",
+    );
+  });
+
+  it("refuses a missing target whose parent is a symlink within the Drive mount", async () => {
+    const tree = await cohortTree();
+    const moduleRoot = tree.moduleRoots.get("MH2100") ?? "";
+    const outsideDocs = join(tree.driveMount, "Other Project", "docs");
+    await mkdir(outsideDocs, { recursive: true });
+    for (const name of pinnedDocumentNames) {
+      const relativePath = pinnedDocumentPaths[name];
+      if (name === "teachingProcedure" || !relativePath.startsWith("docs/")) {
+        continue;
+      }
+      const source = join(moduleRoot, relativePath);
+      const destination = join(outsideDocs, relativePath.slice(5));
+      await mkdir(dirname(destination), { recursive: true });
+      await writeFile(destination, await readFile(source));
+    }
+    await rm(join(moduleRoot, "docs"), { recursive: true });
+    await symlink(outsideDocs, join(moduleRoot, "docs"));
+
+    const report = await executePinnedDocumentRefresh({
+      plan: await planFor(tree.moduleRoots),
+      cohort: cohortOf(tree),
+      mode: "apply",
+    });
+
+    assert.equal(report.outcome, "refused");
+    assert.equal(report.rewritten, 0);
+    assert.match(
+      report.refusals.join(" "),
+      /ancestor docs is not an ordinary directory/u,
+    );
+    await assert.rejects(
+      readFile(join(outsideDocs, "20 Teaching Procedure.md")),
+    );
+  });
+
   it("refuses a copy whose folder is not there, which is structure to seed", async () => {
     const tree = await cohortTree();
     const moduleRoot = tree.moduleRoots.get("MH2100") ?? "";
@@ -316,6 +435,8 @@ describe("executePinnedDocumentRefresh", () => {
       assert.deepEqual(
         events.map(({ module, type }) => [module, type]),
         [
+          ["CC0006", "backup"],
+          ["MH2100", "backup"],
           ["CC0006", "intent"],
           ["CC0006", "result"],
           ["MH2100", "intent"],

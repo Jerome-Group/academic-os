@@ -20,9 +20,9 @@ const commonOpenInteriors = [
   "10 Source Materials/20 Core Sources",
   "10 Source Materials/30 Reference Sources",
   "20 Supervisor Meetings",
-  "70 Research/10 Reading",
-  "70 Research/20 Mathematics",
-  "70 Research/30 Experiments",
+  "70 Research/10 Concepts",
+  "70 Research/20 Research Notes",
+  "70 Research/records",
 ] as const;
 
 export function createResearchProjectSeedPlan(input: {

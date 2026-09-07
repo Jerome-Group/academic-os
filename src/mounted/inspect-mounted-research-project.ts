@@ -39,6 +39,11 @@ export async function inspectMountedResearchProject(
   return {
     target,
     inventory,
-    controls: await readResearchProjectControls(target.projectRoot),
+    controls: await readResearchProjectControls(
+      target.projectRoot,
+      inventory.entries
+        .filter(({ kind }) => kind === "file")
+        .map(({ path }) => path),
+    ),
   };
 }

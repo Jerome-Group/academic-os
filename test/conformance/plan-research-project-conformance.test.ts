@@ -22,7 +22,7 @@ const target: ResolvedResearchProject = {
   status: "active",
   profile: "ureca",
 };
-const definition = `contract_version: 1
+const definition = `contract_version: 2
 project:
   key: ureca-y2
   folder: URECA Y2
@@ -136,7 +136,14 @@ describe("planResearchProjectConformance", () => {
     recordResearchFindingEvidence(
       planResearchProjectConformance({
         ...input,
-        controls: { ...input.controls, agents: "# Broken router\n" },
+        controls: {
+          ...input.controls,
+          agents: "# Broken router\n",
+          sharedControls: {
+            ...input.controls.sharedControls,
+            "AGENTS.md": "# Broken router\n",
+          },
+        },
       }).findings,
       "RP-AGENTS-001",
       "RP-AGENTS-004",
@@ -203,7 +210,7 @@ describe("planResearchProjectConformance", () => {
           entries: [
             ...input.inventory.entries,
             {
-              path: "70 Research/20 Mathematics/candidate.tex",
+              path: "70 Research/10 Concepts/candidate.tex",
               kind: "file",
             },
           ],
@@ -248,12 +255,35 @@ async function conformantInput(): Promise<{
   const files = new Map(
     seed.operations.map(({ path, contents }) => [path, contents]),
   );
-  const controls = Object.fromEntries(
-    Object.entries(researchProjectControlPaths).map(([name, path]) => [
-      name,
-      files.get(path),
-    ]),
-  ) as ResearchProjectControls;
+  const controls = {
+    ...Object.fromEntries(
+      Object.entries(researchProjectControlPaths).map(([name, path]) => [
+        name,
+        files.get(path),
+      ]),
+    ),
+    sharedControls: Object.fromEntries(
+      Object.entries(contract.seedFiles)
+        .filter(([path]) =>
+          [
+            "AGENTS.md",
+            "CLAUDE.md",
+            "docs/00 Structure and Naming.md",
+            "docs/10 Sources and Provenance.md",
+            "docs/20 Research Procedure.md",
+            "docs/30 Deliverables Procedure.md",
+            "60 Templates/deliverable-check.md",
+            "60 Templates/meeting-note.md",
+            "60 Templates/promotion-record.md",
+            "60 Templates/session-record.md",
+          ].includes(path),
+        )
+        .map(([path, body]) => [
+          path,
+          body.replaceAll("{{PROJECT_NAME}}", target.folder),
+        ]),
+    ),
+  } as ResearchProjectControls;
   const inventory: ResearchProjectInventory = {
     projectKey: target.key,
     entries: seed.operations.map(({ path, kind, contents }) => ({

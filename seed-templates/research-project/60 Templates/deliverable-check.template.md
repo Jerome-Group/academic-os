@@ -1,6 +1,6 @@
 # Deliverable check
 
-Mark an inapplicable line `N/A — <reason>`; do not check it as though it passed.
+Mark an inapplicable line `N/A - <reason>`; do not check it as though it passed.
 
 ## Authority
 

@@ -1,12 +1,10 @@
-import { lstat, readFile, realpath } from "node:fs/promises";
-import { dirname, join } from "node:path";
-
 import { sha256 } from "../checksum.js";
-import { isContainedBy } from "../mounted/is-contained-by.js";
+import { backupPinnedCopy } from "./backup-pinned-copy.js";
 import {
-  createMountedFile,
-  replaceMountedFile,
-} from "../mounted/replace-mounted-file.js";
+  provePinnedCopyTarget,
+  type ProvenPinnedCopyTarget,
+  writePinnedCopy,
+} from "./pinned-copy-io.js";
 import {
   openPinnedDocumentJournal,
   type PinnedDocumentJournalSubject,
@@ -20,7 +18,8 @@ import type {
 
 interface ProvenRewrite {
   rewrite: PinnedCopyRewrite;
-  target: string;
+  target: ProvenPinnedCopyTarget;
+  original?: Uint8Array;
 }
 
 export async function executePinnedDocumentRefresh(input: {
@@ -52,7 +51,7 @@ export async function executePinnedDocumentRefresh(input: {
   const refusals: string[] = [];
   for (const rewrite of input.plan.rewrites) {
     const target = await proveTarget(rewrite, input.cohort);
-    if (typeof target === "string") proven.push({ rewrite, target });
+    if ("target" in target) proven.push({ rewrite, ...target });
     else refusals.push(target.refusal);
   }
   if (refusals.length > 0) {
@@ -60,6 +59,39 @@ export async function executePinnedDocumentRefresh(input: {
   }
 
   const journal = await openPinnedDocumentJournal(input.cohort.stateRoot);
+  const backups = new Map<string, string>();
+  try {
+    for (const { rewrite, original } of proven) {
+      if (original === undefined || rewrite.observedSha256 === null) continue;
+      const key = `${rewrite.module}\0${rewrite.path}`;
+      const backup = await backupPinnedCopy({
+        stateRoot: input.cohort.stateRoot,
+        runId: journal.runId,
+        targetKind: "modules",
+        targetKey: rewrite.module,
+        relativePath: rewrite.path,
+        contents: original,
+        expectedSha256: rewrite.observedSha256,
+      });
+      backups.set(key, backup);
+      await journal.append({
+        module: rewrite.module,
+        semester: rewrite.semester,
+        path: rewrite.path,
+        type: "backup",
+        from: rewrite.observedSha256,
+        backup,
+      });
+    }
+  } catch (error) {
+    return {
+      ...summary,
+      outcome: "refused",
+      rewritten: 0,
+      refusals: [error instanceof Error ? error.message : String(error)],
+      journal: journal.path,
+    };
+  }
   let rewritten = 0;
   for (const { rewrite, target } of proven) {
     const subject: PinnedDocumentJournalSubject = {
@@ -68,14 +100,16 @@ export async function executePinnedDocumentRefresh(input: {
       path: rewrite.path,
     };
     const to = sha256(rewrite.expected);
+    const backup = backups.get(`${rewrite.module}\0${rewrite.path}`);
     await journal.append({
       ...subject,
       type: "intent",
       state: rewrite.state,
       from: rewrite.observedSha256,
       to,
+      ...(backup === undefined ? {} : { backup }),
     });
-    const evidence = await writeCopy(rewrite, target, to);
+    const evidence = await writePinnedCopy(rewrite, target);
     if (evidence !== undefined) {
       await journal.append({ ...subject, type: "refused", evidence });
       return {
@@ -101,86 +135,27 @@ export async function executePinnedDocumentRefresh(input: {
   };
 }
 
-// The write, and the reading that proves it landed. A copy whose bytes are not the ones intended
-// is not a rewrite that half-worked; it is one this run cannot claim, so it refuses.
-async function writeCopy(
-  rewrite: PinnedCopyRewrite,
-  target: string,
-  expectedSha256: string,
-): Promise<string | undefined> {
-  try {
-    if (rewrite.observedSha256 === null) {
-      await createMountedFile({ path: target, contents: rewrite.expected });
-    } else {
-      await replaceMountedFile({
-        path: target,
-        contents: rewrite.expected,
-        expectedSha256: rewrite.observedSha256,
-        readContents: readOptional,
-      });
-    }
-  } catch (error) {
-    return error instanceof Error ? error.message : String(error);
-  }
-  const written = await readOptional(target);
-  return written !== undefined && sha256(written) === expectedSha256
-    ? undefined
-    : "the copy did not arrive intact.";
-}
-
 async function proveTarget(
   rewrite: PinnedCopyRewrite,
   cohort: CohortPinnedCopies,
-): Promise<string | { refusal: string }> {
+): Promise<
+  | { target: ProvenPinnedCopyTarget; original?: Uint8Array }
+  | { refusal: string }
+> {
   const where = `${rewrite.module} ${rewrite.path}`;
   const moduleRoot = cohort.moduleRoots.get(rewrite.module);
   if (moduleRoot === undefined) {
     return { refusal: `${where}: no module root is configured.` };
   }
-  const target = join(moduleRoot, rewrite.path);
-  if (!isContainedBy(moduleRoot, target)) {
-    return { refusal: `${where}: the path escapes the module folder.` };
-  }
-  const metadata = await lstat(target).catch(() => undefined);
-  if (rewrite.state === "missing") {
-    if (metadata !== undefined) {
-      return { refusal: `${where}: the name is already taken.` };
-    }
-    if (!(await isDirectory(dirname(target)))) {
-      return {
-        refusal: `${where}: the folder that should hold it is not there, which is structure to seed rather than a copy to rewrite.`,
-      };
-    }
-    return target;
-  }
-  if (metadata === undefined) {
-    return { refusal: `${where}: the copy disappeared after it was read.` };
-  }
-  if (metadata.isSymbolicLink() || !metadata.isFile()) {
-    return { refusal: `${where}: the target is not an ordinary file.` };
-  }
-  const resolved = await realpath(target).catch(() => undefined);
-  if (resolved === undefined || !isContainedBy(cohort.driveMount, resolved)) {
-    return {
-      refusal: `${where}: the target resolves outside the Drive mount.`,
-    };
-  }
-  const current = await readOptional(target);
-  if (current === undefined || sha256(current) !== rewrite.observedSha256) {
-    return {
-      refusal: `${where}: the copy changed after it was read for this run.`,
-    };
-  }
-  return target;
-}
-
-async function isDirectory(path: string): Promise<boolean> {
-  const metadata = await lstat(path).catch(() => undefined);
-  return metadata?.isDirectory() ?? false;
-}
-
-async function readOptional(path: string): Promise<string | undefined> {
-  return await readFile(path, "utf8").catch(() => undefined);
+  return await provePinnedCopyTarget({
+    rewrite,
+    root: moduleRoot,
+    driveMount: cohort.driveMount,
+    relativePath: rewrite.path,
+    label: where,
+    missingParentEvidence:
+      "the folder that should hold it is not there, which is structure to seed rather than a copy to rewrite.",
+  });
 }
 
 function publicRewrite(rewrite: PinnedCopyRewrite) {

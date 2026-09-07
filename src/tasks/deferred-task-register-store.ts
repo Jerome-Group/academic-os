@@ -12,6 +12,7 @@ export function createDeferredTaskRegisterStore(
   return createDeferredPathTaskRegisterStore({
     resolveRoot: async () => (await resolveTarget(config)).moduleRoot,
     registerPath: taskRegisterPath,
+    stateRoot: config.stateRoot,
   });
 }
 
@@ -19,15 +20,21 @@ export function createDeferredPathTaskRegisterStore(input: {
   resolveRoot(): Promise<string>;
   registerPath: string;
   provenanceKeys?: readonly (keyof TaskRegisterProvenance)[];
+  stateRoot?: string;
 }): TaskRegisterStore {
-  let targetRoot: Promise<string> | undefined;
-  const resolved = async (): Promise<TaskRegisterStore> => {
-    targetRoot ??= input.resolveRoot();
-    return createFileTaskRegisterStore(
-      await targetRoot,
-      input.registerPath,
-      input.provenanceKeys,
-    );
+  let store: Promise<TaskRegisterStore> | undefined;
+  const resolved = (): Promise<TaskRegisterStore> => {
+    store ??= input
+      .resolveRoot()
+      .then((targetRoot) =>
+        createFileTaskRegisterStore(
+          targetRoot,
+          input.registerPath,
+          input.provenanceKeys,
+          input.stateRoot === undefined ? {} : { stateRoot: input.stateRoot },
+        ),
+      );
+    return store;
   };
   return {
     read: async () => await (await resolved()).read(),

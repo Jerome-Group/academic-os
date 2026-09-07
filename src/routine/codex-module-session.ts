@@ -13,10 +13,9 @@ import { readModulePassOutcome } from "./read-module-pass-outcome.js";
 import { failedModulePass } from "./routine-failure.js";
 import type { ModulePassOutcome, ModuleSessionPort } from "./types.js";
 
-// `luna max` as the Owner names it — passed explicitly rather than left to the machine's Codex
-// defaults, so an edit to that file cannot quietly change what curates the degree.
-export const MORNING_SESSION_MODEL = "gpt-5.6-luna";
-export const MORNING_SESSION_REASONING_EFFORT = "max";
+// The scheduled curation workload keeps its selected model independent of interactive defaults.
+export const MORNING_SESSION_MODEL = "gpt-6-astra";
+export const MORNING_SESSION_REASONING_EFFORT = "medium";
 
 // Everything a pass writes is inside the module folder it was pointed at — importer roots are
 // interior to it, and the result is written by the CLI rather than by the model. So the morning's

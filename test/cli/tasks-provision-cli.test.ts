@@ -179,7 +179,7 @@ describe("academic-os tasks provision", () => {
     assert.equal(report.register, "written");
     assert.equal(
       await readRegisterText(fixture),
-      "list_id: module-list\ntasks: []\n",
+      "# Seeded before the list existed.\ntasks: []\nlist_id: module-list\n",
     );
   });
 

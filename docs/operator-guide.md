@@ -126,45 +126,49 @@ read the named stale calendars and their last successful Refresh in either human
 output. Do not use stale state for Promotion; rerun Refresh after fixing provider access. The
 freshness and deletion-safety boundary is recorded in ADR-0006.
 
-### Install the daily local Refresh (macOS)
+### Install periodic local state refresh (macOS)
 
-Build the current CLI, then install the private per-user LaunchAgent from this checkout:
+Calendar and Task mirrors need to catch up between morning curation sessions. Build, preview and
+install the native pull-only job:
 
 ```sh
 npm run build
-node scripts/install-calendar-refresh-launchd.mjs \
-  --config /private/path/academic-os.config.json
+node scripts/install-state-refresh-launchd.mjs --config /private/path/academic-os.config.json --dry-run
+node scripts/install-state-refresh-launchd.mjs --config /private/path/academic-os.config.json
 ```
 
-The installer requires the Mac timezone to be `Asia/Singapore`. It writes only
-`~/Library/LaunchAgents/com.jerome-group.academic-os.calendar-refresh.plist`; launchd runs the
-generated command at 05:00 and coalesces a missed sleep-time run on wake. `RunAtLoad` is disabled,
-stdout and stderr go to `/dev/null`, and the command invokes only `calendar refresh` with the
-configured scheduled-read credential. The interactive-write credential is not used.
+It runs every 30 minutes while the Mac is awake. Missed intervals coalesce; powered-off time is not
+made up. Each provider command has a two-minute hard timeout, and the other still runs after a
+failure. Healthy runs stay quiet. A service's transition into failure or recovery sends one local
+notification; repeated unchanged failures stay quiet.
 
-Inspect the loaded job and its exact private plist:
+Inspect and run the exact installed job:
 
 ```sh
-plutil -p "$HOME/Library/LaunchAgents/com.jerome-group.academic-os.calendar-refresh.plist"
-launchctl print "gui/$(id -u)/com.jerome-group.academic-os.calendar-refresh"
+launchctl print "gui/$(id -u)/com.jerome-group.academic-os.state-refresh"
+launchctl kickstart "gui/$(id -u)/com.jerome-group.academic-os.state-refresh"
 ```
 
-Run the installed job manually:
+Read `stateRoot/state-refresh/status.json` for each service's last attempt, last successful pull and
+exit code. For detailed target failures, run `calendar refresh` or `tasks refresh` directly with the
+same private configuration. A failed pull retains the relevant last-good state. Credentials, IDs,
+status and scheduler files remain private.
 
-```sh
-launchctl kickstart -k "gui/$(id -u)/com.jerome-group.academic-os.calendar-refresh"
-```
+Before replacing an existing schedule, back up its plist outside Drive and verify the copy. Install
+and verify the new job first, then remove the redundant daily Calendar job with
+`node scripts/install-calendar-refresh-launchd.mjs --remove`. The 06:00 curation job stays separate.
+The legacy daily installer remains available for rollback. Remove the new job with
+`node scripts/install-state-refresh-launchd.mjs --remove`.
 
-For a visible report, run the CLI directly with the same private config. A successful scheduled
-Refresh is silent. A nonzero Refresh retains last-good mirrors, marks affected calendars stale,
-and causes one concise local notification; repeated calendar failures in that run do not create
-additional notifications. State, credentials, exact IDs, and scheduler files stay outside git.
-
-Remove the exact job and plist:
-
-```sh
-node scripts/install-calendar-refresh-launchd.mjs --remove
-```
+Task-register writes preserve comments, local fields and provenance, and skip unchanged bytes. An
+intervening edit, duplicate identity or unsafe path fails the pull instead of overwriting it. Before
+a changed register is published, its verified original and a prepared journal land under
+`stateRoot/task-register-backups`; a separate verified record follows publication. Retain these
+until the result is checked. An interrupted lock needs inspection of its private journal and target
+before exact-lock removal and retry. A stopped state-refresh runner likewise retains `run.lock`;
+check its recorded process before removing that exact lock. Launcher-level failure/recovery notices
+are deduplicated in `~/.local/state/academic-os/state-refresh-launcher`, so a broken configuration
+cannot produce a popup every half-hour. Recovery records contain private task data and never enter git.
 
 ## Calendar propose
 
@@ -628,7 +632,7 @@ or hangs past twenty minutes becomes a failure line and the next module starts; 
 retry, because tomorrow's pass is idempotent and self-heals. The routine never compiles LaTeX, never
 creates a task, and never writes to Google.
 
-Each session runs on `gpt-5.6-luna` at maximum reasoning effort, sandboxed to the module folder it
+Each session runs on `gpt-6-astra` at medium reasoning effort, sandboxed to the module folder it
 was pointed at and nothing wider. Model, effort and sandbox are all stated on the command line
 rather than taken from the machine's `~/.codex/config.toml`, so retuning Codex for something else on
 the mini cannot change what curates the degree. The pass reports through its final message, which
@@ -690,7 +694,7 @@ at 06:00, `RunAtLoad` false, both streams to `/dev/null` — the dated report is
 stock coalescing applies: a slept-through 06:00 runs once on wake, and time powered off or logged
 out is not made up.
 
-The 05:00 Calendar Refresh is a separate LaunchAgent and this installer never touches it.
+The periodic state refresh is a separate LaunchAgent and this installer never touches it.
 
 ```sh
 node scripts/install-morning-routine-launchd.mjs --remove

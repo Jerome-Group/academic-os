@@ -6,8 +6,13 @@ import type {
   RetentionPurge,
   RoutineFailure,
 } from "./types.js";
+import {
+  maintenanceDomainLabel,
+  type MaintenanceDomainOutcome,
+} from "./maintenance-domains.js";
 
 const preludeStepTitles: Record<PreludeStepName, string> = {
+  "import-status": "Importer health",
   "textbook-shelf-catch-up": "Textbook shelf catch-up",
   "task-register-pull": "Task register pull",
 };
@@ -56,6 +61,8 @@ function renderModulePass(module: ModulePassReport): string[] {
   return [
     `### ${module.module} — ${module.semester}`,
     "",
+    `- Maintenance coverage — ${module.maintenance.length}`,
+    ...module.maintenance.flatMap(renderMaintenance),
     ...bucket("Curated", module.curated, renderPlacement),
     ...bucket(
       "Rederived",
@@ -86,6 +93,13 @@ function renderModulePass(module: ModulePassReport): string[] {
     ...bucket("Noted", module.noted, (item) => `${item.item} — ${item.note}`),
     `- Artifacts — ${module.artifacts}`,
     "",
+  ];
+}
+
+function renderMaintenance(entry: MaintenanceDomainOutcome): string[] {
+  return [
+    `  - ${maintenanceDomainLabel(entry.domain)} — ${entry.status}`,
+    ...entry.evidence.map((evidence) => `    - ${evidence}`),
   ];
 }
 

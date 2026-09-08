@@ -1,3 +1,8 @@
+import {
+  MAINTENANCE_DOMAINS,
+  MAINTENANCE_STATUSES,
+} from "./maintenance-domains.js";
+
 // The shape a pass's final message must take, handed to the Codex CLI as a JSON Schema so the
 // harness enforces it rather than the model remembering it. What structured-output's strict mode
 // actually guarantees is the object's shape: the declared properties, their types, and that
@@ -28,6 +33,7 @@ export const MODULE_PASS_SCHEMA = {
   type: "object",
   additionalProperties: false,
   required: [
+    "maintenance",
     "curated",
     "rederived",
     "superseded",
@@ -38,6 +44,17 @@ export const MODULE_PASS_SCHEMA = {
     "noted",
   ],
   properties: {
+    maintenance: entries(
+      {
+        domain: {
+          type: "string",
+          enum: MAINTENANCE_DOMAINS.map(({ id }) => id),
+        },
+        status: { type: "string", enum: MAINTENANCE_STATUSES },
+        evidence: { type: "array", items: text, minItems: 1 },
+      },
+      ["domain", "status", "evidence"],
+    ),
     curated: entries({ item: text, destination: text }, [
       "item",
       "destination",

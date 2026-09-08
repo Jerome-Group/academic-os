@@ -3,99 +3,157 @@ import { describe, it } from "node:test";
 
 import {
   isCalendarDay,
+  MAINTENANCE_DOMAINS,
   morningSessionPrompt,
   offeringCalendarDay,
+  type ModuleMaintenanceWorkOrder,
 } from "../../src/routine/index.js";
 
-const prompt = morningSessionPrompt("AB1234");
+const workOrder = {
+  schemaVersion: 1,
+  module: { code: "AB1234", semester: "Y2S1" },
+  observedAt: "2026-08-23T06:00:00+08:00",
+  contractVersion: 6,
+  audit: {
+    outcome: "deviation",
+    findings: [],
+    omittedFindings: 0,
+    proposedDirectories: ["20 Tutorials"],
+  },
+  imports: { available: true, roots: [] },
+  learningSources: {
+    outcome: "gaps",
+    summary: {
+      units: 1,
+      references: 1,
+      available: 0,
+      missing: 1,
+      nonFiles: 0,
+      unavailable: 0,
+      declaredMissing: 0,
+      emptyUnits: 0,
+    },
+    units: [
+      {
+        unit: "Unit 1",
+        topics: ["Synthetic topic"],
+        status: "gaps",
+        gaps: ["lectures: NTULearn/week-1.pdf (missing)"],
+      },
+    ],
+    omittedUnits: 0,
+    problems: [],
+  },
+  writeJournalDirectory: "/private/session/attempt-1/write-journal",
+  writeJournalPath: "/private/session/attempt-1/write-journal/operations.jsonl",
+  writeJournalSchemaVersion: 1,
+  domains: MAINTENANCE_DOMAINS.map((domain) => ({
+    domain: domain.id,
+    label: domain.label,
+    ruleIds: domain.ruleIds,
+    evidence: ["synthetic evidence"],
+    findings: [],
+    proposedDirectories: [],
+  })),
+} as ModuleMaintenanceWorkOrder;
+
+const prompt = morningSessionPrompt("AB1234", workOrder);
 
 describe("the module session's prompt", () => {
-  it("routes into the module's own router and procedure rather than restating them", () => {
-    assert.match(
-      prompt,
-      /Read `AGENTS\.md` and take its \*\*Curation\*\* route/u,
-    );
+  it("takes the Maintenance route and covers every registered domain", () => {
+    assert.match(prompt, /take its \*\*Maintenance\*\* route/u);
+    assert.match(prompt, /all nine work-order domains/u);
+    for (const { id } of MAINTENANCE_DOMAINS)
+      assert.match(prompt, new RegExp(id, "u"));
     assert.match(prompt, /`docs\/10 Curation Procedure\.md`/u);
-    assert.doesNotMatch(prompt, /MF-CURATION/u);
   });
 
-  it("says what the folder cannot: nobody is awake, and precedent is the only resolver", () => {
-    assert.match(prompt, /Nobody is awake/u);
-    assert.match(prompt, /Precedent is your only resolver/u);
-    assert.match(prompt, /park the item with its evidence/u);
-  });
-
-  it("bounds the derived-docs mandate to what the morning touched, and surfaces every write", () => {
-    assert.match(prompt, /to what step 1 touched, and to nothing else/u);
-    assert.match(prompt, /domain-modeling discipline/u);
-    assert.match(prompt, /belongs in `docWrites`/u);
-  });
-
-  // That it names every bucket is `module-pass-buckets.test.ts`'s question; this one is that it
-  // describes them rather than restating the schema the CLI already enforces.
-  it("presents the lists as a report rather than as a shape to fill in", () => {
-    assert.match(prompt, /Your final message is the report/u);
-    assert.match(prompt, /Eight lists, empty where the morning was/u);
+  it("inlines the bounded private work order", () => {
+    assert.match(prompt, /<maintenance-work-order>/u);
+    assert.match(prompt, /"proposedDirectories": \[/u);
+    assert.match(prompt, /"20 Tutorials"/u);
+    assert.match(prompt, /NTULearn\/week-1\.pdf \(missing\)/u);
     assert.doesNotMatch(prompt, /```json/u);
   });
 
-  it("bounds a withdrawal to a completed walk and parks a mirror missing many at once", () => {
+  it("permits only evidence-backed, reversible maintenance", () => {
+    assert.match(prompt, /create only missing empty directories/u);
     assert.match(
       prompt,
-      /leaves the copy that source produced exactly where it is/u,
+      /Factual Profile edits must cite current module sources/u,
     );
-    assert.match(prompt, /read every importer root end to end/u);
-    assert.match(prompt, /many standing sources have gone at once/u);
-  });
-
-  it("draws the line the pass has to apply between a park and a note", () => {
+    assert.match(prompt, /reconcile Source Map mappings/u);
     assert.match(
       prompt,
-      /`parked` is what the Owner settles, `noted` is what the Owner is told/u,
-    );
-    assert.match(prompt, /asks nothing of the Owner/u);
-    assert.match(prompt, /correct now and stays correct/u);
-  });
-
-  // #197: two unattended mornings each invented a meta-item with an empty note — the pass narrating
-  // itself into a bucket meant for facts about the material. The parser drops such an entry, and the
-  // drop raises the day's issue, so the prompt is the only surface that can stop it being emitted.
-  it("binds a note to something in the module, and leaves the list empty when there is none", () => {
-    assert.match(
-      prompt,
-      /Every note is about the module: a file in the folder, a source in the mirror, a line in the register/u,
-    );
-    assert.match(prompt, /a morning that found none returns `noted` empty/u);
-  });
-
-  it("makes precedent, working state and reasoning what a pass decides with", () => {
-    assert.match(
-      prompt,
-      /The precedent you read, the state you carried from step to step and the reasoning behind a call are what you decide \*with\*/u,
-    );
-    assert.match(prompt, /a note holds what you decide \*about\*/u);
-  });
-
-  it("sends a diverged placed copy holding its ground to `noted`, and an arrival still to `parked`", () => {
-    assert.match(
-      prompt,
-      /A placed copy that has diverged from its source and is holding its ground is `noted`/u,
+      /add useful RESOURCES links only from named, current sources/u,
     );
     assert.match(
       prompt,
-      /An update arrival against a worked-on copy is the other case and still parks/u,
+      /reconcile the Textbook register only from the shelf and module evidence/u,
     );
   });
 
-  it("leaves tasks and compilation to the surfaces that own them", () => {
+  it("parks destructive, authoritative, pinned, academic, and external writes", () => {
+    assert.match(prompt, /Never move, rename, or delete issued material/u);
+    assert.match(prompt, /overwrite an annotated Owner copy/u);
+    assert.match(prompt, /enable a Definition category/u);
+    assert.match(prompt, /change `contract_version`/u);
+    assert.match(prompt, /edit a pinned file/u);
+    assert.match(prompt, /infer mastery/u);
+    assert.match(prompt, /generate solutions or graded work/u);
+    assert.match(prompt, /write to external Tasks or Calendar/u);
+  });
+
+  it("requires four fresh mounted-write proofs and journals intent and result", () => {
+    assert.match(prompt, /prove all four requirements/u);
+    assert.match(prompt, /realpath is contained/u);
+    assert.match(prompt, /taken exclusively/u);
+    assert.match(prompt, /materialized real bytes/u);
+    assert.match(prompt, /freshly read immediately before/u);
+    assert.match(prompt, /Before each mounted write append exactly/u);
+    assert.match(prompt, /result record immediately after/u);
+    assert.match(prompt, /"writeJournalDirectory":/u);
+    assert.match(prompt, /"writeJournalPath":/u);
+  });
+
+  it("disables withdrawal inference on non-current imports", () => {
     assert.match(
       prompt,
-      /Leave the register and the live list exactly as it left them/u,
+      /If any receipt is not current, do not infer withdrawals/u,
     );
-    assert.match(prompt, /created in a session with the Owner present/u);
     assert.match(
       prompt,
-      /Leave every `\.tex` for a teaching session to compile/u,
+      /Withdraw only after a complete, current importer walk/u,
+    );
+    assert.match(prompt, /Park a bulk disappearance/u);
+  });
+
+  it("requires complete evidenced maintenance coverage plus the action buckets", () => {
+    assert.match(
+      prompt,
+      /Fill `maintenance` with each of the nine domain IDs exactly once/u,
+    );
+    assert.match(prompt, /at least one nonblank evidence line/u);
+    for (const bucket of [
+      "curated",
+      "rederived",
+      "superseded",
+      "withdrawn",
+      "parked",
+      "docWrites",
+      "failures",
+      "noted",
+    ])
+      assert.match(prompt, new RegExp(`${bucket}`, "u"));
+  });
+
+  it("does full maintenance even with no arrivals or after a small fix", () => {
+    assert.match(prompt, /even when there are no arrivals/u);
+    assert.match(prompt, /even after a small structural fix/u);
+    assert.match(prompt, /Leave every `\.tex`/u);
+    assert.match(
+      prompt,
+      /Leave the Task register, live Tasks, and Calendar unchanged/u,
     );
   });
 });
@@ -112,6 +170,7 @@ describe("the offering's calendar day", () => {
     assert.equal(isCalendarDay("2026-08-23"), true);
     assert.equal(isCalendarDay("2026-8-3"), false);
     assert.equal(isCalendarDay("2026-13-01"), false);
+    assert.equal(isCalendarDay("2026-02-31"), false);
     assert.equal(isCalendarDay("../.."), false);
   });
 });

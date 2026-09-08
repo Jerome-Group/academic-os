@@ -3,7 +3,7 @@
 The CLI has `seed`, `audit`, `calendar setup`, pull-only `calendar refresh`, private `calendar
 propose`, explicitly authorised `calendar promote`, `tasks provision`, pull-only `tasks refresh`,
 in-session `tasks create`, `tasks change`, `tasks complete` and `tasks cancel`, additive `textbooks
-catch-up`, the unattended `routine morning`, previewed `pinned refresh`, previewed
+catch-up`, read-only `imports status`, the unattended `routine morning`, previewed `pinned refresh`, previewed
 `curation migrate`, previewed `curation rederive` and separately gated `repair` commands. It does
 not orchestrate a week of study or evolve a module's instructions on its own.
 
@@ -83,6 +83,59 @@ login `gh auth status` reports on the mini.
 This checkout includes `scripts/setup-calendar-local.sh`, which walks through the two sequential
 Google approvals, private config update, setup preview, explicit setup apply, initial Refresh and
 optional LaunchAgent installation. It stops before any event migration or Promotion.
+
+## Import status
+
+Check the active Module cohort without starting a sync or reading private importer State:
+
+```sh
+node dist/src/cli.js imports status --config academic-os.config.json
+node dist/src/cli.js imports status --config academic-os.config.json --max-age-hours 48 --json
+```
+
+The command reads Module Definitions and each declared root's `Sync status.json`. It uses the
+same configured target boundaries as mounted audit, but writes no observations or other files
+and loads no credentials. Research projects and historical/future Modules are outside this
+command's cohort. Receipt data cannot substitute for a Module Definition: malformed or missing
+controls are reported instead of silently overlooking an additional tutorial site.
+
+| Result | Action |
+| --- | --- |
+| `current` | The latest attempt completed within the selected freshness window; inspect its counts as needed |
+| `stale` | Check the existing sync schedule or arrange an Owner-run sync |
+| `running` | Check whether the attempt is still active; a stopped process can leave this status behind |
+| `partial` | Review failed transfer counts or unread categories in the importer's own report |
+| `failed` | Inspect the importer's local run report before retrying |
+| `missing` | Deploy the receipt-producing NTULearn version and let the next normal sync publish evidence |
+| `invalid` | Resolve the reported file/control/version/clock problem; no successful fallback was inferred |
+
+The default maximum age is 36 hours. It is measured from the complete attempt's `finishedAt`,
+with the exact boundary still current. Running, partial and failed attempts never become current
+because an earlier successful attempt was recent. The report retains that earlier success for
+diagnosis. Exit 0 means all current; 1 means attention; 2 means invalid or unreadable input.
+
+The [shared interface](import-status-contract.md) defines fields and rollout. Deploying either
+repository independently is supported; missing receipts do not change Module conformance. The
+report does not trigger live sync, install schedules, refresh pinned documents or grant permission
+to curate or withdraw sources. For source-by-source work, run the module's existing Curation route.
+
+## Learning materials
+
+```sh
+node dist/src/cli.js learning materials --config academic-os.config.json
+node dist/src/cli.js learning materials --config academic-os.config.json --json
+```
+
+This read-only report preserves Source Map unit order, topics and source categories across the
+active Module cohort. It checks whether each declared reference resolves to a regular file and
+reports missing paths, non-files, empty units and the tutorial blocks' explicit `missing` evidence.
+Partial inventory leaves an unseen path `unavailable`; it does not establish absence. A broken
+Module retains the results of readable siblings.
+
+Exit 0 means all assessed material is available, 1 means gaps, and 2 means invalid or incomplete
+evidence. Availability checks paths, not the contents' correctness, a student's understanding or
+learning completion. Use the existing Source Map and Curation routes to reconcile evidence. This
+command writes no control, history, Task or Calendar entry and runs no teaching session.
 
 ## Calendar setup
 
@@ -617,23 +670,47 @@ where the Textbook procedure verifies the checksum before it cuts.
 
 ## Morning routine
 
-One firing curates overnight arrivals across the monitoring cohort and leaves the Owner either
-silence or a single issue. Run it by hand on the mini to watch it:
+One firing maintains every active Module, including when no new material arrived, and leaves the
+Owner either silence or a single issue. A manual run starts real Module sessions and writes their
+permitted maintenance; use it only when intending that operational run:
 
 ```sh
 node dist/src/cli.js routine morning --config academic-os.config.json
 ```
 
-The order is fixed and every step is isolated from the next. First the deterministic prelude: the
-Shelf catch-up applies its clean appends and parks the rest, then every cohort module's Task
-register is pulled from its live list. Then one headless Codex session per module, in sequence, each
-running that module's own seeded curation procedure in its own folder. A session that fails, breaks
-or hangs past twenty minutes becomes a failure line and the next module starts; there is no same-day
-retry, because tomorrow's pass is idempotent and self-heals. The routine never compiles LaTeX, never
+The order is fixed and every step is isolated from the next. First the deterministic prelude:
+importer health at a 24-hour maximum age, Shelf catch-up's clean appends and parks, then every
+cohort module's Task register pulled from its live list. Non-current importer evidence is visible
+independently of the model's report and defers withdrawal decisions. Then one headless Codex
+session per module, in sequence, each running that module's Maintenance route and existing seeded
+procedures in its own folder. A session that fails, breaks
+or exhausts its twenty-minute budget becomes a failure line and the next module starts. Manual
+same-day reruns preserve separate attempt artifacts. The routine never compiles LaTeX, never
 creates a task, and never writes to Google.
 
+When a valid first pass leaves only safely repairable deterministic findings, the controller can
+give it one fresh correction attempt before raising an issue. Both attempts share the original
+twenty-minute Module budget and preserve separate artifacts. Invalid journals, importer/preflight
+failures, unreadable results and Owner parks suppress this automatic retry. Earlier completed work
+is retained in the final report; only verified resolution removes the earlier audit failures.
+
+Before each session, the controller gathers a deterministic contract audit, importer observations
+and learning-material gaps into a private work order. It preserves readable original control bytes,
+then supplies the work order in the prompt. The session checks nine domains: import health;
+structure/controls; curation; tasks/calendar; learning sources; textbooks; assessments/projects;
+cheatsheets/builds; documentation/lifecycle. Every current Module rule belongs to exactly one
+domain, including rules whose action is an Owner-led transition rather than unattended repair.
+
+The Maintenance route permits source-backed upkeep of mutable controls and references, existing
+precedented curation, and harmless missing empty directories already approved by the Definition.
+The mounted-write checks in `docs/agents/safe-drive-testing.md` still apply. Structural decisions,
+pinned changes, destructive corrections, annotated work, academic authoring and external Task or
+Calendar writes stay with their existing Owner-led routes. After the session, a fresh audit exposes
+residual deterministic failures and regressions even if the model reports success. This does not
+prove the semantic correctness of every edit; parked questions still require review.
+
 Each session runs on `gpt-6-astra` at medium reasoning effort, sandboxed to the module folder it
-was pointed at and nothing wider. Model, effort and sandbox are all stated on the command line
+was pointed at, plus only its private per-attempt `write-journal/` directory. Model, effort and sandbox are all stated on the command line
 rather than taken from the machine's `~/.codex/config.toml`, so retuning Codex for something else on
 the mini cannot change what curates the degree. The pass reports through its final message, which
 the CLI validates against a schema and writes to `result.json` itself — the model is never asked to
@@ -647,22 +724,39 @@ than thirty — and writes the day's report.
 Under `stateRoot`, both named by the offering's calendar day:
 
 - `routine/reports/<date>.md` — the morning's full report, every day, in one fixed format: the
-  prelude's two steps, then per module its curated, rederived, superseded, withdrawn, parked, doc
-  writes, failures and noted, then what the purge removed.
-- `routine/sessions/<date>/<module>/` — that pass's `result.json`, the `result-schema.json` it was
-  held to, and its `session.log`. The report is built from the result; the log is there for the
-  morning the result is the argument (ADR-0018).
+  prelude's three steps, then per module its curated, rederived, superseded, withdrawn, parked, doc
+  writes, failures and noted, its nine-domain coverage, then what the purge removed.
+- `routine/sessions/<date>/<module>/attempt-*/` — that pass's `result.json`, the `result-schema.json` it was
+  held to, its `session.log`, `work-order.json`, `audit-before.json`, `audit-after.json`,
+  `validated-outcome.json` and
+  `original-controls/` backups and `write-journal/`. Each invocation preserves a separate recovery
+  snapshot, including same-day reruns. These remain private and share the session retention period.
+  The report includes independently detected failures as well as the model's result.
+
+The fixed `write-journal/operations.jsonl` records paired intent/result entries for mounted writes.
+The controller checks its schema, paired operations and coverage of reported or observed changes;
+missing, malformed, refused or failed evidence remains visible. This checks the record and its
+observed correspondence, not the truth of every proof the model supplies.
 
 Nothing outside those two directories is ever purged, and inside them only entries named for a
 calendar day are (ADR-0018).
 
 ### The morning's issue
 
-When the morning parked something, wrote a module `CONTEXT.md` or ADR, or hit a failure, the routine
+The automation attempts routine maintenance and verifies its result before escalation. Successful
+repairs, curation and documentation upkeep remain in the local report. When work remains parked,
+failed or incompletely evidenced, the routine
 raises **one** issue on this tracker titled `Morning report <date>`, labelled `ready-for-human` and
 `decision`, carrying the same report text as its body. It searches for that title before creating,
 so a second firing on the same day finds the first issue rather than raising another. A morning with
-none of those three raises nothing — silence is the good outcome, and the report still lands.
+none of those triggers raises nothing only when every domain appears exactly once with nonempty
+evidence and status `checked`, `maintained` or `not-applicable`. Missing, duplicate or invalid coverage is a
+failure; valid action buckets are retained. The report still lands on quiet mornings.
+
+A fully verified pass also resolves open morning issues emitted by the upgraded routine for the
+exact same Module cohort. A versioned ownership marker binds that scope; legacy and unrelated
+issues are left alone. An unresolved same-day rerun refreshes the managed issue and reopens it if
+needed. Closing an issue records verified resolution, not merely that another morning ran.
 
 A pass's `noted` bucket is the one that never raises. It carries what the morning observed and
 settled — a placed copy that has diverged from its source and is holding its ground, say — so a
@@ -671,7 +765,8 @@ morning whose only news is a note stays quiet and the note waits in the report
 
 A run that never fired, or one that could not reach GitHub, looks from the Owner's side exactly like
 a quiet morning. That ambiguity is accepted for now; the report on the mini is what distinguishes
-them, and the exit code is nonzero when the morning had something to say and no issue carries it.
+them. The exit code is nonzero when GitHub issue reconciliation fails, including on an otherwise
+clean morning that could not check whether its managed issues should close.
 
 ### Install the 06:00 LaunchAgent (macOS)
 

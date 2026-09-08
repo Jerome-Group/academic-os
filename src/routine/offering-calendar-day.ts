@@ -15,9 +15,10 @@ export function offeringCalendarDay(instant: Date): string {
 }
 
 export function isCalendarDay(value: string): boolean {
+  if (!CALENDAR_DAY_PATTERN.test(value)) return false;
+  const instant = new Date(`${value}T00:00:00Z`);
   return (
-    CALENDAR_DAY_PATTERN.test(value) &&
-    !Number.isNaN(Date.parse(`${value}T00:00:00Z`))
+    !Number.isNaN(instant.valueOf()) && instant.toISOString().startsWith(value)
   );
 }
 

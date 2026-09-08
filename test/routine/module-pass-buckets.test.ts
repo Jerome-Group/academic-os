@@ -4,17 +4,20 @@ import { describe, it } from "node:test";
 import { renderModulePassSummary } from "../../src/commands/render-module-pass-summary.js";
 import {
   MODULE_PASS_SCHEMA,
+  type ModuleMaintenanceWorkOrder,
   type ModulePassOutcome,
   morningSessionPrompt,
   readModulePassOutcome,
   renderMorningReport,
 } from "../../src/routine/index.js";
 import { failedModulePass } from "../../src/routine/routine-failure.js";
+import { syntheticMaintenanceCoverage } from "../fixtures/maintenance-coverage.js";
 
 // The one place the pass's buckets are written down as a list. Every copy in the source is checked
 // against it below, because a bucket the schema gained and one renderer never learned to print is
 // the failure this repository has already shipped once.
 const buckets = [
+  "maintenance",
   "curated",
   "rederived",
   "superseded",
@@ -26,6 +29,7 @@ const buckets = [
 ] as const;
 
 const empty: ModulePassOutcome = {
+  maintenance: syntheticMaintenanceCoverage(),
   curated: [],
   rederived: [],
   superseded: [],
@@ -75,6 +79,11 @@ describe("the buckets a module pass reports", () => {
 
     for (const bucket of buckets) {
       const title = words(bucket);
+      if (bucket === "maintenance") {
+        assert.ok(report.includes("- Maintenance coverage — 9"));
+        assert.ok(summary.includes("9 maintenance (9 checked)"));
+        continue;
+      }
       assert.ok(
         report.includes(
           `- ${title.charAt(0).toUpperCase()}${title.slice(1)} — 0`,
@@ -89,7 +98,9 @@ describe("the buckets a module pass reports", () => {
   });
 
   it("is the same list the session prompt names", () => {
-    const prompt = morningSessionPrompt("AB1234");
+    const prompt = morningSessionPrompt("AB1234", {
+      schemaVersion: 1,
+    } as ModuleMaintenanceWorkOrder);
 
     for (const bucket of buckets) {
       assert.ok(

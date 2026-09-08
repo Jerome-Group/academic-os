@@ -587,11 +587,37 @@ outside structural enforcement, except that `docs` holds the pinned procedure fi
 that MF-UNIVERSAL-001 names. Disposable builds inside `.scratch` follow MF-LATEX-001. `70 Learning`
 is enforced as deep as MF-LEARNING-001 reaches and open below it.
 
+## Daily Module maintenance
+
+The scheduled Module pass follows the existing Maintenance route across the whole Module, even
+when no new source arrived. Its operational coverage is import health, structure/controls,
+curation, tasks/calendar, learning sources, textbooks, assessments/projects, cheatsheets/builds
+and documentation/lifecycle. Each domain reports what it checked, maintained, parked, failed to
+check or found inapplicable, with evidence. Coverage organises the rules below and introduces no
+new universal folder or pinned file.
+
+Mutable controls and references may be reconciled against current sources under their existing
+procedures and mounted-write requirements. The approved Definition remains authority for empty
+required directories. Owner-led routes retain category decisions, transitions, pinned refresh,
+destructive corrections, annotated work, teaching/academic authoring and external Task/Calendar
+operations. A material's presence never records mastery or learning completion.
+
+The implementation supplies deterministic evidence before the session and checks conformance
+after it. Those checks establish neither arbitrary byte preservation nor semantic correctness of
+every edit. See [the morning operator procedure](operator-guide.md#morning-routine) for work orders,
+private recovery artifacts, required domain evidence and the conditions for a quiet report.
+
 ## Importer roots and curation
 
 **MF-IMPORTER-001 (deterministic).** `NTULearn` is universal. Definition may declare additional
 exact automation-owned roots such as `NTULearn_Tutorial`. Their internal names are importer-owned
 and exempt from folder and file naming rules. An undeclared `NTULearn_*` root requires a decision.
+
+An importer may expose operational metadata inside its own root. NTULearn's optional
+`Sync status.json` follows the separate [import-status interface](import-status-contract.md): it
+reports an attempt's outcome, while `Last synced.md` remains the human-facing attempt stamp.
+Neither is a course inventory or evidence that a source was removed upstream. A missing receipt
+does not make a Module folder nonconformant; `imports status` reports that evidence gap separately.
 
 A control cites a mirror by one of three forms, and never by a path into its interior: an importer
 **landmark**, which is `Course.md`, `Last synced.md`, `Announcements/` or a root itself; the
@@ -677,6 +703,10 @@ rederived into a module doc, because MF-PROFILE-002 has the Profile cite that fi
 value read out of it. Its standing line and its MF-IMPORTER-001 landmark are both untouched — what
 stops is the second copy of a decision already recorded —
 [`docs/adr/0023`](adr/0023-a-decision-re-reached-is-not-a-decision-recorded.md).
+
+The optional `Sync status.json` receipt is the same kind of importer-owned operational evidence:
+`source-only`, cited by its file name and kept out of derived module prose. Reading it for an
+operational status report creates no curation decision and changes no withdrawal precondition.
 
 ## Naming
 

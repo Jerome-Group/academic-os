@@ -1,10 +1,12 @@
 import type { ConfiguredModule } from "../config/index.js";
 import { planRetentionPurge } from "./plan-retention-purge.js";
+import { isQuietMaintenanceCoverage } from "./maintenance-domains.js";
 import { renderMorningReport } from "./render-morning-report.js";
 import { failedModulePass, routineFailure } from "./routine-failure.js";
 import type {
   ModulePassReport,
   ModuleSessionPort,
+  MorningIssue,
   MorningIssuePort,
   MorningIssueReport,
   MorningPreludePort,
@@ -14,8 +16,10 @@ import type {
   RetentionPurge,
   RoutineArtifactStore,
 } from "./types.js";
+import { isCalendarDay } from "./offering-calendar-day.js";
 
 export const MORNING_ISSUE_LABELS = ["ready-for-human", "decision"] as const;
+export const MORNING_ISSUE_MARKER_VERSION = 1;
 
 function morningIssueTitle(date: string): string {
   return `Morning report ${date}`;
@@ -26,6 +30,7 @@ function morningIssueTitle(date: string): string {
 // a step that throws becomes a line the Owner reads, so one bad module never costs the cohort.
 export async function runMorningRoutine(input: {
   date: string;
+  cohort: string;
   modules: readonly ConfiguredModule[];
   prelude: MorningPreludePort;
   session: ModuleSessionPort;
@@ -33,6 +38,7 @@ export async function runMorningRoutine(input: {
   issue: MorningIssuePort;
 }): Promise<MorningRoutineReport> {
   const prelude = [
+    await preludeStep("import-status", () => input.prelude.inspectImports()),
     await preludeStep("textbook-shelf-catch-up", () =>
       input.prelude.catchUpShelf(),
     ),
@@ -52,12 +58,16 @@ export async function runMorningRoutine(input: {
     purge,
   });
   const report = await writtenReport(input.artifacts, input.date, text);
-  const issue =
-    report === null || morningNeedsOwner(prelude, modules)
-      ? await raiseMorningIssue(input.issue, input.date, text)
-      : { outcome: "not-needed" as const, number: null };
+  const issue = await reconcileMorningIssue({
+    issue: input.issue,
+    date: input.date,
+    cohort: input.cohort,
+    moduleCodes: modules.map(({ module }) => module),
+    body: text,
+    needsOwner: report === null || morningNeedsOwner(prelude, modules),
+  });
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     command: "routine morning",
     outcome: morningOutcome(issue),
     date: input.date,
@@ -158,9 +168,8 @@ async function removed(
   return purged;
 }
 
-// Three things wake the Owner: a park is a question, an unwatched doc write needs review, and a
-// failure is work that did not happen. `noted` is none of those — it is a fact they are told, so a
-// morning whose only news is a note stays quiet and the note waits in the report (ADR-0021).
+// A park is a question and a failure is work that did not happen. Completed maintenance and
+// document updates remain in the local report; they do not make more work for the Owner.
 function morningNeedsOwner(
   prelude: readonly PreludeStepReport[],
   modules: readonly ModulePassReport[],
@@ -169,40 +178,110 @@ function morningNeedsOwner(
     prelude.some((step) => step.parked > 0 || step.failure !== undefined) ||
     modules.some(
       (module) =>
+        !isQuietMaintenanceCoverage(module.maintenance) ||
         module.parked.length > 0 ||
-        module.docWrites.length > 0 ||
         module.failures.length > 0,
     )
   );
 }
 
-async function raiseMorningIssue(
-  issue: MorningIssuePort,
-  date: string,
-  body: string,
-): Promise<MorningIssueReport> {
-  const title = morningIssueTitle(date);
+async function reconcileMorningIssue(input: {
+  issue: MorningIssuePort;
+  date: string;
+  cohort: string;
+  moduleCodes: readonly string[];
+  body: string;
+  needsOwner: boolean;
+}): Promise<MorningIssueReport> {
+  const title = morningIssueTitle(input.date);
+  const marker = morningIssueMarker(input.cohort, input.moduleCodes);
+  const body = `${marker}\n\n${input.body}`;
+  const reconciled: number[] = [];
   try {
-    const existing = await issue.find(title);
+    const managed = [
+      ...new Map(
+        (await input.issue.list())
+          .filter((candidate) =>
+            isManagedMorningIssue(candidate, marker, input.date),
+          )
+          .map((candidate) => [candidate.number, candidate]),
+      ).values(),
+    ];
+    if (!input.needsOwner) {
+      const open = managed.filter(({ state }) => state === "OPEN");
+      for (const candidate of open) {
+        const resolutionMarker = `<!-- academic-os-morning-resolution:v1 date=${input.date} -->`;
+        if (!candidate.body.includes(resolutionMarker)) {
+          await input.issue.update({
+            number: candidate.number,
+            body: `${candidate.body}\n\n---\n\n${resolutionMarker}\nAutomatically resolved by verified morning ${input.date}.\n\n${input.body}`,
+          });
+        }
+        await input.issue.close(candidate.number);
+        reconciled.push(candidate.number);
+      }
+      return open.length === 0
+        ? { outcome: "not-needed", number: null }
+        : {
+            outcome: "closed",
+            number: reconciled[0] ?? null,
+            numbers: reconciled,
+          };
+    }
+    const existing = managed.find((candidate) => candidate.title === title);
     if (existing !== undefined) {
-      return { outcome: "already-raised", number: existing };
+      await input.issue.update({ number: existing.number, body });
+      if (existing.state === "CLOSED") {
+        await input.issue.reopen(existing.number);
+        return { outcome: "reopened", number: existing.number };
+      }
+      return { outcome: "updated", number: existing.number };
     }
     return {
       outcome: "created",
-      number: await issue.raise({ title, body, labels: MORNING_ISSUE_LABELS }),
+      number: await input.issue.raise({
+        title,
+        body,
+        labels: MORNING_ISSUE_LABELS,
+      }),
     };
   } catch (error) {
     return {
       outcome: "failed",
-      number: null,
+      number: reconciled[0] ?? null,
+      ...(reconciled.length === 0 ? {} : { numbers: reconciled }),
       failure: routineFailure(error, "issue-failed"),
     };
   }
 }
 
+export function morningIssueMarker(
+  cohort: string,
+  moduleCodes: readonly string[],
+): string {
+  const modules = [...new Set(moduleCodes)].sort().join(",");
+  return `<!-- academic-os-morning-issue:v${MORNING_ISSUE_MARKER_VERSION} cohort=${encodeURIComponent(cohort)} modules=${encodeURIComponent(modules)} -->`;
+}
+
+function isManagedMorningIssue(
+  issue: MorningIssue,
+  marker: string,
+  currentDate: string,
+): boolean {
+  const issueDate = /^Morning report (.+)$/u.exec(issue.title)?.[1];
+  return (
+    issueDate !== undefined &&
+    isCalendarDay(issueDate) &&
+    issueDate <= currentDate &&
+    issue.body.startsWith(`${marker}\n`)
+  );
+}
+
 function morningOutcome(
   issue: MorningIssueReport,
 ): MorningRoutineReport["outcome"] {
-  if (issue.outcome === "not-needed") return "quiet";
+  if (issue.outcome === "not-needed" || issue.outcome === "closed") {
+    return "quiet";
+  }
   return issue.outcome === "failed" ? "unreported" : "reported";
 }

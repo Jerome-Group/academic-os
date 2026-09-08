@@ -153,6 +153,12 @@ A Definition-declared, automation-owned module directory such as `NTULearn` or
 `NTULearn_Tutorial`. Its descendants preserve importer names and sit outside curation rules.
 _Avoid_: curated folder, learning materials
 
+**Import status receipt**:
+The importer-owned `Sync status.json` in one importer root, recording an attempt's outcome and
+last known successful attempt under `docs/import-status-contract.md`. Optional operational
+evidence, read by `imports status`; it proves neither current source bytes nor upstream absence.
+_Avoid_: inventory, audit observation, sync stamp — each records a different fact.
+
 **Curation**:
 Classifying an item from the NTULearn mirror, copying it into its canonical home, and giving the
 copy its curated name. Curation preserves the source item and asks for a decision when placement
@@ -562,8 +568,8 @@ _Avoid_: curation decision — that classifies one item; repository ADR — a mo
 and authority stop at its module folder.
 
 **Morning routine**:
-The 06:00 pass on the mini: the deterministic prelude — Shelf catch-up, then the cohort's Task
-registers pulled — followed by one headless session per cohort module in sequence, then one dated
+The 06:00 pass on the mini: the deterministic prelude — importer health, Shelf catch-up, then the
+cohort's Task registers pulled — followed by one headless session per cohort module in sequence, then one dated
 Morning report. It reads Google and writes nothing back to it, compiles no LaTeX and creates no
 task; a module whose session fails is a line in the report rather than the end of the morning.
 _Avoid_: Routine event — that is a Calendar series; the daily Refresh — the 05:00 Calendar Refresh
@@ -571,9 +577,11 @@ is this job's untouched sibling; cron job, nightly build.
 
 **Module pass**:
 One module's share of a morning: a single headless session in that module folder, running the
-module's own seeded curation procedure and reporting what it curated, rederived, superseded,
-withdrew and parked, the module docs it wrote, what failed, and what it noted. Unattended,
-precedent is its only resolver — no precedent parks.
+module's Maintenance route across all nine maintenance domains, including its seeded curation
+procedure. A deterministic work order supplies contract, importer and learning-source evidence;
+control backups and a post-audit preserve what changed and expose residual failures. Unattended,
+precedent is its only resolver — no precedent parks. Availability of learning material says
+nothing about mastery or completion.
 _Avoid_: run, session — both name the whole morning or the process rather than the module's share.
 
 **Note**:
@@ -589,10 +597,13 @@ conformance term and means something else.
 
 **Morning report**:
 What the Morning routine writes on the mini every day, in one fixed format, dated by the offering's
-calendar day: the prelude's results, each Module pass's eight buckets, and the purge summary. It
+calendar day: the prelude's results, each Module pass's eight action buckets and maintenance
+coverage, and the purge summary. It
 lands whether or not anything asks the Owner for a decision. The same text becomes the day's issue
-when the morning parked something, wrote a module doc or hit a failure; a morning with none of
-those is a **quiet morning** and raises nothing, whatever it noted.
+when the morning leaves something parked, failed or incompletely evidenced. A **quiet morning**
+requires complete evidenced coverage with only `checked`, `maintained` or `not-applicable` domains
+and none of those triggers. Successful upkeep stays in the report. A verified clean pass resolves
+only managed morning issues for the exact same Module cohort.
 _Avoid_: log — the session transcripts beside it are the log; digest, summary.
 
 Two terms are Organisation-wide and mean the same thing in every repository:

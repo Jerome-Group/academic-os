@@ -3,6 +3,7 @@ import {
   resolveShelfRoot,
   resolveTasksConfig,
 } from "../config/index.js";
+import { runImportStatus } from "../imports/index.js";
 import {
   activeTaskRegisterTargets,
   createGoogleTaskRefreshReader,
@@ -15,16 +16,25 @@ import {
   executeShelfCatchUp,
   planShelfCatchUp,
 } from "../textbooks/index.js";
+import { importStatusPrelude } from "./import-status-prelude.js";
 import type { MorningPreludePort, PreludeStepReport } from "./types.js";
 
 // The prelude is the part of the morning that needs no judgment, so it is the part that runs before
-// any session: the shelf reaches the index, then every active module and research-project register
-// catches up with its live list. Both are pull-only — the routine reads Google and writes nothing
+// any session: importer evidence is checked, the shelf reaches the index, then every active module
+// and research-project register catches up with its live list. The routine reads Google and writes nothing
 // back to it.
 export function createCohortPrelude(
   config: AcademicConfig,
 ): MorningPreludePort {
   return {
+    inspectImports: async () =>
+      importStatusPrelude(
+        await runImportStatus({
+          config,
+          observedAt: new Date().toISOString(),
+          maxAgeHours: 24,
+        }),
+      ),
     catchUpShelf: async () => {
       const shelfRoot = await resolveShelfRoot(config);
       const store = createFileShelfIndexStore(shelfRoot);

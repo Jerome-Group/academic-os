@@ -21,6 +21,8 @@ import { runTextbooksMigrateCommand } from "./commands/textbooks-migrate-command
 import { runTextbooksSweepCommand } from "./commands/textbooks-sweep-command.js";
 import { runRepairCommand } from "./commands/repair-command.js";
 import { runRoutineMorningCommand } from "./commands/routine-morning-command.js";
+import { runImportsStatusCommand } from "./commands/imports-status-command.js";
+import { runLearningMaterialsCommand } from "./commands/learning-materials-command.js";
 
 const arguments_ = process.argv.slice(2);
 const json = arguments_.includes("--json");
@@ -58,6 +60,10 @@ try {
     await runTextbooksMigrateCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "routine" && arguments_[1] === "morning") {
     await runRoutineMorningCommand(arguments_.slice(1), json);
+  } else if (arguments_[0] === "imports" && arguments_[1] === "status") {
+    await runImportsStatusCommand(arguments_.slice(1), json);
+  } else if (arguments_[0] === "learning" && arguments_[1] === "materials") {
+    await runLearningMaterialsCommand(arguments_.slice(1), json);
   } else {
     await runAuditCommand(arguments_, json);
   }

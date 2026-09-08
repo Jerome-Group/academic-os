@@ -87,6 +87,35 @@ node dist/src/cli.js audit --config academic-os.config.json \
   --research-project example-project
 ```
 
+## Check importer health
+
+```sh
+node dist/src/cli.js imports status --config academic-os.config.json
+```
+
+This read-only report covers each declared importer root in the active Module cohort. A recent
+attempt can still be partial or failed; the report distinguishes those from current, stale,
+running, missing and invalid evidence. Add `--max-age-hours 48` to change the 36-hour freshness
+window, or `--json` for the same report as data. No login or sync is started. See the
+[receipt contract](docs/import-status-contract.md) for compatibility and the
+[coordinated roadmap](docs/research/coordinated-module-management.md) for proposed next features.
+
+## Check learning materials
+
+```sh
+node dist/src/cli.js learning materials --config academic-os.config.json
+```
+
+Read the active cohort's Source Maps in their declared unit order. The report identifies missing
+or unusable file references, empty units and explicitly missing tutorial material. Add `--json`
+for structured output. File availability never implies learning progress or mastery.
+
+The existing [morning routine](docs/operator-guide.md#morning-routine) also uses these reports and
+contract findings to maintain nine Module domains, with private control backups and a post-audit.
+Every domain needs evidence before the morning can be quiet; safe maintenance continues even
+when no material arrived overnight. Verified routine repairs stay in the local report and resolve
+the automation's matching issues; only unresolved work or decisions needing the Owner escalate.
+
 ## Seed one vanilla module
 
 Set `seedTarget` in the same local configuration, prepare an approved Module Profile and Module

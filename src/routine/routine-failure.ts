@@ -20,6 +20,7 @@ export function failedModulePass(
   fallbackCode: string,
 ): ModulePassOutcome {
   return {
+    maintenance: [],
     curated: [],
     rederived: [],
     superseded: [],

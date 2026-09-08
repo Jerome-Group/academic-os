@@ -2,52 +2,50 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 import { OperationalError } from "../mounted/index.js";
-import type { MorningIssuePort } from "./types.js";
+import type { MorningIssue, MorningIssuePort } from "./types.js";
 
 const ISSUE_URL_PATTERN = /\/(\d+)\s*$/u;
 
-// Newest-first, and deep enough that a morning's own issue is always in reach. The listing is read
-// rather than the search index because the index lags creation by minutes — long enough for a
-// second firing an hour later to miss the issue the first one raised and raise another.
-const RECENT_ISSUE_LIMIT = "100";
-
 // `gh` infers the repository from the clone it runs in, which is the clone this built CLI sits in:
 // the same three levels up from `dist/src/routine/` that every root resolution here counts.
-export function createGhMorningIssue(ghPath: string): MorningIssuePort {
+export interface GhMorningIssueRunnerInput {
+  ghPath: string;
+  repositoryRoot: string;
+  arguments: string[];
+  input?: string;
+}
+
+export type GhMorningIssueRunner = (input: GhMorningIssueRunnerInput) => string;
+
+export function createGhMorningIssue(
+  ghPath: string,
+  runner: GhMorningIssueRunner = runGh,
+): MorningIssuePort {
   const repositoryRoot = fileURLToPath(new URL("../../../", import.meta.url));
   const gh = (arguments_: string[], input?: string): string =>
-    runGh({
+    runner({
       ghPath,
       repositoryRoot,
       arguments: arguments_,
       ...(input === undefined ? {} : { input }),
     });
   return {
-    find: async (title) => {
-      const listed: unknown = JSON.parse(
+    list: async () => {
+      const pages: unknown = JSON.parse(
         gh([
-          "issue",
-          "list",
-          "--state",
-          "all",
-          "--limit",
-          RECENT_ISSUE_LIMIT,
-          "--json",
-          "number,title",
+          "api",
+          "--paginate",
+          "--slurp",
+          "repos/{owner}/{repo}/issues?state=all&per_page=100",
         ]),
       );
-      if (!Array.isArray(listed)) {
+      if (!Array.isArray(pages) || !pages.every(Array.isArray)) {
         throw new OperationalError(
           "operational-failure",
-          "gh did not list issues as an array.",
+          "gh did not list issue pages as arrays.",
         );
       }
-      return listed.find(
-        (issue): issue is { number: number; title: string } =>
-          typeof issue === "object" &&
-          issue !== null &&
-          (issue as { title?: unknown }).title === title,
-      )?.number;
+      return pages.flat().flatMap(readIssueRecord);
     },
     raise: async ({ title, body, labels }) => {
       const created = gh(
@@ -71,15 +69,53 @@ export function createGhMorningIssue(ghPath: string): MorningIssuePort {
       }
       return Number(number);
     },
+    update: async ({ number, body }) => {
+      gh(["issue", "edit", String(number), "--body-file", "-"], body);
+    },
+    reopen: async (number) => {
+      gh(["issue", "reopen", String(number)]);
+    },
+    close: async (number) => {
+      gh(["issue", "close", String(number)]);
+    },
   };
 }
 
-function runGh(input: {
-  ghPath: string;
-  repositoryRoot: string;
-  arguments: string[];
-  input?: string;
-}): string {
+function readIssueRecord(value: unknown): MorningIssue[] {
+  if (typeof value !== "object" || value === null) return invalidIssueRecord();
+  if ("pull_request" in value) return [];
+  const issue = value as {
+    number?: unknown;
+    title?: unknown;
+    body?: unknown;
+    state?: unknown;
+  };
+  if (
+    !Number.isInteger(issue.number) ||
+    typeof issue.title !== "string" ||
+    (issue.body !== null && typeof issue.body !== "string") ||
+    (issue.state !== "open" && issue.state !== "closed")
+  ) {
+    return invalidIssueRecord();
+  }
+  return [
+    {
+      number: issue.number as number,
+      title: issue.title,
+      body: issue.body ?? "",
+      state: issue.state.toUpperCase() as MorningIssue["state"],
+    },
+  ];
+}
+
+function invalidIssueRecord(): never {
+  throw new OperationalError(
+    "operational-failure",
+    "gh listed an invalid issue record.",
+  );
+}
+
+function runGh(input: GhMorningIssueRunnerInput): string {
   const result = spawnSync(input.ghPath, input.arguments, {
     cwd: input.repositoryRoot,
     encoding: "utf8",

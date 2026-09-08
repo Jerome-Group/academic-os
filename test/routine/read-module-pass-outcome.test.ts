@@ -1,9 +1,16 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { readModulePassOutcome } from "../../src/routine/index.js";
+import {
+  MAINTENANCE_DOMAINS,
+  readModulePassOutcome,
+} from "../../src/routine/index.js";
+import { syntheticMaintenanceCoverage } from "../fixtures/maintenance-coverage.js";
+
+const maintenance = syntheticMaintenanceCoverage();
 
 const emptyMorning = JSON.stringify({
+  maintenance,
   curated: [],
   rederived: [],
   superseded: [],
@@ -19,6 +26,7 @@ describe("reading a module pass's result", () => {
   // carried an empty string. The whole outcome was discarded and the morning reported the module
   // idle, while its Module Profile and register had already been rewritten on the mount.
   const passEndingInABadNote = JSON.stringify({
+    maintenance,
     curated: [],
     rederived: [
       {
@@ -75,6 +83,7 @@ describe("reading a module pass's result", () => {
   it("keeps the session's own failures beside the dropped ones", () => {
     const outcome = readModulePassOutcome(
       JSON.stringify({
+        maintenance,
         curated: [],
         rederived: [],
         superseded: [],
@@ -94,27 +103,38 @@ describe("reading a module pass's result", () => {
     );
   });
 
-  // Structural breakage leaves nothing to salvage, so it still fails the pass whole.
-  it("fails the pass when a bucket is not an array", () => {
-    assert.throws(() =>
-      readModulePassOutcome(
-        JSON.stringify({
-          curated: [],
-          rederived: [],
-          superseded: [],
-          withdrawn: [],
-          parked: [],
-          docWrites: [],
-          failures: [],
-          noted: "not an array",
-        }),
-      ),
-    );
-  });
-
-  it("reads the eight buckets a session reports", () => {
+  it("keeps completed actions when another bucket is not an array", () => {
     const outcome = readModulePassOutcome(
       JSON.stringify({
+        maintenance,
+        curated: [{ item: "source/handout.pdf", destination: "placed.pdf" }],
+        rederived: [],
+        superseded: [],
+        withdrawn: [],
+        parked: [],
+        docWrites: [],
+        failures: [],
+        noted: "not an array",
+      }),
+    );
+
+    assert.deepEqual(outcome.curated, [
+      { item: "source/handout.pdf", destination: "placed.pdf" },
+    ]);
+    assert.deepEqual(outcome.noted, []);
+    assert.deepEqual(outcome.failures, [
+      {
+        code: "unreadable-bucket",
+        message:
+          "The session result's noted must be an array. It was dropped, and the rest of the pass stands.",
+      },
+    ]);
+  });
+
+  it("reads maintenance coverage and the existing eight buckets", () => {
+    const outcome = readModulePassOutcome(
+      JSON.stringify({
+        maintenance,
         curated: [{ item: "source/handout.pdf", destination: "placed.pdf" }],
         rederived: [{ item: "source/notice.html", derived: ["profile.md"] }],
         superseded: [{ item: "source/handout.pdf", destination: "placed.pdf" }],
@@ -170,6 +190,7 @@ describe("reading a module pass's result", () => {
   it("reads a supersession that replaced a decision placing no copy", () => {
     const outcome = readModulePassOutcome(
       JSON.stringify({
+        maintenance,
         curated: [],
         rederived: [],
         superseded: [{ item: "source/notice.html", destination: null }],
@@ -184,8 +205,9 @@ describe("reading a module pass's result", () => {
     assert.deepEqual(outcome.superseded, [{ item: "source/notice.html" }]);
   });
 
-  it("reads a quiet morning as eight empty buckets", () => {
+  it("reads a quiet morning with all daily maintenance domains", () => {
     assert.deepEqual(readModulePassOutcome(emptyMorning), {
+      maintenance,
       curated: [],
       rederived: [],
       superseded: [],
@@ -197,12 +219,12 @@ describe("reading a module pass's result", () => {
     });
   });
 
-  // Structural breakage leaves nothing to salvage: no JSON, or a bucket that is not a list.
+  // Invalid JSON and a non-object top level have no bucket to salvage.
   it("refuses a result it cannot read as the reported shape", () => {
     assert.throws(() => readModulePassOutcome("{"), /not valid JSON/u);
     assert.throws(
-      () => readModulePassOutcome(JSON.stringify({ curated: [] })),
-      /rederived must be an array/u,
+      () => readModulePassOutcome(JSON.stringify([])),
+      /result must be a JSON object/u,
     );
   });
 
@@ -210,6 +232,7 @@ describe("reading a module pass's result", () => {
   it("drops an unreadable entry from any bucket rather than the pass", () => {
     const outcome = readModulePassOutcome(
       JSON.stringify({
+        maintenance,
         curated: [
           { item: "source/handout.pdf" },
           {
@@ -244,5 +267,75 @@ describe("reading a module pass's result", () => {
       outcome.failures[1]?.message ?? "",
       /note must be a non-empty string/u,
     );
+  });
+
+  it("salvages all eight old buckets but fails missing maintenance coverage", () => {
+    const outcome = readModulePassOutcome(
+      JSON.stringify({
+        curated: [],
+        rederived: [],
+        superseded: [],
+        withdrawn: [],
+        parked: [],
+        docWrites: [],
+        failures: [],
+        noted: [],
+      }),
+    );
+
+    assert.deepEqual(outcome.maintenance, []);
+    assert.equal(outcome.failures[0]?.code, "incomplete-maintenance-coverage");
+  });
+
+  it("reports omitted and duplicate maintenance domains", () => {
+    const outcome = readModulePassOutcome(
+      JSON.stringify({
+        maintenance: [maintenance[0], maintenance[0], ...maintenance.slice(2)],
+        curated: [],
+        rederived: [],
+        superseded: [],
+        withdrawn: [],
+        parked: [],
+        docWrites: [],
+        failures: [],
+        noted: [],
+      }),
+    );
+
+    assert.deepEqual(
+      outcome.failures.map(({ code }) => code),
+      ["duplicate-maintenance-domain", "incomplete-maintenance-coverage"],
+    );
+    assert.match(
+      outcome.failures[1]?.message ?? "",
+      new RegExp(MAINTENANCE_DOMAINS[1].id, "u"),
+    );
+  });
+
+  it("drops maintenance evidence containing a blank line and reports the gap", () => {
+    const invalid = maintenance.map((entry) =>
+      entry.domain === "learning-sources"
+        ? { ...entry, evidence: [" "] }
+        : { ...entry },
+    );
+    const outcome = readModulePassOutcome(
+      JSON.stringify({
+        maintenance: invalid,
+        curated: [],
+        rederived: [],
+        superseded: [],
+        withdrawn: [],
+        parked: [],
+        docWrites: [],
+        failures: [],
+        noted: [],
+      }),
+    );
+
+    assert.deepEqual(
+      outcome.failures.map(({ code }) => code),
+      ["invalid-maintenance-entry", "incomplete-maintenance-coverage"],
+    );
+    assert.match(outcome.failures[0]?.message ?? "", /non-blank strings/u);
   });
 });

@@ -1,19 +1,25 @@
 import type { ConfiguredModule } from "../config/index.js";
+import type { ImportStatusReport } from "../imports/index.js";
 import type { TaskRefreshReport } from "../tasks/index.js";
 import type { ShelfCatchUpReport } from "../textbooks/index.js";
+import type { MaintenanceCoverage } from "./maintenance-domains.js";
 
 export interface RoutineFailure {
   code: string;
   message: string;
 }
 
-// The prelude's two steps report the same shape so the report renders them identically and the
+// The prelude's steps report the same shape so the report renders them identically and the
 // wrapper decides on them identically: what it did, what it left for the Owner, why it stopped.
-export type PreludeStepName = "textbook-shelf-catch-up" | "task-register-pull";
+export type PreludeStepName =
+  | "import-status"
+  | "textbook-shelf-catch-up"
+  | "task-register-pull";
 
-// The step keeps its own word for how it went — the two commands behind the prelude already have
-// one each — and `failed` is the wrapper's, for the step that never got far enough to have one.
+// Each prelude operation keeps its own outcome vocabulary; `failed` is the wrapper's for a step
+// that never got far enough to produce a report.
 export type PreludeStepOutcome =
+  | ImportStatusReport["outcome"]
   | ShelfCatchUpReport["outcome"]
   | TaskRefreshReport["outcome"]
   | "failed";
@@ -72,6 +78,7 @@ export interface DocWrite {
 // wrote unattended, the failures it hit, and what it observed without owing the Owner a decision.
 // A session that dies reports failures and nothing else.
 export interface ModulePassOutcome {
+  maintenance: MaintenanceCoverage;
   curated: CuratedItem[];
   rederived: RederivedItem[];
   superseded: SupersededItem[];
@@ -93,18 +100,21 @@ export interface RetentionPurge {
 
 export type MorningIssueOutcome =
   | "created"
-  | "already-raised"
+  | "updated"
+  | "reopened"
+  | "closed"
   | "not-needed"
   | "failed";
 
 export interface MorningIssueReport {
   outcome: MorningIssueOutcome;
   number: number | null;
+  numbers?: number[];
   failure?: RoutineFailure;
 }
 
 export interface MorningRoutineReport {
-  schemaVersion: 1;
+  schemaVersion: 2;
   command: "routine morning";
   outcome: "quiet" | "reported" | "unreported";
   date: string;
@@ -115,9 +125,10 @@ export interface MorningRoutineReport {
   issue: MorningIssueReport;
 }
 
-// The prelude names its two steps rather than returning a list, so the wrapper's order is the
+// The prelude names its steps rather than returning a list, so the wrapper's order is the
 // wrapper's — visible where the run is assembled instead of inside whatever runs the steps.
 export interface MorningPreludePort {
+  inspectImports(): Promise<PreludeStepReport>;
   catchUpShelf(): Promise<PreludeStepReport>;
   pullTaskRegisters(): Promise<PreludeStepReport>;
 }
@@ -137,10 +148,20 @@ export interface RoutineArtifactStore {
 }
 
 export interface MorningIssuePort {
-  find(title: string): Promise<number | undefined>;
+  list(): Promise<MorningIssue[]>;
   raise(input: {
     title: string;
     body: string;
     labels: readonly string[];
   }): Promise<number>;
+  update(input: { number: number; body: string }): Promise<void>;
+  reopen(number: number): Promise<void>;
+  close(number: number): Promise<void>;
+}
+
+export interface MorningIssue {
+  number: number;
+  title: string;
+  body: string;
+  state: "OPEN" | "CLOSED";
 }

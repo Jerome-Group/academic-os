@@ -5,6 +5,7 @@ import {
   type PreludeStepReport,
   renderMorningReport,
 } from "../../src/routine/index.js";
+import { syntheticMaintenanceCoverage } from "../fixtures/maintenance-coverage.js";
 
 const prelude: PreludeStepReport[] = [
   {
@@ -34,6 +35,15 @@ describe("the morning report's fixed format", () => {
           semester: "Y2S1",
           module: "AB1234",
           artifacts: "/state/routine/sessions/2026-08-23/AB1234",
+          maintenance: syntheticMaintenanceCoverage().map((entry) =>
+            entry.domain === "import-health"
+              ? {
+                  ...entry,
+                  status: "maintained" as const,
+                  evidence: ["Refreshed the importer observation."],
+                }
+              : entry,
+          ),
           curated: [{ item: "source/handout.pdf", destination: "placed.pdf" }],
           rederived: [{ item: "source/notice.html", derived: ["profile.md"] }],
           superseded: [],
@@ -83,6 +93,25 @@ describe("the morning report's fixed format", () => {
         "",
         "### AB1234 — Y2S1",
         "",
+        "- Maintenance coverage — 9",
+        "  - Import health — maintained",
+        "    - Refreshed the importer observation.",
+        "  - Structure and controls — checked",
+        "    - Checked structure and controls.",
+        "  - Curation — checked",
+        "    - Checked curation.",
+        "  - Tasks and calendar — checked",
+        "    - Checked tasks and calendar.",
+        "  - Learning sources — checked",
+        "    - Checked learning sources.",
+        "  - Textbooks — checked",
+        "    - Checked textbooks.",
+        "  - Assessments and projects — checked",
+        "    - Checked assessments and projects.",
+        "  - Cheatsheets and builds — checked",
+        "    - Checked cheatsheets and builds.",
+        "  - Documentation and lifecycle — checked",
+        "    - Checked documentation and lifecycle.",
         "- Curated — 1",
         "  - source/handout.pdf → placed.pdf",
         "- Rederived — 1",

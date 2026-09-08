@@ -29,6 +29,7 @@ export async function runRoutineMorningCommand(
   const date = offeringCalendarDay(new Date());
   const report = await runMorningRoutine({
     date,
+    cohort: config.activeSemester,
     modules: planCohortAudit(config).selection.included,
     prelude: createCohortPrelude(config),
     session: createCodexModuleSession({
@@ -78,7 +79,13 @@ function renderHuman(report: MorningRoutineReport): string {
     ...report.modules.map(renderModulePassSummary),
     `Purged ${report.purge.sessions.length} session days and ${report.purge.reports.length} reports`,
     `Report: ${report.report ?? "not written"}`,
-    `Issue: ${report.issue.outcome}${report.issue.number === null ? "" : ` (#${report.issue.number})`}`,
+    `Issue: ${report.issue.outcome}${
+      report.issue.numbers !== undefined
+        ? ` (#${report.issue.numbers.join(", #")})`
+        : report.issue.number === null
+          ? ""
+          : ` (#${report.issue.number})`
+    }`,
   ].join("\n");
 }
 

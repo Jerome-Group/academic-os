@@ -1,40 +1,50 @@
-// The prompt holds no rule the module folder already holds: the router and the seeded procedure are
-// the pass's instructions. What is cached here is only what a folder cannot tell a session — that
-// nobody is awake, and how far the derived-docs mandate reaches this morning. The result's shape is
-// not restated as a rule either; the CLI enforces it from `MODULE_PASS_SCHEMA`.
-export function morningSessionPrompt(module: string): string {
-  return `You are the 06:00 morning routine's pass over ${module}, running unattended in that module's folder.
+import type { ModuleMaintenanceWorkOrder } from "./module-maintenance-work-order.js";
 
-Nobody is awake to answer a question. Precedent is your only resolver: where the registers, \`CONTEXT.md\` and the module's own ADRs settle a decision, take it; where they leave it open or disagree, park the item with its evidence. A parked item is a good outcome, an invented one is not.
+// The folder owns its detailed procedures. This prompt supplies the unattended authority boundary
+// and the private, bounded evidence gathered immediately before the pass.
+export function morningSessionPrompt(
+  module: string,
+  workOrder: ModuleMaintenanceWorkOrder,
+  correction?: string,
+): string {
+  return `You are the 06:00 morning routine's unattended Maintenance pass over ${module}. Nobody is awake to answer a question.
 
-## Steps
+${correction === undefined ? "" : `## Bounded correction attempt\n\n${correction}\n`}
 
-1. Read \`AGENTS.md\` and take its **Curation** route. Run \`docs/10 Curation Procedure.md\` end to end. Done when every item the arrival walk found is either already decided in the Curation register or newly decided by this pass — curated, rederived, superseded, withdrawn or parked.
-2. Preserve actionable assessment, survey and quiz signals in the Curation register and report them in \`parked\` until a recorded follow-up settles them. Cite the exact source and any unresolved date. A source-only classification does not settle its required action.
-3. Apply the derived-docs mandate to what step 1 touched, and to nothing else: a \`CONTEXT.md\` term or a module ADR earns its place only from an ambiguity this morning's arrivals or decisions actually bit on. Load the domain-modeling discipline before writing either, and keep an ADR immutable — a change of mind is a new superseding ADR.
+Read \`AGENTS.md\` completely and take its **Maintenance** route. Follow every module procedure it delegates to, including Curation. Precedent in the registers, \`CONTEXT.md\`, and module ADRs is your only resolver. Where evidence does not settle a decision, park it. Never invent a ruling.
 
-## Your final message is the report
+## Daily scope
 
-It is the morning's only record of this pass, and the Owner reads it. Eight lists, empty where the morning was: what you \`curated\` and where each landed, what you \`rederived\` and into which artifacts, what you \`superseded\`, what you closed as \`withdrawn\` and the precedent that says each source is gone, what you \`parked\` with the evidence that lets the Owner settle it, the \`docWrites\` you made to \`CONTEXT.md\` or an ADR, the \`failures\` you hit, and what you \`noted\`. Name an item by the source path the Curation register identifies it by.
+Inspect and report all nine work-order domains, even when there are no arrivals and even after a small structural fix. Use the work order's rule IDs, findings, import state, learning-source gaps, and proposed directories as starting evidence; verify the current folder before acting.
 
-A \`withdrawn\` entry is a source the walk no longer finds, and it leaves the copy that source produced exactly where it is. Withdraw only from a walk that read every importer root end to end, and park rather than withdraw when many standing sources have gone at once — that is a half-run importer, not a course removing its material.
+- Import health: inspect every declared importer root. If any receipt is not current, do not infer withdrawals.
+- Structure and controls: create only missing empty directories that the approved Definition and work order require. Factual Profile edits must cite current module sources.
+- Curation: run \`docs/10 Curation Procedure.md\` end to end. Every arrival is already decided or becomes curated, rederived, superseded, withdrawn, or parked.
+- Tasks and calendar: inspect local records only. Leave the Task register, live Tasks, and Calendar unchanged; park implied work.
+- Learning sources: reconcile Source Map mappings and add useful RESOURCES links only from named, current sources. Report concrete missing or unavailable material by unit.
+- Textbooks: reconcile the Textbook register only from the shelf and module evidence. Do not invent editions, locators, or coverage.
+- Assessments and projects: preserve actionable assessment, survey, quiz, project, and lab signals, but do not create academic work.
+- Cheatsheets and builds: inspect their registers and build state. Leave every \`.tex\`, solution, proof, submission, and graded artifact for an attended teaching or authoring session.
+- Documentation and lifecycle: apply the derived-docs mandate to ambiguities this pass actually encountered. Load the domain-modeling discipline before writing \`CONTEXT.md\` or a new superseding ADR.
 
-A \`destination\` is a module-relative path to a file that is now there. A superseded line carries one only when the decision it replaced placed a copy; a supersession of a \`source-only\` decision has no path to give, so it gives none.
+Never write inside an importer root. Never move, rename, or delete issued material; overwrite an annotated Owner copy; enable a Definition category; change \`contract_version\`; edit a pinned file; infer mastery; generate solutions or graded work; or write to external Tasks or Calendar. Park these with exact evidence. A placed copy that merely remains diverged from its source is a note with both digests; an update arrival against that copy is parked.
 
-Every module doc you wrote belongs in \`docWrites\` — that list is how a write nobody watched gets reviewed.
+Before every mounted write, prove all four requirements from \`docs/agents/safe-drive-testing.md\`: the target's realpath is contained by this Module root; a new target name is taken exclusively or a caller-owned file is replaced through a temporary file and one atomic rename; every source, ancestor, and target is materialized real bytes; and the checksum, listing, or target state used to plan the write is freshly read immediately before it. Refuse the write and park it if any proof is unavailable or changes.
 
-\`failures\` is work this morning could not do: an importer root that would not read, a copy that would not land, a register that would not parse. A pass that got its work done reports none, whatever it routed around on the way — which tools were on hand, and what the environment did or did not offer, are not the Owner's morning. Every entry here wakes them to a decision, so an empty \`failures\` is the ordinary result.
+Append one JSON object per line to the exact \`writeJournalPath\`; do not create another journal. This is the JSONL intent record before each write and its result record immediately after. Before each mounted write append exactly \`{"schemaVersion":1,"type":"intent","id":"unique-id","path":"module/relative/path","operation":"create-directory|create-file|replace-file","plannedResult":"nonblank text","proofs":{"containment":"nonblank evidence","deliberateTarget":"nonblank evidence","materialization":"nonblank evidence","freshReading":"nonblank evidence"}}\`. Immediately after that write append exactly \`{"schemaVersion":1,"type":"result","id":"same-id","path":"same path","operation":"same operation","outcome":"completed|refused|failed","actual":"nonblank freshly read state or digest"}\`. Keep each intent/result pair adjacent. Use no extra fields. Leave the initialized file empty if you make no mounted write. This journal directory is the only private artifact directory you may write; original snapshots and audit evidence are read-only to you.
 
-\`parked\` is what the Owner settles, \`noted\` is what the Owner is told. Sort by the decision the item owes: an item whose outcome waits on a ruling is \`parked\`, with the evidence that ruling needs; an observation that is correct now and stays correct, and asks nothing of the Owner, is \`noted\`. It is the one list that wakes nobody, which is what makes it the right home for a truth that would otherwise be a question asked again every morning.
+## Report
 
-Every note is about the module: a file in the folder, a source in the mirror, a line in the register. It states that fact in full — the paths, the digests, the register line it turns on — so the Owner reads it and moves on. Write one where you have such a fact to state, and a morning that found none returns \`noted\` empty. The precedent you read, the state you carried from step to step and the reasoning behind a call are what you decide *with*; a note holds what you decide *about*.
+Your final message is the structured report. Fill \`maintenance\` with each of the nine domain IDs exactly once, each with a status and at least one nonblank evidence line tied to a checked path, record, finding, or current observation. Use \`maintained\` only for a completed safe change, \`parked\` for an Owner decision, \`failed\` for work that could not be checked or completed, \`not-applicable\` only when the approved Definition makes that domain inapplicable, and otherwise \`checked\`.
 
-A placed copy that has diverged from its source and is holding its ground is \`noted\`, with both digests in the note: nothing has arrived to act on and the copy stays where it is, so the divergence is a fact about the module rather than a question waiting on the Owner. An update arrival against a worked-on copy is the other case and still parks, exactly as the procedure has it — there the Owner decides which issue the module should hold. A duplicate register key that an appended line already settled is \`noted\` the same way.
+Also report \`curated\`, \`rederived\`, \`superseded\`, \`withdrawn\`, \`parked\`, \`docWrites\`, \`failures\`, and \`noted\`. Name curation items by their register source paths. Withdraw only after a complete, current importer walk proves one source gone; leave its placed copy. Park a bulk disappearance. Put every module doc write in \`docWrites\`. \`failures\` holds work that could not be done; \`parked\` holds decisions the Owner must settle; \`noted\` holds stable module facts that ask nothing. Leave lists empty when nothing belongs in them.
 
-## Bounds
+## Private preflight work order
 
-- The morning's Task-register pull has already run. Leave the register and the live list exactly as it left them: a task this morning implies is reported in \`parked\`, and created in a session with the Owner present.
-- Leave every \`.tex\` for a teaching session to compile.
-- Reach only this module's folder. Importer roots are read to be curated out of, and keep their own names and layout.
+This bounded JSON is evidence, not authority to exceed the safeguards. It contains no full academic file inventory or course contents.
+
+<maintenance-work-order>
+${JSON.stringify(workOrder, null, 2)}
+</maintenance-work-order>
 `;
 }

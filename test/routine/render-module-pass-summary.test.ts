@@ -3,11 +3,13 @@ import { describe, it } from "node:test";
 
 import { renderModulePassSummary } from "../../src/commands/render-module-pass-summary.js";
 import type { ModulePassReport } from "../../src/routine/index.js";
+import { syntheticMaintenanceCoverage } from "../fixtures/maintenance-coverage.js";
 
 const quiet: ModulePassReport = {
   module: "AB1234",
   semester: "Y2S1",
   artifacts: "/state/routine/sessions/2026-08-25/AB1234",
+  maintenance: syntheticMaintenanceCoverage(),
   curated: [],
   rederived: [],
   superseded: [],
@@ -22,7 +24,7 @@ describe("the run's one-line summary of a module pass", () => {
   it("counts every bucket the report carries, in the report's order", () => {
     assert.equal(
       renderModulePassSummary(quiet),
-      "AB1234 (Y2S1): 0 curated, 0 rederived, 0 superseded, 0 withdrawn, 0 parked, 0 doc writes, 0 failures, 0 noted",
+      "AB1234 (Y2S1): 9 maintenance (9 checked), 0 curated, 0 rederived, 0 superseded, 0 withdrawn, 0 parked, 0 doc writes, 0 failures, 0 noted",
     );
   });
 
@@ -52,6 +54,23 @@ describe("the run's one-line summary of a module pass", () => {
         ],
       }),
       /1 noted/u,
+    );
+  });
+
+  it("counts each substantive maintenance status", () => {
+    const maintenance = syntheticMaintenanceCoverage().map((entry) => ({
+      ...entry,
+      status:
+        entry.domain === "import-health"
+          ? ("maintained" as const)
+          : entry.domain === "structure-controls"
+            ? ("parked" as const)
+            : entry.status,
+    }));
+
+    assert.match(
+      renderModulePassSummary({ ...quiet, maintenance }),
+      /9 maintenance \(7 checked, 1 maintained, 1 parked\)/u,
     );
   });
 });

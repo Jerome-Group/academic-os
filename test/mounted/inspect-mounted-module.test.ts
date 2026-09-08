@@ -1,5 +1,12 @@
 import assert from "node:assert/strict";
-import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  mkdir,
+  mkdtemp,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, it } from "node:test";
@@ -43,6 +50,37 @@ describe("inspectMountedModule", () => {
     } finally {
       await chmod(agentsPath, 0o600);
     }
+  });
+
+  it("does not follow a control symlink", async () => {
+    const { config, moduleRoot } = await mountedModule();
+    const outside = join(moduleRoot, "..", "outside-source-map.yaml");
+    await writeFile(
+      outside,
+      "units: {external: {topics: [], lectures: [], textbook: [], tutorials: []}}\n",
+    );
+    const sourceMap = join(moduleRoot, "00 Module Admin", "40 Source Map.yaml");
+    await mkdir(dirname(sourceMap), { recursive: true });
+    await symlink(outside, sourceMap);
+
+    const result = await inspectMountedModule(config);
+
+    assert.equal(result.controls.sourceMap, undefined);
+  });
+
+  it("does not follow a symlinked control ancestor", async () => {
+    const { config, moduleRoot } = await mountedModule();
+    const outside = join(moduleRoot, "..", "outside-admin");
+    await mkdir(outside);
+    await writeFile(
+      join(outside, "00 Module Profile.md"),
+      "# External profile\n",
+    );
+    await symlink(outside, join(moduleRoot, "00 Module Admin"));
+
+    const result = await inspectMountedModule(config);
+
+    assert.equal(result.controls.profile, undefined);
   });
 });
 

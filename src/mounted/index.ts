@@ -4,6 +4,7 @@ export {
   type MountedResearchProjectAuditInput,
 } from "./inspect-mounted-research-project.js";
 export { inventoryMountedModule } from "./inventory-mounted-module.js";
+export { observeModuleImportStatus } from "./observe-module-import-status.js";
 export {
   OperationalError,
   type OperationalErrorCode,

@@ -11,11 +11,15 @@ export function morningSessionPrompt(
 
 ${correction === undefined ? "" : `## Bounded correction attempt\n\n${correction}\n`}
 
-Read \`AGENTS.md\` completely and take its **Maintenance** route. Follow every module procedure it delegates to, including Curation. Precedent in the registers, \`CONTEXT.md\`, and module ADRs is your only resolver. Where evidence does not settle a decision, park it. Never invent a ruling.
+Read \`AGENTS.md\` completely and take its **Maintenance** route. Follow every module procedure it delegates to, including Curation, within the unattended limits below. Precedent in the registers, \`CONTEXT.md\`, and module ADRs is your only resolver. Where evidence does not settle a decision, park it. Never invent a ruling.
 
 ## Daily scope
 
-Inspect and report all nine work-order domains, even when there are no arrivals and even after a small structural fix. Use the work order's rule IDs, findings, import state, learning-source gaps, and proposed directories as starting evidence; verify the current folder before acting.
+Inspect and report all nine work-order domains, even when there are no arrivals and even after a small structural fix. Use the work order's rule IDs, findings, import state, learning-source gaps, and proposed directories as starting evidence.
+
+1. Establish the full work list. If \`audit.omittedFindings\` is positive, read \`audit-before.json\` beside \`writeJournalDirectory\` and include every finding with status other than \`pass\` or \`not-applicable\` that the work order omitted. If \`learningSources.omittedUnits\` is positive, enumerate all units in \`00 Module Admin/40 Source Map.yaml\` and include each omitted unit and its referenced paths. Reconcile each full count with the listed count plus the omitted count. Report a failure if a source cannot be read or the counts disagree.
+2. For each domain below in order, read its governing local files and verify the current state against a checked path or record, including any recovered omitted items. Challenge existing records and precedents against current source evidence: look for a concrete contradiction, stale mapping, missing coverage, or repeated workaround. A preflight pass count or an existing register line is not proof that the current state is right.
+3. Complete permitted safe work, then record the domain's result. If one domain is blocked, record why and continue checking the others.
 
 - Import health: inspect every declared importer root. If any receipt is not current, do not infer withdrawals.
 - Structure and controls: create only missing empty directories that the approved Definition and work order require. Factual Profile edits must cite current module sources.
@@ -35,9 +39,9 @@ Append one JSON object per line to the exact \`writeJournalPath\`; do not create
 
 ## Report
 
-Your final message is the structured report. Fill \`maintenance\` with each of the nine domain IDs exactly once, each with a status and at least one nonblank evidence line tied to a checked path, record, finding, or current observation. Use \`maintained\` only for a completed safe change, \`parked\` for an Owner decision, \`failed\` for work that could not be checked or completed, \`not-applicable\` only when the approved Definition makes that domain inapplicable, and otherwise \`checked\`.
+Your final message is the structured report. Fill \`maintenance\` with each of the nine domain IDs exactly once, each with a status and at least one nonblank evidence line tied to a checked path, record, finding, or current observation. Use \`maintained\` only for a completed safe change, \`parked\` for an unresolved Owner decision, \`failed\` for an operational inability to check or complete permitted work, \`not-applicable\` only when the approved Definition makes that domain inapplicable, and otherwise \`checked\`. When a domain has mixed results, use \`failed\` for an operational failure, otherwise \`parked\` if an Owner decision remains; keep completed actions in their action buckets.
 
-Also report \`curated\`, \`rederived\`, \`superseded\`, \`withdrawn\`, \`parked\`, \`docWrites\`, \`failures\`, and \`noted\`. Name curation items by their register source paths. Withdraw only after a complete, current importer walk proves one source gone; leave its placed copy. Park a bulk disappearance. Put every module doc write in \`docWrites\`. \`failures\` holds work that could not be done; \`parked\` holds decisions the Owner must settle; \`noted\` holds stable module facts that ask nothing. Leave lists empty when nothing belongs in them.
+Also report \`curated\`, \`rederived\`, \`superseded\`, \`withdrawn\`, \`parked\`, \`docWrites\`, \`failures\`, and \`noted\`. Name curation items by their register source paths. Withdraw only after a complete, current importer walk proves one source gone; leave its placed copy. Park a bulk disappearance. Put every module doc write in \`docWrites\`. \`failures\` holds work that could not be done; \`parked\` holds decisions the Owner must settle, including evidenced improvements beyond unattended authority. For each such improvement, name the affected path or rule, the current evidence, and the smallest proposed change. \`noted\` holds stable module facts that ask nothing. Leave lists empty when nothing belongs in them.
 
 ## Private preflight work order
 

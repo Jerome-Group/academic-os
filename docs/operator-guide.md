@@ -709,7 +709,7 @@ Calendar writes stay with their existing Owner-led routes. After the session, a 
 residual deterministic failures and regressions even if the model reports success. This does not
 prove the semantic correctness of every edit; parked questions still require review.
 
-Each session runs on `gpt-6-astra` at medium reasoning effort, sandboxed to the module folder it
+Each session runs on `gpt-6-luna` at max reasoning effort, sandboxed to the module folder it
 was pointed at, plus only its private per-attempt `write-journal/` directory. Model, effort and sandbox are all stated on the command line
 rather than taken from the machine's `~/.codex/config.toml`, so retuning Codex for something else on
 the mini cannot change what curates the degree. The pass reports through its final message, which

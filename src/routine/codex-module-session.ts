@@ -33,8 +33,8 @@ import {
   WRITE_JOURNAL_FILENAME,
 } from "./write-journal.js";
 
-export const MORNING_SESSION_MODEL = "gpt-6-astra";
-export const MORNING_SESSION_REASONING_EFFORT = "medium";
+export const MORNING_SESSION_MODEL = "gpt-6-luna";
+export const MORNING_SESSION_REASONING_EFFORT = "max";
 export const MORNING_SESSION_SANDBOX = "workspace-write";
 const MORNING_SESSION_TIMEOUT_MS = 20 * 60 * 1000;
 const IMPORT_FRESHNESS_HOURS = 24;

@@ -63,6 +63,30 @@ describe("the module session's prompt", () => {
   it("takes the Maintenance route and covers every registered domain", () => {
     assert.match(prompt, /take its \*\*Maintenance\*\* route/u);
     assert.match(prompt, /all nine work-order domains/u);
+    assert.match(prompt, /For each domain below in order/u);
+    assert.match(
+      prompt,
+      /If one domain is blocked, record why and continue checking the others/u,
+    );
+    assert.match(prompt, /Challenge existing records and precedents/u);
+    assert.match(
+      prompt,
+      /A preflight pass count or an existing register line/u,
+    );
+    assert.match(prompt, /If `audit.omittedFindings` is positive/u);
+    assert.match(
+      prompt,
+      /read `audit-before.json` beside `writeJournalDirectory`/u,
+    );
+    assert.match(prompt, /If `learningSources.omittedUnits` is positive/u);
+    assert.match(
+      prompt,
+      /enumerate all units in `00 Module Admin\/40 Source Map.yaml`/u,
+    );
+    assert.match(
+      prompt,
+      /Reconcile each full count with the listed count plus the omitted count/u,
+    );
     for (const { id } of MAINTENANCE_DOMAINS)
       assert.match(prompt, new RegExp(id, "u"));
     assert.match(prompt, /`docs\/10 Curation Procedure\.md`/u);
@@ -132,6 +156,11 @@ describe("the module session's prompt", () => {
     assert.match(
       prompt,
       /Fill `maintenance` with each of the nine domain IDs exactly once/u,
+    );
+    assert.match(prompt, /When a domain has mixed results, use `failed`/u);
+    assert.match(
+      prompt,
+      /including evidenced improvements beyond unattended authority/u,
     );
     assert.match(prompt, /at least one nonblank evidence line/u);
     for (const bucket of [

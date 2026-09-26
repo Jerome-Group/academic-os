@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { parse, stringify } from "yaml";
 
 import { auditModule, type Inventory } from "../../src/conformance/index.js";
 import {
@@ -62,6 +63,52 @@ function audit(target: Inventory, definition = vanillaDefinition) {
 }
 
 describe("auditModule governed content", () => {
+  it("returns Definition findings when YAML alias resolution fails", () => {
+    const result = audit(inventory(), "module: *missing\n");
+    assert.ok(
+      result.findings.some(
+        ({ ruleId, status }) =>
+          ruleId === "MF-DEFINITION-001" && status === "fail",
+      ),
+    );
+  });
+
+  it("returns findings for circular control values", () => {
+    const result = audit(
+      inventory(),
+      "schema_version: 2\ncontract_version: 6\nevidence: &e {self: *e}\n",
+    );
+    assert.ok(
+      result.findings.some(
+        ({ ruleId, status, evidence }) =>
+          ruleId === "MF-DEFINITION-001" &&
+          status === "fail" &&
+          evidence.includes("circular"),
+      ),
+    );
+  });
+
+  it("does not treat inherited object properties as declared evidence", () => {
+    const definition = parse(vanillaDefinition);
+    definition.sources.ntulearn[0].evidence = ["__proto__"];
+    definition.structure.projects = { enabled: true, evidence: ["__proto__"] };
+    definition.evidence = {};
+    const result = audit(inventory(), stringify(definition));
+    assert.ok(
+      result.findings.some(
+        ({ ruleId, status, evidence }) =>
+          ruleId === "MF-DEFINITION-002" &&
+          status === "requires-decision" &&
+          evidence.includes("undeclared evidence"),
+      ),
+    );
+    assert.ok(
+      !result.findings.some(
+        ({ path }) => path === "40 Projects and Labs/10 Projects",
+      ),
+    );
+  });
+
   it("rejects wrong fixed-path case, misplaced controls, and nesting in closed homes [MF-ADMIN-001] [MF-NAMING-001]", () => {
     const target = inventory();
     add(target, "10 Learning Materials/10 lecture materials");

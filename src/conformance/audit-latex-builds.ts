@@ -8,14 +8,19 @@ export function auditLatexBuilds(
   inventory: Inventory,
   importerRoots: ReadonlySet<string>,
 ): Finding[] {
+  const excludedRoots = [...importerRoots];
   const builds = inventory.entries
     .filter(
       ({ path, kind }) =>
         kind === "directory" &&
         basename(path) === "build" &&
-        ![...importerRoots].some((root) => isInsideRoot(path, root)),
+        !excludedRoots.some((root) => isInsideRoot(path, root)),
     )
     .sort((left, right) => left.path.localeCompare(right.path));
+  const sourcesByDirectory =
+    builds.length === 0
+      ? new Map<string, number>()
+      : latexSourceCounts(inventory);
   const failures = builds.flatMap(({ path }): Finding[] => {
     if (path === "build") {
       return [
@@ -29,13 +34,9 @@ export function auditLatexBuilds(
     }
     if (isInsideRoot(path, ".scratch")) return [];
     const workspace = dirname(path);
-    const hasLatexSource = inventory.entries.some(
-      ({ path: candidate, kind }) =>
-        kind === "file" &&
-        extname(candidate).toLowerCase() === ".tex" &&
-        isInsideRoot(candidate, workspace) &&
-        !isInsideRoot(candidate, path),
-    );
+    const hasLatexSource =
+      (sourcesByDirectory.get(workspace) ?? 0) >
+      (sourcesByDirectory.get(path) ?? 0);
     if (!hasLatexSource) {
       return [
         deterministicFailure(
@@ -55,4 +56,20 @@ export function auditLatexBuilds(
     `All ${builds.length} observed build directories are workspace-local or disposable output inside .scratch.`,
     "LaTeX build placement applies whenever a non-importer build directory exists.",
   );
+}
+
+function latexSourceCounts(inventory: Inventory): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const entry of inventory.entries) {
+    if (entry.kind !== "file" || extname(entry.path).toLowerCase() !== ".tex")
+      continue;
+    let directory = dirname(entry.path);
+    while (directory !== ".") {
+      counts.set(directory, (counts.get(directory) ?? 0) + 1);
+      const parent = dirname(directory);
+      if (parent === directory) break;
+      directory = parent;
+    }
+  }
+  return counts;
 }

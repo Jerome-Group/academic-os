@@ -1,4 +1,4 @@
-import { parseDocument } from "yaml";
+import { readControlDocument } from "./control-document.js";
 
 import { isDirectoryName, isRecord, nonEmptyString } from "./value-shape.js";
 
@@ -35,12 +35,9 @@ export function deriveContextualStructure(
       rootPaths: new Set(),
       importerRoots: new Set(["NTULearn"]),
     };
-  const document = parseDocument(definitionSource, {
-    prettyErrors: false,
-    uniqueKeys: true,
-  });
-  const value: unknown = document.toJS();
-  if (document.errors.length > 0 || !isRecord(value)) {
+  const parsed = readControlDocument(definitionSource);
+  const value = "problems" in parsed ? undefined : parsed.value;
+  if (!isRecord(value)) {
     return {
       paths: [],
       rootPaths: new Set(),
@@ -128,7 +125,10 @@ function hasApprovedEvidence(
     Array.isArray(declaration.evidence) &&
     declaration.evidence.length > 0 &&
     declaration.evidence.every(
-      (reference) => nonEmptyString(reference) && isRecord(evidence[reference]),
+      (reference) =>
+        nonEmptyString(reference) &&
+        Object.hasOwn(evidence, reference) &&
+        isRecord(evidence[reference]),
     )
   );
 }

@@ -173,6 +173,31 @@ describe("learning-material availability", () => {
     assert.deepEqual(empty.units, []);
   });
 
+  it("reports unresolved aliases and collection unit keys as invalid", () => {
+    for (const source of [
+      "units: *missing\n",
+      "units:\n  ? [one, two]\n  : {topics: [], lectures: [], textbook: [], tutorials: []}\n",
+    ]) {
+      const assessed = assessLearningMaterials(source, inventory("complete"));
+      assert.equal(assessed.outcome, "invalid");
+      assert.ok(assessed.problems.length > 0);
+      assert.deepEqual(assessed.units, []);
+    }
+  });
+
+  it("retains valid repeated aliases to shared unit fields", () => {
+    const assessed = assessLearningMaterials(
+      "units:\n  One: &unit {topics: [], lectures: [], textbook: [], tutorials: []}\n  Two: *unit\n",
+      inventory("complete"),
+    );
+    assert.equal(assessed.outcome, "gaps");
+    assert.deepEqual(
+      assessed.units.map(({ unit }) => unit),
+      ["One", "Two"],
+    );
+    assert.deepEqual(assessed.problems, []);
+  });
+
   it("keeps YAML unit order when a unit key looks numeric", () => {
     const assessed = assessLearningMaterials(
       `units:

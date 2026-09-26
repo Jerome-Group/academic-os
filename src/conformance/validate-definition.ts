@@ -1,4 +1,4 @@
-import { parseDocument } from "yaml";
+import { readControlDocument } from "./control-document.js";
 
 import { controlFinding, failedControl } from "./control-finding.js";
 import { writtenControlPaths } from "./control-paths.js";
@@ -220,16 +220,10 @@ function parseDefinitionSource(source: string): {
   value: unknown;
   errors: string[];
 } {
-  const document = parseDocument(source, {
-    prettyErrors: false,
-    uniqueKeys: true,
-  });
-  return {
-    value: document.errors.length === 0 ? document.toJS() : undefined,
-    errors: document.errors.map(
-      ({ message }) => `YAML parser reported: ${oneLine(message)}`,
-    ),
-  };
+  const parsed = readControlDocument(source);
+  return "problems" in parsed
+    ? { value: undefined, errors: parsed.problems }
+    : { value: parsed.value, errors: [] };
 }
 
 function validateContextEvidence(value: Record<string, unknown>): string[] {
@@ -328,7 +322,11 @@ function validateReferenceList(
     return;
   }
   for (const reference of declaration.evidence) {
-    if (!nonEmptyString(reference) || !isRecord(evidence[reference])) {
+    if (
+      !nonEmptyString(reference) ||
+      !Object.hasOwn(evidence, reference) ||
+      !isRecord(evidence[reference])
+    ) {
       problems.push(
         `${field} cites undeclared evidence ${renderValue(reference)}.`,
       );
@@ -343,8 +341,4 @@ function semesterNumber(semester: string): number | undefined {
 
 function renderValue(value: unknown): string {
   return value === undefined ? "<missing>" : JSON.stringify(value);
-}
-
-function oneLine(value: string): string {
-  return value.replaceAll(/\s+/g, " ").trim();
 }

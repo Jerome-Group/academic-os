@@ -17,7 +17,7 @@ export function parseArgumentTokens(input: {
   }
   const valueFlags = new Set(input.valueFlags);
   const booleanFlags = new Set(input.booleanFlags);
-  const supported = new Set([input.command, ...valueFlags, ...booleanFlags]);
+  const supported = new Set([...valueFlags, ...booleanFlags]);
   const values = new Map<string, string>();
   const flags = new Set<string>();
   for (let index = 1; index < input.arguments.length; index += 1) {

@@ -1,4 +1,4 @@
-import { parseDocument } from "yaml";
+import { readControlDocument } from "./control-document.js";
 
 import type { ResolvedResearchProject } from "../config/index.js";
 import { researchProjectSharedControlPaths } from "../contract/research-project-structure.js";
@@ -690,13 +690,10 @@ function readYamlRecord(
   source: string | undefined,
 ): Record<string, unknown> | undefined {
   if (source === undefined) return undefined;
-  const document = parseDocument(source, {
-    prettyErrors: false,
-    uniqueKeys: true,
-  });
-  if (document.errors.length > 0) return undefined;
-  const value: unknown = document.toJS();
-  return isRecord(value) ? value : undefined;
+  const parsed = readControlDocument(source);
+  return "problems" in parsed || !isRecord(parsed.value)
+    ? undefined
+    : parsed.value;
 }
 
 function readContractVersion(

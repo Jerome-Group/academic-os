@@ -107,6 +107,30 @@ describe("the Shelf index on a shelf", () => {
     );
   });
 
+  for (const contents of [
+    "books: null\n",
+    "books:\n",
+    "",
+    "# Owner's shelf\nbooks: ~\n",
+    "books: null # Owner's shelf\n",
+  ]) {
+    it(`appends to an empty index ${JSON.stringify(contents)}`, async () => {
+      const shelf = await shelfWithIndex(contents);
+      const store = createFileShelfIndexStore(shelf);
+
+      assert.deepEqual(await store.read(), { books: {} });
+      await store.append([axler]);
+
+      assert.deepEqual(await store.read(), { books: { Axler: axler.entry } });
+      if (contents.includes("#")) {
+        assert.match(
+          await readFile(join(shelf, SHELF_INDEX_FILENAME), "utf8"),
+          /# Owner's shelf/u,
+        );
+      }
+    });
+  }
+
   it("refuses to write over an entry the index already holds", async () => {
     const shelf = await shelfWithIndex(ownerWrittenIndex);
     const store = createFileShelfIndexStore(shelf);

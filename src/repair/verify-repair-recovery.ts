@@ -1,9 +1,11 @@
-import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
-import { readFile, readdir, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { constants } from "node:fs";
+import { lstat, open, readdir } from "node:fs/promises";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { isDeepStrictEqual, promisify } from "node:util";
 
+import { checksumFile } from "../checksum-file.js";
+import { isContainedBy } from "../mounted/is-contained-by.js";
 import type { RepairRecovery } from "./recover-repair.js";
 import { RepairPlanError } from "./plan-repair.js";
 import type { CompleteRepairInventory } from "./types.js";
@@ -47,12 +49,17 @@ export async function verifyRepairRecovery(
     throw new RepairPlanError("Drive retirement root no longer verifies.");
   }
   for (const expected of recovery.bytes.items) {
-    const bytes = await readFile(
-      join(recovery.bytes.path, expected.relativePath),
-    );
+    const fingerprint = await snapshotChecksum(
+      recovery.bytes.path,
+      expected.relativePath,
+    ).catch(() => {
+      throw new RepairPlanError(
+        `Byte recovery copy no longer verifies: ${expected.relativePath}.`,
+      );
+    });
     if (
-      bytes.byteLength !== expected.size ||
-      createHash("sha256").update(bytes).digest("hex") !== expected.sha256
+      fingerprint.size !== BigInt(expected.size) ||
+      fingerprint.sha256 !== expected.sha256
     ) {
       throw new RepairPlanError(
         `Byte recovery copy no longer verifies: ${expected.relativePath}.`,
@@ -60,26 +67,92 @@ export async function verifyRepairRecovery(
     }
   }
   for (const artifact of recovery.bytes.localArtifacts) {
-    const bytes = await readFile(
-      join(recovery.bytes.path, "local-only", artifact.relativePath),
-    );
-    if (createHash("sha256").update(bytes).digest("hex") !== artifact.sha256) {
+    const fingerprint = await snapshotChecksum(
+      recovery.bytes.path,
+      `local-only/${artifact.relativePath}`,
+    ).catch(() => {
+      throw new RepairPlanError(
+        `Local-only recovery no longer verifies: ${artifact.relativePath}.`,
+      );
+    });
+    if (
+      fingerprint.size !== BigInt(artifact.size) ||
+      fingerprint.sha256 !== artifact.sha256
+    ) {
       throw new RepairPlanError(
         `Local-only recovery no longer verifies: ${artifact.relativePath}.`,
       );
     }
   }
-  const manifest = JSON.parse(
-    await readFile(join(recovery.bytes.path, "manifest.json"), "utf8"),
-  ) as unknown;
+  const manifestPath = await ordinarySnapshotPath(
+    recovery.bytes.path,
+    "manifest.json",
+  );
+  const manifestHandle = await open(
+    manifestPath,
+    constants.O_RDONLY | constants.O_NOFOLLOW,
+  );
+  let manifest: unknown;
+  try {
+    if (!(await manifestHandle.stat()).isFile()) {
+      throw new RepairPlanError(
+        "Stored byte recovery manifest is not an ordinary file.",
+      );
+    }
+    manifest = JSON.parse(await manifestHandle.readFile("utf8"));
+  } finally {
+    await manifestHandle.close();
+  }
   if (!isDeepStrictEqual(manifest, recovery.bytes)) {
     throw new RepairPlanError("Stored byte recovery manifest changed.");
   }
   await verifyProtectionRecursively(recovery.bytes.path);
 }
 
+async function snapshotChecksum(root: string, relativePath: string) {
+  const path = await ordinarySnapshotPath(root, relativePath);
+  const result = await checksumFile(path);
+  await ordinarySnapshotPath(root, relativePath);
+  return result;
+}
+
+async function ordinarySnapshotPath(
+  root: string,
+  relativePath: string,
+): Promise<string> {
+  const resolvedRoot = resolve(root);
+  const path = resolve(resolvedRoot, relativePath);
+  if (path === resolvedRoot || !isContainedBy(resolvedRoot, path)) {
+    throw new RepairPlanError(
+      `Byte recovery path escapes its snapshot: ${relativePath}.`,
+    );
+  }
+  let directory = resolvedRoot;
+  const parent = relative(resolvedRoot, dirname(path));
+  for (const component of ["", ...(parent === "" ? [] : parent.split(sep))]) {
+    directory = join(directory, component);
+    const metadata = await lstat(directory);
+    if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
+      throw new RepairPlanError(
+        `Byte recovery path is not an ordinary directory: ${directory}.`,
+      );
+    }
+  }
+  if (!(await lstat(path)).isFile()) {
+    throw new RepairPlanError(
+      `Byte recovery path is not an ordinary file: ${path}.`,
+    );
+  }
+  return path;
+}
+
 async function verifyProtectionRecursively(path: string): Promise<void> {
-  const metadata = await stat(path);
+  const metadata = await lstat(path);
+  if (!metadata.isFile() && !metadata.isDirectory()) {
+    throw new RepairPlanError(
+      `Byte recovery path is not an ordinary file or directory: ${path}.`,
+    );
+  }
   if (metadata.mode & 0o222) {
     throw new RepairPlanError(`Byte recovery path is still writable: ${path}.`);
   }

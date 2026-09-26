@@ -1,6 +1,8 @@
-import { createHash } from "node:crypto";
-import { lstat, readFile, readdir } from "node:fs/promises";
+import { lstat, readdir } from "node:fs/promises";
 import { join } from "node:path";
+
+import { checksumFile } from "../checksum-file.js";
+import { ensureMaterialized } from "../mounted/ensure-materialized.js";
 
 import { repairInventoryPaths } from "./repair-inventory-paths.js";
 import { RepairPlanError } from "./repair-plan-error.js";
@@ -10,6 +12,7 @@ export async function inventoryLocalRepairArtifacts(
   moduleRoot: string,
   driveInventory: CompleteRepairInventory,
 ): Promise<LocalRepairArtifact[]> {
+  await ensureMaterialized(moduleRoot);
   const drivePaths = driveRelativePaths(driveInventory);
   const artifacts: LocalRepairArtifact[] = [];
   await walk(moduleRoot, "", drivePaths, artifacts);
@@ -47,14 +50,14 @@ async function walk(
       );
     }
     if (drivePaths.has(relativePath)) continue;
-    const bytes = await readFile(path);
+    const checksum = await checksumFile(path, metadata);
     artifacts.push({
       relativePath,
       device: String(metadata.dev),
       inode: String(metadata.ino),
       size: String(metadata.size),
       modifiedTime: metadata.mtimeNs.toString(),
-      sha256: createHash("sha256").update(bytes).digest("hex"),
+      sha256: checksum.sha256,
     });
   }
 }

@@ -139,6 +139,38 @@ prototype.request = async function (options) {
     const originalStart = (
       options.params as { originalStart?: string } | undefined
     )?.originalStart;
+    if (originalStart === undefined) {
+      const events = state.events?.[calendarId] ?? [];
+      const master = events.find(
+        (candidate) =>
+          typeof candidate === "object" &&
+          candidate !== null &&
+          "id" in candidate &&
+          candidate.id === seriesId,
+      ) as { start?: unknown } | undefined;
+      return {
+        data: {
+          items: [
+            ...(master?.start === undefined
+              ? []
+              : [
+                  {
+                    id: `${seriesId}-first`,
+                    recurringEventId: seriesId,
+                    originalStartTime: master.start,
+                  },
+                ]),
+            ...events.filter(
+              (candidate) =>
+                typeof candidate === "object" &&
+                candidate !== null &&
+                "recurringEventId" in candidate &&
+                candidate.recurringEventId === seriesId,
+            ),
+          ],
+        },
+      };
+    }
     const instance = state.events?.[calendarId]?.find(
       (candidate) =>
         typeof candidate === "object" &&
@@ -298,8 +330,7 @@ prototype.request = async function (options) {
         candidate.id === eventId,
     );
     await writeFile(statePath, `${JSON.stringify(state)}\n`);
-    if (event === undefined)
-      throw new Error(`Synthetic event ${eventId} not found.`);
+    if (event === undefined) throw { response: { status: 404 } };
     return { data: event };
   }
   if (

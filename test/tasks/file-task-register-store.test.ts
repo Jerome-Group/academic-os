@@ -272,4 +272,46 @@ describe("recoverable selective Task-register writes", () => {
     );
     assert.equal(await readFile(fixture.path, "utf8"), original);
   });
+
+  it("matches reordered live rows and identical drafts to their own YAML annotations", async () => {
+    const contents = `list_id: list-1
+tasks:
+  - task_id: first
+    title: First
+    status: open
+    annotation: first
+  - title: Draft
+    status: open
+    annotation: draft-one
+  - task_id: second
+    title: Second
+    status: open
+    annotation: second
+  - title: Draft
+    status: open
+    annotation: draft-two
+`;
+    const fixture = await seededRegister(contents);
+    const register = await fixture.store.read();
+    assert.ok(register);
+    const [first, draftOne, second, draftTwo] = register.tasks;
+    assert.ok(first && draftOne && second && draftTwo);
+    register.tasks = [second, draftOne, first, draftTwo];
+    second.status = "completed";
+    await fixture.store.write(register);
+    const updated = await readFile(fixture.path, "utf8");
+    const annotations = [...updated.matchAll(/annotation: (.+)/gu)].map(
+      (match) => match[1],
+    );
+    assert.deepEqual(annotations, [
+      "second",
+      "draft-one",
+      "first",
+      "draft-two",
+    ]);
+    assert.deepEqual(
+      (await fixture.store.read())?.tasks.map((row) => row.taskId),
+      ["second", undefined, "first", undefined],
+    );
+  });
 });

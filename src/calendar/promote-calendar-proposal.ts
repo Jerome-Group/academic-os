@@ -110,6 +110,7 @@ export async function promoteCalendarProposal(
   }
   if (
     proposal.operation === "move" &&
+    proposal.recurrenceScope !== "this-and-future" &&
     !(await sourceItemExists(input, proposal))
   ) {
     return await recoverInterruptedMove(input, proposal, eventId);
@@ -720,9 +721,14 @@ async function validateProposal(
     const current = sourceMirror?.items.find(
       ({ event }) => event.id === proposal.sourceItem.eventId,
     )?.event;
+    const trimmedSplit =
+      proposal.operation !== "cancel" &&
+      proposal.recurrenceScope === "this-and-future" &&
+      isAuthorizedTrimmedSplit(proposal, sourceMirror);
     if (
-      current === undefined ||
-      calendarStateDigest(current) !== proposal.sourceItem.versionDigest
+      current === undefined
+        ? !trimmedSplit
+        : calendarStateDigest(current) !== proposal.sourceItem.versionDigest
     ) {
       return "stale";
     }
@@ -736,7 +742,12 @@ async function validateProposal(
           : calendarStateDigest(dependentEvent);
       if (
         digest !== dependency.versionDigest &&
-        digest !== dependency.acceptedTrimmedDigest
+        digest !== dependency.acceptedTrimmedDigest &&
+        !(
+          trimmedSplit &&
+          (dependentEvent === undefined ||
+            dependency.eventId === proposal.sourceItem.recurringEventId)
+        )
       ) {
         return "stale";
       }
@@ -781,6 +792,50 @@ async function validateProposal(
   return "valid";
 }
 
+function isAuthorizedTrimmedSplit(
+  proposal: CalendarChangeProposalCandidate,
+  mirror: Awaited<ReturnType<OwnedCalendarMirrorStore["read"]>>,
+): boolean {
+  const occurrence = proposal.recurringOccurrence;
+  const master = proposal.recurringMaster;
+  if (
+    occurrence === undefined ||
+    master === undefined ||
+    occurrence.id !== proposal.sourceItem.eventId ||
+    calendarStateDigest(occurrence) !== proposal.sourceItem.versionDigest ||
+    master.id !== proposal.sourceItem.recurringEventId ||
+    !proposal.recurrenceDependencies?.some(
+      (dependency) =>
+        dependency.eventId === master.id &&
+        dependency.versionDigest === calendarStateDigest(master),
+    )
+  )
+    return false;
+  const boundary =
+    occurrence.originalStartTime?.dateTime ??
+    occurrence.originalStartTime?.date ??
+    occurrence.start?.dateTime ??
+    occurrence.start?.date;
+  const current = mirror?.items.find(
+    (item) => item.event.id === master.id,
+  )?.event;
+  if (boundary === undefined || current === undefined) return false;
+  const expected: CalendarEvent = {
+    ...master,
+    recurrence: trimCalendarRecurrence(master.recurrence ?? [], boundary),
+  };
+  if (!recurrenceMatches(current.recurrence, expected.recurrence)) return false;
+  const actual: CalendarEvent = {
+    ...current,
+    recurrence: expected.recurrence ?? [],
+  };
+  for (const key of ["etag", "updated", "sequence"]) {
+    delete expected[key];
+    delete actual[key];
+  }
+  return calendarStateDigest(actual) === calendarStateDigest(expected);
+}
+
 function belongsToSourceSeries(
   event: CalendarEvent,
   source: { eventId: string; recurringEventId?: string | undefined },
@@ -815,6 +870,18 @@ async function applyProposal(
         "This-and-future Promotion requires a recurring occurrence.",
       );
     }
+    if (
+      proposal.recurringOccurrence !== undefined &&
+      (proposal.recurringOccurrence.id !== proposal.sourceItem.eventId ||
+        proposal.recurringOccurrence.recurringEventId !== recurringEventId ||
+        calendarStateDigest(proposal.recurringOccurrence) !==
+          proposal.sourceItem.versionDigest)
+    ) {
+      throw new OperationalError(
+        "invalid-target",
+        "The recurring occurrence snapshot does not match the Proposal's bound source version.",
+      );
+    }
     return (
       await writer.splitRecurringEvent({
         sourceCalendarId: proposal.sourceItem.calendarId,
@@ -825,6 +892,9 @@ async function applyProposal(
         idempotencyKey: proposal.idempotencyKey,
         exceptions: proposal.recurrenceExceptions ?? [],
         recurringMaster,
+        ...(proposal.recurringOccurrence === undefined
+          ? {}
+          : { occurrence: proposal.recurringOccurrence }),
       })
     ).eventId;
   }

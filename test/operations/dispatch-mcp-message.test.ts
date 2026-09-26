@@ -183,4 +183,44 @@ describe("the Operations server's MCP surface", () => {
   it("answers ping so a client can prove the mini is reachable", async () => {
     assert.deepEqual((await request("ping")).result, {});
   });
+
+  it("rejects malformed request envelopes before invoking a tool", async () => {
+    let calls = 0;
+    const local = createMcpDispatcher({
+      serverInfo,
+      tools: [
+        {
+          ...refuses,
+          call: async () => {
+            calls += 1;
+            return { report: {}, failed: false };
+          },
+        },
+      ],
+    });
+    const base = { method: "tools/call", params: { name: "refuses" } };
+    for (const envelope of [
+      { ...base, id: 1 },
+      { ...base, jsonrpc: "1.0", id: 1 },
+      { ...base, jsonrpc: "2.0", id: {} },
+      { ...base, jsonrpc: "2.0", id: true },
+      { ...base, jsonrpc: "2.0", id: Number.NaN },
+    ]) {
+      const answer = await local(envelope);
+      assert.equal(answer?.error?.code, -32600);
+      assert.equal(answer?.id, null);
+    }
+    assert.equal(calls, 0);
+  });
+
+  it("answers an explicit null ID as a request", async () => {
+    assert.deepEqual(
+      await dispatch({ jsonrpc: "2.0", id: null, method: "ping" }),
+      {
+        jsonrpc: "2.0",
+        id: null,
+        result: {},
+      },
+    );
+  });
 });

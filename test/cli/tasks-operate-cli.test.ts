@@ -166,6 +166,30 @@ describe("academic-os tasks create", () => {
     );
   });
 
+  it("renders an accepted create without a returned ID as unverified in JSON and human output", async () => {
+    const fixture = await setupFixture();
+    await writeFile(fixture.register, seededRegister);
+    await patchProvider(fixture, { taskCreateIdsMissing: true });
+    const jsonResult = await runTasks(
+      fixture,
+      "create",
+      "--title",
+      "Created",
+      "--json",
+    );
+    const humanResult = await runTasks(fixture, "create", "--title", "Created");
+    const report = JSON.parse(jsonResult.stdout);
+    assert.equal(jsonResult.exitCode, 2);
+    assert.equal(report.outcome, "unverified");
+    assert.equal(report.taskId, null);
+    assert.equal(humanResult.exitCode, 2);
+    assert.match(
+      humanResult.stdout,
+      /live result unverified, task ID unknown/u,
+    );
+    assert.equal(await readFile(fixture.register, "utf8"), seededRegister);
+  });
+
   it("reports a push Google took but did not record as unverified, not parked", async () => {
     const fixture = await setupFixture();
     await writeFile(fixture.register, seededRegister);

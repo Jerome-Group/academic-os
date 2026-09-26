@@ -30,7 +30,10 @@ import {
   validateResearchProjectTaskProvenance,
   validateResearchProjectTaskRegister,
 } from "./validate-research-project-controls.js";
-import { validateResearchProjectDefinition } from "./validate-research-project-definition.js";
+import {
+  supportedResearchContractVersion,
+  validateResearchProjectDefinition,
+} from "./validate-research-project-definition.js";
 import { isRecord } from "./value-shape.js";
 
 export interface ProposedResearchConformanceOperation {
@@ -624,7 +627,7 @@ function proposedOperations(
 function assertUsableContract(contract: ResearchProjectContract): void {
   const rules = applicableResearchRuleIds(contract);
   if (
-    contract.version !== 2 ||
+    contract.version !== supportedResearchContractVersion ||
     contract.ruleIds.length === 0 ||
     rules.size !== contract.ruleIds.length ||
     contract.universalStructure.length === 0 ||

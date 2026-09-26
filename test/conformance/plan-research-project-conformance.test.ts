@@ -22,7 +22,7 @@ const target: ResolvedResearchProject = {
   status: "active",
   profile: "ureca",
 };
-const definition = `contract_version: 2
+const definition = `contract_version: 3
 project:
   key: ureca-y2
   folder: URECA Y2

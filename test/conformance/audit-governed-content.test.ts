@@ -76,7 +76,7 @@ describe("auditModule governed content", () => {
   it("returns findings for circular control values", () => {
     const result = audit(
       inventory(),
-      "schema_version: 2\ncontract_version: 6\nevidence: &e {self: *e}\n",
+      "schema_version: 2\ncontract_version: 7\nevidence: &e {self: *e}\n",
     );
     assert.ok(
       result.findings.some(

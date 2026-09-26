@@ -6,7 +6,7 @@ not a rule. A Research project is the distinct aggregate recorded in
 [`docs/adr/0024`](adr/0024-research-projects-are-not-modules.md); it is not a Module and inherits no
 semester, module-code or NTULearn requirement.
 
-**Contract version: 2.** Increase it when a normative requirement, applicability rule or allowed
+**Contract version: 3.** Increase it when a normative requirement, applicability rule or allowed
 structure changes. Rules have stable IDs. **Deterministic** rules are decided without judgment;
 **judgment** rules expose evidence for a person or agent to resolve. Project contents live outside
 this public repository under [`docs/adr/0002`](adr/0002-the-contract-lives-here-and-the-coursework-does-not.md).
@@ -28,10 +28,12 @@ The step completes when every proposed fact has an evidence status and every unk
 the seed is visible. Unsupported detail stays unknown.
 
 **RP-SEED-002 (deterministic).** Seed is additive. A conflict blocks all planned creation. A new
-project is built in a uniquely marked staging folder, audited, then atomically renamed to its exact
-configured folder. Additions to an existing folder are journalled and idempotent; interruption is
-reported and resumed rather than hidden. Seed never renames, removes or overwrites existing
-content.
+project is built in a uniquely marked staging folder and audited before its exact configured folder
+is claimed exclusively. The journal records the root device/inode before additive publication,
+preserving a target that appeared after approval rather than replacing it through directory rename.
+Partial publication is visible; resume requires the same recorded root. Additions to an existing
+folder are journalled and idempotent; interruption is reported and resumed rather than hidden.
+Seed never renames, removes or overwrites existing content.
 
 An approved initial intake may join that same plan through a private manifest:
 
@@ -187,11 +189,11 @@ generic seed-source template never does.
 ### Definition
 
 **RP-DEFINITION-001 (deterministic).** `10 Project Definition.yaml` is the closed machine authority
-for contract version, project identity, programme profile and identity-evidence status. Version 2
-has exactly this shape:
+for contract version, project identity, programme profile and identity-evidence status. Version 3
+retains version 2's fields with the current contract stamp:
 
 ```yaml
-contract_version: 2
+contract_version: 3
 project:
   key: example-project
   folder: Example Project
@@ -211,7 +213,8 @@ structure, inventories or research progress.
 
 A v1 Definition reports a migration requirement. Preview the complete meeting-centred projected
 state, preserve every historical artifact and pointer, then write the Definition last. Existing
-contents never become v2 merely because some v2 paths happen to exist.
+contents never satisfy the current contract merely because its paths happen to exist. A version-2
+folder keeps its layout and needs only reviewed acknowledgement of version 3 in the Definition.
 
 **RP-DEFINITION-002 (deterministic).** Definition key, folder, status and profile agree with the
 configured target; an omitted configuration profile resolves to `generic`. The declared profile
@@ -491,7 +494,7 @@ semester and is unchanged. One Research project's operational failure does not d
 Module or Research-project reports. Observations carry paths and metadata, never project contents,
 and live outside git.
 
-**RP-TRANSITION-001 (judgment).** A pre-contract or v1 folder reaches version 2 through a private,
+**RP-TRANSITION-001 (judgment).** A pre-contract or v1 folder reaches version 3 through a private,
 target-scoped plan. Inventory it read-only; map existing meeting sources, Learning, Exercises,
 records and Research artifacts without changing their meaning; preserve originals and every stable
 identity. Preview exact paths, edit regions and hashes. Apply only under explicit target authority,

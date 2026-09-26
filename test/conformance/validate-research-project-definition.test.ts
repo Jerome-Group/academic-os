@@ -19,7 +19,7 @@ const target: ResolvedResearchProject = {
   taskListTitle: "URECA Y2",
 };
 
-const definition = `contract_version: 2
+const definition = `contract_version: 3
 project:
   key: ureca-y2
   folder: URECA Y2
@@ -32,7 +32,7 @@ evidence:
 `;
 
 describe("research-project Definition", () => {
-  it("accepts the exact v2 shape and configured identity", () => {
+  it("accepts the exact v3 contract shape and configured identity", () => {
     const findings = validateResearchProjectDefinition(definition, target);
 
     assert.deepEqual(
@@ -45,9 +45,18 @@ describe("research-project Definition", () => {
     assert.equal(readResearchProjectProfile(definition), "ureca");
   });
 
+  it("requires a reviewed version acknowledgement from v2 without structural migration", () => {
+    const findings = validateResearchProjectDefinition(
+      definition.replace("contract_version: 3", "contract_version: 2"),
+      target,
+    );
+    assert.equal(findings[0]?.status, "fail");
+    assert.match(findings[0]?.evidence ?? "", /folder structure is unchanged/u);
+  });
+
   it("requires an explicit migration from v1", () => {
     const findings = validateResearchProjectDefinition(
-      definition.replace("contract_version: 2", "contract_version: 1"),
+      definition.replace("contract_version: 3", "contract_version: 1"),
       target,
     );
 

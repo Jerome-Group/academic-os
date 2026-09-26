@@ -154,7 +154,7 @@ async function writeConformantResearchProject(
       profile: "ureca",
     },
     profile: validResearchProfile(folder),
-    definition: `contract_version: 2
+    definition: `contract_version: 3
 project:
   key: example-project
   folder: ${folder}
@@ -454,7 +454,7 @@ it("queues a lagging cohort module for transition and touches nothing [MF-TRANSI
     module.findings.find(
       ({ ruleId }: { ruleId: string }) => ruleId === "MF-DEFINITION-001",
     )?.evidence ?? "",
-    /contract_version 3 requires upgrade to requested version 6/u,
+    /contract_version 3 requires upgrade to requested version 7/u,
   );
   recordBehaviorEvidence("MF-TRANSITION-001", () => {
     assert.equal(

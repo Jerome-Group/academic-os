@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import {
   access,
+  lstat,
   mkdir,
   mkdtemp,
   readFile,
@@ -68,7 +69,7 @@ describe("seedMountedResearchProject", () => {
     const journal = await onlyResearchJournal(fixture.stateRoot);
     assert.equal(journal[0]?.target.kind, "research-project");
     assert.equal(journal[0]?.target.projectKey, "ureca-y2");
-    assert.equal(journal[0]?.preconditions.contractVersion, 2);
+    assert.equal(journal[0]?.preconditions.contractVersion, 3);
     assert.equal(journal.at(-1)?.outcome, "completed");
   });
 
@@ -94,7 +95,28 @@ describe("seedMountedResearchProject", () => {
     });
   });
 
-  it("publishes an absent project atomically", async () => {
+  it("preserves an empty project appearing before its exclusive root claim", async () => {
+    const fixture = await researchSeedFixture({ existing: false });
+    let inode: number | undefined;
+    const report = await seedMountedResearchProject(
+      fixture.config,
+      fixture.plan,
+      "apply",
+      {
+        checkpoint: async ({ checkpoint }) => {
+          if (checkpoint === "during-publication" && inode === undefined) {
+            await mkdir(fixture.projectRoot);
+            inode = (await lstat(fixture.projectRoot)).ino;
+          }
+        },
+      },
+    );
+    assert.equal(report.outcome, "blocked");
+    assert.equal((await lstat(fixture.projectRoot)).ino, inode);
+    assert.deepEqual(await readdir(fixture.projectRoot), []);
+  });
+
+  it("claims an absent project exclusively and publishes additively", async () => {
     const fixture = await researchSeedFixture({ existing: false });
 
     const report = await seedMountedResearchProject(
@@ -361,7 +383,7 @@ async function researchSeedFixture(
     },
   };
   const contract = await loadResearchProjectContract();
-  const definition = `contract_version: 2
+  const definition = `contract_version: 3
 project:
   key: ureca-y2
   folder: URECA Y2

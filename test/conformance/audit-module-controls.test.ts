@@ -486,11 +486,11 @@ describe("auditModuleControls", () => {
     );
   });
 
-  it("requires a version-5 module to transition to version 6", () => {
+  it("requires a version-5 module to transition to version 7", () => {
     const controls = validModuleControls();
     controls.definition =
       controls.definition?.replace(
-        "contract_version: 6",
+        "contract_version: 7",
         "contract_version: 5",
       ) ?? "";
 
@@ -507,7 +507,7 @@ describe("auditModuleControls", () => {
     assert.match(
       result.findings.find(({ ruleId }) => ruleId === "MF-DEFINITION-001")
         ?.evidence ?? "",
-      /contract_version 5 requires upgrade to requested version 6/u,
+      /contract_version 5 requires upgrade to requested version 7/u,
     );
   });
 
@@ -516,7 +516,7 @@ describe("auditModuleControls", () => {
     controls.definition =
       controls.definition
         ?.replace("schema_version: 2", "schema_version: 3")
-        .replace("contract_version: 6", "contract_version: 7") ?? "";
+        .replace("contract_version: 7", "contract_version: 8") ?? "";
 
     const result = auditModuleControls(
       {
@@ -536,7 +536,7 @@ describe("auditModuleControls", () => {
     );
     assert.match(
       versionFinding?.evidence ?? "",
-      /Unsupported contract_version 7/u,
+      /Unsupported contract_version 8/u,
     );
     assert.equal(
       result.findings.filter(({ ruleId }) => ruleId === "MF-DEFINITION-001")

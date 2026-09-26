@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import {
   access,
+  lstat,
+  rename,
+  symlink,
   mkdir,
   mkdtemp,
   readFile,
@@ -111,8 +114,203 @@ describe("seedMountedModule", () => {
         journal[0]?.stagingRoot ?? "",
         /\.academic-os-stage-MH2100-[0-9a-f-]+$/u,
       );
-      assert.equal(journal[0]?.preconditions?.contractVersion, 6);
+      assert.equal(journal[0]?.preconditions?.contractVersion, 7);
       assert.equal(journal.at(-1)?.outcome, "completed");
+    });
+  }
+
+  it("preserves an empty target appearing immediately before publication", async () => {
+    const fixture = await mountedSeedFixture();
+    const target = join(fixture.semesterRoot, "MH2100");
+    let inode: number | undefined;
+    const report = await seedMountedModule(
+      fixture.config,
+      fixture.plan,
+      "apply",
+      {
+        checkpoint: async ({ checkpoint }) => {
+          if (checkpoint === "during-publication" && inode === undefined) {
+            await mkdir(target);
+            inode = (await lstat(target)).ino;
+          }
+        },
+      },
+    );
+    assert.equal(report.outcome, "blocked");
+    assert.equal((await lstat(target)).ino, inode);
+    assert.deepEqual(await readdir(target), []);
+    assert.equal(
+      (await readOnlySeedJournal(fixture.stateRoot)).some(
+        ({ type }) => type === "root-claimed",
+      ),
+      false,
+    );
+  });
+
+  it("resumes additive publication only into its durably claimed root", async () => {
+    const fixture = await mountedSeedFixture();
+    const target = join(fixture.semesterRoot, "MH2100");
+    await assert.rejects(
+      seedMountedModule(fixture.config, fixture.plan, "apply", {
+        checkpoint: async ({ checkpoint, operation }) => {
+          if (checkpoint === "during-publication" && operation !== undefined)
+            throw new Error("synthetic claimed-root interruption");
+        },
+      }),
+      /synthetic claimed-root interruption/u,
+    );
+    const inode = (await lstat(target)).ino;
+    const events = await readOnlySeedJournal(fixture.stateRoot);
+    assert.equal(
+      events.filter(({ type }) => type === "root-claimed").length,
+      1,
+    );
+    assert.equal(
+      (await seedMountedModule(fixture.config, fixture.plan, "apply")).outcome,
+      "safely-resumable",
+    );
+    assert.equal(
+      (
+        await seedMountedModule(fixture.config, fixture.plan, "apply", {
+          resume: true,
+        })
+      ).outcome,
+      "completed",
+    );
+    assert.equal((await lstat(target)).ino, inode);
+    assert.equal(
+      (await readOnlySeedJournal(fixture.stateRoot)).filter(
+        ({ type }) => type === "root-claimed",
+      ).length,
+      1,
+    );
+  });
+
+  it("refuses an interrupted target with no recorded root claim", async () => {
+    const fixture = await interruptedPublicationFixture(false);
+    const target = join(fixture.semesterRoot, "MH2100");
+    await mkdir(target);
+    const inode = (await lstat(target)).ino;
+    const report = await seedMountedModule(
+      fixture.config,
+      fixture.plan,
+      "apply",
+      { resume: true },
+    );
+    assert.equal(report.outcome, "blocked");
+    assert.match(report.evidence.join("\n"), /root claim/u);
+    assert.equal((await lstat(target)).ino, inode);
+    assert.deepEqual(await readdir(target), []);
+  });
+
+  it("refuses a missing claimed root before offering resume", async () => {
+    const fixture = await interruptedPublicationFixture();
+    const target = join(fixture.semesterRoot, "MH2100");
+    await rm(target, { recursive: true });
+    for (const resume of [false, true]) {
+      const report = await seedMountedModule(
+        fixture.config,
+        fixture.plan,
+        "apply",
+        { resume },
+      );
+      assert.equal(report.outcome, "blocked");
+      assert.match(report.evidence.join("\n"), /root claim/u);
+      await assert.rejects(access(target), /ENOENT/u);
+    }
+  });
+
+  it("verifies completed legacy journals without rewriting them", async () => {
+    const fixture = await mountedSeedFixture();
+    assert.equal(
+      (await seedMountedModule(fixture.config, fixture.plan, "apply")).outcome,
+      "completed",
+    );
+    const path = await onlyJournalPath(fixture.stateRoot);
+    const legacy =
+      (await readOnlySeedJournal(fixture.stateRoot))
+        .filter(({ type }) => type !== "root-claimed")
+        .map((event, sequence) => JSON.stringify({ ...event, sequence }))
+        .join("\n") + "\n";
+    await writeFile(path, legacy);
+    assert.equal(
+      (
+        await seedMountedModule(fixture.config, fixture.plan, "apply", {
+          resume: true,
+        })
+      ).outcome,
+      "completed",
+    );
+    assert.equal(await readFile(path, "utf8"), legacy);
+  });
+
+  it("refuses duplicate root claims as an ambiguous journal", async () => {
+    const fixture = await mountedSeedFixture();
+    await assert.rejects(
+      seedMountedModule(fixture.config, fixture.plan, "apply", {
+        checkpoint: async ({ checkpoint, operation }) => {
+          if (checkpoint === "during-publication" && operation !== undefined)
+            throw new Error("synthetic claimed interruption");
+        },
+      }),
+      /synthetic claimed interruption/u,
+    );
+    const events = await readOnlySeedJournal(fixture.stateRoot);
+    const claim = events.find(({ type }) => type === "root-claimed");
+    await writeFile(
+      await onlyJournalPath(fixture.stateRoot),
+      JSON.stringify({ ...claim, sequence: events.length }) + "\n",
+      { flag: "a" },
+    );
+    const report = await seedMountedModule(
+      fixture.config,
+      fixture.plan,
+      "apply",
+      { resume: true },
+    );
+    assert.equal(report.outcome, "blocked");
+    assert.match(report.evidence.join("\n"), /ambiguous journal lifecycle/u);
+  });
+
+  for (const replacement of ["directory", "symlink"] as const) {
+    it(`blocks a claimed root replaced by a ${replacement} during publication`, async () => {
+      const fixture = await mountedSeedFixture();
+      const target = join(fixture.semesterRoot, "MH2100");
+      const parked = join(fixture.semesterRoot, "parked-synthetic-target");
+      let replaced = false;
+      const report = await seedMountedModule(
+        fixture.config,
+        fixture.plan,
+        "apply",
+        {
+          checkpoint: async ({ checkpoint, operation }) => {
+            if (
+              replaced ||
+              checkpoint !== "during-publication" ||
+              operation === undefined
+            )
+              return;
+            replaced = true;
+            await rename(target, parked);
+            if (replacement === "directory") await mkdir(target);
+            else await symlink(parked, target, "dir");
+          },
+        },
+      );
+      assert.equal(report.outcome, "blocked");
+      assert.match(report.evidence.join("\n"), /root claim/u);
+      assert.deepEqual(await readdir(parked), [
+        fixture.plan.operations[0]?.path,
+      ]);
+      if (replacement === "directory")
+        assert.deepEqual(await readdir(target), []);
+      const resumed = await seedMountedModule(
+        fixture.config,
+        fixture.plan,
+        "apply",
+        { resume: true },
+      );
+      assert.equal(resumed.outcome, "blocked");
     });
   }
 
@@ -400,13 +598,17 @@ async function mountedSeedFixture() {
   };
 }
 
-async function interruptedPublicationFixture() {
+async function interruptedPublicationFixture(afterClaim = true) {
   const fixture = await mountedSeedFixture();
   let interrupted = false;
   await assert.rejects(
     seedMountedModule(fixture.config, fixture.plan, "apply", {
-      checkpoint: async ({ checkpoint }) => {
-        if (!interrupted && checkpoint === "during-publication") {
+      checkpoint: async ({ checkpoint, operation }) => {
+        if (
+          !interrupted &&
+          checkpoint === "during-publication" &&
+          (!afterClaim || operation !== undefined)
+        ) {
           interrupted = true;
           throw new Error("synthetic publication interruption");
         }

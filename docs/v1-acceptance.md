@@ -8,7 +8,7 @@ Direct compiled-CLI tests exercise vanilla and conventional modules; CC-style gr
 tutorials; projects, labs, optional assessments and importer roots; malformed controls, drift,
 ambiguity and conflicts. Deterministic crash-injection tests use the mounted executor seam for
 every interruption phase. The suite also proves preview and audit do not mutate module trees,
-apply is additive, a new final module tree appears only through atomic publication, conflicts
+apply is additive, a new final module root is claimed exclusively before journalled publication, conflicts
 block, and the Drive client exposes metadata reads only.
 
 The rule-coverage gate compares normative Markdown IDs with machine-recorded evidence emitted

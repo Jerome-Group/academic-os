@@ -6,7 +6,7 @@ import { loadResearchProjectContract } from "../../src/contract/load-research-pr
 it("loads every research seed-source template at its destination path", async () => {
   const contract = await loadResearchProjectContract();
 
-  assert.equal(contract.version, 2);
+  assert.equal(contract.version, 3);
   assert.match(
     contract.seedFiles["AGENTS.md"] ?? "",
     /Owner authors mathematics/u,

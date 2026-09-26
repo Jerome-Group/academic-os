@@ -25,7 +25,7 @@ const target: ResolvedResearchProject = {
   profile: "ureca",
 };
 
-const definition = `contract_version: 2
+const definition = `contract_version: 3
 project:
   key: example-project
   folder: Example Project

@@ -5,10 +5,10 @@ with an applicable rule here is wrong, and a rule that is not here is not a rule
 outside a module folder is governed too, and it is the only one: the shared Textbook shelf at
 `Modules/Textbooks`, which every module cuts its chapters from.
 
-**Contract version: 6.** Increase it when a normative requirement, applicability rule or allowed
+**Contract version: 7.** Increase it when a normative requirement, applicability rule or allowed
 structure changes. Editorial clarification and repaired citations do not change it. Definition and
 Curation-register schema versions advance independently, which is how the register reached version 3
-while this contract reached 6.
+while this contract reached 7.
 
 Rules have stable IDs. **Deterministic** rules are decided without judgment; **judgment** rules
 must expose their evidence for an agent or person to resolve. The folders live outside this
@@ -32,8 +32,10 @@ asks for — [`docs/adr/0012`](adr/0012-a-date-is-a-calendar-day-and-a-stamp-is-
 6. Preview the complete seed plan; apply only on explicit instruction.
 
 **MF-SEED-002 (deterministic).** Seed is additive. A conflict blocks all planned creation. A new
-module is built in a uniquely marked staging folder, validated, then atomically renamed to its
-module code so no partial final tree becomes visible. Additions to an existing folder are
+module is built in a uniquely marked staging folder and validated before its final directory is
+claimed exclusively. The journal records the root device/inode before additive publication, preserving
+a target that appeared after approval rather than replacing it through directory rename. Partial
+publication is visible; resume requires the same recorded root. Additions to an existing folder are
 journalled and idempotent; interruption is reported and resumed rather than hidden. Seed never
 renames or removes existing material.
 
@@ -170,11 +172,11 @@ schema and contract versions, module identity, offering, applicable context-deri
 declared importer roots and their evidence. It contains module-relative paths only: no absolute
 Drive paths, credentials, deadlines, prose workflows, inventories or learner progress.
 
-The schema version 2 shape for contract version 6 is:
+The schema version 2 shape for contract version 7 is:
 
 ```yaml
 schema_version: 2
-contract_version: 6
+contract_version: 7
 module: { code: MH2100, title: Calculus III }
 offering: { academic_year: 2026-2027, semester: 1, status: active }
 structure:

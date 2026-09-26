@@ -13,7 +13,7 @@ const workOrder = {
   schemaVersion: 1,
   module: { code: "AB1234", semester: "Y2S1" },
   observedAt: "2026-08-23T06:00:00+08:00",
-  contractVersion: 6,
+  contractVersion: 7,
   audit: {
     outcome: "deviation",
     findings: [],

@@ -1,4 +1,4 @@
-contract_version: 2
+contract_version: 3
 project:
   key: example-project
   folder: "{{PROJECT_NAME}}"

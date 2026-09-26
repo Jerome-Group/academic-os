@@ -5,6 +5,8 @@ import { basename, dirname, join, resolve } from "node:path";
 import type { SeedMode, SeedOperation, SeedOutcome } from "../seed/index.js";
 import {
   publishSeedPlan,
+  claimedSeedRootMatches,
+  seedRootClaim,
   seedCheckpoint,
   type SeedExecutionFailure,
   stageSeedPlan,
@@ -122,8 +124,26 @@ export async function seedMountedTarget(
     }
     const finalEvent = journal.events.at(-1);
     if (finalEvent?.type === "outcome" && finalEvent.outcome === "completed") {
+      if (
+        seedRootClaim(journal) !== undefined &&
+        !(await claimedSeedRootMatches(journal, targetRoot))
+      )
+        return blockedResult(current, [
+          "Completed publication root claim no longer verifies.",
+        ]);
       return await reportCompletedTarget(adapter);
     }
+  }
+  if (
+    journal !== undefined &&
+    journal.started.preconditions.targetState === "absent" &&
+    (seedRootClaim(journal) !== undefined ||
+      (await optionalLstat(targetRoot)) !== undefined) &&
+    !(await claimedSeedRootMatches(journal, targetRoot))
+  ) {
+    return blockedResult(current, [
+      "Publication target has no matching durable root claim; resume refused.",
+    ]);
   }
   if (current.conflicts.length > 0) {
     return blockedResult(current, current.conflicts);
@@ -211,6 +231,17 @@ export async function seedMountedTarget(
   }
   await seedCheckpoint(options, "after-publication");
 
+  if (
+    activeJournal.started.preconditions.targetState === "absent" &&
+    !(await claimedSeedRootMatches(activeJournal, targetRoot))
+  ) {
+    return await finalizeFailure(activeJournal, adapter, {
+      outcome: "blocked",
+      phase: "verification",
+      evidence:
+        "Publication target root claim changed before final verification.",
+    });
+  }
   const finalAudit = await adapter.auditTarget();
   if (finalAudit.length > 0) {
     return await finalizeFailure(activeJournal, adapter, {

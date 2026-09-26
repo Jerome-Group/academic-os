@@ -814,12 +814,20 @@ node dist/src/cli.js seed --config academic-os.config.json \
 ```
 
 Review every operation, then add `--apply`. Apply is additive: any conflict blocks publication;
-existing content is never overwritten, moved, renamed or removed. A new module becomes visible at
-its final code only through one atomic rename of its complete validated staging tree. An
+existing content is never overwritten, moved, renamed or removed. After validating the staging tree,
+apply claims a new final directory exclusively and durably records its device/inode before adding
+files. This preserves a folder that appeared after approval: directory rename could replace an empty
+folder. Publication can leave a partial target; resume requires the recorded root identity. A root
+created without a durable claim after interruption refuses resume and needs manual reconciliation. An
 interrupted apply retains its append-only journal under `stateRoot`. Rerun without `--resume` to
 recheck the target and show completed/remaining operations; continue only when it reports
 `safely-resumable`, using `--apply --resume`. Keep that journal as recovery evidence until the
 result is settled.
+
+Module contract 7 and Research-project contract 3 change publication conduct only. Existing
+version-6 Modules and version-2 Research projects retain their layouts; deliberately review the
+new contract and acknowledge its version in the locally authored Definition. Pinned refresh does
+not own that stamp. Earlier versions retain their structural transition requirements.
 
 Every seed includes `CONTEXT.md` as the module glossary and an initially empty `docs/adr/` for
 decisions; an empty ADR directory means no qualifying decision has yet been recorded. It also writes

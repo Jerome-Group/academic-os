@@ -53,8 +53,15 @@ export interface SeedJournalStarted extends SeedJournalBase {
   stagingRoot: string;
 }
 
+export interface SeedRootClaim {
+  type: "root-claimed";
+  device: string;
+  inode: string;
+}
+
 export type SeedJournalEvent =
   | SeedJournalStarted
+  | (SeedJournalBase & SeedRootClaim)
   | (SeedJournalBase & {
       type: "operation-completed";
       phase: "staging" | "publication";
@@ -74,6 +81,7 @@ export type SeedJournalEvent =
     });
 
 type SeedJournalAppendEvent =
+  | SeedRootClaim
   | {
       type: "operation-completed";
       phase: "staging" | "publication";
@@ -257,6 +265,14 @@ function isSeedJournalEvent(value: unknown): value is SeedJournalEvent {
       isSeedPreconditions(event.preconditions)
     );
   }
+  if (event.type === "root-claimed") {
+    return (
+      typeof event.device === "string" &&
+      /^\d+$/u.test(event.device) &&
+      typeof event.inode === "string" &&
+      /^\d+$/u.test(event.inode)
+    );
+  }
   if (event.type === "operation-completed") {
     return (
       ["staging", "publication"].includes(String(event.phase)) &&
@@ -280,6 +296,8 @@ function isSeedJournalEvent(value: unknown): value is SeedJournalEvent {
 
 function hasValidJournalLifecycle(events: SeedJournalEvent[]): boolean {
   const completedOperations = new Set<string>();
+  let claimed = false;
+  let published = false;
   for (let index = 1; index < events.length; index += 1) {
     const event = events[index];
     const previous = events[index - 1];
@@ -300,7 +318,19 @@ function hasValidJournalLifecycle(events: SeedJournalEvent[]): boolean {
     ) {
       return false;
     }
+    if (event.type === "root-claimed") {
+      const started = events[0];
+      if (
+        claimed ||
+        published ||
+        started?.type !== "started" ||
+        started.preconditions.targetState !== "absent"
+      )
+        return false;
+      claimed = true;
+    }
     if (event.type === "operation-completed") {
+      if (event.phase === "publication") published = true;
       const key = `${event.phase}\u0000${event.operation.path}`;
       if (completedOperations.has(key)) return false;
       completedOperations.add(key);

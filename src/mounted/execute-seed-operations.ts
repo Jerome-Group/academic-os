@@ -1,10 +1,11 @@
-import { mkdir, rename } from "node:fs/promises";
+import { mkdir, realpath } from "node:fs/promises";
 
 import type { SeedOperation } from "../seed/index.js";
 import { ensureMaterialized } from "./ensure-materialized.js";
 import {
   appendSeedJournalEvent,
   type SeedJournal,
+  type SeedRootClaim,
 } from "./seed-operation-journal.js";
 import {
   createSeedOperation,
@@ -55,45 +56,56 @@ export async function publishSeedPlan(
   operations: SeedOperation[],
   options: SeedExecutionOptions,
 ): Promise<SeedExecutionFailure | undefined> {
-  const targetMetadata = await optionalLstat(targetRoot);
+  let targetMetadata = await optionalLstat(targetRoot);
+  let identity: Pick<SeedRootClaim, "device" | "inode">;
   if (journal.started.preconditions.targetState === "absent") {
-    if (targetMetadata !== undefined) {
-      return {
-        outcome: "blocked",
-        phase: "publication",
-        evidence: `Publication target ${targetLabel} appeared after approval.`,
+    const claim = seedRootClaim(journal);
+    if (claim === undefined) {
+      if (targetMetadata !== undefined) return publicationBlocked(targetLabel);
+      await options.checkpoint?.({ checkpoint: "during-publication" });
+      try {
+        // mkdir claims the name exclusively; rename would replace an empty target.
+        await mkdir(targetRoot);
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          "code" in error &&
+          error.code === "EEXIST"
+        )
+          return publicationBlocked(targetLabel);
+        return {
+          outcome: "partially-completed",
+          phase: "publication",
+          evidence: errorMessage(
+            error,
+            `Could not claim target ${targetLabel}.`,
+          ),
+        };
+      }
+      targetMetadata = await optionalLstat(targetRoot);
+      if (targetMetadata === undefined || !targetMetadata.isDirectory())
+        return publicationBlocked(targetLabel);
+      identity = {
+        device: String(targetMetadata.dev),
+        inode: String(targetMetadata.ino),
       };
+      await appendSeedJournalEvent(journal, {
+        type: "root-claimed",
+        ...identity,
+      });
+    } else {
+      identity = claim;
     }
-    await options.checkpoint?.({ checkpoint: "during-publication" });
-    try {
-      await rename(journal.started.stagingRoot, targetRoot);
-      return undefined;
-    } catch (error) {
-      return {
-        outcome: "partially-completed",
-        phase: "publication",
-        evidence: errorMessage(
-          error,
-          `Could not publish the complete staged target ${targetLabel}.`,
-        ),
-      };
-    }
-  }
-  if (
-    targetMetadata !== undefined &&
-    (targetMetadata.isSymbolicLink() || !targetMetadata.isDirectory())
-  ) {
-    return {
-      outcome: "blocked",
-      phase: "publication",
-      evidence: `Publication target ${targetLabel} is not an ordinary directory.`,
-    };
-  }
-  if (targetMetadata === undefined) {
-    return {
-      outcome: "blocked",
-      phase: "publication",
-      evidence: `Approved partial target ${targetLabel} disappeared before publication.`,
+  } else {
+    if (
+      targetMetadata === undefined ||
+      !targetMetadata.isDirectory() ||
+      targetMetadata.isSymbolicLink()
+    )
+      return publicationBlocked(targetLabel);
+    identity = {
+      device: String(targetMetadata.dev),
+      inode: String(targetMetadata.ino),
     };
   }
   return await applyOperations({
@@ -103,7 +115,42 @@ export async function publishSeedPlan(
     phase: "publication",
     checkpoint: "during-publication",
     options,
+    verifyRoot: () => rootMatches(targetRoot, identity),
   });
+}
+
+export function seedRootClaim(journal: SeedJournal): SeedRootClaim | undefined {
+  return journal.events.find((event) => event.type === "root-claimed");
+}
+
+export async function claimedSeedRootMatches(
+  journal: SeedJournal,
+  root: string,
+): Promise<boolean> {
+  const claim = seedRootClaim(journal);
+  return claim !== undefined && (await rootMatches(root, claim));
+}
+
+async function rootMatches(
+  root: string,
+  identity: Pick<SeedRootClaim, "device" | "inode">,
+): Promise<boolean> {
+  const metadata = await optionalLstat(root);
+  return (
+    metadata?.isDirectory() === true &&
+    (await realpath(root)) === root &&
+    !metadata.isSymbolicLink() &&
+    String(metadata.dev) === identity.device &&
+    String(metadata.ino) === identity.inode
+  );
+}
+
+function publicationBlocked(targetLabel: string): SeedExecutionFailure {
+  return {
+    outcome: "blocked",
+    phase: "publication",
+    evidence: `Publication target ${targetLabel} appeared or changed after approval; its root claim no longer verifies.`,
+  };
 }
 
 export async function seedCheckpoint(
@@ -120,8 +167,12 @@ async function applyOperations(input: {
   phase: "staging" | "publication";
   checkpoint: "during-staging" | "during-publication";
   options: SeedExecutionOptions;
+  verifyRoot?: () => Promise<boolean>;
 }): Promise<SeedExecutionFailure | undefined> {
   for (const operation of input.operations) {
+    if (input.verifyRoot !== undefined && !(await input.verifyRoot())) {
+      return publicationBlocked(input.root);
+    }
     const state = await inspectSeedOperation(input.root, operation);
     if (state === "conflict") {
       return {
@@ -133,6 +184,8 @@ async function applyOperations(input: {
     }
     if (state === "absent") {
       try {
+        if (input.verifyRoot !== undefined && !(await input.verifyRoot()))
+          return publicationBlocked(input.root);
         await createSeedOperation(input.root, operation);
       } catch (error) {
         return {

@@ -128,8 +128,10 @@ node dist/src/cli.js seed --config academic-os.config.json \
 ```
 
 Add `--apply` only after reviewing the preview. For a new module, the command builds and audits a
-unique staging tree, then atomically renames the complete tree to its published directory name. For an
-existing partial module it publishes only missing operations. Every apply is recorded in an
+unique staging tree, then claims the final directory exclusively and journals its device/inode before
+adding missing operations. Exclusive creation preserves any target that appeared after approval; a
+directory rename could replace an existing empty folder. Interrupted publication can leave a partial
+tree and resumes only into the same recorded root. Existing partial modules also receive only missing operations. Every apply is recorded in an
 append-only journal beneath the private `stateRoot`; existing matching operations are skipped and
 content is never overwritten, moved, renamed, or removed.
 

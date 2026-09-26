@@ -49,10 +49,14 @@ console.log(
 );
 
 function runPassingTests(files) {
-  const result = spawnSync(process.execPath, ["--test", ...files], {
-    encoding: "utf8",
-    maxBuffer: 16 * 1024 * 1024,
-  });
+  const result = spawnSync(
+    process.execPath,
+    ["--test", "--test-concurrency=4", ...files],
+    {
+      encoding: "utf8",
+      maxBuffer: 16 * 1024 * 1024,
+    },
+  );
   if (result.status !== 0) {
     process.stdout.write(result.stdout);
     process.stderr.write(result.stderr);

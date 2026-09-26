@@ -2,10 +2,10 @@ export function trimCalendarRecurrence(
   recurrence: string[],
   splitInstant: string,
 ): string[] {
-  const until = new Date(Date.parse(splitInstant) - 1_000)
-    .toISOString()
-    .replace(/[-:]/gu, "")
-    .replace(/\.\d{3}Z$/u, "Z");
+  const previous = new Date(Date.parse(splitInstant) - 1_000).toISOString();
+  const until = /^\d{4}-\d{2}-\d{2}$/u.test(splitInstant)
+    ? previous.slice(0, 10).replaceAll("-", "")
+    : previous.replace(/[-:]/gu, "").replace(/\.\d{3}Z$/u, "Z");
   return recurrence.map((line) =>
     line.startsWith("RRULE:")
       ? `${line.replace(/;(?:UNTIL|COUNT)=[^;]+/gu, "")};UNTIL=${until}`

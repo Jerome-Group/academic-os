@@ -117,16 +117,20 @@ function updateDocument(
   if (!isSeq(sequence) && previous.tasks.length > 0)
     throw invalidRegister("Task register");
   const oldNodes = isSeq(sequence) ? sequence.items : [];
+  const identities = new Map<string, { indices: number[]; next: number }>();
+  for (const [index, entry] of previous.tasks.entries()) {
+    const key = rowIdentity(entry);
+    const bucket = identities.get(key);
+    if (bucket === undefined)
+      identities.set(key, { indices: [index], next: 0 });
+    else bucket.indices.push(index);
+  }
   const used = new Set<number>();
   const nodes = intended.tasks.map((entry) => {
-    const index = previous.tasks.findIndex(
-      (old, i) =>
-        !used.has(i) &&
-        (entry.taskId === undefined
-          ? old.taskId === undefined && isDeepStrictEqual(old, entry)
-          : old.taskId === entry.taskId),
-    );
-    if (index < 0) return document.createNode(entryFields(entry));
+    const bucket = identities.get(rowIdentity(entry));
+    const index = bucket?.indices[bucket.next];
+    if (index === undefined) return document.createNode(entryFields(entry));
+    if (bucket !== undefined) bucket.next += 1;
     used.add(index);
     const node = oldNodes[index];
     if (!isMap(node)) throw invalidRegister("Task register");
@@ -146,6 +150,12 @@ function updateDocument(
     sequence.items = nodes;
   } else document.set("tasks", document.createNode(nodes));
   return document.toString();
+}
+
+function rowIdentity(entry: TaskRegisterEntry): string {
+  return entry.taskId === undefined
+    ? `draft:${JSON.stringify(entry)}`
+    : `task:${entry.taskId}`;
 }
 
 function entryFields(entry: TaskRegisterEntry): Record<string, unknown> {

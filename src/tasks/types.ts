@@ -117,9 +117,7 @@ export type TaskOperation =
 
 export type TaskOperationName = TaskOperation["name"];
 
-// `parked` is the push Google refused — the live list is as it was, and the register kept no row
-// for it. `unverified` is the push Google took whose live result then read back wrong: the list
-// has moved, so the operation is not parked, and a pull is what settles what it now holds.
+// `unverified` also covers lost write responses: refresh must settle remote state before retry.
 export interface TaskOperationReport {
   schemaVersion: 1;
   command: `tasks ${TaskOperationName}`;

@@ -247,7 +247,10 @@ function provenanceOf(
 function renderLiveOutcome(
   report: Pick<TaskOperationReport, "taskId" | "outcome">,
 ): string {
-  if (report.taskId === null) return "no live change";
+  if (report.taskId === null)
+    return report.outcome === "unverified"
+      ? "live result unverified, task ID unknown"
+      : "no live change";
   return report.outcome === "unverified"
     ? `task ${report.taskId}, live result unverified`
     : `task ${report.taskId}`;

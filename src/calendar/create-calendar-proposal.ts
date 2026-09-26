@@ -720,7 +720,10 @@ function recurringFutureState(
   target: CalendarEvent,
 ): Pick<
   CalendarChangeProposalCandidate,
-  "recurrenceExceptions" | "recurringMaster" | "recurrenceDependencies"
+  | "recurrenceExceptions"
+  | "recurringMaster"
+  | "recurringOccurrence"
+  | "recurrenceDependencies"
 > {
   const boundary =
     target.originalStartTime?.dateTime ??
@@ -746,12 +749,18 @@ function recurringFutureState(
       (event) =>
         event.id !== target.id &&
         event.recurringEventId === target.recurringEventId &&
-        (event.originalStartTime?.dateTime ?? event.start?.dateTime ?? "") >=
-          boundary,
+        Date.parse(
+          event.originalStartTime?.dateTime ??
+            event.originalStartTime?.date ??
+            event.start?.dateTime ??
+            event.start?.date ??
+            "",
+        ) >= Date.parse(boundary),
     );
   return {
     recurrenceExceptions: exceptions,
     recurringMaster: master,
+    recurringOccurrence: target,
     recurrenceDependencies: [master, ...exceptions].map((dependency) => ({
       eventId: dependency.id,
       versionDigest: calendarStateDigest(dependency),

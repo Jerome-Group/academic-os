@@ -191,6 +191,7 @@ export interface CalendarPromotionWriter {
     idempotencyKey: string;
     exceptions: CalendarEvent[];
     recurringMaster: CalendarEvent;
+    occurrence?: CalendarEvent;
   }): Promise<{ eventId: string }>;
 }
 
@@ -360,6 +361,7 @@ export interface CalendarChangeProposalCandidate {
   recurrenceScope?: CalendarRecurrenceScope;
   recurrenceExceptions?: CalendarEvent[];
   recurringMaster?: CalendarEvent;
+  recurringOccurrence?: CalendarEvent;
   recurrenceDependencies?: Array<{
     eventId: string;
     versionDigest: string;

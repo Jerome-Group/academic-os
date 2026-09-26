@@ -158,16 +158,16 @@ function createFreshMirror(input: {
   const deletedEventIds = new Set<string>();
   for (const event of input.events) {
     if (event.status === "cancelled") {
-      const lastKnown = itemsById.get(event.id)?.event;
+      const lastKnown = itemsById.get(event.id);
       const retained = tombstonesById.get(event.id);
       itemsById.delete(event.id);
       tombstonesById.set(event.id, {
         access:
-          itemsById.get(event.id)?.access ??
+          lastKnown?.access ??
           retained?.access ??
           (isInvitedEvent(event) ? "invited-read-only" : "owned"),
         deletedAt: retained?.deletedAt ?? input.refreshedAt,
-        event: lastKnown ?? retained?.event ?? event,
+        event: lastKnown?.event ?? retained?.event ?? event,
       });
       deletedEventIds.add(event.id);
       continue;

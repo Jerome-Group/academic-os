@@ -18,12 +18,11 @@ import type {
   TaskRegister,
 } from "./types.js";
 
-// The live list took the push and then read back as something else. It carries the task ID
-// because the task exists: reporting this as parked would tell the Owner nothing had moved when
-// the change is already on their phone.
+// A lost write response cannot prove rejection. Keep known IDs so refresh can reconcile the
+// live list, and leave a create's ID unknown when Google did not return it.
 class UnverifiedPush extends OperationalError {
   constructor(
-    readonly taskId: string,
+    readonly taskId: string | null,
     message: string,
   ) {
     super("operational-failure", message);
@@ -43,8 +42,7 @@ const researchOnlyProvenanceKeys = ["claim", "meeting", "deliverable"] as const;
 // The Promotion pattern for tasks: the push reaches the live list first, the live result is read
 // back before anything local moves, and the register catches up through the same pull an
 // unattended refresh runs — so the register only ever mirrors what Google accepted. A push that
-// fails parks the operation: the register keeps no row for work Google never took, and nothing
-// queues it for later.
+// is rejected parks the operation; a lost response needs refresh before another push.
 export async function applyTaskOperation(input: {
   target: TaskRefreshTarget;
   operation: TaskOperation;
@@ -97,7 +95,20 @@ export async function applyTaskTargetOperation(input: {
   }
   // The live list has changed by here, so nothing below may report the operation as parked.
   if (pushed.createdRegister !== undefined) {
-    await input.target.registerStore.write(pushed.createdRegister);
+    try {
+      await input.target.registerStore.write(pushed.createdRegister);
+    } catch (error) {
+      return {
+        ...reportHead(input),
+        outcome: "applied",
+        taskId: pushed.taskId,
+        register: null,
+        failure: taskFailure(
+          error,
+          "The verified task could not be recorded locally; refresh before further operations.",
+        ),
+      };
+    }
   }
   return {
     ...reportHead(input),
@@ -140,7 +151,12 @@ async function pushToLiveList(
   );
   if (operation.name === "create") {
     const fields = { title: operation.title, ...writtenFields(operation) };
-    const { id } = await writer.createTask({ listId, task: fields });
+    const { id } = await sendMutation(null, async () => {
+      const result = await writer.createTask({ listId, task: fields });
+      if (typeof result.id !== "string" || result.id === "")
+        throw new Error("Task creation returned no ID.");
+      return result;
+    });
     await verifyLiveFields(writer, listId, id, fields);
     return {
       taskId: id,
@@ -153,7 +169,7 @@ async function pushToLiveList(
     target.identity.title,
   );
   if (operation.name === "cancel") {
-    await writer.deleteTask({ listId, taskId });
+    await sendMutation(taskId, () => writer.deleteTask({ listId, taskId }));
     await verifyLiveCancellation(writer, listId, taskId);
     return { taskId };
   }
@@ -161,9 +177,38 @@ async function pushToLiveList(
     operation.name === "complete"
       ? { status: "completed" as const }
       : writtenFields(operation);
-  await writer.patchTask({ listId, taskId, patch: fields });
+  await sendMutation(taskId, () =>
+    writer.patchTask({ listId, taskId, patch: fields }),
+  );
   await verifyLiveFields(writer, listId, taskId, fields);
   return { taskId };
+}
+
+async function sendMutation<T>(
+  taskId: string | null,
+  send: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await send();
+  } catch (error) {
+    const providerError = error as {
+      code?: unknown;
+      response?: { status?: unknown };
+    } | null;
+    const status = providerError?.response?.status ?? providerError?.code;
+    if (
+      typeof status === "number" &&
+      status >= 400 &&
+      status < 500 &&
+      status !== 408 &&
+      status !== 429
+    )
+      throw error;
+    throw new UnverifiedPush(
+      taskId,
+      "The task write response could not confirm whether Google accepted it; run tasks refresh and inspect the live list before retrying.",
+    );
+  }
 }
 
 // The register names the target's tasks, so an ID it does not hold is one this session has not
@@ -210,7 +255,15 @@ async function verifyLiveFields(
   taskId: string,
   fields: LiveTaskFields,
 ): Promise<void> {
-  const live = await writer.readTask({ listId, taskId });
+  let live: LiveTask | undefined;
+  try {
+    live = await writer.readTask({ listId, taskId });
+  } catch {
+    throw new UnverifiedPush(
+      taskId,
+      `The live task ${taskId} could not be read after its push; run tasks refresh before retrying.`,
+    );
+  }
   if (live === undefined || live.deleted === true || !carries(live, fields)) {
     throw new UnverifiedPush(
       taskId,
@@ -224,7 +277,15 @@ async function verifyLiveCancellation(
   listId: string,
   taskId: string,
 ): Promise<void> {
-  const live = await writer.readTask({ listId, taskId });
+  let live: LiveTask | undefined;
+  try {
+    live = await writer.readTask({ listId, taskId });
+  } catch {
+    throw new UnverifiedPush(
+      taskId,
+      `The live task ${taskId} could not be read after its cancel push; run tasks refresh before retrying.`,
+    );
+  }
   if (live !== undefined && live.deleted !== true) {
     throw new UnverifiedPush(
       taskId,

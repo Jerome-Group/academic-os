@@ -1,4 +1,4 @@
-import { calendarStateDigest } from "./calendar-state-digest.js";
+import { isDeepStrictEqual } from "node:util";
 import type { CalendarEvent, CalendarEventPatch } from "./types.js";
 
 export function eventContainsPatch(
@@ -8,7 +8,9 @@ export function eventContainsPatch(
   return Object.entries(patch).every(([key, value]) =>
     key === "recurrence"
       ? recurrenceMatches(event[key], value)
-      : calendarStateDigest(event[key]) === calendarStateDigest(value),
+      : key === "start" || key === "end"
+        ? calendarPointMatches(event[key], value)
+        : isDeepStrictEqual(event[key], value),
   );
 }
 
@@ -16,10 +18,33 @@ export function eventContainsPatch(
 // sent in another order. Comparing them sorted compares the set. A value that is not a list of
 // lines passes through untouched, so it still compares exactly the way every other field does.
 export function recurrenceMatches(actual: unknown, expected: unknown): boolean {
-  return (
-    calendarStateDigest(sortedRecurrence(actual)) ===
-    calendarStateDigest(sortedRecurrence(expected))
+  return isDeepStrictEqual(
+    sortedRecurrence(actual),
+    sortedRecurrence(expected),
   );
+}
+
+function calendarPointMatches(actual: unknown, expected: unknown): boolean {
+  if (!isRecord(actual) || !isRecord(expected))
+    return isDeepStrictEqual(actual, expected);
+  if (expected.date !== undefined) return actual.date === expected.date;
+  if (
+    typeof actual.dateTime !== "string" ||
+    typeof expected.dateTime !== "string"
+  )
+    return false;
+  const intendedInstant = Date.parse(expected.dateTime);
+  return (
+    Number.isFinite(intendedInstant) &&
+    Date.parse(actual.dateTime) === intendedInstant &&
+    (expected.timeZone === undefined ||
+      actual.timeZone === undefined ||
+      actual.timeZone === expected.timeZone)
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 export function sortedRecurrence<Value>(value: Value): Value {

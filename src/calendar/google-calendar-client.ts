@@ -1,6 +1,8 @@
 import { GoogleAuth } from "google-auth-library";
 import { createHash } from "node:crypto";
 
+import { OperationalError } from "../operational-error.js";
+
 import { CalendarSyncTokenExpiredError } from "./calendar-refresh-error.js";
 import {
   futureCalendarRecurrence,
@@ -126,43 +128,138 @@ async function splitGoogleRecurringEvent(
   requester: CalendarRequester,
   input: Parameters<CalendarPromotionWriter["splitRecurringEvent"]>[0],
 ): Promise<{ eventId: string }> {
+  const originalRecurrence = input.recurringMaster.recurrence;
+  if (
+    originalRecurrence !== undefined &&
+    (originalRecurrence.length !== 1 ||
+      !originalRecurrence[0]?.startsWith("RRULE:"))
+  ) {
+    throw new OperationalError(
+      "invalid-target",
+      "Recurring splits require one RRULE without RDATE or EXDATE adjustments; the source series was retained.",
+    );
+  }
+  if (
+    input.exceptions.length > 0 &&
+    (input.patch.start !== undefined || input.patch.recurrence !== undefined)
+  ) {
+    throw new OperationalError(
+      "invalid-target",
+      "A recurring split with retained exceptions cannot change its start or recurrence; resolve the exceptions before changing their occurrence anchors.",
+    );
+  }
   const newEventId = `a${createHash("sha256").update(input.idempotencyKey).digest("hex").slice(0, 31)}`;
   if (await eventExists(requester, input.targetCalendarId, newEventId)) {
     await replayRecurrenceExceptions(requester, input, newEventId);
     return { eventId: newEventId };
   }
-  const instance = (
-    await requester.request<CalendarEvent>({
-      url: `${eventCollectionUrl(input.sourceCalendarId)}/${encodeURIComponent(input.instanceId)}`,
-      method: "GET",
-    })
-  ).data;
+  let instance: CalendarEvent;
+  try {
+    instance = (
+      await requester.request<CalendarEvent>({
+        url: `${eventCollectionUrl(input.sourceCalendarId)}/${encodeURIComponent(input.instanceId)}`,
+        method: "GET",
+      })
+    ).data;
+  } catch (error) {
+    if (
+      !isMissingEventError(error) ||
+      input.occurrence?.id !== input.instanceId
+    )
+      throw error;
+    instance = input.occurrence;
+  }
+  if (instance.status === "cancelled") {
+    if (input.occurrence?.id !== input.instanceId)
+      throw new OperationalError(
+        "invalid-target",
+        "A cancelled split occurrence requires its bound Proposal snapshot.",
+      );
+    instance = input.occurrence;
+  }
   const splitPoint = instance.originalStartTime ?? instance.start;
   const splitBoundary = splitPoint?.dateTime ?? splitPoint?.date;
-  const originalRecurrence = input.recurringMaster.recurrence;
   if (splitBoundary === undefined || originalRecurrence === undefined) {
     throw new Error(
       "This-and-future Promotion requires a timed recurring occurrence and master.",
     );
   }
-  const priorInstances = await requester.request<CalendarEventsPage>({
-    url: `${eventCollectionUrl(input.sourceCalendarId)}/${encodeURIComponent(input.recurringEventId)}/instances`,
-    method: "GET",
-    params: { timeMax: recurrenceTimeMax(splitBoundary) },
-  });
+  const priorOccurrenceCount =
+    input.patch.recurrence === undefined
+      ? await countPriorOccurrences(
+          requester,
+          input.sourceCalendarId,
+          input.recurringEventId,
+          originalRecurrence,
+          splitBoundary,
+        )
+      : 0;
+  const futureRecurrence =
+    input.patch.recurrence ??
+    futureCalendarRecurrence(originalRecurrence, priorOccurrenceCount);
   await trimRecurringMaster(requester, input, splitBoundary);
   await createFutureSeries(
     requester,
     input,
     instance,
     newEventId,
-    futureCalendarRecurrence(
-      originalRecurrence,
-      priorInstances.data.items?.length ?? 0,
-    ),
+    futureRecurrence,
   );
   await replayRecurrenceExceptions(requester, input, newEventId);
   return { eventId: newEventId };
+}
+
+async function countPriorOccurrences(
+  requester: CalendarRequester,
+  calendarId: string,
+  recurringEventId: string,
+  recurrence: string[],
+  splitBoundary: string,
+): Promise<number> {
+  if (
+    !recurrence.some(
+      (line) => line.startsWith("RRULE:") && /;COUNT=/u.test(line),
+    )
+  )
+    return 0;
+  if (
+    recurrence.some(
+      (line) => line.startsWith("RRULE:") && !/;(?:COUNT|UNTIL)=/u.test(line),
+    )
+  ) {
+    throw new OperationalError(
+      "invalid-target",
+      "A counted recurring split requires every recurrence rule to have a finite bound.",
+    );
+  }
+  let count = 0;
+  let pageToken: string | undefined;
+  do {
+    const priorInstances = await requester.request<CalendarEventsPage>({
+      url: `${eventCollectionUrl(calendarId)}/${encodeURIComponent(recurringEventId)}/instances`,
+      method: "GET",
+      params: {
+        showDeleted: true,
+        ...(pageToken === undefined ? {} : { pageToken }),
+      },
+    });
+    for (const event of priorInstances.data.items ?? []) {
+      const originalStart =
+        event.originalStartTime?.dateTime ?? event.originalStartTime?.date;
+      if (
+        originalStart === undefined ||
+        !Number.isFinite(Date.parse(originalStart))
+      ) {
+        throw new OperationalError(
+          "operational-failure",
+          "A recurring occurrence returned no valid original start; the source series was retained.",
+        );
+      }
+      if (Date.parse(originalStart) < Date.parse(splitBoundary)) count += 1;
+    }
+    pageToken = priorInstances.data.nextPageToken;
+  } while (pageToken !== undefined);
+  return count;
 }
 
 async function trimRecurringMaster(
@@ -195,11 +292,11 @@ async function createFutureSeries(
   const master = input.recurringMaster;
   const future = {
     ...writableEvent(master),
-    ...input.patch,
     id: eventId,
     start: instance.start,
     end: instance.end,
-    recurrence,
+    ...input.patch,
+    recurrence: input.patch.recurrence ?? recurrence,
     extendedProperties: idempotentExtendedProperties(
       master,
       input.idempotencyKey,
@@ -255,8 +352,9 @@ async function eventExists(
       method: "GET",
     });
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    if (isMissingEventError(error)) return false;
+    throw error;
   }
 }
 
@@ -325,12 +423,6 @@ function richEventRequestParameters(_event: Record<string, unknown>): {
   conferenceDataVersion: 1;
 } {
   return { supportsAttachments: true, conferenceDataVersion: 1 };
-}
-
-function recurrenceTimeMax(boundary: string): string {
-  return /^\d{4}-\d{2}-\d{2}$/u.test(boundary)
-    ? `${boundary}T00:00:00Z`
-    : boundary;
 }
 
 export interface CalendarRequester {

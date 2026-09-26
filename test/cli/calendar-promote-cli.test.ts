@@ -763,6 +763,102 @@ describe("academic-os calendar promote", () => {
     );
   });
 
+  it("recovers a trimmed split when its bound occurrence and future exceptions disappear", async () => {
+    for (const targetRole of ["Academic", "Routine"] as const) {
+      const fixture = await setupRecurringChangeFixture(
+        "this-and-future",
+        targetRole,
+      );
+      const proposal = JSON.parse(
+        await readFile(
+          join(fixture.calendarRoot, "pending-proposals.json"),
+          "utf8",
+        ),
+      ).proposals[0];
+      const replacementId = `a${crypto.createHash("sha256").update(proposal.idempotencyKey).digest("hex").slice(0, 31)}`;
+      await mutateProvider(fixture, (provider) => {
+        provider.eventCreateFailures = [replacementId];
+      });
+      const interrupted = await runPromote(
+        fixture,
+        "proposal-recurring",
+        "--json",
+      );
+      assert.equal(interrupted.exitCode, 2, JSON.stringify(interrupted));
+      const syncToken = JSON.parse(
+        await readFile(
+          join(fixture.calendarRoot, "mirrors", "academic.json"),
+          "utf8",
+        ),
+      ).syncToken;
+      await mutateProvider(fixture, (provider) => {
+        const master = provider.events["academic-id"]?.find(
+          (event) =>
+            typeof event === "object" &&
+            event !== null &&
+            "id" in event &&
+            event.id === "weekly-class",
+        ) as Record<string, unknown>;
+        master.etag = "after-trim";
+        master.updated = "2026-08-20T00:00:00Z";
+        master.sequence = 1;
+        provider.events["academic-id"] = [master];
+        provider.incrementalEvents["academic-id"] ??= {};
+        provider.incrementalEvents["academic-id"][syncToken] = [
+          master,
+          { id: "weekly-class-instance", status: "cancelled" },
+          { id: "weekly-class-future-exception", status: "cancelled" },
+        ];
+      });
+      const retry = await runPromote(fixture, "proposal-recurring", "--json");
+      assert.equal(retry.exitCode, 0, JSON.stringify(retry));
+      assert.equal(JSON.parse(retry.stdout).outcome, "promoted");
+      const provider = await readProvider(fixture);
+      const calendarId =
+        targetRole === "Academic" ? "academic-id" : "routine-id";
+      assert.ok(
+        provider.events[calendarId]?.some(
+          (event) =>
+            typeof event === "object" &&
+            event !== null &&
+            "id" in event &&
+            event.id === replacementId,
+        ),
+      );
+      assert.equal(
+        provider.events[calendarId]?.filter(
+          (event) =>
+            typeof event === "object" &&
+            event !== null &&
+            "recurringEventId" in event &&
+            event.recurringEventId === replacementId,
+        ).length,
+        1,
+      );
+    }
+  });
+
+  it("refuses a split snapshot that differs from its bound source version", async () => {
+    const fixture = await setupRecurringChangeFixture("this-and-future");
+    const path = join(fixture.calendarRoot, "pending-proposals.json");
+    const state = JSON.parse(await readFile(path, "utf8"));
+    state.proposals[0].recurringOccurrence.start.dateTime =
+      "2026-08-20T15:00:00+08:00";
+    await writeFile(path, `${JSON.stringify(state)}\n`);
+    const result = await runPromote(fixture, "proposal-recurring", "--json");
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(
+      JSON.parse(result.stdout).error.message,
+      /snapshot does not match/u,
+    );
+    assert.equal(
+      (await readProvider(fixture)).requests.some(
+        (request) => request.method !== "GET",
+      ),
+      false,
+    );
+  });
+
   it("reconciles an interrupted this-and-future move by replacement ID", async () => {
     const fixture = await setupRecurringChangeFixture(
       "this-and-future",
@@ -1367,6 +1463,7 @@ async function setupRecurringChangeFixture(
             ? {
                 recurrenceExceptions: [exception],
                 recurringMaster: master,
+                recurringOccurrence: instance,
                 recurrenceDependencies: [
                   {
                     eventId: master.id,

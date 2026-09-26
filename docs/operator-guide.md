@@ -488,14 +488,15 @@ tracked.
 
 Three outcomes, and the difference between them is what Google did:
 
-- `applied` — pushed, verified, register refreshed. A verified push whose refresh then failed also
-  reads `applied`, against a `stale` register a rerun of `tasks refresh` settles.
-- `parked` — Google refused the push. The live list is as it was and the register kept no row for
-  work that does not exist. Nothing queues it: Google's own apps are the manual fallback, and the
-  register catches up at the next pull.
-- `unverified` — Google took the push and the live result then read back as something else. The
-  report names the task ID, because the task is on the phone; `tasks refresh` mirrors whatever
-  Google actually holds.
+- `applied` — the live push was verified. Failed local recording or refresh can leave the report's
+  register `null` or `stale` and exits nonzero. Run `tasks refresh` before further writes.
+- `parked` — validation blocked the push or Google definitively refused it. The live list is as
+  it was and the register kept no row for work that does not exist. Nothing queues it: Google's
+  own apps are the manual fallback, and the register catches up at the next pull.
+- `unverified` — the write response was lost, or the pushed result could not be verified. The
+  report preserves a known task ID; a create whose response supplied no ID reports `null`.
+  Run `tasks refresh` and inspect Google Tasks before retrying, especially a create: repeating
+  an accepted create can add a duplicate.
 
 Anything but `applied` against a fresh register exits nonzero.
 

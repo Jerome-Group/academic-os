@@ -21,6 +21,7 @@ interface FakeTasksState {
   taskReadFailures?: string[];
   taskWriteFailures?: string[];
   taskWritesIgnored?: string[];
+  taskCreateIdsMissing?: boolean;
   tasks?: Record<string, FakeTask[]>;
   requests?: Array<{
     body?: unknown;
@@ -148,7 +149,7 @@ prototype.request = async function (options) {
       [listId]: [...(state.tasks?.[listId] ?? []), task],
     };
     await writeFile(statePath, `${JSON.stringify(state)}\n`);
-    return { data: task };
+    return { data: state.taskCreateIdsMissing === true ? {} : task };
   }
   if (
     options.method === "GET" &&
@@ -182,7 +183,10 @@ function refuseWriteFailure(state: FakeTasksState, keys: string[]): void {
     (key) => state.taskWriteFailures?.includes(key) === true,
   );
   if (refused !== undefined) {
-    throw new Error(`Synthetic task write failed for ${refused}.`);
+    throw Object.assign(
+      new Error(`Synthetic task write failed for ${refused}.`),
+      { code: 403 },
+    );
   }
 }
 

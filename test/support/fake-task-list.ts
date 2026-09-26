@@ -33,7 +33,10 @@ export function createFakeTaskList(input: {
     if (listId !== input.listId) throw new Error(`No list ${listId}.`);
   };
   const assertWritable = (): void => {
-    if (writesRefused) throw new Error("Synthetic task write failed.");
+    if (writesRefused)
+      throw Object.assign(new Error("Synthetic task write failed."), {
+        code: 403,
+      });
   };
 
   return {

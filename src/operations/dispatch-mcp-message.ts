@@ -35,7 +35,15 @@ export function createMcpDispatcher(input: {
 }): McpDispatcher {
   const tools = new Map(input.tools.map((tool) => [tool.name, tool]));
   return async (message) => {
-    if (!isJsonObject(message) || typeof message.method !== "string") {
+    if (
+      !isJsonObject(message) ||
+      message.jsonrpc !== "2.0" ||
+      typeof message.method !== "string" ||
+      (message.id !== undefined &&
+        message.id !== null &&
+        typeof message.id !== "string" &&
+        !(typeof message.id === "number" && Number.isFinite(message.id)))
+    ) {
       return failure(null, INVALID_REQUEST, "Expected a JSON-RPC 2.0 request.");
     }
     const id = readId(message.id);
@@ -134,7 +142,7 @@ function text(value: unknown): { type: "text"; text: string } {
 // A JSON-RPC notification carries no id and is answered with nothing at all; anything else is a
 // request whose id comes back on the response.
 function readId(id: unknown): string | number | null | undefined {
-  if (id === undefined || id === null) return undefined;
+  if (id === undefined) return undefined;
   return typeof id === "string" || typeof id === "number" ? id : null;
 }
 

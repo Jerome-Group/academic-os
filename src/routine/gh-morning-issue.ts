@@ -31,21 +31,35 @@ export function createGhMorningIssue(
     });
   return {
     list: async () => {
-      const pages: unknown = JSON.parse(
-        gh([
-          "api",
-          "--paginate",
-          "--slurp",
-          "repos/{owner}/{repo}/issues?state=all&per_page=100",
-        ]),
-      );
-      if (!Array.isArray(pages) || !pages.every(Array.isArray)) {
-        throw new OperationalError(
-          "operational-failure",
-          "gh did not list issue pages as arrays.",
+      const issues: MorningIssue[] = [];
+      for (let page = 1; ; page += 1) {
+        const result: unknown = JSON.parse(
+          gh([
+            "api",
+            `repos/{owner}/{repo}/issues?state=all&per_page=100&page=${page}`,
+            "--jq",
+            '{count: length, issues: [.[] | select(has("pull_request") | not) | select(.title | startswith("Morning report ")) | {number, title, body, state}]} | tojson',
+          ]),
         );
+        if (
+          typeof result !== "object" ||
+          result === null ||
+          !("count" in result) ||
+          !Number.isInteger(result.count) ||
+          (result.count as number) < 0 ||
+          (result.count as number) > 100 ||
+          !("issues" in result) ||
+          !Array.isArray(result.issues)
+        ) {
+          throw new OperationalError(
+            "operational-failure",
+            "gh did not list a valid issue page.",
+          );
+        }
+        for (const record of result.issues)
+          issues.push(...readIssueRecord(record));
+        if ((result.count as number) < 100) return issues;
       }
-      return pages.flat().flatMap(readIssueRecord);
     },
     raise: async ({ title, body, labels }) => {
       const created = gh(
@@ -119,6 +133,8 @@ function runGh(input: GhMorningIssueRunnerInput): string {
   const result = spawnSync(input.ghPath, input.arguments, {
     cwd: input.repositoryRoot,
     encoding: "utf8",
+    timeout: 60_000,
+    maxBuffer: 8 * 1024 * 1024,
     ...(input.input === undefined ? {} : { input: input.input }),
   });
   if (result.error !== undefined || result.status !== 0) {

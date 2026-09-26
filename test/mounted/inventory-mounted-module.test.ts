@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import {
   chmod,
   lstat,
@@ -14,6 +15,8 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
+import { promisify } from "node:util";
+import { fileURLToPath } from "node:url";
 
 import {
   inventoryMountedModule,
@@ -92,6 +95,12 @@ async function metadataSnapshot(
 }
 
 describe("inventoryMountedModule", () => {
+  it("inventories a child tree larger than the function argument limit", async () => {
+    await promisify(execFile)(process.execPath, [
+      "--experimental-test-module-mocks",
+      fileURLToPath(new URL("./large-inventory-fixture.js", import.meta.url)),
+    ]);
+  });
   it("inventories metadata without reading or mutating file contents", async () => {
     const { config, moduleRoot } = await configuredTree();
     const notes = join(

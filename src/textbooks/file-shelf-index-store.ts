@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { Document, isMap, isSeq, parseDocument } from "yaml";
+import { Document, isMap, isScalar, isSeq, parseDocument } from "yaml";
 
 import { OperationalError } from "../operational-error.js";
 import { writeFileAtomically } from "../write-file-atomically.js";
@@ -32,6 +32,14 @@ async function appendEntries(
   if (appends.length === 0) return;
   const document = await readDocument(indexPath);
   const index = readIndex(document);
+  const books = document.get("books", true);
+  if (isScalar(books) && books.value === null) {
+    const empty = document.createNode({});
+    if (books.comment !== undefined) empty.comment = books.comment;
+    if (books.commentBefore !== undefined)
+      empty.commentBefore = books.commentBefore;
+    document.set("books", empty);
+  }
   for (const { key, entry } of appends) {
     if (index.books[key] !== undefined) {
       throw new OperationalError(

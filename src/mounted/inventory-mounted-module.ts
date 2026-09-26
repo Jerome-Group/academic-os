@@ -32,11 +32,20 @@ export async function inventoryDirectory(
   root: string,
   relativeRoot = "",
 ): Promise<InventoryEntry[]> {
+  const inventory: InventoryEntry[] = [];
+  await inventoryInto(root, relativeRoot, inventory);
+  return inventory;
+}
+
+async function inventoryInto(
+  root: string,
+  relativeRoot: string,
+  inventory: InventoryEntry[],
+): Promise<void> {
   const directory = relativeRoot === "" ? root : join(root, relativeRoot);
   const children = (await readdir(directory, { withFileTypes: true })).sort(
     (left, right) => left.name.localeCompare(right.name),
   );
-  const inventory: InventoryEntry[] = [];
 
   for (const child of children) {
     const relativePath =
@@ -100,9 +109,7 @@ export async function inventoryDirectory(
       },
     });
     if (kind === "directory") {
-      inventory.push(...(await inventoryDirectory(root, relativePath)));
+      await inventoryInto(root, relativePath, inventory);
     }
   }
-
-  return inventory;
 }

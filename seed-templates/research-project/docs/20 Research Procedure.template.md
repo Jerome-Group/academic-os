@@ -109,3 +109,8 @@ an unattended closeout.
 An unconfirmed cycle remains in `20 Supervisor Meetings/` with honest `Meeting.md` status.
 Incomplete mathematics can remain there with honest artifact status.
 No Research promotion is required for settlement.
+
+If a cycle is rescheduled before any work or unique source is used, verify that all preparation
+and current pointers are in the replacement cycle. Preserve the former note in a target-scoped
+backup, record the change in `SCHEDULE.md`, and remove the empty former folder. Keep a cycle
+with unique work or a held meeting in place.

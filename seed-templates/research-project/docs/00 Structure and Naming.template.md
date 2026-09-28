@@ -37,6 +37,10 @@
 
 Meeting folders live under `20 Supervisor Meetings/` from creation. Their `Meeting.md` status,
 not their location, records lifecycle state.
+If a meeting is rescheduled before any learning, exercise or unique source is used, move its
+preparation and pointers to the replacement cycle. Record the date change in the schedule, then
+retire the empty former folder after a target-scoped backup. A held meeting or a cycle with unique
+work remains in place.
 
 ## Placement
 

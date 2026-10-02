@@ -118,7 +118,7 @@ describe("the module session's prompt", () => {
   });
 
   it("parks destructive, authoritative, pinned, academic, and external writes", () => {
-    assert.match(prompt, /Never move, rename, or delete issued material/u);
+    assert.match(prompt, /Never move, rename, or delete existing material/u);
     assert.match(prompt, /overwrite an annotated Owner copy/u);
     assert.match(prompt, /enable a Definition category/u);
     assert.match(prompt, /change `contract_version`/u);

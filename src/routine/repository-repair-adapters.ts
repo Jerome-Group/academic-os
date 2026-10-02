@@ -1,5 +1,6 @@
 import {
   repositoryDiagnosticSignature,
+  repositoryFixtureRoot,
   repositorySandboxArguments,
   runRepositoryProcess,
 } from "./repository-repair-process.js";
@@ -12,8 +13,15 @@ export {
 } from "./repository-repair-process.js";
 
 import { createHash, randomUUID } from "node:crypto";
-import { lstat, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import {
+  lstat,
+  mkdir,
+  mkdtemp,
+  readFile,
+  realpath,
+  writeFile,
+} from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import type {
   RepositoryCandidate,
@@ -75,18 +83,23 @@ export function createRepositoryRepairPorts(input: {
     candidate: RepositoryCandidate,
     evidence: string,
   ): Promise<RepositoryCheckEvidence> {
+    const temporaryRoot = await repositoryFixtureRoot(
+      candidate.root,
+      candidate.fixtureRoot,
+    );
     await mkdir(evidence, { mode: 0o700 });
     const actions = [];
     let diagnosticsComplete = true;
     for (const action of checks) {
       const r = await runRepositoryProcess({
         executable: input.codexPath,
-        args: repositorySandboxArguments(candidate.root, [
-          "npm",
-          "run",
-          action,
-        ]),
+        args: repositorySandboxArguments(
+          candidate.root,
+          ["npm", "run", action],
+          temporaryRoot,
+        ),
         cwd: candidate.root,
+        temporaryRoot,
         log: join(evidence, `${action.replace(":", "-")}.log`),
       });
       const diagnostics: string[] = [];
@@ -116,12 +129,13 @@ export function createRepositoryRepairPorts(input: {
         for (const failedAction of failed.slice(0, 3)) {
           const diagnostic = await runRepositoryProcess({
             executable: input.codexPath,
-            args: repositorySandboxArguments(candidate.root, [
-              "npm",
-              "run",
-              failedAction,
-            ]),
+            args: repositorySandboxArguments(
+              candidate.root,
+              ["npm", "run", failedAction],
+              temporaryRoot,
+            ),
             cwd: candidate.root,
+            temporaryRoot,
             log: join(
               evidence,
               `diagnostic-${failedAction.replace(":", "-")}.log`,
@@ -146,6 +160,7 @@ export function createRepositoryRepairPorts(input: {
         failureSignature: repositoryDiagnosticSignature(
           diagnostics.join("\n"),
           candidate.root,
+          temporaryRoot,
         ),
       });
     }
@@ -191,12 +206,17 @@ export function createRepositoryRepairPorts(input: {
     createCandidate: async ({ base, directory, branch }) => {
       await git(["worktree", "add", "--detach", directory, base]);
       await git(["checkout", "-b", branch], directory);
-      const candidate = { root: await realpath(directory), branch, base };
+      const root = await realpath(directory);
+      const fixtureRoot = await realpath(
+        await mkdtemp(join(dirname(root), "fixture-temp-")),
+      );
+      const candidate = { root, fixtureRoot, branch, base };
       // Install only the captured lockfile; lifecycle scripts cannot execute outside the sandbox.
       const install = await runRepositoryProcess({
         executable: "npm",
         args: ["ci", "--ignore-scripts", "--no-audit", "--no-fund"],
         cwd: candidate.root,
+        temporaryRoot: candidate.fixtureRoot,
       });
       if (install.code !== 0)
         throw new Error("Candidate dependencies unavailable.");
@@ -543,6 +563,10 @@ export function createRepositoryRepairPorts(input: {
       ]);
     },
     rollout: async (candidate, originalBase, merge, evidence) => {
+      const temporaryRoot = await repositoryFixtureRoot(
+        candidate.root,
+        candidate.fixtureRoot,
+      );
       await git(["fetch", "origin", "main"]);
       if ((await git(["rev-parse", "origin/main"])) !== merge)
         return { postmergeVerified: false, rolledOut: false };
@@ -552,6 +576,7 @@ export function createRepositoryRepairPorts(input: {
         executable: "npm",
         args: ["ci", "--ignore-scripts", "--no-audit", "--no-fund"],
         cwd: root,
+        temporaryRoot,
       });
       if (install.code !== 0)
         return { postmergeVerified: false, rolledOut: false };
@@ -576,12 +601,13 @@ export function createRepositoryRepairPorts(input: {
       await git(["merge", "--ff-only", merge]);
       const build = await runRepositoryProcess({
         executable: input.codexPath,
-        args: repositorySandboxArguments(input.repositoryRoot, [
-          "npm",
-          "run",
-          "build",
-        ]),
+        args: repositorySandboxArguments(
+          input.repositoryRoot,
+          ["npm", "run", "build"],
+          temporaryRoot,
+        ),
         cwd: input.repositoryRoot,
+        temporaryRoot,
         log: join(evidence, "rollout.log"),
       });
       return { postmergeVerified: true, rolledOut: build.code === 0 };

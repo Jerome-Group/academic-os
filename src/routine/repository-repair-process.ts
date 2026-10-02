@@ -1,15 +1,55 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { createWriteStream } from "node:fs";
+import { lstat, realpath } from "node:fs/promises";
+import { dirname } from "node:path";
+
+export async function repositoryFixtureRoot(
+  cwd: string,
+  fixtureRoot: string | undefined,
+): Promise<string> {
+  if (!fixtureRoot)
+    throw new Error("Owned fixture temporary root unavailable.");
+  const metadata = await lstat(fixtureRoot);
+  const root = await realpath(fixtureRoot),
+    checkout = await realpath(cwd);
+  if (
+    !metadata.isDirectory() ||
+    metadata.isSymbolicLink() ||
+    (metadata.mode & 0o777) !== 0o700 ||
+    metadata.uid !== process.getuid?.() ||
+    dirname(root) !== dirname(checkout) ||
+    root === checkout
+  )
+    throw new Error("Unsafe fixture temporary root.");
+  return root;
+}
 
 const sha = (value: string) => createHash("sha256").update(value).digest("hex");
 export function repositoryDiagnosticSignature(
   output: string,
   cwd: string,
+  fixtureRoot?: string,
 ): string {
+  const replaceRoot = (value: string, root: string, marker: string) =>
+    value.replace(
+      new RegExp(
+        `${root.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}(?=[/\\s:'"]|$)`,
+        "gu",
+      ),
+      marker,
+    );
+  const normalized =
+    fixtureRoot === undefined
+      ? output
+      : replaceRoot(output, fixtureRoot, "<fixture>")
+          // Node mkdtemp appends six random characters; only the owned temp's first component changes.
+          .replace(
+            /(<fixture>\/[A-Za-z0-9_-]+-)[A-Za-z0-9]{6}(?=[/\s:'"]|$)/gu,
+            "$1<temporary>",
+          );
   return sha(
-    output
-      .replaceAll(cwd, "<checkout>")
+    replaceRoot(normalized, cwd, "<checkout>")
       .replace(/\b[0-9a-f]{8}-[0-9a-f-]{27,}\b/giu, "<run>")
       .replace(/\b\d{4}-\d\d-\d\dT[\d:.]+Z\b/gu, "<time>")
       .replace(
@@ -23,6 +63,7 @@ export function repositoryDiagnosticSignature(
 export function repositorySandboxArguments(
   cwd: string,
   command: string[],
+  fixtureRoot?: string,
 ): string[] {
   return [
     "sandbox",
@@ -39,6 +80,12 @@ export function repositorySandboxArguments(
     "sandbox_workspace_write.exclude_tmpdir_env_var=true",
     "-c",
     "sandbox_workspace_write.exclude_slash_tmp=true",
+    ...(fixtureRoot === undefined
+      ? []
+      : [
+          "-c",
+          `sandbox_workspace_write.writable_roots=${JSON.stringify([fixtureRoot])}`,
+        ]),
     "--",
     ...command,
   ];
@@ -48,6 +95,7 @@ export async function runRepositoryProcess(input: {
   executable: string;
   args: string[];
   cwd: string;
+  temporaryRoot?: string;
   log?: string;
   timeoutMs?: number;
   cleanEnvironment?: boolean;
@@ -70,9 +118,9 @@ export async function runRepositoryProcess(input: {
     env.NODE_OPTIONS = "";
     env.NODE_DISABLE_COMPILE_CACHE = "1";
     delete env.NODE_COMPILE_CACHE;
-    env.TMPDIR = input.cwd;
-    env.TMP = input.cwd;
-    env.TEMP = input.cwd;
+    env.TMPDIR = input.temporaryRoot ?? input.cwd;
+    env.TMP = input.temporaryRoot ?? input.cwd;
+    env.TEMP = input.temporaryRoot ?? input.cwd;
     const child = spawn(input.executable, input.args, {
       cwd: input.cwd,
       stdio: ["ignore", "pipe", "pipe"],

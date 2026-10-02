@@ -29,6 +29,7 @@ export interface RepositoryCheckEvidence {
 
 export interface RepositoryCandidate {
   root: string;
+  fixtureRoot?: string;
   branch: string;
   base: string;
 }

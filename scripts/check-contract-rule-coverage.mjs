@@ -1,6 +1,6 @@
-import { spawnSync } from "node:child_process";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { runPassingTests } from "./check-contract-tests.mjs";
 import { researchContractRuleEnforcement } from "../dist/src/conformance/research-rule-enforcement.js";
 import { contractRuleEnforcement } from "../dist/src/conformance/rule-enforcement.js";
 import {
@@ -23,7 +23,7 @@ assertSameRules(
   Object.keys(contractRuleEnforcement).sort(),
   normativeRules,
 );
-const testOutput = runPassingTests(await testFiles("dist/test"));
+const testOutput = await runPassingTests(await testFiles("dist/test"));
 assertCompleteRuleEvidence(readRuleEvidence(testOutput), normativeRules);
 assertSameRules(
   "research enforcement registry",
@@ -47,23 +47,6 @@ console.log(
 console.log(
   `${deterministicResearchRules.length} deterministic research rules have machine-recorded output from passing behavioural assertions; judgment rules remain human-reviewed.`,
 );
-
-function runPassingTests(files) {
-  const result = spawnSync(
-    process.execPath,
-    ["--test", "--test-concurrency=4", ...files],
-    {
-      encoding: "utf8",
-      maxBuffer: 16 * 1024 * 1024,
-    },
-  );
-  if (result.status !== 0) {
-    process.stdout.write(result.stdout);
-    process.stderr.write(result.stderr);
-    process.exit(result.status ?? 1);
-  }
-  return result.stdout;
-}
 
 async function testFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });

@@ -1,5 +1,8 @@
 # Daily repair rolls up into a weekly review
 
+> [ADR-0039](0039-check-fixtures-have-an-isolated-private-root.md) supersedes temporary-root
+> placement inside the code checkout. Its remaining boundaries and weekly review decision stand.
+
 Status: accepted. Issue: #274.
 
 Daily issues asked the Owner to repeatedly distinguish resolved work from unresolved incidents.

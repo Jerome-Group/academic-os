@@ -2,7 +2,10 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { delimiter, dirname, join } from "node:path";
 import { codexSearchDirectories } from "./codex-search-path.js";
-import { runRepositoryProcess } from "./repository-repair-process.js";
+import {
+  repositoryFixtureRoot,
+  runRepositoryProcess,
+} from "./repository-repair-process.js";
 import type {
   RepositoryCandidate,
   RepositoryReview,
@@ -107,6 +110,10 @@ export async function runRepositoryRepairSession(input: {
   git: (args: string[], cwd: string) => Promise<string>;
 }): Promise<RepositoryReview | undefined> {
   const { candidate, evidence, reviewHead, git } = input;
+  const temporaryRoot = await repositoryFixtureRoot(
+    candidate.root,
+    candidate.fixtureRoot,
+  );
   await mkdir(evidence, { recursive: true, mode: 0o700 });
   const id = randomUUID();
   const schema = join(evidence, `${id}-schema.json`),
@@ -175,14 +182,20 @@ export async function runRepositoryRepairSession(input: {
       ]
         .filter(Boolean)
         .join(delimiter),
-      TMPDIR: candidate.root,
-      TMP: candidate.root,
-      TEMP: candidate.root,
+      TMPDIR: temporaryRoot,
+      TMP: temporaryRoot,
+      TEMP: temporaryRoot,
       NODE_DISABLE_COMPILE_CACHE: "1",
     }).flatMap(([name, value]) => [
       "-c",
       `shell_environment_policy.set.${name}=${JSON.stringify(value)}`,
     ]),
+    ...(reviewHead === undefined
+      ? [
+          "-c",
+          `sandbox_workspace_write.writable_roots=${JSON.stringify([temporaryRoot])}`,
+        ]
+      : []),
     "--sandbox",
     reviewHead === undefined ? "workspace-write" : "read-only",
     "--ephemeral",
@@ -197,6 +210,7 @@ export async function runRepositoryRepairSession(input: {
     executable: input.codexPath,
     args,
     cwd: candidate.root,
+    temporaryRoot,
     log: join(evidence, `${id}-session.jsonl`),
     timeoutMs: 20 * 60_000,
   });

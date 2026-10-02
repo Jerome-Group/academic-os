@@ -4,6 +4,7 @@ import {
   mkdir,
   mkdtemp,
   readFile,
+  realpath,
   rm,
   symlink,
   writeFile,
@@ -25,6 +26,7 @@ import {
   repositorySandboxArguments,
   runRepositoryProcess,
 } from "../../src/routine/repository-repair-adapters.js";
+import { repositoryFixtureRoot } from "../../src/routine/repository-repair-process.js";
 import {
   repositoryModelIsolationArguments,
   runRepositoryRepairSession,
@@ -41,6 +43,9 @@ async function fixture() {
   const repositoryRoot = join(root, "repo"),
     privateStateRoot = join(root, "private");
   await mkdir(repositoryRoot);
+  const fixtureRootPath = join(root, "fixture-temp");
+  await mkdir(fixtureRootPath, { mode: 0o700 });
+  const fixtureRoot = await realpath(fixtureRootPath);
   const calls: string[] = [];
   let checks = 0;
   const state: RepositoryPullRequestState = {
@@ -112,6 +117,7 @@ async function fixture() {
   };
   return {
     root,
+    fixtureRoot,
     calls,
     state,
     ports,
@@ -572,6 +578,7 @@ test("production session verifies tool isolation before model and rejects trunca
         codexPath: codex,
         candidate: {
           root: f.input.repositoryRoot,
+          fixtureRoot: f.fixtureRoot,
           branch: "fixture",
           base: "base",
         },
@@ -773,6 +780,11 @@ test("production release removes only owned unchanged diagnostics and refuses un
         directory: join(f.root, `checkout-${unexpected}`),
         branch: `codex/fixture-${unexpected}`,
       });
+      assert.ok(candidate.fixtureRoot);
+      await writeFile(
+        join(candidate.fixtureRoot, "synthetic-preview.png"),
+        "retained synthetic render",
+      );
       await mkdir(join(candidate.root, "dist"));
       await writeFile(
         join(candidate.root, "dist", "synthetic.js"),
@@ -788,6 +800,13 @@ test("production release removes only owned unchanged diagnostics and refuses un
         false,
       );
       assert.equal(await ports.releaseCandidate?.(candidate), !unexpected);
+      assert.equal(
+        await readFile(
+          join(candidate.fixtureRoot, "synthetic-preview.png"),
+          "utf8",
+        ),
+        "retained synthetic render",
+      );
       if (unexpected)
         assert.equal(
           await readFile(join(candidate.root, "private.local"), "utf8"),
@@ -827,13 +846,14 @@ test("production worker explicitly supplies packaged helpers, Node/npm search an
     );
     await writeFile(
       codex,
-      `#!/usr/bin/env node\nimport fs from 'node:fs';const a=process.argv.slice(2);if(a.includes('features')){for(const n of ['plugins','apps','remote_plugin','hooks','browser_use','browser_use_external','computer_use'])console.log(n+' stable false');}else if(a.includes('mcp'))console.log('[]');else{fs.writeFileSync(${JSON.stringify(capture)},JSON.stringify({args:a,temp:process.env.TMPDIR,credentialKeys:Object.keys(process.env).filter(k=>/TOKEN|SECRET|PASSWORD/.test(k))}));fs.writeFileSync(a[a.indexOf('--output-last-message')+1],JSON.stringify({summary:'fixture'}));}\n`,
+      `#!/usr/bin/env node\nimport fs from 'node:fs';const a=process.argv.slice(2);if(a.includes('features')){for(const n of ['plugins','apps','remote_plugin','hooks','browser_use','browser_use_external','computer_use'])console.log(n+' stable false');}else if(a.includes('mcp'))console.log('[]');else{fs.writeFileSync(${JSON.stringify(capture)},JSON.stringify({args:a,temp:process.env.TMPDIR,credentialKeys:Object.keys(process.env).filter(k=>/TOKEN|SECRET|PASSWORD/.test(k))}));fs.writeFileSync(a[a.indexOf('--output-last-message')+1],JSON.stringify(a.includes('read-only')?{approved:true,findings:[]}:{summary:'fixture'}));}\n`,
       { mode: 0o700 },
     );
     await runRepositoryRepairSession({
       codexPath: codex,
       candidate: {
         root: f.input.repositoryRoot,
+        fixtureRoot: f.fixtureRoot,
         branch: "fixture",
         base: "base",
       },
@@ -855,6 +875,11 @@ test("production worker explicitly supplies packaged helpers, Node/npm search an
     assert.ok(
       captured.args.includes('shell_environment_policy.inherit="none"'),
     );
+    assert.ok(
+      captured.args.includes(
+        `sandbox_workspace_write.writable_roots=${JSON.stringify([f.fixtureRoot])}`,
+      ),
+    );
     assert.ok(configured("PATH").split(":").includes(helpers));
     assert.ok(configured("PATH").split(":").includes(bin));
     assert.ok(
@@ -863,11 +888,130 @@ test("production worker explicitly supplies packaged helpers, Node/npm search an
         .includes(process.execPath.slice(0, process.execPath.lastIndexOf("/"))),
     );
     for (const name of ["TMPDIR", "TMP", "TEMP"])
-      assert.equal(configured(name), f.input.repositoryRoot);
+      assert.equal(configured(name), f.fixtureRoot);
     assert.equal(configured("NODE_DISABLE_COMPILE_CACHE"), "1");
-    assert.equal(captured.temp, f.input.repositoryRoot);
+    assert.equal(captured.temp, f.fixtureRoot);
     assert.deepEqual(captured.credentialKeys, []);
+    await runRepositoryRepairSession({
+      codexPath: codex,
+      candidate: {
+        root: f.input.repositoryRoot,
+        fixtureRoot: f.fixtureRoot,
+        branch: "fixture",
+        base: "base",
+      },
+      evidence: join(f.root, "review"),
+      reviewHead: "a".repeat(40),
+      git: async (args) => (args.includes("HEAD") ? "a".repeat(40) : ""),
+    });
+    const reviewed = JSON.parse(await readFile(capture, "utf8")) as {
+      args: string[];
+    };
+    assert.equal(
+      reviewed.args.some((a) =>
+        a.startsWith("sandbox_workspace_write.writable_roots="),
+      ),
+      false,
+    );
+    assert.equal(
+      reviewed.args[reviewed.args.indexOf("--sandbox") + 1],
+      "read-only",
+    );
   } finally {
     await f.close();
   }
+});
+
+test("fixture temporary roots refuse missing, checkout-contained, permissive and symlink roots", async () => {
+  const f = await fixture();
+  try {
+    assert.equal(
+      await repositoryFixtureRoot(f.input.repositoryRoot, f.fixtureRoot),
+      f.fixtureRoot,
+    );
+    await assert.rejects(
+      repositoryFixtureRoot(f.input.repositoryRoot, undefined),
+      /unavailable/,
+    );
+    await assert.rejects(
+      repositoryFixtureRoot(f.input.repositoryRoot, f.input.repositoryRoot),
+      /Unsafe/,
+    );
+    const nested = join(f.input.repositoryRoot, "nested-temp");
+    await mkdir(nested, { mode: 0o700 });
+    await assert.rejects(
+      repositoryFixtureRoot(f.input.repositoryRoot, nested),
+      /Unsafe/,
+    );
+    await chmod(f.fixtureRoot, 0o755);
+    await assert.rejects(
+      repositoryFixtureRoot(f.input.repositoryRoot, f.fixtureRoot),
+      /Unsafe/,
+    );
+    await chmod(f.fixtureRoot, 0o700);
+    const link = join(f.root, "alias-temp");
+    await symlink(f.fixtureRoot, link);
+    await assert.rejects(
+      repositoryFixtureRoot(f.input.repositoryRoot, link),
+      /Unsafe/,
+    );
+  } finally {
+    await f.close();
+  }
+});
+
+test("failure signatures normalize owned fixture roots and first mkdtemp component without collapsing evidence", () => {
+  const first = "/private/run-1/fixture-temp-a1B2c3",
+    second = "/private/run-2/fixture-temp-Z9y8x7";
+  const signature = (
+    root: string,
+    suffix: string,
+    message = "unsafe-state-root",
+  ) =>
+    repositoryDiagnosticSignature(
+      `OperationalError: ${message} at '${root}/academic-os-calendar-launchd-${suffix}/state/receipt.json'`,
+      "/repository/checkout",
+      root,
+    );
+  assert.equal(signature(first, "ABC123"), signature(second, "xyz789"));
+  assert.notEqual(
+    signature(first, "ABC123"),
+    signature(second, "xyz789", "source-missing"),
+  );
+  assert.notEqual(
+    repositoryDiagnosticSignature(
+      `${first}/fixture-a1B2c3/nested/file-ABC123`,
+      "/repository/checkout",
+      first,
+    ),
+    repositoryDiagnosticSignature(
+      `${second}/fixture-x9Y8z7/nested/file-XYZ789`,
+      "/repository/checkout",
+      second,
+    ),
+  );
+  assert.notEqual(
+    repositoryDiagnosticSignature(
+      `${first}-external/fixture-ABC123`,
+      "/repository/checkout",
+      first,
+    ),
+    repositoryDiagnosticSignature(
+      `${second}-external/fixture-xyz789`,
+      "/repository/checkout",
+      second,
+    ),
+  );
+  assert.notEqual(
+    repositoryDiagnosticSignature(
+      "/external/fixture-ABC123",
+      "/repository/checkout",
+      first,
+    ),
+    repositoryDiagnosticSignature(
+      "/external/fixture-xyz789",
+      "/repository/checkout",
+      second,
+    ),
+  );
 });

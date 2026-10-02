@@ -51,6 +51,20 @@ retained synthetic artifacts can therefore retain the full checkout. Worker envi
 verify explicit packaged-helper/Node search paths and workspace temporary directories while
 credential inheritance remains disabled.
 
+Post-merge checks under umask `0077` exposed a refusal fixture that requested `0755` but actually
+created `0700`. Explicit fixture chmod corrected the expectation without changing production
+privacy checks; PR #277 passed independent review and protected checks. Combined-main checks then
+passed under `0077` in approximately 52.7 seconds.
+
+The first deployed sandboxed check-only run still failed: temporary fixture state inside the code
+checkout correctly triggered production containment guards. A focused Calendar CLI fixture confirmed
+`unsafe-state-root` without a provider operation. Issue #278 isolates fixture/temp state alongside
+the checkout with exact sandbox grants, preserving the guards. Failed diagnostics also stopped near
+64 KiB because the coverage script exited before pipe writes drained. A bounded 200 KiB failed-test
+fixture now verifies the full diagnostic tail and nonzero exit; failure evidence remains private.
+An actual bounded comparison captured 65,536 bytes with the tail missing before the fix and
+200,786 bytes with the failure tail and summary intact afterward; both returned exit code 1.
+
 ## Verification and measurement limits
 
 The first combined full quality run passed all profiles in approximately 54 seconds: format,

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  chmod,
   mkdir,
   mkdtemp,
   readFile,
@@ -73,6 +74,7 @@ it("refuses aliased or shared weekly evidence directories", async () => {
     assert.deepEqual(await readdir(outside), []);
     await rm(directory);
     await mkdir(directory, { mode: 0o755 });
+    await chmod(directory, 0o755);
     await assert.rejects(
       store.archiveIssue(snapshot),
       /private ordinary directories/u,

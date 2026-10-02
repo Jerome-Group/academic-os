@@ -1,4 +1,4 @@
-import { lstat, realpath, readFile } from "node:fs/promises";
+import { lstat, readFile, realpath } from "node:fs/promises";
 import { join } from "node:path";
 import type { RepositoryRepairReport } from "./repository-repair-types.js";
 export async function readRepositoryRepairStatus(
@@ -117,6 +117,10 @@ export async function readRepositoryRepairStatus(
       if (typeof value[key] === "string") report[key] = value[key];
     for (const key of ["issue", "pullRequest"] as const)
       if (Number.isSafeInteger(value[key])) report[key] = value[key] as number;
+    if (["released", "retained"].includes(String(receipt.candidateCleanup)))
+      report.candidateCleanup = receipt.candidateCleanup as
+        | "released"
+        | "retained";
     if (report.mergeCommit) {
       report.postmergeVerification =
         value.postmergeVerified === true ? "passed" : "blocked";

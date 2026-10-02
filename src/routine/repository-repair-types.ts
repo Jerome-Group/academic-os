@@ -10,6 +10,7 @@ export interface RepositoryRepairReport {
   postmergeVerification?: "passed" | "blocked";
   rolloutVerification?: "passed" | "blocked";
   evidence?: string;
+  candidateCleanup?: "released" | "retained";
   modelAttestation: "unverified";
 }
 
@@ -56,6 +57,7 @@ export interface RepositoryRepairPorts {
     directory: string;
     branch: string;
   }): Promise<RepositoryCandidate>;
+  releaseCandidate?(candidate: RepositoryCandidate): Promise<boolean>;
   checks(
     candidate: RepositoryCandidate,
     evidence: string,

@@ -1,11 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
+import { codexSearchDirectories } from "./codex-search-path.js";
 import { runRepositoryProcess } from "./repository-repair-process.js";
 import type {
   RepositoryCandidate,
   RepositoryReview,
 } from "./repository-repair-types.js";
+
 const MODEL = "gpt-6.1-sol",
   EFFORT = "medium";
 const isolatedFeatures = [
@@ -165,6 +167,22 @@ export async function runRepositoryRepairSession(input: {
     "sandbox_workspace_write.exclude_slash_tmp=true",
     "-c",
     'shell_environment_policy.inherit="none"',
+    ...Object.entries({
+      PATH: [
+        ...codexSearchDirectories(input.codexPath),
+        dirname(process.execPath),
+        process.env.PATH,
+      ]
+        .filter(Boolean)
+        .join(delimiter),
+      TMPDIR: candidate.root,
+      TMP: candidate.root,
+      TEMP: candidate.root,
+      NODE_DISABLE_COMPILE_CACHE: "1",
+    }).flatMap(([name, value]) => [
+      "-c",
+      `shell_environment_policy.set.${name}=${JSON.stringify(value)}`,
+    ]),
     "--sandbox",
     reviewHead === undefined ? "workspace-write" : "read-only",
     "--ephemeral",

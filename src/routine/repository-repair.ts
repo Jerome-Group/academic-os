@@ -1,4 +1,5 @@
 export { readRepositoryRepairStatus } from "./repository-repair-state.js";
+
 import { createHash, randomUUID } from "node:crypto";
 import {
   lstat,
@@ -21,8 +22,8 @@ import {
 } from "./repository-repair-types.js";
 
 export type {
-  RepositoryRepairReport,
   RepositoryRepairPorts,
+  RepositoryRepairReport,
 } from "./repository-repair-types.js";
 
 export function eligibleRepositoryRepairPaths(
@@ -146,6 +147,7 @@ export async function runRepositoryRepair(input: {
       }),
       { flag: "wx", mode: 0o600 },
     );
+    if (input.checkOnly) return;
     await writeFile(
       statePath,
       JSON.stringify({
@@ -325,9 +327,17 @@ export async function runRepositoryRepair(input: {
     candidateState = candidate;
     const baseline = await ports.checks(candidate, join(evidence, "baseline"));
     if (baseline.passed) {
-      await stage("healthy", { baseline });
+      const cleanup: Partial<RepositoryRepairReport> = {};
+      if (ports.releaseCandidate) {
+        const released = await ports
+          .releaseCandidate(candidate)
+          .catch(() => false);
+        cleanup.candidateCleanup = released ? "released" : "retained";
+        if (!released) cleanup.code = "healthy-candidate-cleanup-refused";
+      }
+      await stage("healthy", { baseline, ...cleanup });
       terminal = true;
-      return result("healthy", { evidence });
+      return result("healthy", { evidence, ...cleanup });
     }
     fingerprint = createHash("sha256")
       .update(

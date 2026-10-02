@@ -30,6 +30,8 @@ Unfixed work covers observed Module maintenance, the repository repair checkpoin
 incidents. An unrelated open GitHub issue is not inferred fixed or automatically adopted by this
 controller. Week-wide maintenance totals conservatively deduplicate same-day reruns; they count
 evidenced entries and writes, not distinct defects.
+Rollover retains completed fixes in their original week, carries unresolved verification forward
+and bounds maintenance receipts to the current week.
 Preserve Owner text and other scopes. Before retiring a predecessor, privately snapshot its original
 body, publish the successor, verify readback, close with a fixed safe transfer comment and verify
 the closed state with the original body unchanged. Historical
@@ -42,6 +44,13 @@ Green repository checks dispatch zero model workers. A new evidenced check failu
 bounded Sol/medium implementer and two independent Sol/medium reviewers in isolated checkouts.
 Repeated unchanged failures reuse checkpoints rather than consuming another set of workers.
 Pending required checks are re-observed without repeating implementation or review.
+Check-only runs retain separate observations and leave repair checkpoints and attempted-failure
+fingerprints intact. The status operation reads the latest normal repair checkpoint; a diagnostic
+check does not replace a pending PR or claim that a repair was attempted.
+Healthy diagnostics may retire an owned unchanged checkout containing only dependency/build output.
+Unexpected files, retained synthetic artifacts, failed checks and model-used checkouts preserve the
+checkout and its evidence. Cleanup refusal is separate from check success; retained storage is not
+a claimed saving.
 
 Eligible repairs stay within the controller's public code/test allowlist and add a synthetic
 regression. Dependency, workflow, security, credential, normative contract, skill and controller

@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { createWriteStream } from "node:fs";
+
 const sha = (value: string) => createHash("sha256").update(value).digest("hex");
 export function repositoryDiagnosticSignature(
   output: string,
@@ -67,6 +68,8 @@ export async function runRepositoryProcess(input: {
       )
         delete env[key];
     env.NODE_OPTIONS = "";
+    env.NODE_DISABLE_COMPILE_CACHE = "1";
+    delete env.NODE_COMPILE_CACHE;
     env.TMPDIR = input.cwd;
     env.TMP = input.cwd;
     env.TEMP = input.cwd;

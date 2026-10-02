@@ -547,3 +547,67 @@ it("does not claim transfer when the close result or original-body preservation 
   assert.equal(result.numbers, undefined);
   assert.ok(f.originals.length > 0);
 });
+
+it("rollover leaves completed merges in their original week and carries only pending merge evidence", async () => {
+  const f = fixture();
+  await run(f, {
+    repository: {
+      merged: [
+        {
+          pullRequest: 11,
+          commit: "a".repeat(40),
+          verification: "verified",
+          rollout: "verified",
+        },
+        {
+          pullRequest: 12,
+          commit: "b".repeat(40),
+          verification: "verified",
+          rollout: "awaiting",
+        },
+        {
+          pullRequest: 13,
+          commit: "c".repeat(40),
+          verification: "failed",
+          rollout: "failed",
+        },
+      ],
+      unresolved: 1,
+      awaiting: 1,
+    },
+  });
+  const original = body(f);
+  await run(f, { date: "2026-08-31" });
+  assert.doesNotMatch(body(f, 2), /PR #11 merged as/u);
+  assert.match(body(f, 2), /PR #12 merged as/u);
+  assert.match(body(f, 2), /PR #13 merged as/u);
+  assert.equal(body(f), original);
+});
+
+it("many weekly rollovers keep per-scope receipts bounded and leave predecessor bodies unchanged", async () => {
+  const f = fixture();
+  const date = new Date("2026-08-24T00:00:00Z");
+  for (let week = 0; week < 60; week++) {
+    const day = date.toISOString().slice(0, 10);
+    await run(f, { date: day });
+    const original = body(f, week + 1);
+    const state = queueState(original);
+    for (const scope of Object.values(state.scopes) as {
+      receipts: Record<string, unknown>;
+    }[]) {
+      assert.ok(Object.keys(scope.receipts).length <= 7);
+      assert.ok(
+        Object.keys(scope.receipts).every(
+          (d) => offeringWeekStart(d) === offeringWeekStart(day),
+        ),
+      );
+    }
+    date.setUTCDate(date.getUTCDate() + 7);
+    if (week > 0)
+      assert.equal(
+        body(f, week),
+        f.originals.find((x) => x.number === week)?.body,
+      );
+  }
+  assert.equal(f.issues.size, 60);
+});

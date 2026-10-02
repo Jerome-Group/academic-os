@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import {
   chmod,
-  mkdtemp,
   mkdir,
+  mkdtemp,
   readFile,
   rm,
   symlink,
@@ -12,26 +12,28 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import {
-  repositoryModelIsolationArguments,
-  runRepositoryRepairSession,
-} from "../../src/routine/repository-repair-session.js";
-import {
   eligibleRepositoryRepairPaths,
   readRepositoryRepairStatus,
   repositoryMergeReady,
   runRepositoryRepair,
 } from "../../src/routine/repository-repair.js";
 import {
-  repositorySandboxArguments,
+  createRepositoryRepairPorts,
   renderRepositoryRepairIssue,
   renderRepositoryRepairPullRequest,
   repositoryDiagnosticSignature,
+  repositorySandboxArguments,
   runRepositoryProcess,
 } from "../../src/routine/repository-repair-adapters.js";
 import {
+  repositoryModelIsolationArguments,
+  runRepositoryRepairSession,
+} from "../../src/routine/repository-repair-session.js";
+import {
   REQUIRED_REPOSITORY_CHECKS,
-  type RepositoryRepairPorts,
+  type RepositoryCandidate,
   type RepositoryPullRequestState,
+  type RepositoryRepairPorts,
 } from "../../src/routine/repository-repair-types.js";
 
 async function fixture() {
@@ -578,6 +580,293 @@ test("production session verifies tool isolation before model and rejects trunca
       }),
       /truncated/,
     );
+  } finally {
+    await f.close();
+  }
+});
+
+test("failed check-only observation cannot suppress the first authorized repair", async () => {
+  const f = await fixture();
+  try {
+    let observations = 0;
+    f.ports.checks = async () => {
+      observations++;
+      return {
+        passed: observations >= 3,
+        digest: "failure",
+        actions: [
+          {
+            action: "check",
+            exitCode: observations >= 3 ? 0 : 1,
+            outputSha256: "stable",
+          },
+        ],
+      };
+    };
+    const observation = await runRepositoryRepair({
+      ...f.input,
+      checkOnly: true,
+    });
+    assert.equal(observation.code, "checks-failed");
+    assert.ok(observation.evidence);
+    await readFile(join(observation.evidence, "blocked.json"));
+    await assert.rejects(
+      readFile(
+        join(f.input.privateStateRoot, "repository-repair", "state.json"),
+      ),
+      { code: "ENOENT" },
+    );
+    assert.equal(
+      (await readRepositoryRepairStatus(f.input.privateStateRoot)).outcome,
+      "unobserved",
+    );
+    assert.equal((await runRepositoryRepair(f.input)).outcome, "merged");
+    assert.equal(f.calls.filter((c) => c === "implement").length, 1);
+  } finally {
+    await f.close();
+  }
+});
+test("healthy check-only preserves pending PR checkpoint bytes and next normal run resumes without worker", async () => {
+  const f = await fixture();
+  try {
+    f.state.ready = false;
+    assert.equal(
+      (await runRepositoryRepair(f.input)).code,
+      "protected-merge-not-ready",
+    );
+    const checkpoint = join(
+        f.input.privateStateRoot,
+        "repository-repair",
+        "state.json",
+      ),
+      before = await readFile(checkpoint);
+    const released: RepositoryCandidate[] = [];
+    f.ports.releaseCandidate = async (candidate) => {
+      released.push(candidate);
+      return true;
+    };
+    const observation = await runRepositoryRepair({
+      ...f.input,
+      checkOnly: true,
+    });
+    assert.equal(observation.outcome, "healthy");
+    assert.ok(observation.evidence);
+    assert.equal(released.length, 1);
+    const previous = JSON.parse(before.toString()) as {
+      candidate: RepositoryCandidate;
+    };
+    assert.notEqual(released[0]?.root, previous.candidate.root);
+    assert.equal(released[0]?.root, join(observation.evidence, "checkout"));
+    assert.ok(observation.evidence);
+    await readFile(join(observation.evidence, "healthy.json"));
+    assert.deepEqual(await readFile(checkpoint), before);
+    const status = await readRepositoryRepairStatus(f.input.privateStateRoot);
+    assert.equal(status.stage, "awaiting-checks");
+    assert.equal(status.report?.outcome, "blocked");
+    f.calls.length = 0;
+    f.state.ready = true;
+    assert.equal((await runRepositoryRepair(f.input)).outcome, "merged");
+    assert.deepEqual(f.calls, ["merge", "conclude"]);
+  } finally {
+    await f.close();
+  }
+});
+
+test("healthy diagnostic release is exact, nonfatal on refusal, and never used after model or failure", async () => {
+  for (const released of [true, false, "throw"] as const) {
+    const f = await fixture();
+    try {
+      f.ports.checks = async () => ({
+        passed: true,
+        digest: "green",
+        actions: [{ action: "check", exitCode: 0, outputSha256: "green" }],
+      });
+      const candidates: RepositoryCandidate[] = [];
+      f.ports.releaseCandidate = async (candidate) => {
+        candidates.push(candidate);
+        if (released === "throw") throw new Error("fixture");
+        return released;
+      };
+      const report = await runRepositoryRepair(f.input);
+      assert.equal(report.outcome, "healthy");
+      assert.equal(
+        report.candidateCleanup,
+        released === true ? "released" : "retained",
+      );
+      assert.ok(report.evidence);
+      assert.equal(candidates.length, 1);
+      assert.equal(candidates[0]?.root, join(report.evidence, "checkout"));
+      const receipt = JSON.parse(
+        await readFile(join(report.evidence, "healthy.json"), "utf8"),
+      );
+      assert.equal(receipt.candidateCleanup, report.candidateCleanup);
+      assert.equal(
+        (await readRepositoryRepairStatus(f.input.privateStateRoot)).report
+          ?.candidateCleanup,
+        report.candidateCleanup,
+      );
+      assert.deepEqual(f.calls, []);
+    } finally {
+      await f.close();
+    }
+  }
+  for (const checkOnly of [true, false]) {
+    const f = await fixture();
+    try {
+      f.ports.releaseCandidate = async () => {
+        throw new Error("Must never release failed or model-used checkout");
+      };
+      const report = await runRepositoryRepair({ ...f.input, checkOnly });
+      assert.equal(report.outcome, checkOnly ? "blocked" : "merged");
+      assert.equal(report.candidateCleanup, undefined);
+    } finally {
+      await f.close();
+    }
+  }
+});
+
+test("production release removes only owned unchanged diagnostics and refuses unexpected ignored content", async () => {
+  const f = await fixture();
+  try {
+    const git = async (args: string[], cwd = f.input.repositoryRoot) => {
+      const r = await runRepositoryProcess({
+        executable: "/usr/bin/git",
+        args,
+        cwd,
+      });
+      assert.equal(r.code, 0);
+      return r.output.trim();
+    };
+    await git(["init"]);
+    await writeFile(
+      join(f.input.repositoryRoot, ".gitignore"),
+      "node_modules/\ndist/\n*.local\n",
+    );
+    await writeFile(
+      join(f.input.repositoryRoot, "package.json"),
+      JSON.stringify({ name: "synthetic-retirement", version: "1.0.0" }),
+    );
+    await writeFile(
+      join(f.input.repositoryRoot, "package-lock.json"),
+      JSON.stringify({
+        name: "synthetic-retirement",
+        version: "1.0.0",
+        lockfileVersion: 3,
+        packages: { "": { name: "synthetic-retirement", version: "1.0.0" } },
+      }),
+    );
+    await git(["add", "."]);
+    await git([
+      "-c",
+      "user.name=Synthetic",
+      "-c",
+      "user.email=synthetic@example.invalid",
+      "commit",
+      "-m",
+      "Synthetic fixture",
+    ]);
+    const base = await git(["rev-parse", "HEAD"]);
+    const ports = createRepositoryRepairPorts(f.input);
+    for (const unexpected of [false, true]) {
+      const candidate = await ports.createCandidate({
+        base,
+        directory: join(f.root, `checkout-${unexpected}`),
+        branch: `codex/fixture-${unexpected}`,
+      });
+      await mkdir(join(candidate.root, "dist"));
+      await writeFile(
+        join(candidate.root, "dist", "synthetic.js"),
+        "// generated fixture",
+      );
+      if (unexpected)
+        await writeFile(
+          join(candidate.root, "private.local"),
+          "synthetic ignored data",
+        );
+      assert.equal(
+        await ports.releaseCandidate?.({ ...candidate, branch: "unowned" }),
+        false,
+      );
+      assert.equal(await ports.releaseCandidate?.(candidate), !unexpected);
+      if (unexpected)
+        assert.equal(
+          await readFile(join(candidate.root, "private.local"), "utf8"),
+          "synthetic ignored data",
+        );
+      else
+        await assert.rejects(readFile(join(candidate.root, "package.json")), {
+          code: "ENOENT",
+        });
+    }
+  } finally {
+    await f.close();
+  }
+});
+
+test("production worker explicitly supplies packaged helpers, Node/npm search and workspace temps without credentials", async () => {
+  const f = await fixture();
+  try {
+    const bundle = join(f.root, "bundle"),
+      bin = join(bundle, "bin"),
+      helpers = join(bundle, "helpers");
+    await mkdir(bin, { recursive: true });
+    await mkdir(helpers);
+    const codex = join(bin, "codex"),
+      capture = join(f.root, "capture.json");
+    await writeFile(join(helpers, "rg"), "#!/bin/sh\nexit 0\n", {
+      mode: 0o700,
+    });
+    await writeFile(
+      join(bundle, "codex-package.json"),
+      JSON.stringify({
+        layoutVersion: 1,
+        variant: "codex",
+        entrypoint: "bin/codex",
+        pathDir: "helpers",
+      }),
+    );
+    await writeFile(
+      codex,
+      `#!/usr/bin/env node\nimport fs from 'node:fs';const a=process.argv.slice(2);if(a.includes('features')){for(const n of ['plugins','apps','remote_plugin','hooks','browser_use','browser_use_external','computer_use'])console.log(n+' stable false');}else if(a.includes('mcp'))console.log('[]');else{fs.writeFileSync(${JSON.stringify(capture)},JSON.stringify({args:a,temp:process.env.TMPDIR,credentialKeys:Object.keys(process.env).filter(k=>/TOKEN|SECRET|PASSWORD/.test(k))}));fs.writeFileSync(a[a.indexOf('--output-last-message')+1],JSON.stringify({summary:'fixture'}));}\n`,
+      { mode: 0o700 },
+    );
+    await runRepositoryRepairSession({
+      codexPath: codex,
+      candidate: {
+        root: f.input.repositoryRoot,
+        branch: "fixture",
+        base: "base",
+      },
+      evidence: join(f.root, "session"),
+      git: async () => "",
+    });
+    const captured = JSON.parse(await readFile(capture, "utf8")) as {
+      args: string[];
+      temp: string;
+      credentialKeys: string[];
+    };
+    const configured = (name: string) => {
+      const setting = captured.args.find((a) =>
+        a.startsWith(`shell_environment_policy.set.${name}=`),
+      );
+      assert.ok(setting);
+      return JSON.parse(setting.split("=").slice(1).join("=")) as string;
+    };
+    assert.ok(
+      captured.args.includes('shell_environment_policy.inherit="none"'),
+    );
+    assert.ok(configured("PATH").split(":").includes(helpers));
+    assert.ok(configured("PATH").split(":").includes(bin));
+    assert.ok(
+      configured("PATH")
+        .split(":")
+        .includes(process.execPath.slice(0, process.execPath.lastIndexOf("/"))),
+    );
+    for (const name of ["TMPDIR", "TMP", "TEMP"])
+      assert.equal(configured(name), f.input.repositoryRoot);
+    assert.equal(configured("NODE_DISABLE_COMPILE_CACHE"), "1");
+    assert.equal(captured.temp, f.input.repositoryRoot);
+    assert.deepEqual(captured.credentialKeys, []);
   } finally {
     await f.close();
   }

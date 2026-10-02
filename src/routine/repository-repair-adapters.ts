@@ -4,11 +4,13 @@ import {
   runRepositoryProcess,
 } from "./repository-repair-process.js";
 import { runRepositoryRepairSession } from "./repository-repair-session.js";
+
 export {
   repositoryDiagnosticSignature,
   repositorySandboxArguments,
   runRepositoryProcess,
 } from "./repository-repair-process.js";
+
 import { createHash, randomUUID } from "node:crypto";
 import { lstat, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -16,8 +18,8 @@ import { setTimeout as sleep } from "node:timers/promises";
 import type {
   RepositoryCandidate,
   RepositoryCheckEvidence,
-  RepositoryRepairPorts,
   RepositoryPullRequestState,
+  RepositoryRepairPorts,
 } from "./repository-repair-types.js";
 
 const sha = (value: string | Buffer) =>
@@ -42,6 +44,14 @@ export function createRepositoryRepairPorts(input: {
   codexPath: string;
   ghPath: string;
 }): RepositoryRepairPorts {
+  const ownedCandidates = new Map<
+    string,
+    {
+      candidate: RepositoryCandidate;
+      dev: number;
+      ino: number;
+    }
+  >();
   const git = async (args: string[], cwd = input.repositoryRoot) => {
     const r = await runRepositoryProcess({
       executable: "/usr/bin/git",
@@ -190,7 +200,65 @@ export function createRepositoryRepairPorts(input: {
       });
       if (install.code !== 0)
         throw new Error("Candidate dependencies unavailable.");
+      const metadata = await lstat(candidate.root);
+      ownedCandidates.set(candidate.root, {
+        candidate: { ...candidate },
+        dev: metadata.dev,
+        ino: metadata.ino,
+      });
       return candidate;
+    },
+    releaseCandidate: async (candidate) => {
+      const owned = ownedCandidates.get(candidate.root);
+      if (
+        !owned ||
+        owned.candidate.base !== candidate.base ||
+        owned.candidate.branch !== candidate.branch
+      )
+        return false;
+      const metadata = await lstat(candidate.root);
+      if (
+        !metadata.isDirectory() ||
+        metadata.isSymbolicLink() ||
+        metadata.dev !== owned.dev ||
+        metadata.ino !== owned.ino ||
+        (await realpath(candidate.root)) !== candidate.root ||
+        (await git(["rev-parse", "HEAD"], candidate.root)) !== candidate.base ||
+        (await git(["branch", "--show-current"], candidate.root)) !==
+          candidate.branch ||
+        (await git(["status", "--porcelain"], candidate.root)) !== ""
+      )
+        return false;
+      // Only dependency/build output belongs to a never-model-used diagnostic checkout.
+      const ignored = await git(
+        ["status", "--porcelain", "--ignored"],
+        candidate.root,
+      );
+      if (
+        ignored
+          .split("\n")
+          .filter(Boolean)
+          .some((line) => !["!! node_modules/", "!! dist/"].includes(line))
+      )
+        return false;
+      for (const name of ["node_modules", "dist"]) {
+        const entry = await lstat(join(candidate.root, name)).catch(
+          (error: NodeJS.ErrnoException) => {
+            if (error.code === "ENOENT") return undefined;
+            throw error;
+          },
+        );
+        if (entry && (!entry.isDirectory() || entry.isSymbolicLink()))
+          return false;
+      }
+      const removal = await runRepositoryProcess({
+        executable: "/usr/bin/git",
+        args: ["worktree", "remove", candidate.root],
+        cwd: input.repositoryRoot,
+      });
+      if (removal.code !== 0) return false;
+      ownedCandidates.delete(candidate.root);
+      return true;
     },
     checks: checked,
     issue: async (fingerprint) => {

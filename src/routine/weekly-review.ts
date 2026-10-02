@@ -120,10 +120,21 @@ export async function reconcileWeeklyIssue(input: {
     if (current !== undefined) mergeState(state, stateOf(current));
     for (const previous of older) {
       const carried = stateOf(previous);
+      if (!previous.body.startsWith(`${marker}\n`))
+        carried.repository.merged = carried.repository.merged.filter(
+          (fix) =>
+            fix.verification !== "verified" || fix.rollout !== "verified",
+        );
       mergeState(state, carried);
       if (Object.values(carried.scopes).some((scope) => scope.needsOwner))
         state.unknown.push(previous.number);
     }
+    for (const scope of Object.values(state.scopes))
+      scope.receipts = Object.fromEntries(
+        Object.entries(scope.receipts).filter(
+          ([date]) => offeringWeekStart(date) === weekStart,
+        ),
+      );
     state.unknown = [
       ...new Set([...state.unknown, ...legacy.map((issue) => issue.number)]),
     ].sort((a, b) => a - b);

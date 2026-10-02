@@ -39,6 +39,18 @@ unchanged workers. Diagnostics rerun only failed checks and retain private concr
 missing/truncated evidence refuses model dispatch. Sensitive safety/quality/controller paths stay
 outside automatic repair scope.
 
+Exact-head Spec review reproduced two check-only recovery defects: a healthy diagnostic replaced
+a pending PR checkpoint, and an initial failed diagnostic suppressed the first real repair attempt.
+Separate immutable diagnostic observations now preserve normal repair state; both sequences have
+behavioral regressions. The initial reviewed head was withheld rather than cleared by green tests.
+
+Sixty synthetic weekly rollovers preserve predecessor bodies and keep each scope's maintenance
+receipts within the current week. Completed merges stay in their original week; incomplete
+verification carries forward. Healthy-only checkout retirement refuses unexpected ignored content;
+retained synthetic artifacts can therefore retain the full checkout. Worker environment fixtures
+verify explicit packaged-helper/Node search paths and workspace temporary directories while
+credential inheritance remains disabled.
+
 ## Verification and measurement limits
 
 The first combined full quality run passed all profiles in approximately 54 seconds: format,

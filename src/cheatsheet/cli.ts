@@ -3,14 +3,19 @@
 import { readFile } from "node:fs/promises";
 
 import { cheatsheetCoverageHeader } from "./coverage.js";
-import { loadCheatsheetEvidence } from "./evidence.js";
+import {
+  assertCheatsheetReleaseReady,
+  loadCheatsheetEvidence,
+} from "./evidence.js";
 import { planCheatsheetFit } from "./fit.js";
+import { prepareCheatsheet } from "./prepare.js";
 import { verifyPortableCheatsheetRelease } from "./portable-release.js";
 import { createCheatsheetReviewPackage } from "./review-package.js";
 import { cheatsheetAuthorities, type CheatsheetMeasurements } from "./types.js";
 
 const usage = `Usage:
   cheatsheet-tool schema
+  cheatsheet-tool prepare --module-root <absolute-path> --module-code <code> --assessment <name>
   cheatsheet-tool audit --module-root <absolute-path> --manifest <module-relative-path>
   cheatsheet-tool fit --module-root <absolute-path> --manifest <module-relative-path> --measurements <json-path>
   cheatsheet-tool verify --module-root <absolute-path> --manifest <module-relative-path>
@@ -28,6 +33,7 @@ const inputSchema = {
     ],
   },
   commands: {
+    prepare: ["--module-root", "--module-code", "--assessment"],
     audit: ["--module-root", "--manifest"],
     fit: ["--module-root", "--manifest", "--measurements"],
     verify: ["--module-root", "--manifest"],
@@ -73,6 +79,7 @@ function flags(arguments_: string[]): Map<string, string> {
     if (flag === undefined || !flag.startsWith("--") || value === undefined) {
       throw new Error(usage);
     }
+    if (parsed.has(flag)) throw new Error(`Duplicate ${flag}.`);
     parsed.set(flag, value);
   }
   return parsed;
@@ -122,6 +129,7 @@ async function main(): Promise<void> {
     return;
   }
   if (
+    operation !== "prepare" &&
     operation !== "audit" &&
     operation !== "fit" &&
     operation !== "verify" &&
@@ -130,7 +138,22 @@ async function main(): Promise<void> {
     throw new Error(usage);
   }
   const parsed = flags(rest);
+  const allowed = inputSchema.commands[operation];
+  for (const flag of parsed.keys()) {
+    if (!(allowed as readonly string[]).includes(flag))
+      throw new Error(`Unknown ${flag}.`);
+  }
   const moduleRoot = requiredFlag(parsed, "--module-root");
+  if (operation === "prepare") {
+    const result = await prepareCheatsheet({
+      moduleRoot,
+      moduleCode: requiredFlag(parsed, "--module-code"),
+      assessment: requiredFlag(parsed, "--assessment"),
+    });
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    if (result.status === "needs-choice") process.exitCode = 2;
+    return;
+  }
   const manifestPath = requiredFlag(parsed, "--manifest");
   if (operation === "package-review") {
     const result = await createCheatsheetReviewPackage({
@@ -167,13 +190,19 @@ async function main(): Promise<void> {
       ),
     });
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    if (result.kind === "blocked" || result.kind === "user-choice")
+      process.exitCode = 2;
     return;
   }
+  assertCheatsheetReleaseReady(evidence);
   const result = await verifyPortableCheatsheetRelease({
     source: evidence.releaseSource,
     releasedPdf: evidence.releasedPdf,
     filename: evidence.manifest.artifact.releaseTex,
     constraints: evidence.manifest.constraints,
+    requiredLabels: evidence.coverage.flatMap(({ artifactLocator }) =>
+      artifactLocator === undefined ? [] : [artifactLocator],
+    ),
   });
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }
@@ -181,6 +210,9 @@ async function main(): Promise<void> {
 try {
   await main();
 } catch (error) {
-  process.stderr.write(`${error instanceof Error ? error.message : error}\n`);
+  const message = error instanceof Error ? error.message : String(error);
+  process.stdout.write(
+    `${JSON.stringify({ schemaVersion: 1, status: "failed", error: { code: "cheatsheet-operation-failed", message } })}\n`,
+  );
   process.exitCode = 1;
 }

@@ -184,3 +184,33 @@ it("rejects vertical overflow from an isolated build", {
     /overfull box/u,
   );
 });
+
+it("refuses labels hidden in an inactive TeX conditional", {
+  skip: !latexAvailable,
+}, async () => {
+  const root = await mkdtemp(join(tmpdir(), "portable-inactive-label-"));
+  const inactive = source.replace(
+    "\\end{document}",
+    "\\iffalse\\label{Q1}\\fi\n\\end{document}",
+  );
+  try {
+    await writeFile(join(root, "sheet.tex"), inactive);
+    await run(
+      "latexmk",
+      ["-pdf", "-interaction=nonstopmode", "-halt-on-error", "sheet.tex"],
+      { cwd: root },
+    );
+    await assert.rejects(
+      verifyPortableCheatsheetRelease({
+        source: inactive,
+        releasedPdf: await readFile(join(root, "sheet.pdf")),
+        filename: "sheet.tex",
+        constraints,
+        requiredLabels: ["Q1"],
+      }),
+      /compiled auxiliary/u,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

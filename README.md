@@ -12,7 +12,7 @@ way around and [`AGENTS.md`](AGENTS.md) for how work is done here.
 
 ## Status
 
-✅ V1 proved. The CLI previews and explicitly publishes additive seeds, audits the configured
+The CLI previews and explicitly publishes additive seeds, audits the configured
 monitoring cohort, and records append-only private observations. Modules retain semester/module-code
 identity; Research projects use a separate configured root, stable key and programme profile.
 Past and future Modules and inactive Research projects remain explicit targets; historical Module
@@ -31,7 +31,24 @@ and previews any missing secondary-calendar creation. The ordinary Proposal/Prom
 previews and migrates reviewed recurring Routine series. Exact IDs remain in private configured
 state.
 
-## What is here now
+## Discover and verify capabilities
+
+```sh
+npm ci
+npm run build
+node dist/src/cli.js capabilities index --json
+node dist/src/cli.js capabilities health --json
+node dist/src/cli.js capabilities verify --workflow discovery --json
+npm run check
+```
+
+The index maps features to supported actions, prerequisites, read/write effects, risk flags and
+tests. Health reports observed local readiness and names unavailable evidence. Workflow checks use
+disposable synthetic fixtures. A passing fixture suite establishes its tested behavior; live
+maintenance recovery and source-specific mathematical correctness require their own evidence.
+Keep optional workflow logs in private local storage. See [capability evidence](docs/agents/capabilities.md).
+
+## Contracts
 
 [`docs/module-folder-contract.md`](docs/module-folder-contract.md) — the folder and naming
 contract every module folder follows: the universal structure, the parts that appear only when the

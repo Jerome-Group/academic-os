@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
@@ -30,11 +30,16 @@ describe("the morning routine's launchd runner", () => {
   it("runs one morning against the private config", async () => {
     const fixture = await runnerFixture(0);
 
-    const result = await runProcess(process.execPath, [
-      runnerPath,
-      fixture.cliPath,
-      fixture.configPath,
-    ]);
+    const result = await runProcess(
+      process.execPath,
+      [
+        runnerPath,
+        fixture.cliPath,
+        fixture.configPath,
+        fixture.notificationPath,
+      ],
+      { HOME: fixture.root },
+    );
 
     assert.equal(result.exitCode, 0, JSON.stringify(result));
     assert.deepEqual(
@@ -46,11 +51,16 @@ describe("the morning routine's launchd runner", () => {
   it("carries the morning's exit status back to launchd", async () => {
     const fixture = await runnerFixture(2);
 
-    const result = await runProcess(process.execPath, [
-      runnerPath,
-      fixture.cliPath,
-      fixture.configPath,
-    ]);
+    const result = await runProcess(
+      process.execPath,
+      [
+        runnerPath,
+        fixture.cliPath,
+        fixture.configPath,
+        fixture.notificationPath,
+      ],
+      { HOME: fixture.root },
+    );
 
     assert.equal(result.exitCode, 2, JSON.stringify(result));
   });
@@ -87,6 +97,8 @@ describe("the morning routine's launchd runner", () => {
 });
 
 async function runnerFixture(exitCode: number): Promise<{
+  root: string;
+  notificationPath: string;
   argumentsPath: string;
   cliPath: string;
   configPath: string;
@@ -101,7 +113,13 @@ async function runnerFixture(exitCode: number): Promise<{
     `import { writeFile } from "node:fs/promises";\nawait writeFile(${JSON.stringify(argumentsPath)}, JSON.stringify(process.argv.slice(2)));\nprocess.exitCode = ${exitCode};\n`,
   );
   await writeFile(configPath, "private configuration");
-  return { argumentsPath, cliPath, configPath };
+  const notificationPath = join(root, "notify.mjs");
+  await writeFile(
+    notificationPath,
+    "#!/usr/bin/env node\nprocess.exitCode=0;\n",
+  );
+  await chmod(notificationPath, 0o700);
+  return { root, notificationPath, argumentsPath, cliPath, configPath };
 }
 
 async function runProcess(
@@ -127,3 +145,67 @@ async function runProcess(
     );
   });
 }
+
+it("retains private launcher failure evidence and notifies only failure/recovery transitions", async () => {
+  const { runMorningRoutineLaunchdJob } = await import(
+    "../../src/routine/morning-routine-launchd-runner.js"
+  );
+  const { sha256 } = await import("../../src/checksum.js");
+  const fixture = await runnerFixture(1);
+  const notices = join(fixture.root, "notices.jsonl");
+  await writeFile(
+    fixture.notificationPath,
+    `#!/usr/bin/env node\nimport { appendFileSync } from 'node:fs';\nappendFileSync(${JSON.stringify(notices)}, JSON.stringify(process.argv.slice(2))+'\\n');\n`,
+  );
+  const input = {
+    nodePath: process.execPath,
+    cliPath: fixture.cliPath,
+    configPath: fixture.configPath,
+    evidenceRoot: join(fixture.root, "evidence"),
+    notificationPath: fixture.notificationPath,
+  };
+  assert.equal(await runMorningRoutineLaunchdJob(input), 1);
+  assert.equal(await runMorningRoutineLaunchdJob(input), 1);
+  const path = join(input.evidenceRoot, `${sha256(input.configPath)}.json`);
+  let receipt = JSON.parse(await readFile(path, "utf8"));
+  assert.equal(receipt.status, "failed");
+  assert.equal(receipt.lastCompletedAt, null);
+  assert.equal((await readFile(notices, "utf8")).trim().split("\n").length, 1);
+  assert.ok(!(await readFile(path, "utf8")).includes(fixture.configPath));
+  await writeFile(fixture.cliPath, "process.exitCode=0;\n");
+  assert.equal(await runMorningRoutineLaunchdJob(input), 0);
+  assert.equal(await runMorningRoutineLaunchdJob(input), 0);
+  receipt = JSON.parse(await readFile(path, "utf8"));
+  assert.equal(receipt.status, "completed");
+  assert.ok(receipt.lastCompletedAt);
+  assert.equal((await readFile(notices, "utf8")).trim().split("\n").length, 2);
+  assert.equal(
+    await runMorningRoutineLaunchdJob({
+      ...input,
+      nodePath: join(fixture.root, "missing-node"),
+    }),
+    1,
+  );
+  const failed = JSON.parse(await readFile(path, "utf8"));
+  assert.equal(failed.lastCompletedAt, receipt.lastCompletedAt);
+});
+
+it("refuses a successful launcher result when private status cannot be saved", async () => {
+  const { runMorningRoutineLaunchdJob } = await import(
+    "../../src/routine/morning-routine-launchd-runner.js"
+  );
+  const fixture = await runnerFixture(0);
+  const evidenceRoot = join(fixture.root, "blocked-state");
+  await writeFile(evidenceRoot, "synthetic obstruction");
+  assert.equal(
+    await runMorningRoutineLaunchdJob({
+      nodePath: process.execPath,
+      cliPath: fixture.cliPath,
+      configPath: fixture.configPath,
+      evidenceRoot,
+      notificationPath: fixture.notificationPath,
+    }),
+    1,
+  );
+  assert.equal(await readFile(evidenceRoot, "utf8"), "synthetic obstruction");
+});

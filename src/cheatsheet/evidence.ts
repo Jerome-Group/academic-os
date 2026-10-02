@@ -58,6 +58,7 @@ export async function loadCheatsheetEvidence(input: {
       "Release TeX is stale against its declared authoring authority.",
     );
   }
+  validateCoverageCorrespondence(manifest, coverage, releaseSource);
   if (manifest.release.texSha256 !== built.sha256) {
     throw new Error("Release TeX digest does not describe the current source.");
   }
@@ -75,4 +76,47 @@ export async function loadCheatsheetEvidence(input: {
     releaseSource,
     releasedPdf,
   };
+}
+
+export function validateCoverageCorrespondence(
+  manifest: CheatsheetManifest,
+  coverage: CheatsheetCoverageItem[],
+  source: string,
+): void {
+  const labels = new Set(
+    [
+      ...source
+        .replace(/(?<!\\)%[^\n]*/gu, "")
+        .matchAll(/\\label\s*\{([^{}]+)\}/gu),
+    ].map((match) => match[1]),
+  );
+  for (const item of coverage) {
+    const declared = manifest.sources.find(({ id }) => id === item.sourceId);
+    if (!declared?.locators.includes(item.locator)) {
+      throw new Error(
+        `Coverage item ${item.id} locator is absent from its declared source locators.`,
+      );
+    }
+    if (
+      item.artifactLocator !== undefined &&
+      !labels.has(item.artifactLocator)
+    ) {
+      throw new Error(
+        `Coverage item ${item.id} names missing artifact label ${item.artifactLocator}.`,
+      );
+    }
+  }
+}
+
+export function assertCheatsheetReleaseReady(
+  evidence: CheatsheetEvidence,
+): void {
+  const pending = evidence.coverage.filter(
+    (item) => item.priority === "required" && item.disposition === "pending",
+  );
+  if (evidence.coverage.length === 0 || pending.length > 0) {
+    throw new Error(
+      "Release requires nonempty coverage with every required item included.",
+    );
+  }
 }

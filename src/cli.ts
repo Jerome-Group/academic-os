@@ -1,14 +1,19 @@
 #!/usr/bin/env node
 
+import { runCapabilitiesCommand } from "./capabilities/command.js";
 import { runAuditCommand } from "./commands/audit-command.js";
-import { runCalendarSetupCommand } from "./commands/calendar-setup-command.js";
-import { runCalendarRefreshCommand } from "./commands/calendar-refresh-command.js";
-import { runCalendarProposeCommand } from "./commands/calendar-propose-command.js";
 import { runCalendarPromoteCommand } from "./commands/calendar-promote-command.js";
+import { runCalendarProposeCommand } from "./commands/calendar-propose-command.js";
+import { runCalendarRefreshCommand } from "./commands/calendar-refresh-command.js";
+import { runCalendarSetupCommand } from "./commands/calendar-setup-command.js";
 import { runCurationMigrateCommand } from "./commands/curation-migrate-command.js";
 import { runCurationRederiveCommand } from "./commands/curation-rederive-command.js";
+import { runImportsStatusCommand } from "./commands/imports-status-command.js";
+import { runLearningMaterialsCommand } from "./commands/learning-materials-command.js";
 import { writeOperationalError } from "./commands/operational-error-output.js";
 import { runPinnedRefreshCommand } from "./commands/pinned-refresh-command.js";
+import { runRepairCommand } from "./commands/repair-command.js";
+import { runRoutineMorningCommand } from "./commands/routine-morning-command.js";
 import { runSeedCommand } from "./commands/seed-command.js";
 import {
   isTaskOperation,
@@ -19,16 +24,21 @@ import { runTasksRefreshCommand } from "./commands/tasks-refresh-command.js";
 import { runTextbooksCatchUpCommand } from "./commands/textbooks-catch-up-command.js";
 import { runTextbooksMigrateCommand } from "./commands/textbooks-migrate-command.js";
 import { runTextbooksSweepCommand } from "./commands/textbooks-sweep-command.js";
-import { runRepairCommand } from "./commands/repair-command.js";
-import { runRoutineMorningCommand } from "./commands/routine-morning-command.js";
-import { runImportsStatusCommand } from "./commands/imports-status-command.js";
-import { runLearningMaterialsCommand } from "./commands/learning-materials-command.js";
+import { OperationalError } from "./mounted/index.js";
 
 const arguments_ = process.argv.slice(2);
 const json = arguments_.includes("--json");
 
 try {
-  if (arguments_[0] === "seed") {
+  if (arguments_[0] === "capabilities") {
+    await runCapabilitiesCommand(arguments_);
+  } else if (
+    arguments_.length === 0 ||
+    arguments_[0] === "--help" ||
+    arguments_[0] === "help"
+  ) {
+    await runCapabilitiesCommand(["capabilities", "index", "--json"]);
+  } else if (arguments_[0] === "seed") {
     await runSeedCommand(arguments_, json);
   } else if (arguments_[0] === "repair") {
     await runRepairCommand(arguments_, json);
@@ -64,8 +74,13 @@ try {
     await runImportsStatusCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "learning" && arguments_[1] === "materials") {
     await runLearningMaterialsCommand(arguments_.slice(1), json);
-  } else {
+  } else if (arguments_[0] === "audit") {
     await runAuditCommand(arguments_, json);
+  } else {
+    throw new OperationalError(
+      "invalid-arguments",
+      "Unknown command. Discover actions with academic-os capabilities index --json.",
+    );
   }
 } catch (error) {
   writeOperationalError(error, json);

@@ -26,6 +26,7 @@ it("ships the separate portable mathematics-cheatsheet interface", async () => {
   assert.equal(Number(bodySize?.[1]) >= 3.835, true);
   assert.match(preamble, /\\DeclareMathSizes\{\\SheetBodyPointSize\}/u);
   assert.match(preamble, /\\begin\{multicols\}\{\\SheetColumns\}/u);
+  assert.ok(preamble.includes("\\baselineskip=\\SheetBodyLeading pt"));
   assert.match(preamble, /\\newcommand\{\\SheetMap\}/u);
   assert.match(preamble, /\\newcommand\{\\Topic\}\[2\]\[\]/u);
   assert.match(preamble, /\\thepage/u);

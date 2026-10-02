@@ -43,11 +43,11 @@ var require_identity = __commonJS({
     var SCALAR = Symbol.for("yaml.scalar");
     var SEQ = Symbol.for("yaml.seq");
     var NODE_TYPE = Symbol.for("yaml.node.type");
-    var isAlias = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === ALIAS;
+    var isAlias2 = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === ALIAS;
     var isDocument = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === DOC;
     var isMap = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === MAP;
     var isPair = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === PAIR;
-    var isScalar = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === SCALAR;
+    var isScalar2 = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === SCALAR;
     var isSeq = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === SEQ;
     function isCollection(node) {
       if (node && typeof node === "object")
@@ -69,7 +69,7 @@ var require_identity = __commonJS({
         }
       return false;
     }
-    var hasAnchor = (node) => (isScalar(node) || isCollection(node)) && !!node.anchor;
+    var hasAnchor = (node) => (isScalar2(node) || isCollection(node)) && !!node.anchor;
     exports.ALIAS = ALIAS;
     exports.DOC = DOC;
     exports.MAP = MAP;
@@ -78,13 +78,13 @@ var require_identity = __commonJS({
     exports.SCALAR = SCALAR;
     exports.SEQ = SEQ;
     exports.hasAnchor = hasAnchor;
-    exports.isAlias = isAlias;
+    exports.isAlias = isAlias2;
     exports.isCollection = isCollection;
     exports.isDocument = isDocument;
     exports.isMap = isMap;
     exports.isNode = isNode;
     exports.isPair = isPair;
-    exports.isScalar = isScalar;
+    exports.isScalar = isScalar2;
     exports.isSeq = isSeq;
   }
 });
@@ -97,7 +97,7 @@ var require_visit = __commonJS({
     var BREAK = Symbol("break visit");
     var SKIP = Symbol("skip children");
     var REMOVE = Symbol("remove node");
-    function visit(node, visitor) {
+    function visit2(node, visitor) {
       const visitor_ = initVisitor(visitor);
       if (identity.isDocument(node)) {
         const cd = visit_(null, node.contents, visitor_, Object.freeze([node]));
@@ -106,9 +106,9 @@ var require_visit = __commonJS({
       } else
         visit_(null, node, visitor_, Object.freeze([]));
     }
-    visit.BREAK = BREAK;
-    visit.SKIP = SKIP;
-    visit.REMOVE = REMOVE;
+    visit2.BREAK = BREAK;
+    visit2.SKIP = SKIP;
+    visit2.REMOVE = REMOVE;
     function visit_(key, node, visitor, path) {
       const ctrl = callVisitor(key, node, visitor, path);
       if (identity.isNode(ctrl) || identity.isPair(ctrl)) {
@@ -242,7 +242,7 @@ var require_visit = __commonJS({
         throw new Error(`Cannot replace node with ${pt} parent`);
       }
     }
-    exports.visit = visit;
+    exports.visit = visit2;
     exports.visitAsync = visitAsync;
   }
 });
@@ -252,7 +252,7 @@ var require_directives = __commonJS({
   "node_modules/yaml/dist/doc/directives.js"(exports) {
     "use strict";
     var identity = require_identity();
-    var visit = require_visit();
+    var visit2 = require_visit();
     var escapeChars = {
       "!": "%21",
       ",": "%2C",
@@ -396,7 +396,7 @@ var require_directives = __commonJS({
         let tagNames;
         if (doc && tagEntries.length > 0 && identity.isNode(doc.contents)) {
           const tags = {};
-          visit.visit(doc.contents, (_key, node) => {
+          visit2.visit(doc.contents, (_key, node) => {
             if (identity.isNode(node) && node.tag)
               tags[node.tag] = true;
           });
@@ -423,7 +423,7 @@ var require_anchors = __commonJS({
   "node_modules/yaml/dist/doc/anchors.js"(exports) {
     "use strict";
     var identity = require_identity();
-    var visit = require_visit();
+    var visit2 = require_visit();
     function anchorIsValid(anchor) {
       if (/[\x00-\x19\s,[\]{}]/.test(anchor)) {
         const sa = JSON.stringify(anchor);
@@ -434,7 +434,7 @@ var require_anchors = __commonJS({
     }
     function anchorNames(root) {
       const anchors = /* @__PURE__ */ new Set();
-      visit.visit(root, {
+      visit2.visit(root, {
         Value(_key, node) {
           if (node.anchor)
             anchors.add(node.anchor);
@@ -614,7 +614,7 @@ var require_Alias = __commonJS({
   "node_modules/yaml/dist/nodes/Alias.js"(exports) {
     "use strict";
     var anchors = require_anchors();
-    var visit = require_visit();
+    var visit2 = require_visit();
     var identity = require_identity();
     var Node = require_Node();
     var toJS = require_toJS();
@@ -640,7 +640,7 @@ var require_Alias = __commonJS({
           nodes = ctx.aliasResolveCache;
         } else {
           nodes = [];
-          visit.visit(doc, {
+          visit2.visit(doc, {
             Node: (_key, node) => {
               if (identity.isAlias(node) || identity.hasAnchor(node))
                 nodes.push(node);
@@ -5559,15 +5559,15 @@ var require_cst_visit = __commonJS({
     var BREAK = Symbol("break visit");
     var SKIP = Symbol("skip children");
     var REMOVE = Symbol("remove item");
-    function visit(cst, visitor) {
+    function visit2(cst, visitor) {
       if ("type" in cst && cst.type === "document")
         cst = { start: cst.start, value: cst.value };
       _visit(Object.freeze([]), cst, visitor);
     }
-    visit.BREAK = BREAK;
-    visit.SKIP = SKIP;
-    visit.REMOVE = REMOVE;
-    visit.itemAtPath = (cst, path) => {
+    visit2.BREAK = BREAK;
+    visit2.SKIP = SKIP;
+    visit2.REMOVE = REMOVE;
+    visit2.itemAtPath = (cst, path) => {
       let item = cst;
       for (const [field, index] of path) {
         const tok = item?.[field];
@@ -5578,8 +5578,8 @@ var require_cst_visit = __commonJS({
       }
       return item;
     };
-    visit.parentCollection = (cst, path) => {
-      const parent = visit.itemAtPath(cst, path.slice(0, -1));
+    visit2.parentCollection = (cst, path) => {
+      const parent = visit2.itemAtPath(cst, path.slice(0, -1));
       const field = path[path.length - 1][0];
       const coll = parent?.[field];
       if (coll && "items" in coll)
@@ -5610,7 +5610,7 @@ var require_cst_visit = __commonJS({
       }
       return typeof ctrl === "function" ? ctrl(item, path) : ctrl;
     }
-    exports.visit = visit;
+    exports.visit = visit2;
   }
 });
 
@@ -5626,7 +5626,7 @@ var require_cst = __commonJS({
     var FLOW_END = "";
     var SCALAR = "";
     var isCollection = (token) => !!token && "items" in token;
-    var isScalar = (token) => !!token && (token.type === "scalar" || token.type === "single-quoted-scalar" || token.type === "double-quoted-scalar" || token.type === "block-scalar");
+    var isScalar2 = (token) => !!token && (token.type === "scalar" || token.type === "single-quoted-scalar" || token.type === "double-quoted-scalar" || token.type === "block-scalar");
     function prettyToken(token) {
       switch (token) {
         case BOM:
@@ -5710,7 +5710,7 @@ var require_cst = __commonJS({
     exports.FLOW_END = FLOW_END;
     exports.SCALAR = SCALAR;
     exports.isCollection = isCollection;
-    exports.isScalar = isScalar;
+    exports.isScalar = isScalar2;
     exports.prettyToken = prettyToken;
     exports.tokenType = tokenType;
   }
@@ -7240,7 +7240,7 @@ var require_public_api = __commonJS({
         return docs;
       return Object.assign([], { empty: true }, composer$1.streamInfo());
     }
-    function parseDocument(source, options = {}) {
+    function parseDocument3(source, options = {}) {
       const { lineCounter: lineCounter2, prettyErrors } = parseOptions(options);
       const parser$1 = new parser.Parser(lineCounter2?.addNewLine);
       const composer$1 = new composer.Composer(options);
@@ -7266,7 +7266,7 @@ var require_public_api = __commonJS({
       } else if (options === void 0 && reviver && typeof reviver === "object") {
         options = reviver;
       }
-      const doc = parseDocument(src, options);
+      const doc = parseDocument3(src, options);
       if (!doc)
         return null;
       doc.warnings.forEach((warning) => log.warn(doc.options.logLevel, warning));
@@ -7302,7 +7302,7 @@ var require_public_api = __commonJS({
     }
     exports.parse = parse2;
     exports.parseAllDocuments = parseAllDocuments;
-    exports.parseDocument = parseDocument;
+    exports.parseDocument = parseDocument3;
     exports.stringify = stringify;
   }
 });
@@ -7326,7 +7326,7 @@ var require_dist = __commonJS({
     var lineCounter = require_line_counter();
     var parser = require_parser();
     var publicApi = require_public_api();
-    var visit = require_visit();
+    var visit2 = require_visit();
     exports.Composer = composer.Composer;
     exports.Document = Document.Document;
     exports.Schema = Schema.Schema;
@@ -7354,13 +7354,13 @@ var require_dist = __commonJS({
     exports.parseAllDocuments = publicApi.parseAllDocuments;
     exports.parseDocument = publicApi.parseDocument;
     exports.stringify = publicApi.stringify;
-    exports.visit = visit.visit;
-    exports.visitAsync = visit.visitAsync;
+    exports.visit = visit2.visit;
+    exports.visitAsync = visit2.visitAsync;
   }
 });
 
 // src/cheatsheet/cli.ts
-import { readFile as readFile5 } from "node:fs/promises";
+import { readFile as readFile8 } from "node:fs/promises";
 
 // src/cheatsheet/coverage.ts
 var columns = [
@@ -7841,6 +7841,7 @@ async function loadCheatsheetEvidence(input) {
       "Release TeX is stale against its declared authoring authority."
     );
   }
+  validateCoverageCorrespondence(manifest, coverage, releaseSource);
   if (manifest.release.texSha256 !== built.sha256) {
     throw new Error("Release TeX digest does not describe the current source.");
   }
@@ -7858,6 +7859,36 @@ async function loadCheatsheetEvidence(input) {
     releaseSource,
     releasedPdf
   };
+}
+function validateCoverageCorrespondence(manifest, coverage, source) {
+  const labels = new Set(
+    [
+      ...source.replace(/(?<!\\)%[^\n]*/gu, "").matchAll(/\\label\s*\{([^{}]+)\}/gu)
+    ].map((match) => match[1])
+  );
+  for (const item of coverage) {
+    const declared = manifest.sources.find(({ id }) => id === item.sourceId);
+    if (!declared?.locators.includes(item.locator)) {
+      throw new Error(
+        `Coverage item ${item.id} locator is absent from its declared source locators.`
+      );
+    }
+    if (item.artifactLocator !== void 0 && !labels.has(item.artifactLocator)) {
+      throw new Error(
+        `Coverage item ${item.id} names missing artifact label ${item.artifactLocator}.`
+      );
+    }
+  }
+}
+function assertCheatsheetReleaseReady(evidence) {
+  const pending = evidence.coverage.filter(
+    (item) => item.priority === "required" && item.disposition === "pending"
+  );
+  if (evidence.coverage.length === 0 || pending.length > 0) {
+    throw new Error(
+      "Release requires nonempty coverage with every required item included."
+    );
+  }
 }
 
 // src/cheatsheet/fit.ts
@@ -7967,12 +7998,1413 @@ function planCheatsheetFit(input) {
   return { kind: "accept", reason: "Coverage and measured constraints pass." };
 }
 
+// src/cheatsheet/prepare.ts
+import { readFile as readFile3 } from "node:fs/promises";
+
+// src/conformance/control-document.ts
+var import_yaml2 = __toESM(require_dist(), 1);
+function readControlDocument(source) {
+  try {
+    const document = (0, import_yaml2.parseDocument)(source, {
+      prettyErrors: false,
+      uniqueKeys: true
+    });
+    const problems = document.errors.map(({ message }) => yamlProblem(message));
+    (0, import_yaml2.visit)(document, {
+      Pair(_key, pair) {
+        const key = (0, import_yaml2.isAlias)(pair.key) ? pair.key.resolve(document) : pair.key;
+        if (!(0, import_yaml2.isScalar)(key)) {
+          problems.push("YAML mapping keys must be scalar values.");
+        }
+      }
+    });
+    if (problems.length > 0) return { problems };
+    const value = document.toJS();
+    if (hasCircularValues(value)) {
+      return { problems: ["YAML controls must not contain circular values."] };
+    }
+    return { value };
+  } catch (error) {
+    return {
+      problems: [
+        yamlProblem(error instanceof Error ? error.message : String(error))
+      ]
+    };
+  }
+}
+function yamlProblem(message) {
+  return `YAML parser reported: ${message.replace(/\s+/gu, " ").trim()}`;
+}
+function hasCircularValues(value) {
+  const ancestors = /* @__PURE__ */ new WeakSet();
+  const completed = /* @__PURE__ */ new WeakSet();
+  const pending = [
+    { value, exiting: false }
+  ];
+  while (pending.length > 0) {
+    const entry = pending.pop();
+    if (entry === void 0 || typeof entry.value !== "object" || entry.value === null)
+      continue;
+    const object = entry.value;
+    if (entry.exiting) {
+      ancestors.delete(object);
+      completed.add(object);
+      continue;
+    }
+    if (ancestors.has(object)) return true;
+    if (completed.has(object)) continue;
+    ancestors.add(object);
+    pending.push({ value: object, exiting: true });
+    for (const child of Object.values(object)) {
+      pending.push({ value: child, exiting: false });
+    }
+  }
+  return false;
+}
+
+// src/conformance/definition-shape.ts
+import { isAbsolute as isAbsolute2, win32 } from "node:path";
+
+// src/contract/importer-citations.ts
+var importerLandmarks = /* @__PURE__ */ new Set([
+  "Course.md",
+  "Last synced.md",
+  "Announcements"
+]);
+function citesImporterInterior(citation, importerRoots) {
+  const [root, landmark] = citation.split("/");
+  if (root === void 0 || !importerRoots.includes(root)) return false;
+  if (landmark === void 0 || landmark === "") return false;
+  return !importerLandmarks.has(landmark);
+}
+
+// src/conformance/value-shape.ts
+function isRecord(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function nonEmptyString(value) {
+  return typeof value === "string" && value.trim() !== "";
+}
+function isDirectoryName(value) {
+  return nonEmptyString(value) && value !== "." && value !== ".." && !value.includes("/") && !value.includes("\\");
+}
+
+// src/contract/universal-structure.ts
+var universalStructurePaths = [
+  ["00 Module Admin", "directory"],
+  ["00 Module Admin/00 Module Profile.md", "file"],
+  ["00 Module Admin/10 Module Definition.yaml", "file"],
+  ["00 Module Admin/20 Curation Register.jsonl", "file"],
+  ["00 Module Admin/30 Task Register.yaml", "file"],
+  ["00 Module Admin/40 Source Map.yaml", "file"],
+  ["00 Module Admin/50 Textbook Register.yaml", "file"],
+  ["10 Learning Materials", "directory"],
+  ["10 Learning Materials/10 Lecture Materials", "directory"],
+  ["10 Learning Materials/20 Textbook Chapters", "directory"],
+  ["10 Learning Materials/30 Personal Notes", "directory"],
+  ["20 Tutorials", "directory"],
+  ["30 Assessments", "directory"],
+  ["30 Assessments/30 Midterms", "directory"],
+  ["30 Assessments/40 Finals", "directory"],
+  ["40 Projects and Labs", "directory"],
+  ["70 Learning", "directory"],
+  ["90 Resources", "directory"],
+  ["90 Resources/00 Unclassified", "directory"],
+  [".scratch", "directory"],
+  ["NTULearn", "directory"],
+  ["AGENTS.md", "file"],
+  ["CLAUDE.md", "file"],
+  ["CONTEXT.md", "file"],
+  ["docs", "directory"],
+  ["docs/00 Structure and Naming.md", "file"],
+  ["docs/10 Curation Procedure.md", "file"],
+  ["docs/20 Teaching Procedure.md", "file"],
+  ["docs/30 Textbook Procedure.md", "file"],
+  ["docs/40 Cheatsheet Procedure.md", "file"],
+  ["docs/adr", "directory"]
+];
+
+// src/conformance/definition-shape.ts
+var contextualAssessments = [
+  "quizzes",
+  "tests",
+  "assignments"
+];
+var contextualWorkspaces = ["projects", "labs"];
+var universalRootPaths = new Set(
+  universalStructurePaths.filter(([path]) => !path.includes("/")).map(([path]) => path)
+);
+function readDefinitionIdentity(value) {
+  const module = value.module;
+  const offering = value.offering;
+  if (!isRecord(module) || !isRecord(offering) || !nonEmptyString(module.code) || !nonEmptyString(module.title) || !nonEmptyString(offering.academic_year) || typeof offering.semester !== "number") {
+    return void 0;
+  }
+  return {
+    code: module.code,
+    title: module.title,
+    academicYear: offering.academic_year,
+    semester: offering.semester
+  };
+}
+function validateDefinitionShape(value, identity) {
+  return [
+    ...validateDeclaredFields(value),
+    ...validatePortableValues(value),
+    ...validateIdentityAndOffering(value, identity),
+    ...validateStructure(value.structure),
+    ...validateSources(value.sources),
+    ...validateEvidence(value.evidence, declaredImporterRoots(value.sources)),
+    ...validateExceptions(value.exceptions)
+  ];
+}
+function validateDeclaredFields(value) {
+  const problems = undeclaredFields(value, "Definition", [
+    "schema_version",
+    "contract_version",
+    "module",
+    "offering",
+    "structure",
+    "sources",
+    "evidence",
+    "exceptions"
+  ]);
+  if (isRecord(value.module)) {
+    problems.push(
+      ...undeclaredFields(value.module, "module", ["code", "title"])
+    );
+  }
+  if (isRecord(value.offering)) {
+    problems.push(
+      ...undeclaredFields(value.offering, "offering", [
+        "academic_year",
+        "semester",
+        "status"
+      ])
+    );
+  }
+  if (isRecord(value.structure)) {
+    problems.push(
+      ...undeclaredFields(value.structure, "structure", [
+        "tutorials",
+        "assessments",
+        "projects",
+        "labs",
+        "resource_categories"
+      ])
+    );
+    if (isRecord(value.structure.tutorials)) {
+      problems.push(
+        ...undeclaredFields(value.structure.tutorials, "structure.tutorials", [
+          "layout",
+          "groups",
+          "evidence"
+        ])
+      );
+    }
+    if (isRecord(value.structure.assessments)) {
+      problems.push(
+        ...undeclaredFields(
+          value.structure.assessments,
+          "structure.assessments",
+          [...contextualAssessments]
+        )
+      );
+      for (const category of contextualAssessments) {
+        const declaration = value.structure.assessments[category];
+        if (isRecord(declaration)) {
+          problems.push(
+            ...undeclaredFields(
+              declaration,
+              `structure.assessments.${category}`,
+              ["enabled", "evidence"]
+            )
+          );
+        }
+      }
+    }
+    for (const workspace of contextualWorkspaces) {
+      const declaration = value.structure[workspace];
+      if (isRecord(declaration)) {
+        problems.push(
+          ...undeclaredFields(declaration, `structure.${workspace}`, [
+            "enabled",
+            "evidence"
+          ])
+        );
+      }
+    }
+    if (Array.isArray(value.structure.resource_categories)) {
+      for (const [
+        index,
+        category
+      ] of value.structure.resource_categories.entries()) {
+        if (isRecord(category)) {
+          problems.push(
+            ...undeclaredFields(
+              category,
+              `structure.resource_categories[${index}]`,
+              ["name", "evidence"]
+            )
+          );
+        }
+      }
+    }
+  }
+  if (isRecord(value.sources)) {
+    problems.push(...undeclaredFields(value.sources, "sources", ["ntulearn"]));
+    if (Array.isArray(value.sources.ntulearn)) {
+      for (const [index, root] of value.sources.ntulearn.entries()) {
+        if (isRecord(root)) {
+          problems.push(
+            ...undeclaredFields(root, `sources.ntulearn[${index}]`, [
+              "role",
+              "destination",
+              "evidence"
+            ])
+          );
+        }
+      }
+    }
+  }
+  if (isRecord(value.evidence)) {
+    for (const [name, item] of Object.entries(value.evidence)) {
+      if (isRecord(item)) {
+        problems.push(
+          ...undeclaredFields(item, `evidence.${name}`, [
+            "source",
+            "checked_at"
+          ])
+        );
+      }
+    }
+  }
+  if (Array.isArray(value.exceptions)) {
+    for (const [index, exception] of value.exceptions.entries()) {
+      if (isRecord(exception)) {
+        problems.push(
+          ...undeclaredFields(exception, `exceptions[${index}]`, [
+            "rule",
+            "reason",
+            "evidence"
+          ])
+        );
+      }
+    }
+  }
+  return problems;
+}
+function undeclaredFields(value, location, allowed) {
+  const allowedFields = new Set(allowed);
+  return Object.keys(value).filter((field) => !allowedFields.has(field)).sort().map((field) => `${location} has undeclared field ${field}.`);
+}
+function validatePortableValues(value, location = "Definition") {
+  if (typeof value === "string") {
+    return isAbsolute2(value) || win32.isAbsolute(value) || value.startsWith("~/") ? [
+      `${location} contains absolute personal path ${JSON.stringify(value)}.`
+    ] : [];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap(
+      (item, index) => validatePortableValues(item, `${location}[${index}]`)
+    );
+  }
+  if (!isRecord(value)) return [];
+  return Object.entries(value).flatMap(
+    ([field, item]) => validatePortableValues(item, `${location}.${field}`)
+  );
+}
+function validateIdentityAndOffering(value, identity) {
+  if (identity === void 0) {
+    return [
+      "module.code, module.title, offering.academic_year, and numeric offering.semester are required."
+    ];
+  }
+  const problems = [];
+  if (!/^[A-Z]{2,4}\d{4}[A-Z]?$/.test(identity.code)) {
+    problems.push(
+      `module.code ${identity.code} is not an uppercase module code.`
+    );
+  }
+  if (!/^\d{4}-\d{4}$/.test(identity.academicYear)) {
+    problems.push(
+      `offering.academic_year ${identity.academicYear} is not YYYY-YYYY.`
+    );
+  }
+  if (![1, 2].includes(identity.semester)) {
+    problems.push(`offering.semester ${identity.semester} is not 1 or 2.`);
+  }
+  const offering = value.offering;
+  if (!isRecord(offering) || !["active", "past", "future"].includes(String(offering.status))) {
+    problems.push("offering.status must be active, past, or future.");
+  }
+  return problems;
+}
+function validateStructure(value) {
+  if (!isRecord(value)) return ["structure must be a mapping."];
+  const problems = [];
+  const tutorials = value.tutorials;
+  if (!isRecord(tutorials) || !["flat", "grouped"].includes(String(tutorials.layout))) {
+    problems.push("structure.tutorials.layout must be flat or grouped.");
+  } else if (tutorials.layout === "grouped") {
+    if (!Array.isArray(tutorials.groups) || tutorials.groups.length === 0 || !tutorials.groups.every(isDirectoryName) || new Set(tutorials.groups).size !== tutorials.groups.length) {
+      problems.push(
+        "grouped structure.tutorials requires a non-empty list of unique directory names in groups."
+      );
+    }
+    validateEvidenceList(tutorials, "structure.tutorials", problems);
+  } else if ("groups" in tutorials) {
+    problems.push("flat structure.tutorials must not declare groups.");
+  }
+  const assessments = value.assessments;
+  if (!isRecord(assessments)) {
+    problems.push("structure.assessments must be a mapping.");
+  } else {
+    for (const category of contextualAssessments) {
+      validateEnabledDeclaration(
+        assessments[category],
+        `structure.assessments.${category}`,
+        problems
+      );
+    }
+  }
+  for (const workspace of contextualWorkspaces) {
+    validateEnabledDeclaration(
+      value[workspace],
+      `structure.${workspace}`,
+      problems
+    );
+  }
+  if (!Array.isArray(value.resource_categories)) {
+    problems.push("structure.resource_categories must be a list.");
+  } else {
+    const names = [];
+    for (const [index, category] of value.resource_categories.entries()) {
+      if (!isRecord(category) || !isDirectoryName(category.name)) {
+        problems.push(
+          `structure.resource_categories[${index}] requires one directory name.`
+        );
+        continue;
+      }
+      if (category.name === "00 Unclassified") {
+        problems.push(
+          "structure.resource_categories must not redeclare 00 Unclassified."
+        );
+      }
+      names.push(category.name);
+      validateEvidenceList(
+        category,
+        `structure.resource_categories[${index}]`,
+        problems
+      );
+    }
+    if (new Set(names).size !== names.length) {
+      problems.push("structure.resource_categories contains duplicate names.");
+    }
+  }
+  return problems;
+}
+function validateEvidenceList(value, field, problems) {
+  if (!Array.isArray(value.evidence) || value.evidence.length === 0 || !value.evidence.every(nonEmptyString)) {
+    problems.push(`${field} requires a non-empty evidence reference list.`);
+  }
+}
+function validateSources(value) {
+  if (!isRecord(value) || !Array.isArray(value.ntulearn) || value.ntulearn.length === 0) {
+    return ["sources.ntulearn must declare at least one importer root."];
+  }
+  const problems = [];
+  for (const [index, root] of value.ntulearn.entries()) {
+    if (!isRecord(root) || !nonEmptyString(root.role) || !isModuleRoot(root.destination) || !Array.isArray(root.evidence) || root.evidence.length === 0 || !root.evidence.every(nonEmptyString)) {
+      problems.push(
+        `sources.ntulearn[${index}] requires a role, one module-relative root destination, and a non-empty evidence reference list.`
+      );
+    }
+  }
+  const destinations = declaredDestinations(value);
+  if (!destinations.includes("NTULearn")) {
+    problems.push("sources.ntulearn must declare the universal NTULearn root.");
+  }
+  if (new Set(destinations).size !== destinations.length) {
+    problems.push("sources.ntulearn contains duplicate destination roots.");
+  }
+  for (const destination of destinations) {
+    if (destination !== "NTULearn" && universalRootPaths.has(destination)) {
+      problems.push(
+        `sources.ntulearn destination ${destination} conflicts with universal structure.`
+      );
+    }
+  }
+  return problems;
+}
+function declaredDestinations(value) {
+  return Array.isArray(value.ntulearn) ? value.ntulearn.flatMap(
+    (root) => isRecord(root) && nonEmptyString(root.destination) ? [root.destination] : []
+  ) : [];
+}
+function declaredImporterRoots(value) {
+  return [
+    .../* @__PURE__ */ new Set([
+      "NTULearn",
+      ...isRecord(value) ? declaredDestinations(value) : []
+    ])
+  ];
+}
+function citationRepair(source) {
+  const name = source.split("/").at(-1) ?? source;
+  return name.startsWith("ultraDocumentBody") ? "the document by name" : `the file name ${name}`;
+}
+function validateEvidence(value, roots) {
+  if (!isRecord(value)) return ["evidence must be a mapping."];
+  const problems = [];
+  for (const [name, item] of Object.entries(value)) {
+    if (!isRecord(item) || !nonEmptyString(item.source) || !nonEmptyString(item.checked_at) || !/^\d{4}-\d{2}-\d{2}$/.test(item.checked_at)) {
+      problems.push(
+        `evidence.${name} requires source and checked_at in YYYY-MM-DD form.`
+      );
+      continue;
+    }
+    if (citesImporterInterior(item.source, roots)) {
+      problems.push(
+        `evidence.${name}.source walks into the importer's interior; cite ${citationRepair(item.source)}.`
+      );
+    }
+  }
+  return problems;
+}
+function validateExceptions(value) {
+  if (!Array.isArray(value)) {
+    return ["exceptions must be a list, including when empty."];
+  }
+  const problems = [];
+  for (const [index, exception] of value.entries()) {
+    if (!isRecord(exception) || !nonEmptyString(exception.rule) || !nonEmptyString(exception.reason) || !Array.isArray(exception.evidence) || exception.evidence.length === 0 || !exception.evidence.every(nonEmptyString)) {
+      problems.push(
+        `exceptions[${index}] requires rule, reason, and a non-empty evidence reference list.`
+      );
+    }
+  }
+  return problems;
+}
+function validateEnabledDeclaration(value, field, problems) {
+  if (!isRecord(value) || ![true, false, "unknown"].includes(value.enabled)) {
+    problems.push(`${field}.enabled must be true, false, or unknown.`);
+  }
+}
+var isModuleRoot = isDirectoryName;
+
+// src/conformance/markdown-control-helpers.ts
+function validateHeadingSubsequence(source, expected) {
+  const actual = source.split(/\r?\n/).flatMap((line) => line.startsWith("## ") ? [line.slice(3)] : []);
+  const duplicates = [
+    ...new Set(
+      actual.filter((heading, index) => actual.indexOf(heading) !== index)
+    )
+  ];
+  const expectedHeadings = new Set(expected);
+  const anchors = actual.filter((heading) => expectedHeadings.has(heading));
+  const problems = [];
+  if (duplicates.length > 0) {
+    problems.push(
+      `Section headings must be unique; repeated ${JSON.stringify(duplicates)}.`
+    );
+  }
+  if (anchors.length !== expected.length || anchors.some((heading, index) => heading !== expected[index])) {
+    problems.push(
+      `Required section headings appear as ${JSON.stringify(anchors)}; expected ordered anchors ${JSON.stringify(expected)}.`
+    );
+  }
+  return problems;
+}
+function sectionBody(source, heading) {
+  const match = new RegExp(
+    `(?:^|\\n)## ${escapeRegex(heading)}\\r?\\n([\\s\\S]*?)(?=\\r?\\n## |$)`,
+    "u"
+  ).exec(source);
+  return match?.[1] ?? "";
+}
+function firstDirectTableRows(source) {
+  const lines = source.split(/\r?\n/);
+  const firstNestedHeading = lines.findIndex((line) => /^#{3,6} /u.test(line));
+  const directLines = firstNestedHeading === -1 ? lines : lines.slice(0, firstNestedHeading);
+  const start = directLines.findIndex((line) => line.trim().startsWith("|"));
+  if (start === -1) return [];
+  const rows = [];
+  for (const line of directLines.slice(start)) {
+    if (!line.trim().startsWith("|")) break;
+    rows.push(line);
+  }
+  return rows.map(splitTableRow);
+}
+function namedRowsForTable(rows) {
+  return new Map(
+    rows.slice(2).flatMap(
+      (row) => row.length >= 2 ? [[row[0] ?? "", row[1] ?? ""]] : []
+    )
+  );
+}
+function splitTableRow(line) {
+  return line.trim().replace(/^\||\|$/g, "").split("|").map((cell) => cell.trim());
+}
+function renderColumns(columns2) {
+  return columns2 === void 0 ? "<missing>" : columns2.join(" | ");
+}
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// src/conformance/rule-enforcement.ts
+var contractRuleEnforcement = {
+  "MF-ADMIN-001": "deterministic",
+  "MF-AGENTS-001": "deterministic",
+  "MF-AGENTS-002": "deterministic",
+  "MF-AGENTS-003": "judgment",
+  "MF-AGENTS-004": "deterministic",
+  "MF-ASSESSMENTS-001": "deterministic",
+  "MF-AUDIT-001": "deterministic",
+  "MF-AUDIT-002": "deterministic",
+  "MF-AUDIT-003": "deterministic",
+  "MF-CONTEXT-001": "deterministic",
+  "MF-CHEATSHEET-001": "deterministic",
+  "MF-CHEATSHEET-002": "deterministic",
+  "MF-CHEATSHEET-003": "deterministic",
+  "MF-CHEATSHEET-004": "judgment",
+  "MF-CHEATSHEET-005": "deterministic",
+  "MF-CHEATSHEET-006": "judgment",
+  "MF-CURATION-001": "deterministic",
+  "MF-CURATION-002": "judgment",
+  "MF-CURATION-003": "judgment",
+  "MF-CURATION-004": "judgment",
+  "MF-CURATION-005": "judgment",
+  "MF-CURATION-006": "judgment",
+  "MF-DEFINITION-001": "deterministic",
+  "MF-DEFINITION-002": "deterministic",
+  "MF-DOCS-001": "deterministic",
+  "MF-IMPORTER-001": "deterministic",
+  "MF-LATEX-001": "deterministic",
+  "MF-LEARNING-001": "deterministic",
+  "MF-LEARNING-002": "deterministic",
+  "MF-NAMING-001": "deterministic",
+  "MF-NAMING-002": "deterministic",
+  "MF-NAMING-003": "judgment",
+  "MF-OPEN-001": "deterministic",
+  "MF-PROFILE-001": "deterministic",
+  "MF-PROFILE-002": "judgment",
+  "MF-PROFILE-003": "deterministic",
+  "MF-ROOT-001": "deterministic",
+  "MF-ROOT-002": "deterministic",
+  "MF-ROOT-003": "deterministic",
+  "MF-SEED-001": "judgment",
+  "MF-SEED-002": "deterministic",
+  "MF-SEED-003": "deterministic",
+  "MF-TASKS-001": "deterministic",
+  "MF-TEXTBOOK-001": "deterministic",
+  "MF-TEXTBOOK-002": "deterministic",
+  "MF-TEXTBOOK-003": "deterministic",
+  "MF-TEXTBOOK-004": "deterministic",
+  "MF-TRANSITION-001": "judgment",
+  "MF-TUTORIALS-001": "deterministic",
+  "MF-UNIVERSAL-001": "deterministic",
+  "MF-WORKSPACES-001": "deterministic"
+};
+function enforcementForRule(ruleId) {
+  return contractRuleEnforcement[ruleId];
+}
+
+// src/conformance/control-finding.ts
+function controlFinding(ruleId, path, status, evidence, explanation) {
+  return {
+    ruleId,
+    enforcement: enforcementForRule(ruleId),
+    status,
+    severity: status === "requires-decision" ? "decision" : status === "fail" ? "error" : "information",
+    path,
+    evidence,
+    explanation,
+    applicability: "Module control validation applies to every module folder."
+  };
+}
+function failedControl(ruleId, path, problems) {
+  return controlFinding(
+    ruleId,
+    path,
+    "fail",
+    problems.join(" "),
+    "The control does not match the supported contract shape."
+  );
+}
+
+// src/contract/pinned-documents.ts
+var pinnedDocumentPaths = {
+  agents: "AGENTS.md",
+  structureAndNaming: "docs/00 Structure and Naming.md",
+  curationProcedure: "docs/10 Curation Procedure.md",
+  teachingProcedure: "docs/20 Teaching Procedure.md",
+  textbookProcedure: "docs/30 Textbook Procedure.md",
+  cheatsheetProcedure: "docs/40 Cheatsheet Procedure.md",
+  teachingPreferences: "70 Learning/templates/preferences.md"
+};
+var pinnedDocumentNames = Object.keys(
+  pinnedDocumentPaths
+);
+
+// src/contract/task-register.ts
+var taskRegisterPath = "00 Module Admin/30 Task Register.yaml";
+var taskStatuses = ["open", "completed", "cancelled"];
+var moduleTaskProvenanceKeys = [
+  "assessment",
+  "source",
+  "milestone"
+];
+var researchTaskProvenanceKeys = [
+  ...moduleTaskProvenanceKeys,
+  "claim",
+  "meeting",
+  "deliverable"
+];
+
+// src/contract/textbook-register.ts
+var textbookRegisterPath = "00 Module Admin/50 Textbook Register.yaml";
+var extractionKeys = [
+  "book",
+  "number",
+  "title",
+  "pages",
+  "file",
+  "source_sha256"
+];
+var shelfOwnedKeys = ["edition", "authors", "division", "sha256"];
+
+// src/conformance/control-paths.ts
+var writtenControlPaths = {
+  profile: "00 Module Admin/00 Module Profile.md",
+  definition: "00 Module Admin/10 Module Definition.yaml",
+  curationRegister: "00 Module Admin/20 Curation Register.jsonl",
+  taskRegister: taskRegisterPath,
+  sourceMap: "00 Module Admin/40 Source Map.yaml",
+  textbookRegister: textbookRegisterPath,
+  claude: "CLAUDE.md",
+  context: "CONTEXT.md"
+};
+var moduleControlPaths = {
+  ...writtenControlPaths,
+  ...pinnedDocumentPaths
+};
+function isGovernedControlHome(path) {
+  return !path.includes("/") || path.startsWith("00 Module Admin/");
+}
+
+// src/conformance/validate-source-map.ts
+var sourceMapPath = writtenControlPaths.sourceMap;
+var requiredUnitKeys = [
+  "topics",
+  "lectures",
+  "textbook",
+  "tutorials"
+];
+var optionalPathKeys = [
+  "supplementary_materials",
+  "past_papers",
+  "practice_tests",
+  "historical_reference"
+];
+var allowedUnitKeys = [
+  ...requiredUnitKeys,
+  ...optionalPathKeys,
+  "teaching_weeks"
+];
+function validateSourceMap(source) {
+  if (source === void 0) {
+    return failedControl("MF-LEARNING-002", sourceMapPath, [
+      `No readable control exists at ${sourceMapPath}.`
+    ]);
+  }
+  const parsed = readControlDocument(source);
+  if ("problems" in parsed) {
+    return failedControl("MF-LEARNING-002", sourceMapPath, parsed.problems);
+  }
+  const value = parsed.value;
+  if (!isRecord(value) || !isRecord(value.units)) {
+    return failedControl("MF-LEARNING-002", sourceMapPath, [
+      "Source Map requires a units mapping, empty at seed."
+    ]);
+  }
+  const units = Object.entries(value.units);
+  const problems = [
+    ...undeclaredFields2(value, ["units"], "Source Map"),
+    ...units.flatMap(([key, unit]) => unitProblems(key, unit))
+  ];
+  return problems.length === 0 ? controlFinding(
+    "MF-LEARNING-002",
+    sourceMapPath,
+    "pass",
+    `Source Map declares ${units.length} Lecture-unit${units.length === 1 ? "" : "s"}.`,
+    "Every declared unit carries the four sequences the workspace reads it for."
+  ) : failedControl("MF-LEARNING-002", sourceMapPath, problems);
+}
+function unitProblems(key, unit) {
+  if (key.trim() === "") return ["A unit key is empty."];
+  const unitName = `Unit ${JSON.stringify(key)}`;
+  if (!isRecord(unit)) return [`${unitName} is not a mapping.`];
+  return [
+    ...undeclaredFields2(unit, allowedUnitKeys, unitName),
+    ...requiredUnitKeys.flatMap((unitKey) => {
+      const entries = unit[unitKey];
+      if (!Array.isArray(entries)) {
+        return [`${unitName} requires ${unitKey} as a sequence.`];
+      }
+      return entries.flatMap((entry, index) => {
+        if (unitKey === "tutorials") {
+          return tutorialProblems(
+            entry,
+            `${unitName} tutorials entry ${index + 1}`
+          );
+        }
+        if (!nonEmptyString(entry)) {
+          return [`${unitName} has an empty ${unitKey} entry.`];
+        }
+        return unitKey !== "topics" && !isModuleRelative(entry) ? [
+          `${unitName} lists ${unitKey} entry ${JSON.stringify(entry)}, which is not module-relative.`
+        ] : [];
+      });
+    }),
+    ...optionalPathKeys.flatMap(
+      (pathKey) => unit[pathKey] === void 0 ? [] : pathSequenceProblems(unit[pathKey], `${unitName} ${pathKey}`)
+    ),
+    ...teachingWeekProblems(unit.teaching_weeks, unitName)
+  ];
+}
+function pathSequenceProblems(value, name) {
+  if (!Array.isArray(value)) return [`${name} must be a sequence.`];
+  return value.flatMap(
+    (entry) => nonEmptyString(entry) && isModuleRelative(entry) ? [] : [`${name} entries must be non-empty module-relative paths.`]
+  );
+}
+function teachingWeekProblems(value, unitName) {
+  if (value === void 0) return [];
+  if (!Array.isArray(value) || value.length === 0 || value.some((week) => !Number.isInteger(week) || Number(week) < 1) || new Set(value).size !== value.length) {
+    return [
+      `${unitName} teaching_weeks must be a non-empty sequence of unique positive integers.`
+    ];
+  }
+  return [];
+}
+function tutorialProblems(entry, name) {
+  if (nonEmptyString(entry)) {
+    return isModuleRelative(entry) ? [] : [`${name} ${JSON.stringify(entry)} is not module-relative.`];
+  }
+  if (!isRecord(entry))
+    return [`${name} is neither a path nor a tutorial block.`];
+  const problems = undeclaredFields2(
+    entry,
+    ["block", "exercises", "sources"],
+    name
+  );
+  if (!nonEmptyString(entry.block))
+    problems.push(`${name} requires a non-empty block.`);
+  if (!nonEmptyString(entry.exercises)) {
+    problems.push(`${name} requires a non-empty exercises locator.`);
+  }
+  if (!Array.isArray(entry.sources) || entry.sources.length === 0) {
+    problems.push(`${name} requires a non-empty sources sequence.`);
+  } else {
+    for (const [index, source] of entry.sources.entries()) {
+      problems.push(
+        ...tutorialSourceProblems(source, `${name} source ${index + 1}`)
+      );
+    }
+  }
+  return problems;
+}
+function tutorialSourceProblems(source, name) {
+  if (!isRecord(source)) return [`${name} is not a mapping.`];
+  const problems = undeclaredFields2(
+    source,
+    ["file", "locator", "role", "missing"],
+    name
+  );
+  if (!nonEmptyString(source.file) || !isModuleRelative(source.file)) {
+    problems.push(`${name} file must be a non-empty module-relative path.`);
+  }
+  if (!nonEmptyString(source.locator))
+    problems.push(`${name} requires a non-empty locator.`);
+  if (!nonEmptyString(source.role))
+    problems.push(`${name} requires a non-empty role.`);
+  if (source.missing !== void 0 && !nonEmptyStringList(source.missing)) {
+    problems.push(
+      `${name} missing must be a non-empty sequence of non-empty descriptions.`
+    );
+  }
+  return problems;
+}
+function undeclaredFields2(value, allowed, name) {
+  return Object.keys(value).filter((field) => !allowed.includes(field)).map((field) => `${name} has unknown field ${JSON.stringify(field)}.`);
+}
+function nonEmptyStringList(value) {
+  return Array.isArray(value) && value.length > 0 && value.every(nonEmptyString);
+}
+function isModuleRelative(path) {
+  return !path.startsWith("/") && !path.split("/").includes("..");
+}
+
+// src/conformance/validate-definition.ts
+var definitionPath = writtenControlPaths.definition;
+var supportedContractVersion = 7;
+function validateDefinition(source, expectedCode, expectedSemester, expectedContractVersion = supportedContractVersion) {
+  if (source === void 0) {
+    return {
+      findings: [
+        failedControl("MF-DEFINITION-001", definitionPath, [
+          `No readable control exists at ${definitionPath}.`
+        ])
+      ],
+      importerRoots: declaredImporterRoots(void 0)
+    };
+  }
+  const parsed = parseDefinitionSource(source);
+  if (parsed.errors.length > 0) {
+    return {
+      findings: [
+        failedControl("MF-DEFINITION-001", definitionPath, parsed.errors)
+      ],
+      importerRoots: declaredImporterRoots(void 0)
+    };
+  }
+  const value = parsed.value;
+  if (!isRecord(value)) {
+    return {
+      findings: [
+        failedControl("MF-DEFINITION-001", definitionPath, [
+          "The YAML root is not a mapping."
+        ])
+      ],
+      importerRoots: declaredImporterRoots(void 0)
+    };
+  }
+  const findings = [];
+  const importerRoots = declaredImporterRoots(value.sources);
+  const versionProblems = validateVersions(value, expectedContractVersion);
+  findings.push(
+    versionProblems.length === 0 ? controlFinding(
+      "MF-DEFINITION-001",
+      definitionPath,
+      "pass",
+      `schema_version is 2 and contract_version is the requested version ${expectedContractVersion}.`,
+      "The Definition uses supported schema and contract versions."
+    ) : failedControl("MF-DEFINITION-001", definitionPath, versionProblems)
+  );
+  if (versionProblems.length > 0) {
+    return { findings, importerRoots };
+  }
+  const identity = readDefinitionIdentity(value);
+  const shapeProblems = validateDefinitionShape(value, identity);
+  findings.push(
+    shapeProblems.length === 0 ? controlFinding(
+      "MF-DEFINITION-001",
+      definitionPath,
+      "pass",
+      "Identity, offering, structure, importer roots, evidence, and exceptions match schema version 2.",
+      "The Definition contains the required machine-readable fields."
+    ) : failedControl("MF-DEFINITION-001", definitionPath, shapeProblems)
+  );
+  if (identity !== void 0) {
+    const expectedTerm = semesterNumber(expectedSemester);
+    const contradictions = [
+      ...identity.code === expectedCode ? [] : [
+        `module.code is ${identity.code}; selected module is ${expectedCode}.`
+      ],
+      ...expectedTerm === void 0 || identity.semester === expectedTerm ? [] : [
+        `offering.semester is ${identity.semester}; selected semester ${expectedSemester} denotes semester ${expectedTerm}.`
+      ]
+    ];
+    findings.push(
+      contradictions.length === 0 ? controlFinding(
+        "MF-DEFINITION-001",
+        definitionPath,
+        "pass",
+        `Definition identifies ${identity.code}, ${identity.academicYear} semester ${identity.semester}.`,
+        "Definition identity and offering agree with the selected module."
+      ) : controlFinding(
+        "MF-DEFINITION-001",
+        definitionPath,
+        "requires-decision",
+        contradictions.join(" "),
+        "Selected-folder and Definition evidence contradict each other."
+      )
+    );
+  }
+  const evidenceProblems = validateContextEvidence(value);
+  findings.push(
+    evidenceProblems.length === 0 ? controlFinding(
+      "MF-DEFINITION-002",
+      definitionPath,
+      "pass",
+      "Every enabled contextual category and importer root cites declared evidence; no structure is ambiguous.",
+      "Context-derived structure has sufficient evidence."
+    ) : controlFinding(
+      "MF-DEFINITION-002",
+      definitionPath,
+      "requires-decision",
+      evidenceProblems.join(" "),
+      "Context-derived structure cannot be selected from this evidence."
+    )
+  );
+  return {
+    findings,
+    importerRoots,
+    ...identity === void 0 ? {} : { definition: identity }
+  };
+}
+function validateVersions(value, expectedContractVersion) {
+  const problems = [];
+  if (value.schema_version !== 2) {
+    problems.push(
+      `Unsupported schema_version ${renderValue(value.schema_version)}; supported version is 2.`
+    );
+  }
+  if (value.contract_version !== expectedContractVersion) {
+    problems.push(
+      typeof value.contract_version === "number" && value.contract_version < expectedContractVersion ? `contract_version ${value.contract_version} requires upgrade to requested version ${expectedContractVersion}.` : `Unsupported contract_version ${renderValue(value.contract_version)}; requested version is ${expectedContractVersion}.`
+    );
+  }
+  return problems;
+}
+function parseDefinitionSource(source) {
+  const parsed = readControlDocument(source);
+  return "problems" in parsed ? { value: void 0, errors: parsed.problems } : { value: parsed.value, errors: [] };
+}
+function validateContextEvidence(value) {
+  const evidence = isRecord(value.evidence) ? value.evidence : {};
+  const problems = [];
+  const structure = isRecord(value.structure) ? value.structure : {};
+  const tutorials = isRecord(structure.tutorials) ? structure.tutorials : void 0;
+  if (tutorials?.layout === "grouped") {
+    validateReferenceList(tutorials, "structure.tutorials", evidence, problems);
+  }
+  const assessments = isRecord(structure.assessments) ? structure.assessments : {};
+  for (const category of contextualAssessments) {
+    validateEvidenceReferences(
+      assessments[category],
+      `structure.assessments.${category}`,
+      evidence,
+      problems
+    );
+  }
+  for (const workspace of contextualWorkspaces) {
+    validateEvidenceReferences(
+      structure[workspace],
+      `structure.${workspace}`,
+      evidence,
+      problems
+    );
+  }
+  if (Array.isArray(structure.resource_categories)) {
+    for (const [index, category] of structure.resource_categories.entries()) {
+      validateReferenceList(
+        category,
+        `structure.resource_categories[${index}]`,
+        evidence,
+        problems
+      );
+    }
+  }
+  const sources = isRecord(value.sources) ? value.sources : {};
+  if (Array.isArray(sources.ntulearn)) {
+    for (const [index, root] of sources.ntulearn.entries()) {
+      validateEvidenceReferences(
+        root,
+        `sources.ntulearn[${index}]`,
+        evidence,
+        problems,
+        true
+      );
+    }
+  }
+  if (Array.isArray(value.exceptions)) {
+    for (const [index, exception] of value.exceptions.entries()) {
+      validateReferenceList(
+        exception,
+        `exceptions[${index}]`,
+        evidence,
+        problems
+      );
+    }
+  }
+  return problems;
+}
+function validateEvidenceReferences(declaration, field, evidence, problems, alwaysRequired = false) {
+  if (!isRecord(declaration)) return;
+  if (declaration.enabled === "unknown") {
+    problems.push(`${field}.enabled is unknown.`);
+    return;
+  }
+  if (alwaysRequired || declaration.enabled === true) {
+    validateReferenceList(declaration, field, evidence, problems);
+  }
+}
+function validateReferenceList(declaration, field, evidence, problems) {
+  if (!isRecord(declaration) || !Array.isArray(declaration.evidence) || declaration.evidence.length === 0) {
+    problems.push(`${field} has no evidence references.`);
+    return;
+  }
+  for (const reference of declaration.evidence) {
+    if (!nonEmptyString(reference) || !Object.hasOwn(evidence, reference) || !isRecord(evidence[reference])) {
+      problems.push(
+        `${field} cites undeclared evidence ${renderValue(reference)}.`
+      );
+    }
+  }
+}
+function semesterNumber(semester) {
+  const match = /S([12])$/.exec(semester);
+  return match === null ? void 0 : Number(match[1]);
+}
+function renderValue(value) {
+  return value === void 0 ? "<missing>" : JSON.stringify(value);
+}
+
+// src/conformance/validate-profile.ts
+var profilePath = writtenControlPaths.profile;
+var profileSections = [
+  "Offering",
+  "Scope",
+  "Teaching Structure",
+  "Assessment Structure",
+  "Source Authority",
+  "Workspaces",
+  "Known Gaps"
+];
+var fixedProfileTables = /* @__PURE__ */ new Map([
+  ["Offering", ["Field", "Value", "Evidence"]],
+  ["Workspaces", ["Workspace", "Purpose", "Pointer"]],
+  ["Known Gaps", ["Gap", "Consequence", "Next evidence"]]
+]);
+function validateProfile(source, definition) {
+  if (source === void 0) {
+    return [
+      failedControl("MF-PROFILE-001", profilePath, [
+        `No readable control exists at ${profilePath}.`
+      ])
+    ];
+  }
+  const problems = validateProfileShape(source);
+  const findings = [
+    problems.length === 0 ? controlFinding(
+      "MF-PROFILE-001",
+      profilePath,
+      "pass",
+      "Profile title, headings, and required tables match the current contract version.",
+      "The Profile has the locked structure and allows prose in its prose sections."
+    ) : failedControl("MF-PROFILE-001", profilePath, problems),
+    validateProfileEvidence(source)
+  ];
+  if (definition !== void 0 && problems.length === 0) {
+    findings.push(validateProfileAgreement(source, definition));
+  }
+  return findings;
+}
+function validateProfileEvidence(source) {
+  const problems = [
+    ...evidenceTableProblems(source),
+    ...explicitUnknownProblems(source)
+  ];
+  return problems.length === 0 ? controlFinding(
+    "MF-PROFILE-002",
+    profilePath,
+    "pass",
+    "Profile facts cite evidence and unsupported details use explicit unknowns.",
+    "Human-facing claims remain evidence-bearing without invented certainty."
+  ) : controlFinding(
+    "MF-PROFILE-002",
+    profilePath,
+    "requires-decision",
+    problems.join(" "),
+    "Profile claims need evidence or an explicit unknown before they can be trusted."
+  );
+}
+function evidenceTableProblems(source) {
+  return ["Offering", "Assessment Structure", "Source Authority"].flatMap(
+    (section) => {
+      const rows = firstDirectTableRows(sectionBody(source, section));
+      const header = rows[0] ?? [];
+      const provenanceIndex = header.findIndex(
+        (column) => section === "Source Authority" ? column === "Evidence" || column === "Checked" : column === "Evidence"
+      );
+      if (provenanceIndex === -1) return [];
+      return rows.slice(2).filter((row) => row.length === header.length).flatMap((row) => {
+        const subject = row[0] === "" || row[0] === void 0 ? "row" : row[0];
+        const evidence = row[provenanceIndex]?.trim() ?? "";
+        return evidence === "" ? [`${section} ${JSON.stringify(subject)} has no evidence.`] : [];
+      });
+    }
+  );
+}
+function explicitUnknownProblems(source) {
+  const ambiguous = /^(?:n\/?a|tbc|tbd|\?)$/iu;
+  return [
+    ...fixedProfileTables.keys(),
+    "Assessment Structure",
+    "Source Authority"
+  ].flatMap(
+    (section) => firstDirectTableRows(sectionBody(source, section)).slice(2).flatMap(
+      (row, rowIndex) => row.flatMap(
+        (cell, columnIndex) => cell.trim() === "" || ambiguous.test(cell.trim()) ? [
+          `${section} row ${rowIndex + 1}, column ${columnIndex + 1} uses ${JSON.stringify(cell)}; write unknown explicitly.`
+        ] : []
+      )
+    )
+  );
+}
+function validateProfileShape(source) {
+  const problems = validateHeadingSubsequence(source, profileSections);
+  const title = source.split(/\r?\n/, 1)[0] ?? "";
+  if (!/^# [A-Z]{2,4}\d{4}[A-Z]? — \S.+$/u.test(title)) {
+    problems.push(
+      `Profile title is ${JSON.stringify(title)}; expected # MODULE_CODE \u2014 Module Title.`
+    );
+  }
+  for (const [section, columns2] of fixedProfileTables) {
+    validateFixedTable(
+      sectionBody(source, section),
+      section,
+      columns2,
+      problems
+    );
+  }
+  validateAssessmentTable(
+    sectionBody(source, "Assessment Structure"),
+    problems
+  );
+  validateSourceAuthorityTable(
+    sectionBody(source, "Source Authority"),
+    problems
+  );
+  for (const section of ["Scope", "Teaching Structure"]) {
+    if (sectionBody(source, section).trim() === "") {
+      problems.push(`${section} has no prose or bullets.`);
+    }
+  }
+  return problems;
+}
+function validateFixedTable(body, section, columns2, problems) {
+  const rows = firstDirectTableRows(body);
+  const header = rows[0];
+  if (header === void 0 || header.length !== columns2.length || header.some((column, index) => column !== columns2[index])) {
+    problems.push(
+      `${section} table columns are ${renderColumns(header)}; expected ${columns2.join(" | ")}.`
+    );
+  }
+  validateFullWidthRows(rows, section, problems, columns2.length);
+}
+function validateAssessmentTable(body, problems) {
+  const rows = firstDirectTableRows(body);
+  const header = rows[0] ?? [];
+  const timing = header.filter(
+    (column) => /^Timing(?:\b| and )/iu.test(column)
+  );
+  const required = ["Component", "Weight", "Evidence"];
+  if (required.some((column) => !header.includes(column)) || header[0] !== "Component" || header[1] !== "Weight" || timing.length !== 1 || header.some((column) => column === "") || new Set(header).size !== header.length || header.at(-1) !== "Evidence") {
+    problems.push(
+      `Assessment Structure table columns are ${renderColumns(rows[0])}; require unique Component, Weight, one Timing column, optional detail columns, and final Evidence.`
+    );
+  }
+  validateFullWidthRows(rows, "Assessment Structure", problems);
+}
+function validateSourceAuthorityTable(body, problems) {
+  const rows = firstDirectTableRows(body);
+  const header = rows[0] ?? [];
+  const required = ["Rank", "Source", "Role", "Governs"];
+  const provenance = header.at(-1);
+  if (header.slice(0, 4).some((column, index) => column !== required[index]) || !["Evidence", "Checked"].includes(provenance ?? "") || header.length !== 5) {
+    problems.push(
+      `Source Authority table columns are ${renderColumns(rows[0])}; expected Rank | Source | Role | Governs | Evidence or Checked.`
+    );
+  }
+  validateFullWidthRows(rows, "Source Authority", problems);
+}
+function validateFullWidthRows(rows, section, problems, width = rows[0]?.length ?? 0) {
+  if (rows.length < 3 || width === 0 || rows[1]?.length !== width || !rows[1].every((cell) => /^:?-{3,}:?$/u.test(cell)) || rows.slice(2).some((row) => row.length !== width)) {
+    problems.push(
+      `${section} table requires a full-width separator and full-width data rows.`
+    );
+  }
+}
+function validateProfileAgreement(source, definition) {
+  const expectedHeading = `# ${definition.code} \u2014 ${definition.title}`;
+  const actualHeading = source.split(/\r?\n/, 1)[0];
+  const offering = namedRowsForTable(
+    firstDirectTableRows(sectionBody(source, "Offering"))
+  );
+  const contradictions = [
+    ...actualHeading === expectedHeading ? [] : [
+      `Profile heading is ${JSON.stringify(actualHeading)}; Definition requires ${JSON.stringify(expectedHeading)}.`
+    ],
+    ...sameAcademicYear(offering.get("Academic year"), definition.academicYear) ? [] : [
+      `Profile Academic year is ${JSON.stringify(offering.get("Academic year"))}; Definition says ${definition.academicYear}.`
+    ],
+    ...offering.get("Semester") === String(definition.semester) ? [] : [
+      `Profile Semester is ${JSON.stringify(offering.get("Semester"))}; Definition says ${definition.semester}.`
+    ]
+  ];
+  return contradictions.length === 0 ? controlFinding(
+    "MF-PROFILE-003",
+    profilePath,
+    "pass",
+    "Profile identity and Offering values agree with the Definition.",
+    "Human-facing and machine-readable controls agree."
+  ) : controlFinding(
+    "MF-PROFILE-003",
+    profilePath,
+    "requires-decision",
+    contradictions.join(" "),
+    "Profile and Definition evidence contradict each other."
+  );
+}
+function sameAcademicYear(actual, expected) {
+  const normalize = (value) => value?.replace(/[–—]/gu, "-");
+  return normalize(actual) === normalize(expected);
+}
+
+// src/cheatsheet/prepare.ts
+async function prepareCheatsheet(input) {
+  const paths = {
+    profile: "00 Module Admin/00 Module Profile.md",
+    definition: "00 Module Admin/10 Module Definition.yaml",
+    sourceMap: "00 Module Admin/40 Source Map.yaml"
+  };
+  const controls = await Promise.all(
+    Object.entries(paths).map(async ([kind, path]) => ({
+      kind,
+      path,
+      text: await readFile3(
+        await resolveModuleFile(input.moduleRoot, path),
+        "utf8"
+      )
+    }))
+  );
+  const profile = controls.find(({ kind }) => kind === "profile")?.text ?? "";
+  const definition = readControlDocument(
+    controls.find(({ kind }) => kind === "definition")?.text ?? ""
+  );
+  const identity = "value" in definition && isRecord(definition.value) ? readDefinitionIdentity(definition.value) : void 0;
+  if (identity?.code !== input.moduleCode)
+    throw new Error("Requested module disagrees with Definition identity.");
+  const controlFindings = [
+    ...validateDefinition(
+      controls.find(({ kind }) => kind === "definition")?.text,
+      input.moduleCode,
+      `S${identity.semester}`
+    ).findings,
+    ...validateProfile(profile, identity)
+  ];
+  const sourceMap = controls.find(({ kind }) => kind === "sourceMap")?.text ?? "";
+  const validation = validateSourceMap(sourceMap);
+  if (validation.status !== "pass") throw new Error(validation.evidence);
+  const parsed = readControlDocument(sourceMap);
+  if (!("value" in parsed) || !isRecord(parsed.value) || !isRecord(parsed.value.units))
+    throw new Error("Unreadable Source Map.");
+  const candidates = [];
+  for (const [unit, raw] of Object.entries(parsed.value.units)) {
+    if (!isRecord(raw)) continue;
+    const topics = raw.topics;
+    for (const [role, entries] of Object.entries(raw)) {
+      if (role === "topics" || role === "teaching_weeks" || !Array.isArray(entries))
+        continue;
+      for (const entry of entries) {
+        if (typeof entry === "string") {
+          candidates.push({
+            unit,
+            topics,
+            path: entry,
+            locator: "whole file",
+            role,
+            missing: [],
+            availability: "unavailable"
+          });
+        } else if (isRecord(entry) && Array.isArray(entry.sources)) {
+          for (const source of entry.sources) {
+            if (!isRecord(source)) continue;
+            candidates.push({
+              unit,
+              topics,
+              path: source.file,
+              locator: source.locator,
+              role: source.role,
+              missing: source.missing ?? [],
+              availability: "unavailable"
+            });
+          }
+        }
+      }
+    }
+  }
+  for (const candidate of candidates) {
+    try {
+      candidate.sha256 = sha256Bytes(
+        await readFile3(
+          await resolveModuleFile(input.moduleRoot, candidate.path)
+        )
+      );
+      candidate.availability = "observed";
+    } catch (error) {
+      candidate.reason = error instanceof Error ? error.message : String(error);
+    }
+  }
+  const rows = firstDirectTableRows(
+    sectionBody(profile, "Assessment Structure")
+  );
+  const header = rows[0] ?? [];
+  const component = header.indexOf("Component");
+  const assessments = rows.slice(2).filter(
+    (row) => (row[component] ?? "").toLowerCase().includes(input.assessment.toLowerCase())
+  ).map(
+    (row) => Object.fromEntries(header.map((key, index) => [key, row[index] ?? ""]))
+  );
+  const unresolved = [
+    ...controlFindings.filter(({ status }) => status !== "pass" && status !== "not-applicable").map(({ ruleId, evidence }) => `${ruleId}: ${evidence}`),
+    ...assessments.length === 1 ? [] : [
+      `Assessment request matches ${assessments.length} Profile rows; select the assessment.`
+    ],
+    ...assessments.some(
+      (row) => Object.values(row).some((cell) => /\bunknown\b/iu.test(cell))
+    ) ? [
+      "Assessment has explicit unknown facts; resolve those affecting scope or exam constraints."
+    ] : [],
+    ...candidates.length === 0 ? ["Source Map has no candidate sources."] : [],
+    ...candidates.some(({ availability }) => availability === "unavailable") ? [
+      "Some mapped sources are unreadable; resolve required-source gaps before authoring."
+    ] : []
+  ];
+  return {
+    status: unresolved.length > 0 ? "needs-choice" : "context-discovered",
+    module: identity,
+    assessmentRequest: input.assessment,
+    assessments,
+    controlFindings,
+    controls: controls.map(({ path, text }) => ({
+      path,
+      sha256: sha256(text)
+    })),
+    context: {
+      scope: sectionBody(profile, "Scope"),
+      sourceAuthority: sectionBody(profile, "Source Authority"),
+      knownGaps: sectionBody(profile, "Known Gaps")
+    },
+    candidates,
+    unresolved,
+    limits: [
+      "Mapped files and digests prove local availability, not current upstream completeness, assessment relevance, or permission to bring a sheet.",
+      "Read cited assessment evidence to establish page, font, permitted-content and exam constraints; mathematical and visual review remain semantic work."
+    ]
+  };
+}
+
 // src/cheatsheet/portable-release.ts
 import { execFile } from "node:child_process";
 import {
   mkdtemp,
   mkdir,
-  readFile as readFile3,
+  readFile as readFile4,
   readdir,
   rm,
   writeFile
@@ -8054,7 +9486,7 @@ async function renderedDigests(root, pdf, prefix) {
   await command("pdftoppm", ["-png", "-r", "180", pdf, prefix], root);
   const names = (await readdir(root)).filter((name) => name.startsWith(`${prefix}-`) && name.endsWith(".png")).sort();
   return Promise.all(
-    names.map(async (name) => sha256Bytes(await readFile3(join2(root, name))))
+    names.map(async (name) => sha256Bytes(await readFile4(join2(root, name))))
   );
 }
 async function verifyPortableCheatsheetRelease(input) {
@@ -8092,10 +9524,27 @@ async function verifyPortableCheatsheetRelease(input) {
       ],
       buildRoot
     );
-    const latexLog = await readFile3(
+    const latexLog = await readFile4(
       join2(buildRoot, "aux", texName.replace(/\.tex$/u, ".log")),
       "utf8"
     );
+    if ((input.requiredLabels?.length ?? 0) > 0) {
+      const auxiliary = await readFile4(
+        join2(buildRoot, "aux", texName.replace(/\.tex$/u, ".aux")),
+        "utf8"
+      );
+      const compiledLabels = new Set(
+        [...auxiliary.matchAll(/\\newlabel\{([^{}]+)\}/gu)].map(
+          (match) => match[1]
+        )
+      );
+      for (const label of input.requiredLabels ?? []) {
+        if (!compiledLabels.has(label))
+          throw new Error(
+            `Included artifact label ${label} is absent from compiled auxiliary evidence.`
+          );
+      }
+    }
     if (/Overfull \\[hv]box|Missing character:/u.test(latexLog)) {
       throw new Error(
         "Isolated build reports an overfull box or missing glyph."
@@ -8154,7 +9603,7 @@ async function verifyPortableCheatsheetRelease(input) {
     if (!textMatches || !rendersMatch) {
       throw new Error("Released PDF does not match the isolated source build.");
     }
-    const builtPdfBytes = await readFile3(builtPdf);
+    const builtPdfBytes = await readFile4(builtPdf);
     return {
       texSha256: sha256Bytes(Buffer.from(input.source, "utf8")),
       pdfSha256: sha256Bytes(input.releasedPdf),
@@ -8167,6 +9616,7 @@ async function verifyPortableCheatsheetRelease(input) {
         `isolated ${texName} compiled`,
         `${pageCount} portrait A4 page${pageCount === 1 ? "" : "s"}`,
         "all fonts embedded",
+        `${input.requiredLabels?.length ?? 0} declared included labels checked against compiled auxiliary evidence`,
         declaredBodyPointSize === void 0 ? `PDF dominant text size ${bodyPointSize}pt (measurement tolerance ${fontMeasurementTolerance}pt)` : `PDF dominant text size ${bodyPointSize}pt corroborates declared body size ${declaredBodyPointSize}pt`,
         "extracted text and 180 dpi renders match released PDF",
         `rebuilt PDF bytes ${sha256Bytes(builtPdfBytes)}`
@@ -8179,14 +9629,249 @@ async function verifyPortableCheatsheetRelease(input) {
 
 // src/cheatsheet/review-package.ts
 import { randomUUID } from "node:crypto";
-import { mkdir as mkdir2, readFile as readFile4, rename, rm as rm2, writeFile as writeFile2 } from "node:fs/promises";
-import { basename as basename2, dirname, join as join3 } from "node:path";
+import { lstat as lstat3, mkdir as mkdir4, readFile as readFile7, rm as rm2, writeFile as writeFile3 } from "node:fs/promises";
+import { basename as basename3, dirname as dirname3, join as join5 } from "node:path";
+
+// src/cheatsheet/package-publication.ts
+import { mkdir as mkdir3, readFile as readFile6, readdir as readdir3, realpath as realpath2 } from "node:fs/promises";
+import { basename as basename2, dirname as dirname2, join as join4, resolve as resolve3 } from "node:path";
+
+// src/mounted/seed-target-state.ts
+import { lstat as lstat2, mkdir as mkdir2, readFile as readFile5, readdir as readdir2, writeFile as writeFile2 } from "node:fs/promises";
+import { dirname, isAbsolute as isAbsolute3, join as join3, relative as relative2, resolve as resolve2 } from "node:path";
+
+// src/contract/learning-workspace.ts
+var learningWorkspacePaths = [
+  ["70 Learning/10 Lectures", "directory"],
+  ["70 Learning/10 Lectures/records", "directory"],
+  ["70 Learning/20 Tutorials", "directory"],
+  ["70 Learning/20 Tutorials/records", "directory"],
+  ["70 Learning/30 Revision", "directory"],
+  ["70 Learning/30 Revision/records", "directory"],
+  ["70 Learning/40 Past Papers", "directory"],
+  ["70 Learning/40 Past Papers/records", "directory"],
+  ["70 Learning/GLOSSARY.md", "file"],
+  ["70 Learning/RESOURCES.md", "file"],
+  ["70 Learning/REVISIT.md", "file"],
+  ["70 Learning/templates", "directory"],
+  ["70 Learning/templates/chatgpt-logo.tex", "file"],
+  ["70 Learning/templates/graded-feedback.tex", "file"],
+  ["70 Learning/templates/lecture-walkthrough.tex", "file"],
+  ["70 Learning/templates/mathematics-cheatsheet-preamble.tex", "file"],
+  ["70 Learning/templates/mathematics-cheatsheet.tex", "file"],
+  ["70 Learning/templates/preamble.tex", "file"],
+  ["70 Learning/templates/preferences.md", "file"],
+  ["70 Learning/templates/reference-sheet.tex", "file"],
+  ["70 Learning/templates/revision-notes.tex", "file"],
+  ["70 Learning/templates/tutorial-concepts-consolidation.tex", "file"],
+  ["70 Learning/templates/tutorial-solution-writeup.tex", "file"]
+];
+
+// src/conformance/validate-agents.ts
+var agentsPath = pinnedDocumentPaths.agents;
+
+// src/conformance/validate-claude.ts
+var claudePath = writtenControlPaths.claude;
+
+// src/conformance/validate-context.ts
+var contextPath = writtenControlPaths.context;
+
+// src/conformance/validate-curation-register.ts
+var registerPath = writtenControlPaths.curationRegister;
+var version1Decisions = ["curated", "source-only", "requires-decision"];
+var version2Decisions = [...version1Decisions, "rederived"];
+var version3Decisions = [...version2Decisions, "withdrawn"];
+var decisionsByVersion = /* @__PURE__ */ new Map([
+  [1, version1Decisions],
+  [2, version2Decisions],
+  [3, version3Decisions]
+]);
+var supportedVersions = [...decisionsByVersion.keys()];
+
+// src/conformance/validate-task-register.ts
+var registerPath2 = writtenControlPaths.taskRegister;
+var statuses = new Set(taskStatuses);
+
+// src/conformance/validate-textbook-register.ts
+var registerPath3 = writtenControlPaths.textbookRegister;
+var shelfOwned = new Set(shelfOwnedKeys);
+var recordedKeys = new Set(extractionKeys);
+
+// src/conformance/contract-paths.ts
+import { posix } from "node:path";
+var controlPaths = new Map(
+  Object.values(moduleControlPaths).filter(isGovernedControlHome).sort().map((path) => [posix.basename(path), path])
+);
+var fixedPaths = new Map(
+  [...universalStructurePaths, ...learningWorkspacePaths].map(([path]) => [
+    path.toLowerCase(),
+    path
+  ])
+);
+
+// src/conformance/research-project-controls/meetings.ts
+var import_yaml3 = __toESM(require_dist(), 1);
+
+// src/operational-error.ts
+var OperationalError = class extends Error {
+  constructor(code, message, details) {
+    super(message);
+    this.code = code;
+    this.details = details;
+    this.name = "OperationalError";
+  }
+};
+
+// src/contract/load-module-contract.ts
+var seedTemplateRoot = new URL("../../../seed-templates/", import.meta.url);
+
+// src/seed/seed-operation-bytes.ts
+function seedFileBytes(operation) {
+  if (operation.kind !== "file") {
+    throw new OperationalError(
+      "invalid-config",
+      `Directory seed operation cannot carry bytes: ${operation.path}.`
+    );
+  }
+  if (operation.contentsBase64 === void 0) {
+    return Buffer.from(operation.contents ?? "", "utf8");
+  }
+  if (operation.contents !== void 0 || !isCanonicalBase64(operation.contentsBase64)) {
+    throw new OperationalError(
+      "invalid-config",
+      `Binary seed operation is not canonical: ${operation.path}.`
+    );
+  }
+  return Buffer.from(operation.contentsBase64, "base64");
+}
+function isCanonicalBase64(source) {
+  if (source.length % 4 !== 0 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(
+    source
+  )) {
+    return false;
+  }
+  return Buffer.from(source, "base64").toString("base64") === source;
+}
+
+// src/mounted/ensure-materialized.ts
+import { execFile as execFile2 } from "node:child_process";
+import { promisify as promisify2 } from "node:util";
+var executeFile = promisify2(execFile2);
+
+// src/mounted/seed-target-state.ts
+async function createSeedOperation(root, operation) {
+  const path = containedSeedPath(root, operation.path);
+  if (operation.kind === "directory") {
+    await mkdir2(path);
+    return;
+  }
+  await mkdir2(dirname(path), { recursive: true });
+  await writeFile2(path, seedFileBytes(operation), { flag: "wx" });
+}
+async function optionalLstat(path) {
+  try {
+    return await lstat2(path);
+  } catch (error) {
+    if (isNodeError(error) && error.code === "ENOENT") return void 0;
+    throw error;
+  }
+}
+function containedSeedPath(root, operationPath) {
+  const candidate = resolve2(root, operationPath);
+  const pathFromRoot = relative2(root, candidate);
+  if (pathFromRoot === "" || pathFromRoot === ".." || pathFromRoot.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) || isAbsolute3(pathFromRoot)) {
+    throw new OperationalError(
+      "out-of-root",
+      `Seed operation escapes its target root: ${operationPath}.`
+    );
+  }
+  return candidate;
+}
+function isNodeError(error) {
+  return error instanceof Error;
+}
+
+// src/cheatsheet/package-publication.ts
+async function publishCheatsheetPackage(staging, destination, checkpoint) {
+  const requested = resolve3(destination);
+  const root = join4(await realpath2(dirname2(requested)), basename2(requested));
+  await mkdir3(root);
+  const identities = /* @__PURE__ */ new Map();
+  try {
+    const claim = await recordDirectoryIdentity(root, identities);
+    await verifyDirectories(identities);
+    await createSeedOperation(root, {
+      kind: "file",
+      path: ".package-publication.json",
+      contents: `${JSON.stringify({
+        schemaVersion: 1,
+        ...claim,
+        state: "claimed; completion requires package checksums and verification"
+      })}
+`
+    });
+    await checkpoint?.();
+    await copyTree(staging, root, "", identities);
+    await verifyDirectories(identities);
+  } catch (error) {
+    throw new Error(
+      `Package publication incomplete; destination retained for reconciliation at ${root}. ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error }
+    );
+  }
+}
+async function copyTree(staging, destination, path, identities) {
+  for (const entry of (await readdir3(join4(staging, path), { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name))) {
+    const child = path === "" ? entry.name : `${path}/${entry.name}`;
+    await verifyDirectories(identities);
+    let operation;
+    if (entry.isDirectory()) operation = { kind: "directory", path: child };
+    else if (entry.isFile())
+      operation = {
+        kind: "file",
+        path: child,
+        contentsBase64: (await readFile6(join4(staging, child))).toString(
+          "base64"
+        )
+      };
+    else
+      throw new Error(`Staged package contains a nonordinary entry: ${child}.`);
+    await verifyDirectories(identities);
+    await createSeedOperation(destination, operation);
+    if (operation.kind === "directory") {
+      await recordDirectoryIdentity(join4(destination, child), identities);
+      await copyTree(staging, destination, child, identities);
+    }
+    await verifyDirectories(identities);
+  }
+}
+async function recordDirectoryIdentity(path, identities) {
+  const metadata = await optionalLstat(path);
+  if (metadata === void 0 || !metadata.isDirectory() || metadata.isSymbolicLink() || await realpath2(path) !== path)
+    throw new Error(
+      "Package directory identity is unavailable or traverses a symbolic link."
+    );
+  const identity = { device: metadata.dev, inode: metadata.ino };
+  identities.set(path, identity);
+  return identity;
+}
+async function verifyDirectories(identities) {
+  for (const [path, expected] of identities) {
+    const metadata = await optionalLstat(path);
+    if (metadata === void 0 || !metadata.isDirectory() || metadata.isSymbolicLink() || metadata.dev !== expected.device || metadata.ino !== expected.inode || await realpath2(path) !== path)
+      throw new Error(
+        "Package directory identity changed; publication refused."
+      );
+  }
+}
+
+// src/cheatsheet/review-package.ts
 async function addFile(input) {
-  const destination = join3(input.root, input.path);
-  await mkdir2(dirname(destination), { recursive: true });
-  await writeFile2(destination, input.bytes);
+  const destination = join5(input.root, input.path);
+  await mkdir4(dirname3(destination), { recursive: true });
+  await writeFile3(destination, input.bytes);
   input.checksums.push(
-    `${sha256Bytes(await readFile4(destination))}  ${input.path}`
+    `${sha256Bytes(await readFile7(destination))}  ${input.path}`
   );
 }
 async function verifyChecksums(root, checksums) {
@@ -8194,21 +9879,28 @@ async function verifyChecksums(root, checksums) {
     const separator = line.indexOf("  ");
     const expected = line.slice(0, separator);
     const path = line.slice(separator + 2);
-    if (sha256Bytes(await readFile4(join3(root, path))) !== expected) {
+    if (sha256Bytes(await readFile7(join5(root, path))) !== expected) {
       throw new Error(`Packaged checksum failed for ${path}.`);
     }
   }
 }
 async function createCheatsheetReviewPackage(input) {
   const evidence = await loadCheatsheetEvidence(input);
-  const parent = dirname(input.destination);
-  await mkdir2(parent, { recursive: true });
-  const staging = join3(parent, `.cheatsheet-review-${randomUUID()}`);
-  await mkdir2(staging);
+  assertCheatsheetReleaseReady(evidence);
+  try {
+    await lstat3(input.destination);
+    throw new Error("Review package destination already exists.");
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+  const parent = dirname3(input.destination);
+  await mkdir4(parent, { recursive: true });
+  const staging = join5(parent, `.cheatsheet-review-${randomUUID()}`);
+  await mkdir4(staging);
   try {
     const checksums = [];
-    const texName = basename2(evidence.manifest.artifact.releaseTex);
-    const pdfName = basename2(evidence.manifest.artifact.releasePdf);
+    const texName = basename3(evidence.manifest.artifact.releaseTex);
+    const pdfName = basename3(evidence.manifest.artifact.releasePdf);
     await addFile({
       root: staging,
       path: texName,
@@ -8234,13 +9926,33 @@ async function createCheatsheetReviewPackage(input) {
       checksums
     });
     const authoringFiles = [];
+    const sourceFiles = [];
+    const sourceProvenance = [];
+    for (const [index, source] of evidence.manifest.sources.entries()) {
+      const bytes = await readFile7(
+        await resolveModuleFile(input.moduleRoot, source.path)
+      );
+      if (sha256Bytes(bytes) !== source.sha256)
+        throw new Error(`${source.path} changed before packaging.`);
+      const packagedPath = `evidence/sources/${String(index + 1).padStart(4, "0")}/${basename3(source.path)}`;
+      await addFile({ root: staging, path: packagedPath, bytes, checksums });
+      sourceFiles.push(packagedPath);
+      sourceProvenance.push({ ...source, packagedPath });
+    }
+    await addFile({
+      root: staging,
+      path: "evidence/source-provenance.json",
+      bytes: `${JSON.stringify(sourceProvenance, null, 2)}
+`,
+      checksums
+    });
     if (evidence.manifest.authoring.kind === "fragments") {
       for (const fragment of evidence.manifest.authoring.fragments) {
         const relativeFragment = fragment.path.slice(
           evidence.manifest.artifact.support.length + 1
         );
         const bundlePath = `authoring/${relativeFragment}`;
-        const bytes = await readFile4(
+        const bytes = await readFile7(
           await resolveModuleFile(input.moduleRoot, fragment.path)
         );
         if (sha256Bytes(bytes) !== fragment.sha256) {
@@ -8258,10 +9970,13 @@ async function createCheatsheetReviewPackage(input) {
       }
     }
     const verification = await verifyPortableCheatsheetRelease({
-      source: await readFile4(join3(staging, texName), "utf8"),
-      releasedPdf: await readFile4(join3(staging, pdfName)),
+      source: await readFile7(join5(staging, texName), "utf8"),
+      releasedPdf: await readFile7(join5(staging, pdfName)),
       filename: texName,
-      constraints: evidence.manifest.constraints
+      constraints: evidence.manifest.constraints,
+      requiredLabels: evidence.coverage.flatMap(
+        ({ artifactLocator }) => artifactLocator === void 0 ? [] : [artifactLocator]
+      )
     });
     const verificationPath = "evidence/package-verification.json";
     await addFile({
@@ -8272,15 +9987,15 @@ async function createCheatsheetReviewPackage(input) {
       checksums
     });
     checksums.sort();
-    await writeFile2(
-      join3(staging, "SHA256SUMS"),
+    await writeFile3(
+      join5(staging, "SHA256SUMS"),
       `${checksums.join("\n")}
 `,
       "utf8"
     );
     await verifyChecksums(staging, checksums);
-    await writeFile2(
-      join3(staging, "README.md"),
+    await writeFile3(
+      join5(staging, "README.md"),
       `# Cheatsheet review package
 
 This exact package passed isolated compilation and release comparison. Recompile its single dependency-free top-level release source from this directory:
@@ -8289,21 +10004,26 @@ This exact package passed isolated compilation and release comparison. Recompile
 latexmk -pdf -interaction=nonstopmode -halt-on-error ./*.tex
 \`\`\`
 
-Review state is recorded in \`evidence/manifest.yaml\`; package verification is in \`${verificationPath}\`. A passed review names this package's exact PDF digest.
+Exact cited source bytes and module-relative locators are packaged under \`evidence/sources/\` with \`evidence/source-provenance.json\`. Coverage completeness and mathematical correctness require semantic review. Review state is recorded in \`evidence/manifest.yaml\`; package verification is in \`${verificationPath}\`. A passed review names this package's exact PDF digest.
 `,
       "utf8"
     );
-    await rename(staging, input.destination);
+    await publishCheatsheetPackage(staging, input.destination);
+    await verifyChecksums(input.destination, checksums);
+    await rm2(staging, { recursive: true, force: true });
     return {
       files: [
         texName,
         pdfName,
         "evidence/manifest.yaml",
         "evidence/coverage.csv",
+        ...sourceFiles,
+        "evidence/source-provenance.json",
         ...authoringFiles,
         verificationPath,
         "SHA256SUMS",
-        "README.md"
+        "README.md",
+        ".package-publication.json"
       ],
       checksums,
       verification
@@ -8317,6 +10037,7 @@ Review state is recorded in \`evidence/manifest.yaml\`; package verification is 
 // src/cheatsheet/cli.ts
 var usage = `Usage:
   cheatsheet-tool schema
+  cheatsheet-tool prepare --module-root <absolute-path> --module-code <code> --assessment <name>
   cheatsheet-tool audit --module-root <absolute-path> --manifest <module-relative-path>
   cheatsheet-tool fit --module-root <absolute-path> --manifest <module-relative-path> --measurements <json-path>
   cheatsheet-tool verify --module-root <absolute-path> --manifest <module-relative-path>
@@ -8333,6 +10054,7 @@ var inputSchema = {
     ]
   },
   commands: {
+    prepare: ["--module-root", "--module-code", "--assessment"],
     audit: ["--module-root", "--manifest"],
     fit: ["--module-root", "--manifest", "--measurements"],
     verify: ["--module-root", "--manifest"],
@@ -8377,6 +10099,7 @@ function flags(arguments_) {
     if (flag === void 0 || !flag.startsWith("--") || value === void 0) {
       throw new Error(usage);
     }
+    if (parsed.has(flag)) throw new Error(`Duplicate ${flag}.`);
     parsed.set(flag, value);
   }
   return parsed;
@@ -8395,7 +10118,7 @@ function measurementAt(value, name) {
   return candidate;
 }
 async function readMeasurements(path) {
-  const value = JSON.parse(await readFile5(path, "utf8"));
+  const value = JSON.parse(await readFile8(path, "utf8"));
   return {
     pages: measurementAt(value, "pages"),
     bodyPt: measurementAt(value, "bodyPt"),
@@ -8416,11 +10139,27 @@ async function main() {
 `);
     return;
   }
-  if (operation !== "audit" && operation !== "fit" && operation !== "verify" && operation !== "package-review") {
+  if (operation !== "prepare" && operation !== "audit" && operation !== "fit" && operation !== "verify" && operation !== "package-review") {
     throw new Error(usage);
   }
   const parsed = flags(rest);
+  const allowed = inputSchema.commands[operation];
+  for (const flag of parsed.keys()) {
+    if (!allowed.includes(flag))
+      throw new Error(`Unknown ${flag}.`);
+  }
   const moduleRoot = requiredFlag(parsed, "--module-root");
+  if (operation === "prepare") {
+    const result2 = await prepareCheatsheet({
+      moduleRoot,
+      moduleCode: requiredFlag(parsed, "--module-code"),
+      assessment: requiredFlag(parsed, "--assessment")
+    });
+    process.stdout.write(`${JSON.stringify(result2, null, 2)}
+`);
+    if (result2.status === "needs-choice") process.exitCode = 2;
+    return;
+  }
   const manifestPath = requiredFlag(parsed, "--manifest");
   if (operation === "package-review") {
     const result2 = await createCheatsheetReviewPackage({
@@ -8460,13 +10199,19 @@ async function main() {
     });
     process.stdout.write(`${JSON.stringify(result2, null, 2)}
 `);
+    if (result2.kind === "blocked" || result2.kind === "user-choice")
+      process.exitCode = 2;
     return;
   }
+  assertCheatsheetReleaseReady(evidence);
   const result = await verifyPortableCheatsheetRelease({
     source: evidence.releaseSource,
     releasedPdf: evidence.releasedPdf,
     filename: evidence.manifest.artifact.releaseTex,
-    constraints: evidence.manifest.constraints
+    constraints: evidence.manifest.constraints,
+    requiredLabels: evidence.coverage.flatMap(
+      ({ artifactLocator }) => artifactLocator === void 0 ? [] : [artifactLocator]
+    )
   });
   process.stdout.write(`${JSON.stringify(result, null, 2)}
 `);
@@ -8474,7 +10219,10 @@ async function main() {
 try {
   await main();
 } catch (error) {
-  process.stderr.write(`${error instanceof Error ? error.message : error}
-`);
+  const message = error instanceof Error ? error.message : String(error);
+  process.stdout.write(
+    `${JSON.stringify({ schemaVersion: 1, status: "failed", error: { code: "cheatsheet-operation-failed", message } })}
+`
+  );
   process.exitCode = 1;
 }

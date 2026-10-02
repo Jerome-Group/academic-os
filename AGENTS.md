@@ -19,10 +19,11 @@ the RAID0 and in Drive; this repository describes them and must never contain on
 
 ## Getting it running
 
-Install the pinned development dependencies with `npm ci`. Use `npm run check` for the complete
-local check, or run `npm run format`, `npm run lint`, `npm run typecheck` and `npm test`
-individually. Build the CLI with `npm run build`; then run
-`node dist/src/cli.js audit --config academic-os.config.json`.
+Install dependencies with `npm ci`, then `npm run build`. Discover supported actions, effects,
+prerequisites and verification through `node dist/src/cli.js capabilities index --json`.
+Use `npm run check` for the complete local check. The index is the command and
+feature-to-verification authority; [`docs/agents/capabilities.md`](docs/agents/capabilities.md)
+explains its evidence boundary.
 
 What you could not have guessed: `docs/module-folder-contract.md` is **normative**. A module
 folder that disagrees with it is wrong, and a rule that is not in it is not a rule — so a change
@@ -33,9 +34,8 @@ convention that only lives in a session.
 
 - Default branch: `main`.
 - Domain glossary lives in `CONTEXT.md`; decisions are recorded as ADRs in `docs/adr/`.
-- A doc agents consume — this file, anything in `docs/agents/`, a skill, a seeded module doc — is
-  written or amended with `/mattpocock-skills:writing-for-agents` loaded, its levers applied
-  alongside the change's own requirements.
+- Load the installed `writing-for-agents` skill when changing an agent-facing document,
+  skill or seeded procedure. Resolve its location from the harness's skill catalog.
 - Keep secrets out of the repo. **Never commit a token.** The conformance check scans every pull
   request for one, and it fires after the push — so a caught credential is burned: rotate it
   first, then clean up. The full response is in `CONTRIBUTING.md`.
@@ -101,8 +101,8 @@ Teaching workspace. The source is `skills/research-project/`; its boundary is `d
 
 ### `/cheatsheet`, the source-led release router
 
-`/cheatsheet <module code> <operation>` finds one Module and selects create, revise, audit, verify or
-package-review. Its pinned `docs/40 Cheatsheet Procedure.md` owns conduct. The source is
+`/cheatsheet` resolves a Module and preparation intent, or an explicit create, revise, audit,
+verify or package-review operation. Its pinned `docs/40 Cheatsheet Procedure.md` owns conduct. The source is
 `skills/cheatsheet/`; its boundary is `docs/adr/0029-…`.
 
 ### Issue tracker

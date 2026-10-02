@@ -154,3 +154,27 @@ test("uses paginated ID metadata and exposes copy, create, move, download and ex
     "POST",
   ]);
 });
+
+test("refuses incomplete recovery operation lookup with repeated or malformed pagination", async () => {
+  for (const token of ["repeat", "", null, 42]) {
+    let calls = 0;
+    const client = createGoogleDriveRepairClient({
+      request: async (request) => {
+        assert.equal(request.method, "GET");
+        calls += 1;
+        if (calls > 3) throw new Error("fixture loop limit");
+        return { data: { files: [], nextPageToken: token } };
+      },
+    });
+    await assert.rejects(
+      () =>
+        client.findByOperation({
+          parentId: "synthetic-parent",
+          changeSetId: "synthetic-change",
+          operationId: "synthetic-operation",
+        }),
+      /invalid or repeated pagination token/u,
+    );
+    assert.equal(calls, token === "repeat" ? 2 : 1);
+  }
+});

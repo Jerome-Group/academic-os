@@ -245,6 +245,33 @@ describe("recurring Calendar split adapter", () => {
     end: { dateTime: "2026-10-01T10:00:00+08:00" },
   };
 
+  it("retains the source series when recurring-instance pagination cycles", async () => {
+    const requests: CalendarHttpRequest[] = [];
+    const requester: CalendarRequester = {
+      request: async <T>(request: CalendarHttpRequest) => {
+        requests.push(request);
+        if (requests.length > 4) throw new Error("fixture loop limit");
+        if (request.url.endsWith("/instance")) return { data: instance as T };
+        if (request.url.endsWith("/instances"))
+          return { data: { items: [], nextPageToken: "repeat" } as T };
+        throw { response: { status: 404 } };
+      },
+    };
+    await assert.rejects(
+      () =>
+        createGoogleCalendarPromotionWriter(
+          "/private/synthetic",
+          requester,
+        ).splitRecurringEvent(splitInput),
+      /invalid or repeated pagination token/u,
+    );
+    assert.equal(
+      requests.filter(({ url }) => url.endsWith("/instances")).length,
+      2,
+    );
+    assert.ok(requests.every(({ method }) => method === "GET"));
+  });
+
   it("counts every predecessor page and preserves the requested future start and end", async () => {
     const requests: CalendarHttpRequest[] = [];
     const requester: CalendarRequester = {
@@ -571,4 +598,42 @@ describe("recurring Calendar split adapter", () => {
       }
     }
   });
+});
+
+it("refuses cycling and empty Calendar pagination tokens before a third request", async () => {
+  for (const token of ["repeat", "", null, 42]) {
+    for (const kind of ["calendars", "events"]) {
+      let calls = 0;
+      const requester: CalendarRequester = {
+        request: async <T>() => {
+          calls += 1;
+          if (calls > 3) throw new Error("fixture loop limit");
+          return {
+            data: {
+              items: [],
+              nextPageToken: token,
+              nextSyncToken: "synthetic-sync",
+            } as T,
+          };
+        },
+      };
+      const pull =
+        kind === "calendars"
+          ? () =>
+              createGoogleCalendarSetupReader(
+                "/private/synthetic",
+                requester,
+              ).listCalendars()
+          : () =>
+              createGoogleCalendarRefreshReader(
+                "/private/synthetic",
+                requester,
+              ).listEventChanges({
+                calendarId: "synthetic",
+                managementHorizon: "2026-01-01",
+              });
+      await assert.rejects(pull, /invalid or repeated pagination token/u);
+      assert.equal(calls, token === "repeat" ? 2 : 1);
+    }
+  }
 });

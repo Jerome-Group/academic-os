@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 
 import { GoogleAuth } from "google-auth-library";
 
+import { checkedNextPageToken } from "../provider-page-token.js";
+
 import type {
   RepairDriveOperationInput,
   RepairExecutionDrive,
@@ -128,6 +130,7 @@ export function createGoogleDriveRepairClient(
     findByOperation: async ({ parentId, changeSetId, operationId }) => {
       const found: RepairOperationResult[] = [];
       let pageToken: string | undefined;
+      const seenPageTokens = new Set<string>();
       do {
         const data = asRecord(
           await requestData(requester, {
@@ -161,10 +164,7 @@ export function createGoogleDriveRepairClient(
             };
           }),
         );
-        pageToken =
-          typeof data.nextPageToken === "string"
-            ? data.nextPageToken
-            : undefined;
+        pageToken = checkedNextPageToken(data.nextPageToken, seenPageTokens);
       } while (pageToken !== undefined);
       return found;
     },

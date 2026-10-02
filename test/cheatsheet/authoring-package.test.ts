@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import {
+  access,
   mkdtemp,
   mkdir,
   readFile,
   rm,
   symlink,
+  stat,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -83,7 +85,7 @@ it("validates coupled evidence and packages exact independently compiled bytes",
 \pagestyle{empty}
 \begin{document}
 \typeout{CHEATSHEET-BODY-PT=10}`;
-    const second = String.raw`Reviewed body: $a^2+b^2=c^2$.
+    const second = String.raw`\label{Q1} Reviewed body: $a^2+b^2=c^2$.
 \end{document}`;
     const release = `${first}\n\n${second}\n`;
     const sourceBytes = Buffer.from("synthetic issued source");
@@ -168,6 +170,18 @@ q1,issued-1,question 1,TOP-A,required,condensed,Q1,
     });
     assert.equal(built.source, release);
     const destination = join(root, "review");
+    const emptyDestination = join(root, "existing-empty-review");
+    await mkdir(emptyDestination);
+    const originalIdentity = (await stat(emptyDestination)).ino;
+    await assert.rejects(
+      createCheatsheetReviewPackage({
+        moduleRoot: root,
+        manifestPath,
+        destination: emptyDestination,
+      }),
+      /already exists/u,
+    );
+    assert.equal((await stat(emptyDestination)).ino, originalIdentity);
     const packaged = await createCheatsheetReviewPackage({
       moduleRoot: root,
       manifestPath,
@@ -177,6 +191,18 @@ q1,issued-1,question 1,TOP-A,required,condensed,Q1,
     assert.ok(packaged.files.includes("Final Aid.tex"));
     assert.ok(packaged.files.includes("authoring/content/00.tex"));
     assert.ok(packaged.files.includes("evidence/package-verification.json"));
+    assert.ok(packaged.files.includes("evidence/sources/0001/assessment.pdf"));
+    assert.deepEqual(
+      await readFile(join(destination, "evidence/sources/0001/assessment.pdf")),
+      sourceBytes,
+    );
+    const provenance = JSON.parse(
+      await readFile(
+        join(destination, "evidence/source-provenance.json"),
+        "utf8",
+      ),
+    );
+    assert.equal(provenance[0].sha256, sha256Bytes(sourceBytes));
     const sums = await readFile(join(destination, "SHA256SUMS"), "utf8");
     assert.match(sums, /Final Aid\.pdf/u);
     assert.match(sums, /evidence\/manifest\.yaml/u);
@@ -199,6 +225,54 @@ q1,issued-1,question 1,TOP-A,required,condensed,Q1,
         "Final Aid.pdf",
       ]);
     });
+
+    const hostileId = "../../../source-escape";
+    await writeFile(
+      join(support, "manifest.yaml"),
+      manifest.replaceAll("issued-1", hostileId),
+    );
+    await writeFile(
+      join(support, "coverage.csv"),
+      coverage.replaceAll("issued-1", hostileId),
+    );
+    const hostileDestination = join(root, "hostile-id-review");
+    await assert.rejects(
+      createCheatsheetReviewPackage({
+        moduleRoot: root,
+        manifestPath,
+        destination: hostileDestination,
+      }),
+      /unique and stable/u,
+    );
+    await assert.rejects(access(join(root, "source-escape/assessment.pdf")));
+    const stableId = "Issued.v2_A";
+    await writeFile(
+      join(support, "manifest.yaml"),
+      manifest.replaceAll("issued-1", stableId),
+    );
+    await writeFile(
+      join(support, "coverage.csv"),
+      coverage.replaceAll("issued-1", stableId),
+    );
+    await createCheatsheetReviewPackage({
+      moduleRoot: root,
+      manifestPath,
+      destination: hostileDestination,
+    });
+    const hostileProvenance = JSON.parse(
+      await readFile(
+        join(hostileDestination, "evidence/source-provenance.json"),
+        "utf8",
+      ),
+    );
+    assert.equal(hostileProvenance[0].id, stableId);
+    assert.equal(
+      hostileProvenance[0].packagedPath,
+      "evidence/sources/0001/assessment.pdf",
+    );
+    await assert.rejects(access(join(root, "source-escape/assessment.pdf")));
+    await writeFile(join(support, "manifest.yaml"), manifest);
+    await writeFile(join(support, "coverage.csv"), coverage);
 
     await writeFile(join(support, "other.yaml"), manifest);
     await assert.rejects(

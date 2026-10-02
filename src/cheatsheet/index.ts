@@ -3,6 +3,7 @@ export { parseCheatsheetCoverage } from "./coverage.js";
 export { loadCheatsheetEvidence } from "./evidence.js";
 export { planCheatsheetFit } from "./fit.js";
 export { parseCheatsheetManifest } from "./manifest.js";
+export { prepareCheatsheet } from "./prepare.js";
 export { verifyPortableCheatsheetRelease } from "./portable-release.js";
 export { createCheatsheetReviewPackage } from "./review-package.js";
 export type {

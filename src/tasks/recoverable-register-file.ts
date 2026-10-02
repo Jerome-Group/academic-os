@@ -64,7 +64,11 @@ export function recoverableRegisterFile(input: {
         recovery,
         `${sha256(resolve(root, input.registerPath))}.lock`,
       );
-      const lock = await open(lockPath, "wx", 0o600).catch(() => {
+      const lock = await open(lockPath, "wx", 0o600).catch((error: unknown) => {
+        if (!hasCode(error, "EEXIST"))
+          throw failure(
+            "The Task-register recovery lock could not be created; inspect private storage permissions and space before retrying.",
+          );
         throw failure(
           "Another Task-register write is active or interrupted; inspect its recovery lock before retrying.",
         );

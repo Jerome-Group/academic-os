@@ -48,9 +48,9 @@ Check-only runs retain separate observations and leave repair checkpoints and at
 fingerprints intact. The status operation reads the latest normal repair checkpoint; a diagnostic
 check does not replace a pending PR or claim that a repair was attempted.
 Healthy diagnostics may retire an owned unchanged checkout containing only dependency/build output.
-Unexpected files, retained synthetic artifacts, failed checks and model-used checkouts preserve the
-checkout and its evidence. Cleanup refusal is separate from check success; retained storage is not
-a claimed saving.
+Rendered synthetic artifacts stay in a separate private fixture area. Unexpected checkout files,
+failed checks and model-used checkouts preserve the checkout and its evidence. Cleanup refusal is
+separate from check success; storage improvements require an actual measurement.
 
 Eligible repairs stay within the controller's public code/test allowlist and add a synthetic
 regression. Dependency, workflow, security, credential, normative contract, skill and controller
@@ -59,7 +59,9 @@ owns issues, commits, publication, exact-head checks and protected squash merge.
 fresh base, resolved review findings and threads, and every required check remain merge gates.
 
 Changed code and checks execute under the installed Codex sandbox with network disabled and temp
-variables rooted in the isolated checkout. Independent synthetic probes cover external writes,
+variables rooted in an exclusive private fixture area alongside the checkout. Exact grants cover
+the checkout and fixture area; controller receipts and other siblings stay outside. Independent
+synthetic probes cover external writes,
 symlink escapes and network binds. This boundary permits external reads: it does not establish
 confidentiality isolation. Apps, plugins, browser/computer tools, hooks and inherited MCP servers
 have separate per-invocation disabling/preflight gates: connector traffic is outside the shell

@@ -27,6 +27,7 @@ export async function startOperationsServer(input: {
   hosts: string[];
   port: number;
   dispatch: McpDispatcher;
+  listen?: (server: Server, host: string, port: number) => Promise<number>;
 }): Promise<OperationsServerHandle> {
   const servers: Server[] = [];
   const urls: string[] = [];
@@ -37,11 +38,11 @@ export async function startOperationsServer(input: {
       });
       servers.push(server);
       urls.push(
-        `http://${formatHost(host)}:${await listen(server, host, input.port)}${OPERATIONS_ENDPOINT_PATH}`,
+        `http://${formatHost(host)}:${await (input.listen ?? listen)(server, host, input.port)}${OPERATIONS_ENDPOINT_PATH}`,
       );
     }
   } catch (error) {
-    await Promise.all(servers.map(close));
+    await Promise.allSettled(servers.map(close));
     throw error;
   }
   return {
@@ -69,6 +70,7 @@ async function listen(
 }
 
 async function close(server: Server): Promise<void> {
+  if (!server.listening) return;
   await new Promise<void>((resolve, reject) => {
     server.close((error) => {
       if (error === undefined) resolve();

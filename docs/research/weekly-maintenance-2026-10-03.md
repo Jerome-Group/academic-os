@@ -51,6 +51,29 @@ retained synthetic artifacts can therefore retain the full checkout. Worker envi
 verify explicit packaged-helper/Node search paths and workspace temporary directories while
 credential inheritance remains disabled.
 
+Post-merge checks under umask `0077` exposed a refusal fixture that requested `0755` but actually
+created `0700`. Explicit fixture chmod corrected the expectation without changing production
+privacy checks; PR #277 passed independent review and protected checks. Combined-main checks then
+passed under `0077` in approximately 52.7 seconds.
+
+The first deployed sandboxed check-only run still failed: temporary fixture state inside the code
+checkout correctly triggered production containment guards. A focused Calendar CLI fixture confirmed
+`unsafe-state-root` without a provider operation. Issue #278 isolates fixture/temp state alongside
+the checkout with exact sandbox grants, preserving the guards. Failed diagnostics also stopped near
+64 KiB because the coverage script exited before pipe writes drained. A bounded 200 KiB failed-test
+fixture now verifies the full diagnostic tail and nonzero exit; failure evidence remains private.
+An actual bounded comparison captured 65,536 bytes with the tail missing before the fix and
+200,786 bytes with the failure tail and summary intact afterward; both returned exit code 1.
+
+A repeat actual CLI run in an isolated synthetic primary checkout exposed the remaining failures:
+Operations HTTP tests attempted forbidden TCP binds, and two Task-store fixtures used default home
+recovery storage outside the grant. HTTP protocol tests now use private fixture Unix sockets in the
+controller sandbox, with an explicit default-TCP refusal regression; ordinary CI retains actual TCP
+success. Installed-helper probes allowed sockets within the fixture root and refused outside sockets
+and TCP. Model workers gain neither that grant nor its transport flag. Task fixtures supply isolated
+recovery storage. Startup cleanup no longer masks the original bind failure, and a storage refusal
+no longer claims an active Task writer. This intermediate evidence does not establish final rollout.
+
 ## Verification and measurement limits
 
 The first combined full quality run passed all profiles in approximately 54 seconds: format,

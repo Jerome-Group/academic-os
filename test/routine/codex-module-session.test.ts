@@ -1,16 +1,19 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import {
   mkdir,
   mkdtemp,
-  readFile,
   readdir,
+  readFile,
   realpath,
   rm,
+  stat,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { afterEach, describe, it } from "node:test";
+import { sha256Bytes } from "../../src/checksum.js";
 
 import {
   codexSessionArguments,
@@ -23,17 +26,17 @@ import {
   MORNING_SESSION_REASONING_EFFORT,
   MORNING_SESSION_SANDBOX,
   MORNING_SESSION_VALIDATED_OUTCOME_FILENAME,
-  MORNING_SESSION_WRITE_JOURNAL_DIRECTORY,
   MORNING_SESSION_WORK_ORDER_FILENAME,
-  WRITE_JOURNAL_FILENAME,
+  MORNING_SESSION_WRITE_JOURNAL_DIRECTORY,
   sessionSpawnOptions,
+  WRITE_JOURNAL_FILENAME,
 } from "../../src/routine/index.js";
+import { learningWorkspacePaths } from "../fixtures/learning-workspace.js";
+import { syntheticMaintenanceCoverage } from "../fixtures/maintenance-coverage.js";
 import {
   moduleControlContents,
   validModuleControls,
 } from "../fixtures/module-controls.js";
-import { syntheticMaintenanceCoverage } from "../fixtures/maintenance-coverage.js";
-import { learningWorkspacePaths } from "../fixtures/learning-workspace.js";
 import { universalPaths } from "../fixtures/universal-structure.js";
 
 const arguments_ = codexSessionArguments({
@@ -908,5 +911,62 @@ it("runs the Module's Sol session inside an isolated retained evidence root", as
   await readFile(
     join(result.artifacts, MORNING_SESSION_VALIDATED_OUTCOME_FILENAME),
     "utf8",
+  );
+});
+
+it("supplies the canonical safety procedure read-only from the production Module session", async () => {
+  const fixture = await maintenanceFixture();
+  const canonical = await readFile(
+    new URL("../../../docs/agents/safe-drive-testing.md", import.meta.url),
+  );
+  const session = createCodexModuleSession({
+    config: fixture.config,
+    codexPath: "/private/synthetic-codex",
+    date: "2026-08-23",
+    runner: async (input) => {
+      const resultPath = flagFrom(input.arguments, "--output-last-message");
+      const artifacts = dirname(resultPath);
+      const workOrder = JSON.parse(
+        await readFile(
+          join(artifacts, MORNING_SESSION_WORK_ORDER_FILENAME),
+          "utf8",
+        ),
+      );
+      const evidence = workOrder.safetyProcedure;
+      assert.equal(evidence.source, "docs/agents/safe-drive-testing.md");
+      assert.equal(evidence.sha256, sha256Bytes(canonical));
+      assert.ok(canonical.equals(await readFile(evidence.snapshotPath)));
+      assert.equal((await stat(evidence.snapshotPath)).mode & 0o777, 0o400);
+      assert.equal(flagFrom(input.arguments, "--sandbox"), "workspace-write");
+      assert.equal(
+        flagFrom(input.arguments, "--add-dir"),
+        join(artifacts, MORNING_SESSION_WRITE_JOURNAL_DIRECTORY),
+      );
+      assert.equal(
+        input.arguments.filter((argument) => argument === "--add-dir").length,
+        1,
+      );
+      const prompt = input.arguments.at(-1) ?? "";
+      assert.ok(prompt.includes(evidence.snapshotPath));
+      assert.ok(prompt.includes(evidence.sha256));
+      assert.ok(!prompt.includes("No verified safety procedure was supplied"));
+      const read = spawnSync(
+        process.execPath,
+        [
+          "-e",
+          "process.stdout.write(require('fs').readFileSync(process.argv[1]))",
+          evidence.snapshotPath,
+        ],
+        { cwd: input.moduleRoot },
+      );
+      assert.equal(read.status, 0);
+      assert.ok(read.stdout.equals(canonical));
+      await writeFile(resultPath, JSON.stringify(passOutcome()));
+      return 0;
+    },
+  });
+  const result = await session.run({ semester: "Y2S1", module: "MH2100" });
+  assert.ok(
+    !result.failures.some(({ code }) => code === "session-runner-failed"),
   );
 });

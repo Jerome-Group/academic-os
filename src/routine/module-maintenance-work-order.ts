@@ -1,13 +1,14 @@
 import type { Finding, ModuleConformancePlan } from "../conformance/index.js";
+import type { ImportRootStatus } from "../imports/index.js";
 import type {
   LearningMaterialsAssessment,
   LearningMaterialsUnit,
 } from "../learning-materials/index.js";
-import type { ImportRootStatus } from "../imports/index.js";
 import {
   MAINTENANCE_DOMAINS,
   type MaintenanceDomainId,
 } from "./maintenance-domains.js";
+import type { MaintenanceSafetyEvidence } from "./maintenance-safety-evidence.js";
 
 const maximumFindings = 100;
 const maximumLearningUnits = 50;
@@ -66,6 +67,7 @@ export interface ModuleMaintenanceWorkOrder {
   writeJournalDirectory: string;
   writeJournalPath: string;
   writeJournalSchemaVersion: 1;
+  safetyProcedure?: MaintenanceSafetyEvidence;
   domains: MaintenanceDomainWork[];
 }
 
@@ -77,6 +79,7 @@ export function createModuleMaintenanceWorkOrder(input: {
   learningSources: LearningMaterialsAssessment;
   writeJournalDirectory: string;
   writeJournalPath: string;
+  safetyProcedure?: MaintenanceSafetyEvidence;
 }): ModuleMaintenanceWorkOrder {
   const attentionFindings = input.plan.findings
     .filter(({ status }) => !["pass", "not-applicable"].includes(status))
@@ -92,6 +95,9 @@ export function createModuleMaintenanceWorkOrder(input: {
     .map(maintenanceLearningUnit);
   return {
     schemaVersion: 1,
+    ...(input.safetyProcedure === undefined
+      ? {}
+      : { safetyProcedure: input.safetyProcedure }),
     module: input.module,
     observedAt: input.observedAt,
     contractVersion: input.plan.observation.contractVersion,

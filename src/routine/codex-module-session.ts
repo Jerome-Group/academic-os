@@ -2,12 +2,11 @@ import { spawn } from "node:child_process";
 import { createWriteStream } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { delimiter, dirname, join } from "node:path";
-
+import { resolveConfiguredAuditTarget } from "../cohort/index.js";
 import type { AcademicConfig, ConfiguredModule } from "../config/index.js";
 import { moduleControlPaths } from "../conformance/control-paths.js";
 import { planModuleConformance } from "../conformance/index.js";
 import { loadModuleContract } from "../contract/load-module-contract.js";
-import { resolveConfiguredAuditTarget } from "../cohort/index.js";
 import { assessLearningMaterials } from "../learning-materials/index.js";
 import {
   inspectMountedModule,
@@ -15,18 +14,22 @@ import {
 } from "../mounted/index.js";
 import { moduleSessionDirectory } from "./file-routine-artifacts.js";
 import {
-  validateMorningSessionOverride,
-  type MorningSessionSettings,
-} from "./session-settings.js";
-import { MODULE_PASS_SCHEMA } from "./module-pass-schema.js";
-import { morningSessionPrompt } from "./morning-session-prompt.js";
+  stageMaintenanceSafetyEvidence,
+  verifyMaintenanceSafetyEvidence,
+} from "./maintenance-safety-evidence.js";
 import {
   auditEvidence,
   createModuleMaintenanceWorkOrder,
   type MaintenanceImportObservation,
 } from "./module-maintenance-work-order.js";
+import { MODULE_PASS_SCHEMA } from "./module-pass-schema.js";
+import { morningSessionPrompt } from "./morning-session-prompt.js";
 import { readModulePassOutcome } from "./read-module-pass-outcome.js";
 import { failedModulePass, routineFailure } from "./routine-failure.js";
+import {
+  type MorningSessionSettings,
+  validateMorningSessionOverride,
+} from "./session-settings.js";
 import type {
   ModulePassOutcome,
   ModuleSessionPort,
@@ -232,7 +235,11 @@ async function runSession(input: {
       : undefined,
     before.inventory,
   );
+  const safetyProcedure = await stageMaintenanceSafetyEvidence({
+    artifacts: input.artifacts,
+  });
   const workOrder = createModuleMaintenanceWorkOrder({
+    safetyProcedure,
     module: {
       code: input.module.module,
       semester: input.module.semester,
@@ -249,6 +256,8 @@ async function runSession(input: {
     workOrder,
   );
   await writeJson(schemaPath, MODULE_PASS_SCHEMA);
+
+  await verifyMaintenanceSafetyEvidence(safetyProcedure);
 
   let exitCode = 1;
   let runnerFailure: RoutineFailure | undefined;

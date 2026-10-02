@@ -120,7 +120,21 @@ it("retains distinct CLI-run metadata and reports while preserving prior evidenc
   const ghPath = join(root, "fake-gh.mjs");
   await writeFile(
     ghPath,
-    "#!/usr/bin/env node\nprocess.stdout.write(JSON.stringify({count:0,issues:[]}));\n",
+    `#!/usr/bin/env node
+import {readFileSync,writeFileSync} from 'node:fs';
+const path = ${JSON.stringify(join(root, "fake-issue.json"))};
+const args=process.argv.slice(2);
+let issue; try {issue=JSON.parse(readFileSync(path,'utf8'));} catch {}
+if(args[0]==='pr') process.stdout.write('[]');
+else if(args[0]==='api' && args[1].endsWith('/issues/42')) process.stdout.write(JSON.stringify(issue));
+else if(args[0]==='api') process.stdout.write(JSON.stringify({count:issue?1:0,issues:issue?[issue]:[]}));
+else if(args[0]==='issue' && args[1]==='create') {
+ issue={number:42,title:args[args.indexOf('--title')+1],body:readFileSync(0,'utf8'),state:'open'};
+ writeFileSync(path,JSON.stringify(issue));process.stdout.write('https://github.com/synthetic/repo/issues/42');
+} else if(args[0]==='issue' && args[1]==='edit') {
+ issue.body=readFileSync(0,'utf8');writeFileSync(path,JSON.stringify(issue));
+} else {process.exitCode=1;}
+`,
   );
   await chmod(ghPath, 0o700);
   const path = await configFile({

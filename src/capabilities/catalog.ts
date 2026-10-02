@@ -173,6 +173,7 @@ export const cliCapabilities: Capability[] = [
         "mounted maintenance content",
         "private logs/journals",
         "GitHub managed issues",
+        "protected repository pull requests and clean primary checkout rollout",
         "ordinary expired artifacts removed unless --retain-artifacts",
       ],
       [
@@ -191,18 +192,70 @@ export const cliCapabilities: Capability[] = [
         "test/routine/maintenance-safety-evidence.test.ts",
         "test/routine/morning-session-prompt.test.ts",
         "test/routine/run-morning-routine.test.ts",
+        "test/routine/weekly-review.test.ts",
+        "test/routine/repository-repair.test.ts",
+        "test/routine/file-weekly-evidence.test.ts",
+        "test/routine/gh-weekly-repository-history.test.ts",
       ],
     ),
     options: {
       "--retain-artifacts":
         "Exclusive private run directory and report; skips ordinary retention purge.",
       "--modules-only":
-        "Refresh active Module task mirrors only; skip shared textbook shelf writes.",
+        "Refresh active Module task mirrors only; skip shared shelf writes and repository repair; update only this weekly coverage scope.",
       "--model":
         "gpt-6.1-sol; pair with --reasoning-effort; scoped invocation.",
       "--reasoning-effort":
         "low|medium|high|xhigh|max|ultra; pair with --model.",
     },
+  },
+  {
+    ...cli(
+      "routine repository-repair",
+      [
+        "private retained check/repair evidence",
+        "isolated repository checkout",
+        "GitHub issues and protected pull requests",
+        "clean primary repository rollout",
+      ],
+      [
+        "configured Codex and gh executables",
+        "clean main checkout; macOS Codex sandbox; available repository checks",
+        "repo repair/merge authority; strict required checks and fresh independent review",
+      ],
+      "--check-only",
+      [
+        "test/routine/repository-repair.test.ts",
+        "test/cli/routine-repository-repair-cli.test.ts",
+      ],
+    ),
+    riskFlags: [
+      "writes-state",
+      "external-write",
+      "requires-target-authorization",
+      "protected-merge",
+      "bounded-agent-dispatch",
+      "sandbox-external-reads",
+    ],
+    reads: [
+      "public repository source and pinned dependency baseline",
+      "private repair checkpoint and check evidence",
+      "GitHub issue/PR/check/protection evidence",
+    ],
+    result:
+      "Versioned JSON; 0 healthy or verified merged/rolled out, 1 blocked/busy/unchanged unresolved, 2 invalid request. Evidence paths are private; model serving identity is unverified.",
+    options: {
+      "--check-only":
+        "Run isolated sandboxed repository checks; zero model dispatch and GitHub mutations; retain private evidence.",
+    },
+  },
+  {
+    ...cli("routine repository-status", [], [], null, [
+      "test/cli/routine-repository-status-cli.test.ts",
+    ]),
+    reads: ["private repository repair checkpoint and verification receipts"],
+    result:
+      "Versioned JSON; 0 observed healthy or verified merge/rollout, 1 attention, 2 unobserved or invalid request. Read-only; no model, provider or GitHub calls.",
   },
   cli(
     "imports status",

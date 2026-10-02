@@ -690,7 +690,7 @@ same-day reruns preserve separate attempt artifacts. The routine never compiles 
 creates a task, and never writes to Google.
 
 When a valid first pass leaves only safely repairable deterministic findings, the controller can
-give it one fresh correction attempt before raising an issue. Both attempts share the original
+give it one fresh correction attempt before updating the weekly review. Both attempts share the original
 twenty-minute Module budget and preserve separate artifacts. Invalid journals, importer/preflight
 failures, unreadable results and Owner parks suppress this automatic retry. Earlier completed work
 is retained in the final report; only verified resolution removes the earlier audit failures.
@@ -717,8 +717,9 @@ the mini cannot change what curates the degree. The pass reports through its fin
 the CLI validates against a schema and writes to `result.json` itself — the model is never asked to
 remember a file (ADR-0018).
 
-Then the routine purges its own exhaust — session directories older than seven days, reports older
-than thirty — and writes the day's report.
+Then the routine runs bounded public repository repair, purges its own ordinary exhaust — session
+directories older than seven days, reports older than thirty — and writes the private daily report.
+Repository repair evidence and weekly migration snapshots remain outside those purge roots.
 
 ### What lands where
 
@@ -742,32 +743,29 @@ observed correspondence, not the truth of every proof the model supplies.
 Nothing outside those two directories is ever purged, and inside them only entries named for a
 calendar day are (ADR-0018).
 
-### The morning's issue
+### The weekly review
 
-The automation attempts routine maintenance and verifies its result before escalation. Successful
-repairs, curation and documentation upkeep remain in the local report. When work remains parked,
-failed or incompletely evidenced, the routine
-raises **one** issue on this tracker titled `Morning report <date>`, labelled `ready-for-human` and
-`decision`, carrying the same report text as its body. It searches for that title before creating,
-so a second firing on the same day finds the first issue rather than raising another. A morning with
-none of those triggers raises nothing only when every domain appears exactly once with nonempty
-evidence and status `checked`, `maintained` or `not-applicable`. Missing, duplicate or invalid coverage is a
-failure; valid action buckets are retained. The report still lands on quiet mornings.
+The morning updates one `Weekly maintenance review <Monday date>` issue across the repository,
+labelled `ready-for-human` and `decision`. The first publication of each offering week creates it
+even when quiet. Its fixed format retains merged fixes, verified maintenance, unresolved work,
+awaiting verification and Owner notes. The Owner reviews this issue once a week; daily evidence
+remains private. [`docs/agents/weekly-maintenance.md`](agents/weekly-maintenance.md) owns the format,
+scope boundaries, transfer/reconciliation procedure and repository repair gates.
 
-A fully verified pass also resolves open morning issues emitted by the upgraded routine for the
-exact same Module cohort. A versioned ownership marker binds that scope; legacy and unrelated
-issues are left alone. An unresolved same-day rerun refreshes the managed issue and reopens it if
-needed. Closing an issue records verified resolution, not merely that another morning ran.
+The same launcher runs repository checks after Module maintenance. Green checks dispatch no model
+workers. A new eligible failure gets a bounded implementer and independent reviewers; protected
+exact-head checks, fresh base and resolved findings gate automatic merge. Post-merge verification
+and clean primary rollout are separate outcomes. Unsupported or unverified work stays visible in
+the weekly issue. Discover the check-only and read-only status operations through `capabilities index`.
 
-A pass's `noted` bucket is the one that never raises. It carries what the morning observed and
-settled — a placed copy that has diverged from its source and is holding its ground, say — so a
-morning whose only news is a note stays quiet and the note waits in the report
-([`docs/adr/0021-…`](adr/0021-a-note-is-told-and-a-park-is-settled.md)).
+Module coverage still requires each domain exactly once with nonempty evidence. Quiet means
+`checked`, `maintained` or `not-applicable`, with no parks, failures or awaiting evidence. A narrow
+recovery cannot clear a broader scope. Historical unknown incidents survive rollover; retiring an
+issue after verified transfer records where its work went, not that it was fixed.
 
-A run that never fired, or one that could not reach GitHub, looks from the Owner's side exactly like
-a quiet morning. That ambiguity is accepted for now; the report on the mini is what distinguishes
-them. The exit code is nonzero when GitHub issue reconciliation fails, including on an otherwise
-clean morning that could not check whether its managed issues should close.
+A pass's `noted` bucket asks for no decision. Missing execution is not inferred healthy from a quiet
+issue or current imports. Daily private reports, retained checkpoints and the read-only status
+operation distinguish missing evidence. GitHub reconciliation failure produces a nonzero exit.
 
 ### Install the 06:00 LaunchAgent (macOS)
 

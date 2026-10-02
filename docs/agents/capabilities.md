@@ -29,3 +29,8 @@ For authorized Module recovery, select the morning action's explicit retention, 
 and paired model/effort options from the index. Retention preserves existing artifacts; scoped
 settings belong to that invocation. Verify every Module's session and journal before resolving a
 maintenance failure. A refusal or parked decision remains visible even after successful execution.
+
+For daily repository repair or weekly review recovery, read
+[`weekly-maintenance.md`](weekly-maintenance.md). The same morning launcher runs repository checks,
+dispatches bounded repair only for new eligible failures, and updates one weekly issue. Use the
+mapped check-only and read-only status entrypoints before investigating a checkpoint.

@@ -14,6 +14,8 @@ import { writeOperationalError } from "./commands/operational-error-output.js";
 import { runPinnedRefreshCommand } from "./commands/pinned-refresh-command.js";
 import { runRepairCommand } from "./commands/repair-command.js";
 import { runRoutineMorningCommand } from "./commands/routine-morning-command.js";
+import { runRoutineRepositoryRepairCommand } from "./commands/routine-repository-repair-command.js";
+import { runRoutineRepositoryStatusCommand } from "./commands/routine-repository-status-command.js";
 import { runSeedCommand } from "./commands/seed-command.js";
 import {
   isTaskOperation,
@@ -70,6 +72,16 @@ try {
     await runTextbooksMigrateCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "routine" && arguments_[1] === "morning") {
     await runRoutineMorningCommand(arguments_.slice(1), json);
+  } else if (
+    arguments_[0] === "routine" &&
+    arguments_[1] === "repository-repair"
+  ) {
+    await runRoutineRepositoryRepairCommand(arguments_.slice(1), json);
+  } else if (
+    arguments_[0] === "routine" &&
+    arguments_[1] === "repository-status"
+  ) {
+    await runRoutineRepositoryStatusCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "imports" && arguments_[1] === "status") {
     await runImportsStatusCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "learning" && arguments_[1] === "materials") {

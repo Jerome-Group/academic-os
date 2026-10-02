@@ -1,21 +1,25 @@
-export { createCohortPrelude } from "./cohort-prelude.js";
 export {
-  codexSessionArguments,
-  createCodexModuleSession,
-  sessionSpawnOptions,
-  MORNING_SESSION_MODEL,
-  MORNING_SESSION_REASONING_EFFORT,
-  MORNING_SESSION_AUDIT_AFTER_FILENAME,
-  MORNING_SESSION_AUDIT_BEFORE_FILENAME,
-  MORNING_SESSION_VALIDATED_OUTCOME_FILENAME,
-  MORNING_SESSION_ORIGINAL_CONTROLS_DIRECTORY,
-  MORNING_SESSION_RESULT_FILENAME,
-  MORNING_SESSION_SANDBOX,
-  MORNING_SESSION_WRITE_JOURNAL_DIRECTORY,
-  MORNING_SESSION_WORK_ORDER_FILENAME,
   type CodexSessionRunner,
   type CodexSessionRunnerInput,
+  codexSessionArguments,
+  createCodexModuleSession,
+  MORNING_SESSION_AUDIT_AFTER_FILENAME,
+  MORNING_SESSION_AUDIT_BEFORE_FILENAME,
+  MORNING_SESSION_MODEL,
+  MORNING_SESSION_ORIGINAL_CONTROLS_DIRECTORY,
+  MORNING_SESSION_REASONING_EFFORT,
+  MORNING_SESSION_RESULT_FILENAME,
+  MORNING_SESSION_SANDBOX,
+  MORNING_SESSION_VALIDATED_OUTCOME_FILENAME,
+  MORNING_SESSION_WORK_ORDER_FILENAME,
+  MORNING_SESSION_WRITE_JOURNAL_DIRECTORY,
+  sessionSpawnOptions,
 } from "./codex-module-session.js";
+export { createCohortPrelude } from "./cohort-prelude.js";
+export {
+  inspectRoutineExecutables,
+  type RoutineExecutableReadiness,
+} from "./executable-readiness.js";
 export {
   createFileRoutineArtifactStore,
   createRetainedRoutineRoot,
@@ -28,27 +32,27 @@ export {
   type GhMorningIssueRunnerInput,
 } from "./gh-morning-issue.js";
 export {
-  describeMorningRoutineLaunchdJob,
-  MORNING_ROUTINE_LAUNCHD_JOB_NAME,
-} from "./morning-routine-launchd.js";
-export { MODULE_PASS_SCHEMA } from "./module-pass-schema.js";
-export {
+  isQuietMaintenanceCoverage,
   MAINTENANCE_DOMAINS,
   MAINTENANCE_STATUSES,
-  isQuietMaintenanceCoverage,
-  maintenanceDomainLabel,
   type MaintenanceCoverage,
-  type MaintenanceDomainOutcome,
   type MaintenanceDomainId,
+  type MaintenanceDomainOutcome,
   type MaintenanceStatus,
+  maintenanceDomainLabel,
 } from "./maintenance-domains.js";
-export { morningSessionPrompt } from "./morning-session-prompt.js";
 export {
   auditEvidence,
   createModuleMaintenanceWorkOrder,
   type MaintenanceImportObservation,
   type ModuleMaintenanceWorkOrder,
 } from "./module-maintenance-work-order.js";
+export { MODULE_PASS_SCHEMA } from "./module-pass-schema.js";
+export {
+  describeMorningRoutineLaunchdJob,
+  MORNING_ROUTINE_LAUNCHD_JOB_NAME,
+} from "./morning-routine-launchd.js";
+export { morningSessionPrompt } from "./morning-session-prompt.js";
 export {
   isCalendarDay,
   OFFERING_TIMEZONE,
@@ -58,17 +62,16 @@ export { planRetentionPurge } from "./plan-retention-purge.js";
 export { readModulePassOutcome } from "./read-module-pass-outcome.js";
 export { renderMorningReport } from "./render-morning-report.js";
 export {
-  validateWriteJournal,
-  WRITE_JOURNAL_FILENAME,
-  WRITE_JOURNAL_SCHEMA_VERSION,
-  type ValidatedWriteJournal,
-} from "./write-journal.js";
-export {
   MORNING_ISSUE_LABELS,
   MORNING_ISSUE_MARKER_VERSION,
   morningIssueMarker,
   runMorningRoutine,
+  weeklyRepairSummary,
 } from "./run-morning-routine.js";
+export {
+  type MorningSessionSettings,
+  validateMorningSessionOverride,
+} from "./session-settings.js";
 export type {
   CuratedItem,
   DocWrite,
@@ -91,14 +94,20 @@ export type {
   RoutineArtifactStore,
   RoutineFailure,
   SupersededItem,
+  WeeklyIssueEvidenceStore,
   WithdrawnItem,
 } from "./types.js";
-export {
-  inspectRoutineExecutables,
-  type RoutineExecutableReadiness,
-} from "./executable-readiness.js";
 
 export {
-  validateMorningSessionOverride,
-  type MorningSessionSettings,
-} from "./session-settings.js";
+  offeringWeekStart,
+  reconcileWeeklyIssue,
+  WEEKLY_ISSUE_LABELS,
+  weeklyIssueMarker,
+  weeklyScopeId,
+} from "./weekly-review.js";
+export {
+  type ValidatedWriteJournal,
+  validateWriteJournal,
+  WRITE_JOURNAL_FILENAME,
+  WRITE_JOURNAL_SCHEMA_VERSION,
+} from "./write-journal.js";

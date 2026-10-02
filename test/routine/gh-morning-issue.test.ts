@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { describe, it } from "node:test";
 
 import {
   createGhMorningIssue,
@@ -88,7 +88,7 @@ describe("the GitHub morning-issue adapter", () => {
             "api",
             "repos/{owner}/{repo}/issues?state=all&per_page=100&page=1",
             "--jq",
-            '{count: length, issues: [.[] | select(has("pull_request") | not) | select(.title | startswith("Morning report ")) | {number, title, body, state}]} | tojson',
+            '{count: length, issues: [.[] | select(has("pull_request") | not) | select(.title | (startswith("Morning report ") or startswith("Weekly maintenance review "))) | {number, title, body, state}]} | tojson',
           ],
           input: undefined,
         },
@@ -97,7 +97,7 @@ describe("the GitHub morning-issue adapter", () => {
             "api",
             "repos/{owner}/{repo}/issues?state=all&per_page=100&page=2",
             "--jq",
-            '{count: length, issues: [.[] | select(has("pull_request") | not) | select(.title | startswith("Morning report ")) | {number, title, body, state}]} | tojson',
+            '{count: length, issues: [.[] | select(has("pull_request") | not) | select(.title | (startswith("Morning report ") or startswith("Weekly maintenance review "))) | {number, title, body, state}]} | tojson',
           ],
           input: undefined,
         },
@@ -184,4 +184,53 @@ process.stdout.write(JSON.stringify({count: 1, issues: [{number: 17, title: "Mor
       await rm(root, { recursive: true, force: true });
     }
   });
+});
+
+it("reads the exact weekly issue separately and rejects a mismatched identity", async () => {
+  const issue = createGhMorningIssue("/tools/gh", (input) => {
+    assert.deepEqual(input.arguments, [
+      "api",
+      "repos/{owner}/{repo}/issues/17",
+    ]);
+    return JSON.stringify({
+      number: 17,
+      title: "Weekly maintenance review 2026-08-24",
+      body: "safe body",
+      state: "open",
+    });
+  });
+  assert.equal((await issue.read?.(17))?.state, "OPEN");
+  const mismatch = createGhMorningIssue("/tools/gh", () =>
+    JSON.stringify({
+      number: 18,
+      title: "Weekly maintenance review 2026-08-24",
+      body: "safe body",
+      state: "open",
+    }),
+  );
+  await assert.rejects(
+    mismatch.read?.(17) as Promise<unknown>,
+    /invalid issue record/u,
+  );
+});
+
+it("transfers closure with only a fixed public comment and never submits the source body", async () => {
+  const calls: GhMorningIssueRunnerInput[] = [];
+  const issue = createGhMorningIssue("/tools/gh", (input) => {
+    calls.push(input);
+    return "";
+  });
+  await issue.close(17, 19);
+  assert.deepEqual(calls[0]?.arguments, [
+    "issue",
+    "close",
+    "17",
+    "--comment",
+    "Transferred to weekly review #19. Closure records transfer, not resolution.",
+  ]);
+  assert.equal(calls[0]?.input, undefined);
+  await assert.rejects(
+    issue.close(17, -1),
+    /Invalid weekly transfer identity/u,
+  );
 });

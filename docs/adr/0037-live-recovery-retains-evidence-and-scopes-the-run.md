@@ -1,5 +1,8 @@
 # Live recovery retains evidence and scopes the run
 
+> [ADR-0038](0038-daily-repair-rolls-up-into-a-weekly-review.md) supersedes separate scoped issue
+> identities. Exact coverage scope, retained recovery evidence and target authority remain unchanged.
+
 Status: accepted. Issue: #264; live rollout: #263.
 
 A recovery rerun needs its earlier failure and rollback evidence. Ordinary morning maintenance

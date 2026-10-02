@@ -4,9 +4,9 @@ import { describe, it } from "node:test";
 import {
   isCalendarDay,
   MAINTENANCE_DOMAINS,
+  type ModuleMaintenanceWorkOrder,
   morningSessionPrompt,
   offeringCalendarDay,
-  type ModuleMaintenanceWorkOrder,
 } from "../../src/routine/index.js";
 
 const workOrder = {
@@ -90,6 +90,16 @@ describe("the module session's prompt", () => {
     for (const { id } of MAINTENANCE_DOMAINS)
       assert.match(prompt, new RegExp(id, "u"));
     assert.match(prompt, /`docs\/10 Curation Procedure\.md`/u);
+    assert.match(
+      prompt,
+      /parent routine and desktop chat own desktop task titles and lifecycle/u,
+    );
+    assert.match(prompt, /put unavailable desktop UI controls in `noted`/u);
+    assert.match(prompt, /complete the Module checks independently/u);
+    assert.match(
+      prompt,
+      /Genuine external Task or provider failures still belong in `failures`/u,
+    );
   });
 
   it("inlines the bounded private work order", () => {

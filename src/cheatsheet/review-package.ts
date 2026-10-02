@@ -1,9 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 
 import { sha256Bytes } from "../checksum.js";
-import { loadCheatsheetEvidence } from "./evidence.js";
+import {
+  assertCheatsheetReleaseReady,
+  loadCheatsheetEvidence,
+} from "./evidence.js";
+import { publishCheatsheetPackage } from "./package-publication.js";
 import { resolveModuleFile } from "./module-path.js";
 import { verifyPortableCheatsheetRelease } from "./portable-release.js";
 import type { CheatsheetReleaseVerification } from "./types.js";
@@ -46,6 +50,13 @@ export async function createCheatsheetReviewPackage(input: {
   verification: CheatsheetReleaseVerification;
 }> {
   const evidence = await loadCheatsheetEvidence(input);
+  assertCheatsheetReleaseReady(evidence);
+  try {
+    await lstat(input.destination);
+    throw new Error("Review package destination already exists.");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
   const parent = dirname(input.destination);
   await mkdir(parent, { recursive: true });
   const staging = join(parent, `.cheatsheet-review-${randomUUID()}`);
@@ -79,6 +90,25 @@ export async function createCheatsheetReviewPackage(input: {
       checksums,
     });
     const authoringFiles: string[] = [];
+    const sourceFiles: string[] = [];
+    const sourceProvenance = [];
+    for (const [index, source] of evidence.manifest.sources.entries()) {
+      const bytes = await readFile(
+        await resolveModuleFile(input.moduleRoot, source.path),
+      );
+      if (sha256Bytes(bytes) !== source.sha256)
+        throw new Error(`${source.path} changed before packaging.`);
+      const packagedPath = `evidence/sources/${String(index + 1).padStart(4, "0")}/${basename(source.path)}`;
+      await addFile({ root: staging, path: packagedPath, bytes, checksums });
+      sourceFiles.push(packagedPath);
+      sourceProvenance.push({ ...source, packagedPath });
+    }
+    await addFile({
+      root: staging,
+      path: "evidence/source-provenance.json",
+      bytes: `${JSON.stringify(sourceProvenance, null, 2)}\n`,
+      checksums,
+    });
     if (evidence.manifest.authoring.kind === "fragments") {
       for (const fragment of evidence.manifest.authoring.fragments) {
         const relativeFragment = fragment.path.slice(
@@ -107,6 +137,9 @@ export async function createCheatsheetReviewPackage(input: {
       releasedPdf: await readFile(join(staging, pdfName)),
       filename: texName,
       constraints: evidence.manifest.constraints,
+      requiredLabels: evidence.coverage.flatMap(({ artifactLocator }) =>
+        artifactLocator === undefined ? [] : [artifactLocator],
+      ),
     });
     const verificationPath = "evidence/package-verification.json";
     await addFile({
@@ -124,20 +157,25 @@ export async function createCheatsheetReviewPackage(input: {
     await verifyChecksums(staging, checksums);
     await writeFile(
       join(staging, "README.md"),
-      `# Cheatsheet review package\n\nThis exact package passed isolated compilation and release comparison. Recompile its single dependency-free top-level release source from this directory:\n\n\`\`\`sh\nlatexmk -pdf -interaction=nonstopmode -halt-on-error ./*.tex\n\`\`\`\n\nReview state is recorded in \`evidence/manifest.yaml\`; package verification is in \`${verificationPath}\`. A passed review names this package's exact PDF digest.\n`,
+      `# Cheatsheet review package\n\nThis exact package passed isolated compilation and release comparison. Recompile its single dependency-free top-level release source from this directory:\n\n\`\`\`sh\nlatexmk -pdf -interaction=nonstopmode -halt-on-error ./*.tex\n\`\`\`\n\nExact cited source bytes and module-relative locators are packaged under \`evidence/sources/\` with \`evidence/source-provenance.json\`. Coverage completeness and mathematical correctness require semantic review. Review state is recorded in \`evidence/manifest.yaml\`; package verification is in \`${verificationPath}\`. A passed review names this package's exact PDF digest.\n`,
       "utf8",
     );
-    await rename(staging, input.destination);
+    await publishCheatsheetPackage(staging, input.destination);
+    await verifyChecksums(input.destination, checksums);
+    await rm(staging, { recursive: true, force: true });
     return {
       files: [
         texName,
         pdfName,
         "evidence/manifest.yaml",
         "evidence/coverage.csv",
+        ...sourceFiles,
+        "evidence/source-provenance.json",
         ...authoringFiles,
         verificationPath,
         "SHA256SUMS",
         "README.md",
+        ".package-publication.json",
       ],
       checksums,
       verification,

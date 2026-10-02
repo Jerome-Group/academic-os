@@ -91,3 +91,7 @@ export type {
   SupersededItem,
   WithdrawnItem,
 } from "./types.js";
+export {
+  inspectRoutineExecutables,
+  type RoutineExecutableReadiness,
+} from "./executable-readiness.js";

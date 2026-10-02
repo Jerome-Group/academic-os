@@ -12,6 +12,7 @@ import {
 } from "../calendar/index.js";
 import { loadLocalConfig, resolveCalendarConfig } from "../config/index.js";
 import { OperationalError } from "../operational-error.js";
+import { parseArgumentTokens } from "./argument-tokens.js";
 
 const usage =
   "Usage: academic-os calendar promote <proposal-id> --config <path> [--json]";
@@ -66,13 +67,18 @@ function parseArguments(arguments_: string[]): {
   proposalId: string;
 } {
   const proposalId = arguments_[1];
-  const configIndex = arguments_.indexOf("--config");
-  const configPath = arguments_[configIndex + 1];
-  if (
-    typeof proposalId !== "string" ||
-    proposalId.startsWith("--") ||
-    typeof configPath !== "string"
-  ) {
+  if (typeof proposalId !== "string" || proposalId.startsWith("--")) {
+    throw new OperationalError("invalid-arguments", usage);
+  }
+  const { values } = parseArgumentTokens({
+    arguments: [arguments_[0] ?? "", ...arguments_.slice(2)],
+    command: "promote",
+    valueFlags: ["--config"],
+    booleanFlags: ["--json"],
+    usage,
+  });
+  const configPath = values.get("--config");
+  if (configPath === undefined) {
     throw new OperationalError("invalid-arguments", usage);
   }
   return { configPath, proposalId };

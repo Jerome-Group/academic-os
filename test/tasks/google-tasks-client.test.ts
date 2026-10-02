@@ -191,3 +191,32 @@ describe("Google Tasks adapter", () => {
     );
   });
 });
+
+it("refuses cycling and empty Tasks pagination tokens before a third request", async () => {
+  for (const token of ["repeat", "", null, 42]) {
+    for (const kind of ["lists", "tasks"]) {
+      let calls = 0;
+      const requester: TasksRequester = {
+        request: async <T>() => {
+          calls += 1;
+          if (calls > 3) throw new Error("fixture loop limit");
+          return { data: { items: [], nextPageToken: token } as T };
+        },
+      };
+      const pull =
+        kind === "lists"
+          ? () =>
+              createGoogleTaskListReader(
+                "/private/synthetic",
+                requester,
+              ).listTaskLists()
+          : () =>
+              createGoogleTaskRefreshReader(
+                "/private/synthetic",
+                requester,
+              ).listTasks({ listId: "synthetic" });
+      await assert.rejects(pull, /invalid or repeated pagination token/u);
+      assert.equal(calls, token === "repeat" ? 2 : 1);
+    }
+  }
+});

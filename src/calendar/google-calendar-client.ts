@@ -1,4 +1,6 @@
 import { GoogleAuth } from "google-auth-library";
+
+import { checkedNextPageToken } from "../provider-page-token.js";
 import { createHash } from "node:crypto";
 
 import { OperationalError } from "../operational-error.js";
@@ -234,6 +236,7 @@ async function countPriorOccurrences(
   }
   let count = 0;
   let pageToken: string | undefined;
+  const seenPageTokens = new Set<string>();
   do {
     const priorInstances = await requester.request<CalendarEventsPage>({
       url: `${eventCollectionUrl(calendarId)}/${encodeURIComponent(recurringEventId)}/instances`,
@@ -257,7 +260,10 @@ async function countPriorOccurrences(
       }
       if (Date.parse(originalStart) < Date.parse(splitBoundary)) count += 1;
     }
-    pageToken = priorInstances.data.nextPageToken;
+    pageToken = checkedNextPageToken(
+      priorInstances.data.nextPageToken,
+      seenPageTokens,
+    );
   } while (pageToken !== undefined);
   return count;
 }
@@ -537,11 +543,12 @@ async function listEventPages(
 ): Promise<{ events: CalendarEvent[]; nextSyncToken?: string }> {
   const events: CalendarEvent[] = [];
   let pageToken: string | undefined;
+  const seenPageTokens = new Set<string>();
   let nextSyncToken: string | undefined;
   do {
     const page = await readPage(pageToken);
     events.push(...(page.items ?? []));
-    pageToken = page.nextPageToken;
+    pageToken = checkedNextPageToken(page.nextPageToken, seenPageTokens);
     nextSyncToken = page.nextSyncToken ?? nextSyncToken;
   } while (pageToken !== undefined);
   return {
@@ -580,6 +587,7 @@ async function listCalendars(
 ): Promise<CalendarListEntry[]> {
   const calendars: CalendarListEntry[] = [];
   let pageToken: string | undefined;
+  const seenPageTokens = new Set<string>();
   do {
     const response: { data: CalendarListPage } = await requester.request({
       url: calendarListUrl,
@@ -592,7 +600,10 @@ async function listCalendars(
       },
     });
     calendars.push(...(response.data.items ?? []));
-    pageToken = response.data.nextPageToken;
+    pageToken = checkedNextPageToken(
+      response.data.nextPageToken,
+      seenPageTokens,
+    );
   } while (pageToken !== undefined);
   return calendars;
 }

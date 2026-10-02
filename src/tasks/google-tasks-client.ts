@@ -1,5 +1,7 @@
 import { GoogleAuth } from "google-auth-library";
 
+import { checkedNextPageToken } from "../provider-page-token.js";
+
 import type {
   LiveTask,
   TaskList,
@@ -190,10 +192,11 @@ async function readPages<TItem>(
 ): Promise<TItem[]> {
   const items: TItem[] = [];
   let pageToken: string | undefined;
+  const seenPageTokens = new Set<string>();
   do {
     const page = await readPage(pageToken);
     items.push(...(page.items ?? []));
-    pageToken = page.nextPageToken;
+    pageToken = checkedNextPageToken(page.nextPageToken, seenPageTokens);
   } while (pageToken !== undefined);
   return items;
 }

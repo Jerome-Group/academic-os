@@ -309,7 +309,8 @@ describe("the morning's issue policy", () => {
     assert.equal(report.schemaVersion, 2);
     assert.equal(report.outcome, "reported");
     assert.equal(report.modules.length, 3);
-    assert.match(morning.raised[0]?.body ?? "", /unread announcements/u);
+    assert.doesNotMatch(morning.raised[0]?.body ?? "", /unread announcements/u);
+    assert.match(morning.rendered[0] ?? "", /unread announcements/u);
   });
 
   it("cannot call incomplete or failed maintenance quiet", async () => {
@@ -372,7 +373,10 @@ describe("the morning's issue policy", () => {
         ),
       ),
     );
-    assert.ok(morning.raised[0]?.body.endsWith(morning.rendered[0] ?? ""));
+    assert.match(
+      morning.raised[0]?.body ?? "",
+      /Detailed evidence is retained in the private local morning report/u,
+    );
   });
 
   it("stays silent on a quiet morning, and still lands the report", async () => {
@@ -652,12 +656,16 @@ describe("the morning's issue policy", () => {
       morning.updated.map(({ number }) => number),
       [40, 48],
     );
-    assert.ok(morning.updated[0]?.body.startsWith(`${marker}\n\nunresolved`));
+    assert.ok(morning.updated[0]?.body.startsWith(`${marker}\n`));
+    assert.doesNotMatch(morning.updated[0]?.body ?? "", /unresolved/u);
     assert.match(
       morning.updated[0]?.body ?? "",
       /Automatically resolved by verified morning 2026-08-23/u,
     );
-    assert.ok(morning.updated[0]?.body.endsWith(morning.rendered[0] ?? ""));
+    assert.match(
+      morning.updated[0]?.body ?? "",
+      /Detailed evidence is retained in the private local morning report/u,
+    );
     assert.ok(
       morning.calls.indexOf("issue:update") <
         morning.calls.indexOf("issue:close"),
@@ -713,7 +721,10 @@ describe("the morning's issue policy", () => {
 
     assert.equal(report.report, null);
     assert.equal(report.issue.outcome, "created");
-    assert.ok(morning.raised[0]?.body.endsWith(morning.rendered[0] ?? ""));
+    assert.match(
+      morning.raised[0]?.body ?? "",
+      /Detailed evidence is retained in the private local morning report/u,
+    );
   });
 
   it("leaves the report on the mini when the tracker cannot be reached", async () => {
@@ -737,4 +748,49 @@ describe("the morning's issue policy", () => {
     assert.equal(report.issue.failure?.message, "github is unreachable");
     assert.equal(morning.rendered.length, 1);
   });
+});
+
+it("keeps private source prose and paths local across issue creation, update and clean resolution", async () => {
+  const secret = "/private/synthetic-owner/unpublished-source.pdf";
+  const pass: ModulePassOutcome = {
+    ...quietPass,
+    maintenance: quietPass.maintenance.map((entry) => ({
+      ...entry,
+      evidence: [secret],
+    })),
+    parked: [{ item: secret, reason: secret, evidence: secret }],
+    failures: [
+      { code: secret, message: secret },
+      { code: "ENOENT", message: secret },
+    ],
+    docWrites: [{ file: secret, summary: secret }],
+  };
+  const created = syntheticMorning({ passes: { AB1234: pass } });
+  await runMorningRoutine({ ...created, date, modules: cohort });
+  assert.ok(created.rendered[0]?.includes(secret));
+  assert.ok(!created.raised[0]?.body.includes(secret));
+  assert.match(created.raised[0]?.body ?? "", /ENOENT/u);
+  assert.match(created.raised[0]?.body ?? "", /maintenance-failure/u);
+  assert.doesNotMatch(created.raised[0]?.body ?? "", /\/state\/routine/u);
+  const oldIssue = {
+    number: 900,
+    title: `Morning report ${date}`,
+    state: "OPEN" as const,
+    body: `${morningIssueMarker(
+      "Y2S1",
+      cohort.map(({ module }) => module),
+    )}\n\n${secret}`,
+  };
+  const updated = syntheticMorning({
+    passes: { AB1234: pass },
+    issue: { list: async () => [oldIssue] },
+  });
+  await runMorningRoutine({ ...updated, date, modules: cohort });
+  assert.ok(!updated.updated[0]?.body.includes(secret));
+  const resolved = syntheticMorning({
+    issue: { list: async () => [oldIssue] },
+  });
+  await runMorningRoutine({ ...resolved, date, modules: cohort });
+  assert.ok(!resolved.updated[0]?.body.includes(secret));
+  assert.deepEqual(resolved.closed, [900]);
 });

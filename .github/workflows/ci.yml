@@ -63,7 +63,10 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm test
+      - run: npm run build
+      - run: npm run cheatsheet-runtime:check
+      - run: node dist/src/cli.js capabilities verify --workflow discovery --json
+      - run: node dist/src/cli.js capabilities check --profile tests --json
 
   rule-coverage:
     runs-on: ubuntu-latest
@@ -96,7 +99,8 @@ jobs:
             $APT_ACQUIRE \
             -o Dir::Cache::archives="$HOME/rule-coverage-archives" \
             poppler-utils
-      - run: npm run rule-coverage:check
+      - run: npm run build
+      - run: node dist/src/cli.js capabilities check --profile coverage --json
 
   privacy:
     runs-on: ubuntu-latest
@@ -108,7 +112,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run privacy:check
+      - run: npm run build
+      - run: node dist/src/cli.js capabilities check --profile privacy --json
 
   templates:
     runs-on: ubuntu-latest
@@ -166,9 +171,12 @@ jobs:
           xargs -a .github/tex-live-packages.txt sudo apt-get install -y \
             --no-install-recommends \
             $APT_ACQUIRE \
-            -o Dir::Cache::archives="$HOME/tex-live-archives"
+            -o Dir::Cache::archives="$HOME/tex-live-archives" \
+            poppler-utils
       - name: Compile the seeded LaTeX set
-        run: npm run templates:check
+        run: |
+          npm run build
+          node dist/src/cli.js capabilities check --profile templates --json
 
   checks:
     if: always()

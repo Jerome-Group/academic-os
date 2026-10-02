@@ -135,6 +135,7 @@ export async function verifyPortableCheatsheetRelease(input: {
   releasedPdf: Uint8Array;
   filename: string;
   constraints: CheatsheetConstraints;
+  requiredLabels?: string[];
 }): Promise<CheatsheetReleaseVerification> {
   if (/\\(?:resizebox|scalebox)\b/u.test(input.source)) {
     throw new Error("Release source uses hidden geometric scaling.");
@@ -174,6 +175,23 @@ export async function verifyPortableCheatsheetRelease(input: {
       join(buildRoot, "aux", texName.replace(/\.tex$/u, ".log")),
       "utf8",
     );
+    if ((input.requiredLabels?.length ?? 0) > 0) {
+      const auxiliary = await readFile(
+        join(buildRoot, "aux", texName.replace(/\.tex$/u, ".aux")),
+        "utf8",
+      );
+      const compiledLabels = new Set(
+        [...auxiliary.matchAll(/\\newlabel\{([^{}]+)\}/gu)].map(
+          (match) => match[1],
+        ),
+      );
+      for (const label of input.requiredLabels ?? []) {
+        if (!compiledLabels.has(label))
+          throw new Error(
+            `Included artifact label ${label} is absent from compiled auxiliary evidence.`,
+          );
+      }
+    }
     if (/Overfull \\[hv]box|Missing character:/u.test(latexLog)) {
       throw new Error(
         "Isolated build reports an overfull box or missing glyph.",
@@ -255,6 +273,7 @@ export async function verifyPortableCheatsheetRelease(input: {
         `isolated ${texName} compiled`,
         `${pageCount} portrait A4 page${pageCount === 1 ? "" : "s"}`,
         "all fonts embedded",
+        `${input.requiredLabels?.length ?? 0} declared included labels checked against compiled auxiliary evidence`,
         declaredBodyPointSize === undefined
           ? `PDF dominant text size ${bodyPointSize}pt (measurement tolerance ${fontMeasurementTolerance}pt)`
           : `PDF dominant text size ${bodyPointSize}pt corroborates declared body size ${declaredBodyPointSize}pt`,

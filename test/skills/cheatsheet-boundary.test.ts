@@ -51,6 +51,23 @@ describe("the cheatsheet router skill", () => {
     assert.match(example, /review: \{status: unreviewed\}/u);
   });
 
+  it("refuses unknown and duplicate arguments with structured failure", async () => {
+    for (const flags of [
+      ["--typo", "value"],
+      ["--module-root", "a", "--module-root", "b"],
+    ]) {
+      await assert.rejects(
+        run(toolPath, ["audit", ...flags]),
+        (error: unknown) => {
+          const result = error as { code: number; stdout: string };
+          assert.equal(result.code, 1);
+          assert.equal(JSON.parse(result.stdout).status, "failed");
+          return true;
+        },
+      );
+    }
+  });
+
   it("finds a procedure-bearing module once across resolved mount aliases", {
     skip: process.platform !== "darwin",
   }, async () => {

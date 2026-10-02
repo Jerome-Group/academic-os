@@ -18,7 +18,7 @@
     "rule-coverage:check": "npm run build && node scripts/check-contract-rule-coverage.mjs",
     "templates:check": "node scripts/compile-seed-templates.mjs",
     "privacy:check": "npm run build && node --test --test-concurrency=4 dist/test/privacy/*.test.js",
-    "check": "npm run format:check && npm run lint && npm run build && npm run cheatsheet-runtime:check && node scripts/check-contract-rule-coverage.mjs"
+    "check": "npm run build && node dist/src/cli.js capabilities check --profile full --json"
   },
   "engines": {
     "node": ">=24"

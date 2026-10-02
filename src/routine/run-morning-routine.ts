@@ -2,6 +2,7 @@ import type { ConfiguredModule } from "../config/index.js";
 import { planRetentionPurge } from "./plan-retention-purge.js";
 import { isQuietMaintenanceCoverage } from "./maintenance-domains.js";
 import { renderMorningReport } from "./render-morning-report.js";
+import { renderPublicMorningReport } from "./render-public-morning-report.js";
 import { failedModulePass, routineFailure } from "./routine-failure.js";
 import type {
   ModulePassReport,
@@ -63,7 +64,7 @@ export async function runMorningRoutine(input: {
     date: input.date,
     cohort: input.cohort,
     moduleCodes: modules.map(({ module }) => module),
-    body: text,
+    body: renderPublicMorningReport({ date: input.date, prelude, modules }),
     needsOwner: report === null || morningNeedsOwner(prelude, modules),
   });
   return {
@@ -214,7 +215,7 @@ async function reconcileMorningIssue(input: {
         if (!candidate.body.includes(resolutionMarker)) {
           await input.issue.update({
             number: candidate.number,
-            body: `${candidate.body}\n\n---\n\n${resolutionMarker}\nAutomatically resolved by verified morning ${input.date}.\n\n${input.body}`,
+            body: `${marker}\n\n${resolutionMarker}\nAutomatically resolved by verified morning ${input.date}.\n\n${input.body}`,
           });
         }
         await input.issue.close(candidate.number);

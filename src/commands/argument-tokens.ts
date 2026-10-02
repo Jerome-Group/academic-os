@@ -30,6 +30,12 @@ export function parseArgumentTokens(input: {
           : `Unexpected argument: ${argument}.`,
       );
     }
+    if (values.has(argument) || flags.has(argument)) {
+      throw new OperationalError(
+        "invalid-arguments",
+        `Duplicate argument: ${argument}.`,
+      );
+    }
     if (booleanFlags.has(argument)) {
       flags.add(argument);
       continue;

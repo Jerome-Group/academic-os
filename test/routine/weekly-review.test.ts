@@ -255,6 +255,16 @@ describe("weekly maintenance queue", () => {
       assert.ok(expected.endsWith(note));
     }
   });
+  it("keeps the first quiet publication byte-stable when repository discovery is absent", async () => {
+    const f = fixture();
+    await run(f);
+    const expected = body(f);
+    for (let attempt = 0; attempt < 30; attempt++) {
+      await run(f);
+      assert.equal(body(f), expected);
+    }
+    assert.equal(f.issues.size, 1);
+  });
   it("preserves a closed quiet current week and reopens only when work becomes pending", async () => {
     const f = fixture();
     await run(f);

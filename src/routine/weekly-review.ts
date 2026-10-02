@@ -115,7 +115,7 @@ export async function reconcileWeeklyIssue(input: {
     const state: QueueState = {
       scopes: {},
       unknown: [],
-      repository: { merged: [], unresolved: 0, awaiting: 0 },
+      repository: repositorySummary({ merged: [], unresolved: 0, awaiting: 0 }),
     };
     if (current !== undefined) mergeState(state, stateOf(current));
     for (const previous of older) {

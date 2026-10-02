@@ -1,5 +1,8 @@
 # Daily maintenance requires complete domain evidence
 
+> [ADR-0038](0038-daily-repair-rolls-up-into-a-weekly-review.md) supersedes daily public issue
+> creation and retirement. Complete-domain evidence and Module authority remain unchanged.
+
 The morning routine maintains each active Module even when no importer arrivals exist. Its
 existing Curation route remains part of that pass, while a deterministic work order also surfaces
 contract findings, importer health and learning-material gaps. The schedule, per-module model

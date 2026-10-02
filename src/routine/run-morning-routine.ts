@@ -1,13 +1,12 @@
 import type { ConfiguredModule } from "../config/index.js";
-import { planRetentionPurge } from "./plan-retention-purge.js";
 import { isQuietMaintenanceCoverage } from "./maintenance-domains.js";
+import { planRetentionPurge } from "./plan-retention-purge.js";
 import { renderMorningReport } from "./render-morning-report.js";
-import { renderPublicMorningReport } from "./render-public-morning-report.js";
+import type { RepositoryRepairReport } from "./repository-repair-types.js";
 import { failedModulePass, routineFailure } from "./routine-failure.js";
 import type {
   ModulePassReport,
   ModuleSessionPort,
-  MorningIssue,
   MorningIssuePort,
   MorningIssueReport,
   MorningPreludePort,
@@ -17,18 +16,13 @@ import type {
   PreludeStepReport,
   RetentionPurge,
   RoutineArtifactStore,
+  WeeklyIssueEvidenceStore,
+  WeeklyRepositorySummary,
 } from "./types.js";
-import { isCalendarDay } from "./offering-calendar-day.js";
+import { offeringWeekStart, reconcileWeeklyIssue } from "./weekly-review.js";
 
 export const MORNING_ISSUE_LABELS = ["ready-for-human", "decision"] as const;
 export const MORNING_ISSUE_MARKER_VERSION = 1;
-
-function morningIssueTitle(
-  date: string,
-  scope: MorningRunEvidence["scope"] = "monitoring-cohort",
-): string {
-  return `Morning report ${date}${scope === "modules-only" ? " (modules-only)" : ""}`;
-}
 
 // One firing, in the one order that matters: the deterministic prelude, then a session per cohort
 // module in sequence, then the purge, then the report. Nothing between the steps can end the run —
@@ -41,6 +35,12 @@ export async function runMorningRoutine(input: {
   session: ModuleSessionPort;
   artifacts: RoutineArtifactStore;
   issue: MorningIssuePort;
+  weeklyEvidence?: WeeklyIssueEvidenceStore;
+  weeklyRepository?: WeeklyRepositorySummary;
+  repositoryRepair?: () => Promise<RepositoryRepairReport>;
+  weeklyRepositoryHistory?: (
+    weekStart: string,
+  ) => Promise<WeeklyRepositorySummary>;
   run?: MorningRunEvidence;
 }): Promise<MorningRoutineReport> {
   const prelude = [
@@ -56,6 +56,49 @@ export async function runMorningRoutine(input: {
   for (const module of input.modules) {
     modules.push(await modulePass(input.session, module));
   }
+  const repositoryRepair = await runRepositoryRepair(input.repositoryRepair);
+  let repository =
+    input.weeklyRepository ??
+    (repositoryRepair === undefined
+      ? undefined
+      : weeklyRepairSummary(repositoryRepair));
+  if (input.weeklyRepositoryHistory !== undefined) {
+    try {
+      const history = await input.weeklyRepositoryHistory(
+        offeringWeekStart(input.date),
+      );
+      const merged = new Map(
+        history.merged.map((fix) => [`${fix.pullRequest}:${fix.commit}`, fix]),
+      );
+      for (const fix of repository?.merged ?? [])
+        merged.set(`${fix.pullRequest}:${fix.commit}`, fix);
+      repository = {
+        pendingIssueNumbers: [
+          ...new Set([
+            ...(history.pendingIssueNumbers ?? []),
+            ...(repository?.pendingIssueNumbers ?? []),
+          ]),
+        ],
+        pendingPullRequestNumbers: [
+          ...new Set([
+            ...(history.pendingPullRequestNumbers ?? []),
+            ...(repository?.pendingPullRequestNumbers ?? []),
+          ]),
+        ],
+        merged: [...merged.values()],
+        unresolved: Math.max(history.unresolved, repository?.unresolved ?? 0),
+        awaiting: Math.max(history.awaiting, repository?.awaiting ?? 0),
+      };
+    } catch {
+      repository = {
+        pendingIssueNumbers: repository?.pendingIssueNumbers ?? [],
+        pendingPullRequestNumbers: repository?.pendingPullRequestNumbers ?? [],
+        merged: repository?.merged ?? [],
+        unresolved: Math.max(1, repository?.unresolved ?? 0),
+        awaiting: Math.max(1, repository?.awaiting ?? 0),
+      };
+    }
+  }
   const purge =
     input.run?.retention === "retained"
       ? { sessions: [], reports: [] }
@@ -65,19 +108,58 @@ export async function runMorningRoutine(input: {
     prelude,
     modules,
     purge,
+    ...(repositoryRepair === undefined ? {} : { repositoryRepair }),
   });
   const report = await writtenReport(input.artifacts, input.date, text);
-  const issue = await reconcileMorningIssue({
+  const issue = await reconcileWeeklyIssue({
+    ...(input.weeklyEvidence === undefined
+      ? {}
+      : { evidence: input.weeklyEvidence }),
     issue: input.issue,
     date: input.date,
     cohort: input.cohort,
     moduleCodes: modules.map(({ module }) => module),
-    body: renderPublicMorningReport({
-      date: input.date,
-      prelude,
-      modules,
-      ...(input.run === undefined ? {} : { run: input.run }),
-    }),
+    ...(repository === undefined ? {} : { repository }),
+    summary: {
+      targets: modules.length,
+      preludePending: prelude.filter(
+        (step) =>
+          step.parked > 0 ||
+          step.failure !== undefined ||
+          step.outcome === "skipped",
+      ).length,
+      parked: modules.reduce((n, module) => n + module.parked.length, 0),
+      failures: modules.reduce((n, module) => n + module.failures.length, 0),
+      verifiedMaintenance: modules.reduce(
+        (n, module) =>
+          n +
+          module.maintenance.filter((entry) => entry.status === "maintained")
+            .length,
+        0,
+      ),
+      checkedMaintenance: modules.reduce(
+        (n, module) =>
+          n +
+          module.maintenance.filter((entry) => entry.status === "checked")
+            .length,
+        0,
+      ),
+      verifiedControlWrites: modules.reduce(
+        (n, module) => n + module.docWrites.length,
+        0,
+      ),
+      awaitingMaintenance: modules.reduce(
+        (n, module) =>
+          n +
+          module.maintenance.filter(
+            (entry) =>
+              entry.status !== "checked" &&
+              entry.status !== "maintained" &&
+              entry.status !== "not-applicable",
+          ).length,
+        0,
+      ),
+    },
     scope: input.run?.scope ?? "monitoring-cohort",
     needsOwner:
       report === null ||
@@ -95,6 +177,7 @@ export async function runMorningRoutine(input: {
     purge,
     report,
     issue,
+    ...(repositoryRepair === undefined ? {} : { repositoryRepair }),
     ...(input.run === undefined ? {} : { run: input.run }),
   };
 }
@@ -205,81 +288,6 @@ function morningNeedsOwner(
   );
 }
 
-async function reconcileMorningIssue(input: {
-  issue: MorningIssuePort;
-  date: string;
-  cohort: string;
-  moduleCodes: readonly string[];
-  body: string;
-  needsOwner: boolean;
-  scope: MorningRunEvidence["scope"];
-}): Promise<MorningIssueReport> {
-  const title = morningIssueTitle(input.date, input.scope);
-  const marker = morningIssueMarker(
-    input.cohort,
-    input.moduleCodes,
-    input.scope,
-  );
-  const body = `${marker}\n\n${input.body}`;
-  const reconciled: number[] = [];
-  try {
-    const managed = [
-      ...new Map(
-        (await input.issue.list())
-          .filter((candidate) =>
-            isManagedMorningIssue(candidate, marker, input.date, input.scope),
-          )
-          .map((candidate) => [candidate.number, candidate]),
-      ).values(),
-    ];
-    if (!input.needsOwner) {
-      const open = managed.filter(({ state }) => state === "OPEN");
-      for (const candidate of open) {
-        const resolutionMarker = `<!-- academic-os-morning-resolution:v1 date=${input.date} -->`;
-        if (!candidate.body.includes(resolutionMarker)) {
-          await input.issue.update({
-            number: candidate.number,
-            body: `${marker}\n\n${resolutionMarker}\nAutomatically resolved by verified morning ${input.date}.\n\n${input.body}`,
-          });
-        }
-        await input.issue.close(candidate.number);
-        reconciled.push(candidate.number);
-      }
-      return open.length === 0
-        ? { outcome: "not-needed", number: null }
-        : {
-            outcome: "closed",
-            number: reconciled[0] ?? null,
-            numbers: reconciled,
-          };
-    }
-    const existing = managed.find((candidate) => candidate.title === title);
-    if (existing !== undefined) {
-      await input.issue.update({ number: existing.number, body });
-      if (existing.state === "CLOSED") {
-        await input.issue.reopen(existing.number);
-        return { outcome: "reopened", number: existing.number };
-      }
-      return { outcome: "updated", number: existing.number };
-    }
-    return {
-      outcome: "created",
-      number: await input.issue.raise({
-        title,
-        body,
-        labels: MORNING_ISSUE_LABELS,
-      }),
-    };
-  } catch (error) {
-    return {
-      outcome: "failed",
-      number: reconciled[0] ?? null,
-      ...(reconciled.length === 0 ? {} : { numbers: reconciled }),
-      failure: routineFailure(error, "issue-failed"),
-    };
-  }
-}
-
 export function morningIssueMarker(
   cohort: string,
   moduleCodes: readonly string[],
@@ -289,30 +297,88 @@ export function morningIssueMarker(
   return `<!-- academic-os-morning-issue:v${MORNING_ISSUE_MARKER_VERSION} cohort=${encodeURIComponent(cohort)} modules=${encodeURIComponent(modules)}${scope === "modules-only" ? " scope=modules-only" : ""} -->`;
 }
 
-function isManagedMorningIssue(
-  issue: MorningIssue,
-  marker: string,
-  currentDate: string,
-  scope: MorningRunEvidence["scope"],
-): boolean {
-  const issueDate =
-    /^Morning report (\d{4}-\d{2}-\d{2})(?: \(modules-only\))?$/u.exec(
-      issue.title,
-    )?.[1];
-  return (
-    issueDate !== undefined &&
-    isCalendarDay(issueDate) &&
-    issue.title === morningIssueTitle(issueDate, scope) &&
-    issueDate <= currentDate &&
-    issue.body.startsWith(`${marker}\n`)
-  );
-}
-
 function morningOutcome(
   issue: MorningIssueReport,
 ): MorningRoutineReport["outcome"] {
-  if (issue.outcome === "not-needed" || issue.outcome === "closed") {
+  if (issue.outcome !== "failed" && issue.actionable === false) {
     return "quiet";
   }
   return issue.outcome === "failed" ? "unreported" : "reported";
+}
+
+async function runRepositoryRepair(
+  run: (() => Promise<RepositoryRepairReport>) | undefined,
+): Promise<RepositoryRepairReport | undefined> {
+  if (run === undefined) return undefined;
+  try {
+    return await run();
+  } catch {
+    return {
+      schemaVersion: 1,
+      outcome: "blocked",
+      code: "repository-repair-unavailable",
+      modelAttestation: "unverified",
+    };
+  }
+}
+export function weeklyRepairSummary(
+  report: RepositoryRepairReport,
+): WeeklyRepositorySummary {
+  const merged: WeeklyRepositorySummary["merged"] = [];
+  if (
+    Number.isSafeInteger(report.pullRequest) &&
+    (report.pullRequest ?? 0) > 0 &&
+    report.mergeCommit !== undefined &&
+    /^[a-f0-9]{40}$/u.test(report.mergeCommit)
+  ) {
+    merged.push({
+      pullRequest: report.pullRequest as number,
+      ...(Number.isSafeInteger(report.issue) && (report.issue ?? 0) > 0
+        ? { originIssue: report.issue as number }
+        : {}),
+      commit: report.mergeCommit,
+      verification:
+        report.postmergeVerification === "passed"
+          ? "verified"
+          : report.postmergeVerification === "blocked"
+            ? "failed"
+            : "awaiting",
+      rollout:
+        report.rolloutVerification === "passed"
+          ? "verified"
+          : report.rolloutVerification === "blocked"
+            ? "failed"
+            : "awaiting",
+    });
+  }
+  const pending =
+    report.outcome !== "healthy" &&
+    (report.outcome !== "merged" ||
+      report.postmergeVerification !== "passed" ||
+      report.rolloutVerification !== "passed");
+  return {
+    pendingIssueNumbers:
+      pending && Number.isSafeInteger(report.issue) && (report.issue ?? 0) > 0
+        ? [report.issue as number]
+        : [],
+    pendingPullRequestNumbers:
+      pending &&
+      Number.isSafeInteger(report.pullRequest) &&
+      (report.pullRequest ?? 0) > 0
+        ? [report.pullRequest as number]
+        : [],
+    merged,
+    unresolved:
+      report.outcome === "blocked" || report.outcome === "unchanged" ? 1 : 0,
+    awaiting:
+      report.outcome === "busy" ||
+      (report.outcome === "merged" &&
+        (merged.length === 0 ||
+          merged.some(
+            (fix) =>
+              fix.verification !== "verified" || fix.rollout !== "verified",
+          )))
+        ? 1
+        : 0,
+  };
 }

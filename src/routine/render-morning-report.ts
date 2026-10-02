@@ -1,3 +1,8 @@
+import {
+  type MaintenanceDomainOutcome,
+  maintenanceDomainLabel,
+} from "./maintenance-domains.js";
+import type { RepositoryRepairReport } from "./repository-repair-types.js";
 import type {
   CuratedItem,
   ModulePassReport,
@@ -6,10 +11,6 @@ import type {
   RetentionPurge,
   RoutineFailure,
 } from "./types.js";
-import {
-  maintenanceDomainLabel,
-  type MaintenanceDomainOutcome,
-} from "./maintenance-domains.js";
 
 const preludeStepTitles: Record<PreludeStepName, string> = {
   "import-status": "Importer health",
@@ -25,6 +26,7 @@ export function renderMorningReport(input: {
   prelude: readonly PreludeStepReport[];
   modules: readonly ModulePassReport[];
   purge: RetentionPurge;
+  repositoryRepair?: RepositoryRepairReport;
 }): string {
   return [
     `# Morning report ${input.date}`,
@@ -38,6 +40,16 @@ export function renderMorningReport(input: {
     ...(input.modules.length === 0
       ? ["_No modules in the monitoring cohort._", ""]
       : input.modules.flatMap(renderModulePass)),
+    ...(input.repositoryRepair === undefined
+      ? []
+      : [
+          "## Repository repair",
+          "",
+          "```json",
+          JSON.stringify(input.repositoryRepair, null, 2),
+          "```",
+          "",
+        ]),
     "## Retention purge",
     "",
     ...bucket("Session artifacts", input.purge.sessions, (date) => date),

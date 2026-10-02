@@ -1,5 +1,6 @@
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import {
   type AcademicConfig,
@@ -27,6 +28,9 @@ import {
 } from "../routine/index.js";
 import { parseArgumentTokens } from "./argument-tokens.js";
 import { renderModulePassSummary } from "./render-module-pass-summary.js";
+import { createFileWeeklyEvidenceStore } from "../routine/file-weekly-evidence.js";
+import { runRepositoryRepair } from "../routine/repository-repair.js";
+import { createGhWeeklyRepositoryHistory } from "../routine/gh-weekly-repository-history.js";
 
 const usage =
   "Usage: academic-os routine morning --config <path> [--retain-artifacts] [--modules-only] [--model gpt-6.1-sol --reasoning-effort <effort>] [--json]";
@@ -80,6 +84,21 @@ export async function runRoutineMorningCommand(
     }),
     run,
     issue: createGhMorningIssue(routine.ghPath),
+    weeklyEvidence: createFileWeeklyEvidenceStore(stateRoot),
+    weeklyRepositoryHistory: createGhWeeklyRepositoryHistory(routine.ghPath),
+    ...(options.modulesOnly
+      ? {}
+      : {
+          repositoryRepair: () =>
+            runRepositoryRepair({
+              repositoryRoot: fileURLToPath(
+                new URL("../../../", import.meta.url),
+              ),
+              privateStateRoot: stateRoot,
+              codexPath: routine.codexPath,
+              ghPath: routine.ghPath,
+            }),
+        }),
   });
   process.stdout.write(
     json ? `${JSON.stringify(report, null, 2)}\n` : `${renderHuman(report)}\n`,

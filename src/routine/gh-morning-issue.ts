@@ -30,6 +30,15 @@ export function createGhMorningIssue(
       ...(input === undefined ? {} : { input }),
     });
   return {
+    read: async (number) => {
+      const value: unknown = JSON.parse(
+        gh(["api", `repos/{owner}/{repo}/issues/${number}`]),
+      );
+      const result = readIssueRecord(value)[0];
+      if (result === undefined || result.number !== number)
+        return invalidIssueRecord();
+      return result;
+    },
     list: async () => {
       const issues: MorningIssue[] = [];
       for (let page = 1; ; page += 1) {
@@ -38,7 +47,7 @@ export function createGhMorningIssue(
             "api",
             `repos/{owner}/{repo}/issues?state=all&per_page=100&page=${page}`,
             "--jq",
-            '{count: length, issues: [.[] | select(has("pull_request") | not) | select(.title | startswith("Morning report ")) | {number, title, body, state}]} | tojson',
+            '{count: length, issues: [.[] | select(has("pull_request") | not) | select(.title | (startswith("Morning report ") or startswith("Weekly maintenance review "))) | {number, title, body, state}]} | tojson',
           ]),
         );
         if (
@@ -89,8 +98,26 @@ export function createGhMorningIssue(
     reopen: async (number) => {
       gh(["issue", "reopen", String(number)]);
     },
-    close: async (number) => {
-      gh(["issue", "close", String(number)]);
+    close: async (number, transferTo) => {
+      if (
+        transferTo !== undefined &&
+        (!Number.isSafeInteger(transferTo) || transferTo <= 0)
+      )
+        throw new OperationalError(
+          "operational-failure",
+          "Invalid weekly transfer identity.",
+        );
+      gh([
+        "issue",
+        "close",
+        String(number),
+        ...(transferTo === undefined
+          ? []
+          : [
+              "--comment",
+              `Transferred to weekly review #${transferTo}. Closure records transfer, not resolution.`,
+            ]),
+      ]);
     },
   };
 }

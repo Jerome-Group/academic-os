@@ -2,18 +2,19 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import type { ConfiguredModule } from "../../src/config/index.js";
-import { syntheticMaintenanceCoverage } from "../fixtures/maintenance-coverage.js";
 import {
   MORNING_ISSUE_LABELS,
   type ModulePassOutcome,
   type ModulePassReport,
+  type MorningIssue,
   type MorningIssuePort,
-  morningIssueMarker,
   type MorningPreludePort,
+  morningIssueMarker,
   type PreludeStepReport,
   type RoutineArtifactStore,
   runMorningRoutine,
 } from "../../src/routine/index.js";
+import { syntheticMaintenanceCoverage } from "../fixtures/maintenance-coverage.js";
 
 const date = "2026-08-23";
 const cohort: ConfiguredModule[] = [
@@ -102,7 +103,14 @@ function syntheticMorning(overrides: {
       removed.push(`report:${day}`);
     },
   };
+  const issueState = new Map<number, MorningIssue>();
   const issue: MorningIssuePort = {
+    read: async (number) => {
+      calls.push("issue:read");
+      const found = issueState.get(number);
+      if (found === undefined) throw new Error("missing synthetic issue");
+      return { ...found };
+    },
     list: async () => {
       calls.push("issue:list");
       return await (overrides.issue?.list?.() ?? Promise.resolve([]));
@@ -113,6 +121,12 @@ function syntheticMorning(overrides: {
         return await overrides.issue.raise(input);
       }
       raised.push(input);
+      issueState.set(900, {
+        number: 900,
+        title: input.title,
+        body: input.body,
+        state: "OPEN",
+      });
       return 900;
     },
     update: async (input) => {
@@ -198,6 +212,8 @@ describe("one firing of the morning routine", () => {
       "session:EF9012",
       "report",
       "issue:list",
+      "issue:raise",
+      "issue:read",
     ]);
     assert.deepEqual(
       report.modules.map(({ module }) => module),
@@ -347,7 +363,7 @@ describe("the morning's issue policy", () => {
     });
 
     assert.equal(report.outcome, "quiet");
-    assert.equal(report.issue.outcome, "not-needed");
+    assert.equal(report.issue.outcome, "created");
     assert.match(morning.rendered[0] ?? "", /maintained/u);
   });
 
@@ -361,25 +377,23 @@ describe("the morning's issue policy", () => {
     });
 
     assert.equal(report.outcome, "reported");
-    assert.deepEqual(report.issue, { outcome: "created", number: 900 });
+    assert.equal(report.issue.outcome, "created");
+    assert.equal(report.issue.number, 900);
     assert.equal(morning.raised.length, 1);
-    assert.equal(morning.raised[0]?.title, "Morning report 2026-08-23");
+    assert.equal(
+      morning.raised[0]?.title,
+      "Weekly maintenance review 2026-08-17",
+    );
     assert.deepEqual(morning.raised[0]?.labels, MORNING_ISSUE_LABELS);
     assert.ok(
       morning.raised[0]?.body.startsWith(
-        morningIssueMarker(
-          "Y2S1",
-          cohort.map(({ module }) => module),
-        ),
+        "<!-- academic-os-weekly-issue:v1 week=2026-08-17 -->",
       ),
     );
-    assert.match(
-      morning.raised[0]?.body ?? "",
-      /Detailed evidence is retained in the private local morning report/u,
-    );
+    assert.match(morning.raised[0]?.body ?? "", /private daily evidence/u);
   });
 
-  it("stays silent on a quiet morning, and still lands the report", async () => {
+  it("creates the first quiet weekly review and still lands the daily report", async () => {
     const morning = syntheticMorning({});
 
     const report = await runMorningRoutine({
@@ -389,8 +403,9 @@ describe("the morning's issue policy", () => {
     });
 
     assert.equal(report.outcome, "quiet");
-    assert.deepEqual(report.issue, { outcome: "not-needed", number: null });
-    assert.equal(morning.raised.length, 0);
+    assert.equal(report.issue.outcome, "created");
+    assert.equal(report.issue.actionable, false);
+    assert.equal(morning.raised.length, 1);
     assert.equal(morning.rendered.length, 1);
   });
 
@@ -404,8 +419,9 @@ describe("the morning's issue policy", () => {
     });
 
     assert.equal(report.outcome, "quiet");
-    assert.deepEqual(report.issue, { outcome: "not-needed", number: null });
-    assert.equal(morning.raised.length, 0);
+    assert.equal(report.issue.outcome, "created");
+    assert.equal(report.issue.actionable, false);
+    assert.equal(morning.raised.length, 1);
     assert.match(morning.rendered[0] ?? "", /- Noted — 1/u);
   });
 
@@ -421,7 +437,8 @@ describe("the morning's issue policy", () => {
     });
 
     assert.equal(report.outcome, "reported");
-    assert.deepEqual(report.issue, { outcome: "created", number: 900 });
+    assert.equal(report.issue.outcome, "created");
+    assert.equal(report.issue.number, 900);
     assert.equal(morning.raised.length, 1);
   });
 
@@ -453,7 +470,7 @@ describe("the morning's issue policy", () => {
       }),
     });
 
-    assert.equal(docWrite.issue.outcome, "not-needed");
+    assert.equal(docWrite.issue.actionable, false);
     assert.equal(failed.issue.outcome, "created");
   });
 
@@ -474,236 +491,6 @@ describe("the morning's issue policy", () => {
     assert.equal(report.issue.outcome, "created");
   });
 
-  it("updates the same managed morning issue rather than raising a second", async () => {
-    const marker = morningIssueMarker(
-      "Y2S1",
-      cohort.map(({ module }) => module),
-    );
-    const morning = syntheticMorning({
-      passes: { CD5678: parkedPass },
-      issue: {
-        list: async () => [
-          {
-            number: 42,
-            title: "Morning report 2026-08-23",
-            body: `${marker}\n\nold report`,
-            state: "OPEN",
-          },
-        ],
-      },
-    });
-
-    const report = await runMorningRoutine({
-      date,
-      modules: cohort,
-      ...morning,
-    });
-
-    assert.deepEqual(report.issue, { outcome: "updated", number: 42 });
-    assert.equal(morning.calls.includes("issue:raise"), false);
-    assert.deepEqual(
-      morning.updated.map(({ number }) => number),
-      [42],
-    );
-  });
-
-  it("updates and reopens a closed same-day managed issue", async () => {
-    const marker = morningIssueMarker(
-      "Y2S1",
-      cohort.map(({ module }) => module),
-    );
-    const morning = syntheticMorning({
-      passes: { CD5678: parkedPass },
-      issue: {
-        list: async () => [
-          {
-            number: 43,
-            title: "Morning report 2026-08-23",
-            body: `${marker}\n\nold report`,
-            state: "CLOSED",
-          },
-        ],
-      },
-    });
-
-    const report = await runMorningRoutine({
-      date,
-      modules: cohort,
-      ...morning,
-    });
-
-    assert.deepEqual(report.issue, { outcome: "reopened", number: 43 });
-    assert.deepEqual(
-      morning.updated.map(({ number }) => number),
-      [43],
-    );
-    assert.deepEqual(morning.reopened, [43]);
-    assert.equal(morning.raised.length, 0);
-  });
-
-  it("leaves a legacy same-title issue untouched and creates a managed issue", async () => {
-    const morning = syntheticMorning({
-      passes: { CD5678: parkedPass },
-      issue: {
-        list: async () => [
-          {
-            number: 39,
-            title: "Morning report 2026-08-23",
-            body: "legacy report without marker",
-            state: "OPEN",
-          },
-        ],
-      },
-    });
-
-    const report = await runMorningRoutine({
-      date,
-      modules: cohort,
-      ...morning,
-    });
-
-    assert.deepEqual(report.issue, { outcome: "created", number: 900 });
-    assert.equal(morning.updated.length, 0);
-    assert.equal(morning.reopened.length, 0);
-    assert.equal(morning.raised.length, 1);
-  });
-
-  it("closes only open managed issues for the exact rechecked cohort and Module set", async () => {
-    const marker = morningIssueMarker(
-      "Y2S1",
-      cohort.map(({ module }) => module),
-    );
-    const otherModules = morningIssueMarker("Y2S1", ["AB1234"]);
-    const otherCohort = morningIssueMarker(
-      "Y1S2",
-      cohort.map(({ module }) => module),
-    );
-    const morning = syntheticMorning({
-      issue: {
-        list: async () => [
-          {
-            number: 40,
-            title: "Morning report 2026-08-22",
-            body: `${marker}\n\nunresolved`,
-            state: "OPEN",
-          },
-          {
-            number: 41,
-            title: "Morning report 2026-08-21",
-            body: `${marker}\n\nalready resolved`,
-            state: "CLOSED",
-          },
-          {
-            number: 42,
-            title: "Morning report 2026-08-22",
-            body: "legacy report without marker",
-            state: "OPEN",
-          },
-          {
-            number: 43,
-            title: "Morning report 2026-08-22",
-            body: `${otherModules}\n\ndifferent Module set`,
-            state: "OPEN",
-          },
-          {
-            number: 44,
-            title: "Morning report 2026-08-22",
-            body: `${otherCohort}\n\ndifferent cohort`,
-            state: "OPEN",
-          },
-          {
-            number: 45,
-            title: "Manual follow-up",
-            body: `${marker}\n\nmanual issue`,
-            state: "OPEN",
-          },
-          {
-            number: 46,
-            title: "Morning report 2026-08-24",
-            body: `${marker}\n\nfuture report`,
-            state: "OPEN",
-          },
-          {
-            number: 47,
-            title: "Morning report 2026-02-31",
-            body: `${marker}\n\ninvalid date`,
-            state: "OPEN",
-          },
-          {
-            number: 48,
-            title: "Morning report 2026-08-20",
-            body: `${marker}\n\nsecond unresolved report`,
-            state: "OPEN",
-          },
-        ],
-      },
-    });
-
-    const report = await runMorningRoutine({
-      date,
-      modules: cohort,
-      ...morning,
-    });
-
-    assert.equal(report.outcome, "quiet");
-    assert.deepEqual(report.issue, {
-      outcome: "closed",
-      number: 40,
-      numbers: [40, 48],
-    });
-    assert.deepEqual(morning.closed, [40, 48]);
-    assert.deepEqual(
-      morning.updated.map(({ number }) => number),
-      [40, 48],
-    );
-    assert.ok(morning.updated[0]?.body.startsWith(`${marker}\n`));
-    assert.doesNotMatch(morning.updated[0]?.body ?? "", /unresolved/u);
-    assert.match(
-      morning.updated[0]?.body ?? "",
-      /Automatically resolved by verified morning 2026-08-23/u,
-    );
-    assert.match(
-      morning.updated[0]?.body ?? "",
-      /Detailed evidence is retained in the private local morning report/u,
-    );
-    assert.ok(
-      morning.calls.indexOf("issue:update") <
-        morning.calls.indexOf("issue:close"),
-    );
-  });
-
-  it("reports completed closures when a later managed close fails", async () => {
-    const marker = morningIssueMarker(
-      "Y2S1",
-      cohort.map(({ module }) => module),
-    );
-    const morning = syntheticMorning({
-      issue: {
-        list: async () =>
-          [40, 41].map((number) => ({
-            number,
-            title: `Morning report 2026-08-${number === 40 ? "21" : "22"}`,
-            body: `${marker}\n\nunresolved ${number}`,
-            state: "OPEN" as const,
-          })),
-        close: async (number) => {
-          if (number === 41) throw new Error("close failed");
-        },
-      },
-    });
-
-    const report = await runMorningRoutine({
-      date,
-      modules: cohort,
-      ...morning,
-    });
-
-    assert.equal(report.outcome, "unreported");
-    assert.deepEqual(report.issue.numbers, [40]);
-    assert.equal(report.issue.number, 40);
-    assert.equal(report.issue.failure?.message, "close failed");
-  });
-
   it("raises even a quiet morning the mini could not write down", async () => {
     const morning = syntheticMorning({
       artifacts: {
@@ -721,10 +508,7 @@ describe("the morning's issue policy", () => {
 
     assert.equal(report.report, null);
     assert.equal(report.issue.outcome, "created");
-    assert.match(
-      morning.raised[0]?.body ?? "",
-      /Detailed evidence is retained in the private local morning report/u,
-    );
+    assert.match(morning.raised[0]?.body ?? "", /private daily evidence/u);
   });
 
   it("leaves the report on the mini when the tracker cannot be reached", async () => {
@@ -748,51 +532,6 @@ describe("the morning's issue policy", () => {
     assert.equal(report.issue.failure?.message, "github is unreachable");
     assert.equal(morning.rendered.length, 1);
   });
-});
-
-it("keeps private source prose and paths local across issue creation, update and clean resolution", async () => {
-  const secret = "/private/synthetic-owner/unpublished-source.pdf";
-  const pass: ModulePassOutcome = {
-    ...quietPass,
-    maintenance: quietPass.maintenance.map((entry) => ({
-      ...entry,
-      evidence: [secret],
-    })),
-    parked: [{ item: secret, reason: secret, evidence: secret }],
-    failures: [
-      { code: secret, message: secret },
-      { code: "ENOENT", message: secret },
-    ],
-    docWrites: [{ file: secret, summary: secret }],
-  };
-  const created = syntheticMorning({ passes: { AB1234: pass } });
-  await runMorningRoutine({ ...created, date, modules: cohort });
-  assert.ok(created.rendered[0]?.includes(secret));
-  assert.ok(!created.raised[0]?.body.includes(secret));
-  assert.match(created.raised[0]?.body ?? "", /ENOENT/u);
-  assert.match(created.raised[0]?.body ?? "", /maintenance-failure/u);
-  assert.doesNotMatch(created.raised[0]?.body ?? "", /\/state\/routine/u);
-  const oldIssue = {
-    number: 900,
-    title: `Morning report ${date}`,
-    state: "OPEN" as const,
-    body: `${morningIssueMarker(
-      "Y2S1",
-      cohort.map(({ module }) => module),
-    )}\n\n${secret}`,
-  };
-  const updated = syntheticMorning({
-    passes: { AB1234: pass },
-    issue: { list: async () => [oldIssue] },
-  });
-  await runMorningRoutine({ ...updated, date, modules: cohort });
-  assert.ok(!updated.updated[0]?.body.includes(secret));
-  const resolved = syntheticMorning({
-    issue: { list: async () => [oldIssue] },
-  });
-  await runMorningRoutine({ ...resolved, date, modules: cohort });
-  assert.ok(!resolved.updated[0]?.body.includes(secret));
-  assert.deepEqual(resolved.closed, [900]);
 });
 
 it("retained mode never lists or removes expired artifacts and reports requested settings", async () => {
@@ -842,106 +581,6 @@ const scopedRun = {
   modelAttestation: "unverified" as const,
 };
 
-it("a clean modules-only run leaves excluded ordinary failures open", async () => {
-  const marker = morningIssueMarker(
-    "Y2S1",
-    cohort.map(({ module }) => module),
-  );
-  const ordinary = {
-    number: 260,
-    title: `Morning report ${date}`,
-    state: "OPEN" as const,
-    body: `${marker}\n\nShared shelf or Research mirror needs recovery.`,
-  };
-  const morning = syntheticMorning({
-    prelude: {
-      shelf: {
-        step: "textbook-shelf-catch-up",
-        outcome: "skipped",
-        parked: 0,
-        detail: ["excluded"],
-      },
-    },
-    issue: { list: async () => [ordinary] },
-  });
-  const report = await runMorningRoutine({
-    ...morning,
-    date,
-    modules: cohort,
-    run: scopedRun,
-  });
-  assert.equal(report.issue.outcome, "not-needed");
-  assert.deepEqual(morning.closed, []);
-  assert.deepEqual(morning.updated, []);
-  assert.deepEqual(morning.raised, []);
-});
-
-it("scoped failures create their own managed issue and reruns reconcile only that scope", async () => {
-  const codes = cohort.map(({ module }) => module);
-  const ordinary = {
-    number: 260,
-    title: `Morning report ${date}`,
-    state: "OPEN" as const,
-    body: `${morningIssueMarker("Y2S1", codes)}\n\nexcluded-domain failure`,
-  };
-  const first = syntheticMorning({
-    passes: { AB1234: parkedPass },
-    issue: { list: async () => [ordinary] },
-  });
-  await runMorningRoutine({ ...first, date, modules: cohort, run: scopedRun });
-  assert.equal(first.raised[0]?.title, `Morning report ${date} (modules-only)`);
-  assert.ok(
-    first.raised[0]?.body.startsWith(
-      `${morningIssueMarker("Y2S1", codes, "modules-only")}\n`,
-    ),
-  );
-  assert.match(first.raised[0]?.body ?? "", /Run scope — modules-only/u);
-  assert.match(first.raised[0]?.body ?? "", /Artifact retention — retained/u);
-  assert.match(
-    first.raised[0]?.body ?? "",
-    /Requested model — gpt-6.1-sol; reasoning effort — medium; backend attestation — unverified/u,
-  );
-  assert.doesNotMatch(
-    first.raised[0]?.body ?? "",
-    /synthetic-scoped-artifacts/u,
-  );
-  const scoped = {
-    number: 901,
-    title: first.raised[0]?.title ?? "",
-    body: first.raised[0]?.body ?? "",
-    state: "OPEN" as const,
-  };
-  const repeated = syntheticMorning({
-    passes: { AB1234: parkedPass },
-    issue: { list: async () => [ordinary, scoped] },
-  });
-  await runMorningRoutine({
-    ...repeated,
-    date,
-    modules: cohort,
-    run: scopedRun,
-  });
-  assert.deepEqual(
-    repeated.updated.map(({ number }) => number),
-    [901],
-  );
-  assert.deepEqual(repeated.raised, []);
-  const clean = syntheticMorning({
-    issue: { list: async () => [ordinary, scoped] },
-  });
-  await runMorningRoutine({ ...clean, date, modules: cohort, run: scopedRun });
-  assert.deepEqual(clean.closed, [901]);
-  assert.deepEqual(
-    clean.updated.map(({ number }) => number),
-    [901],
-  );
-  const full = syntheticMorning({
-    issue: { list: async () => [ordinary, scoped] },
-  });
-  await runMorningRoutine({ ...full, date, modules: cohort });
-  assert.deepEqual(full.closed, [260]);
-});
-
 it("public run summaries allowlist settings and keep private metadata out", async () => {
   const secret = "/private/synthetic-sensitive-metadata";
   const morning = syntheticMorning({ passes: { AB1234: parkedPass } });
@@ -960,35 +599,111 @@ it("public run summaries allowlist settings and keep private metadata out", asyn
     morning.raised[0]?.body ?? "",
     /synthetic-sensitive-metadata/u,
   );
+  assert.match(morning.raised[0]?.body ?? "", /Backend identity/u);
+});
+
+it("runs repository repair after Modules and records private outcomes before weekly projection", async () => {
+  const secret = "/private/synthetic-repair/diagnostics.json";
+  const morning = syntheticMorning({});
+  const report = await runMorningRoutine({
+    ...morning,
+    date,
+    modules: cohort,
+    repositoryRepair: async () => {
+      morning.calls.push("repository:repair");
+      return {
+        schemaVersion: 1,
+        outcome: "blocked",
+        pullRequest: 12,
+        mergeCommit: "a".repeat(40),
+        postmergeVerification: "passed",
+        rolloutVerification: "blocked",
+        evidence: secret,
+        modelAttestation: "unverified",
+      };
+    },
+  });
+  assert.ok(
+    morning.calls.indexOf("session:EF9012") <
+      morning.calls.indexOf("repository:repair"),
+  );
+  assert.ok(
+    morning.calls.indexOf("repository:repair") <
+      morning.calls.indexOf("report"),
+  );
+  assert.equal(report.repositoryRepair?.outcome, "blocked");
+  assert.ok(morning.rendered[0]?.includes(secret));
+  assert.ok(!morning.raised[0]?.body.includes(secret));
+  assert.match(morning.raised[0]?.body ?? "", /PR #12 merged as/u);
+  assert.match(morning.raised[0]?.body ?? "", /rollout failed/u);
+});
+
+it("repository dispatch failure preserves private daily report and actionable weekly review", async () => {
+  const morning = syntheticMorning({});
+  const report = await runMorningRoutine({
+    ...morning,
+    date,
+    modules: cohort,
+    repositoryRepair: async () => {
+      throw Error("private transport failed");
+    },
+  });
+  assert.equal(report.repositoryRepair?.outcome, "blocked");
+  assert.equal(report.outcome, "reported");
+  assert.ok(morning.rendered[0]?.includes("repository-repair-unavailable"));
+});
+
+it("durable weekly history recovers an earlier merge despite current healthy repair", async () => {
+  const morning = syntheticMorning({});
+  let week = "";
+  await runMorningRoutine({
+    ...morning,
+    date,
+    modules: cohort,
+    repositoryRepair: async () => ({
+      schemaVersion: 1,
+      outcome: "healthy",
+      modelAttestation: "unverified",
+    }),
+    weeklyRepositoryHistory: async (start) => {
+      week = start;
+      return {
+        merged: [
+          {
+            pullRequest: 17,
+            commit: "b".repeat(40),
+            verification: "awaiting",
+            rollout: "awaiting",
+          },
+        ],
+        unresolved: 0,
+        awaiting: 1,
+      };
+    },
+  });
+  assert.equal(week, "2026-08-17");
+  assert.match(morning.raised[0]?.body ?? "", /PR #17 merged as/u);
   assert.match(
     morning.raised[0]?.body ?? "",
-    /Requested model — unavailable; reasoning effort — unavailable; backend attestation — unverified/u,
+    /combined-main verification awaiting; rollout awaiting/u,
   );
 });
 
-it("an unscoped skipped prelude cannot establish ordinary recovery", async () => {
-  const marker = morningIssueMarker(
-    "Y2S1",
-    cohort.map(({ module }) => module),
-  );
-  const ordinary = {
-    number: 260,
-    title: `Morning report ${date}`,
-    state: "OPEN" as const,
-    body: `${marker}\n\nUnresolved ordinary prelude.`,
-  };
-  const morning = syntheticMorning({
-    prelude: {
-      shelf: {
-        step: "textbook-shelf-catch-up",
-        outcome: "skipped",
-        parked: 0,
-        detail: ["unknown scope"],
-      },
+it("missing weekly merge history cannot turn a healthy repair into verified completeness", async () => {
+  const morning = syntheticMorning({});
+  const report = await runMorningRoutine({
+    ...morning,
+    date,
+    modules: cohort,
+    repositoryRepair: async () => ({
+      schemaVersion: 1,
+      outcome: "healthy",
+      modelAttestation: "unverified",
+    }),
+    weeklyRepositoryHistory: async () => {
+      throw Error("history unavailable");
     },
-    issue: { list: async () => [ordinary] },
   });
-  const report = await runMorningRoutine({ ...morning, date, modules: cohort });
-  assert.equal(report.issue.outcome, "updated");
-  assert.deepEqual(morning.closed, []);
+  assert.equal(report.issue.actionable, true);
+  assert.match(morning.raised[0]?.body ?? "", /repository work: 1/u);
 });

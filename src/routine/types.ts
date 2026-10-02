@@ -3,6 +3,7 @@ import type { ImportStatusReport } from "../imports/index.js";
 import type { TaskRefreshReport } from "../tasks/index.js";
 import type { ShelfCatchUpReport } from "../textbooks/index.js";
 import type { MaintenanceCoverage } from "./maintenance-domains.js";
+import type { RepositoryRepairReport } from "./repository-repair-types.js";
 
 export interface RoutineFailure {
   code: string;
@@ -108,6 +109,8 @@ export type MorningIssueOutcome =
   | "failed";
 
 export interface MorningIssueReport {
+  weekStart?: string;
+  actionable?: boolean;
   outcome: MorningIssueOutcome;
   number: number | null;
   numbers?: number[];
@@ -125,6 +128,7 @@ export interface MorningRunEvidence {
 }
 
 export interface MorningRoutineReport {
+  repositoryRepair?: RepositoryRepairReport;
   schemaVersion: 2;
   command: "routine morning";
   outcome: "quiet" | "reported" | "unreported";
@@ -159,7 +163,40 @@ export interface RoutineArtifactStore {
   removeReport(date: string): Promise<void>;
 }
 
+export interface WeeklyScopeSummary {
+  targets: number;
+  preludePending: number;
+  parked: number;
+  failures: number;
+  verifiedMaintenance: number;
+  checkedMaintenance: number;
+  verifiedControlWrites: number;
+  awaitingMaintenance: number;
+}
+export interface WeeklyRepositorySummary {
+  pendingIssueNumbers?: number[];
+  pendingPullRequestNumbers?: number[];
+  merged: {
+    pullRequest: number;
+    originIssue?: number;
+    commit: string;
+    verification: "verified" | "awaiting" | "failed";
+    rollout: "verified" | "awaiting" | "failed";
+  }[];
+  unresolved: number;
+  awaiting: number;
+}
+export interface WeeklyIssueEvidenceStore {
+  archiveIssue(input: {
+    number: number;
+    title: string;
+    body: string;
+    reason: "weekly-transfer";
+  }): Promise<void>;
+}
+
 export interface MorningIssuePort {
+  read?(number: number): Promise<MorningIssue>;
   list(): Promise<MorningIssue[]>;
   raise(input: {
     title: string;
@@ -168,7 +205,7 @@ export interface MorningIssuePort {
   }): Promise<number>;
   update(input: { number: number; body: string }): Promise<void>;
   reopen(number: number): Promise<void>;
-  close(number: number): Promise<void>;
+  close(number: number, transferTo?: number): Promise<void>;
 }
 
 export interface MorningIssue {

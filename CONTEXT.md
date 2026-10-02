@@ -569,9 +569,11 @@ and authority stop at its module folder.
 
 **Morning routine**:
 The 06:00 pass on the mini: the deterministic prelude — importer health, Shelf catch-up, then the
-cohort's Task registers pulled — followed by one headless session per cohort module in sequence, then one dated
-Morning report. It reads Google and writes nothing back to it, compiles no LaTeX and creates no
-task; a module whose session fails is a line in the report rather than the end of the morning.
+cohort's Task registers pulled — followed by one headless session per cohort module in sequence,
+bounded repository repair, one dated private Morning report and the Weekly maintenance review.
+It reads Google and writes nothing back to it and creates no task; a module whose session fails
+is a line in the report rather than the end of the morning. Repository checks may compile synthetic
+templates; Module maintenance does not compile academic deliverables.
 _Avoid_: Routine event — that is a Calendar series; the daily Refresh — the 05:00 Calendar Refresh
 is this job's untouched sibling; cron job, nightly build.
 
@@ -588,7 +590,7 @@ _Avoid_: run, session — both name the whole morning or the process rather than
 Something a Module pass observed that is correct now and stays correct, and asks the Owner for no
 decision — a placed copy that has diverged from its source and is holding its ground, a duplicate
 register key an appended line already settled. Reported in the Morning report's `noted` bucket,
-which is the one bucket that never raises the day's issue. It records nothing in the curation
+which asks for no weekly decision. It records nothing in the curation
 register: a note reports what the register already decided (ADR-0021).
 _Avoid_: parked item — that is a question the Owner settles; the pass's own reasoning — precedent,
 working state and a call's reasoning are what a pass decides with, not what it decides about;
@@ -599,12 +601,24 @@ conformance term and means something else.
 What the Morning routine writes on the mini every day, in one fixed format, dated by the offering's
 calendar day: the prelude's results, each Module pass's eight action buckets and maintenance
 coverage, and the purge summary. It
-lands whether or not anything asks the Owner for a decision. The same text becomes the day's issue
-when the morning leaves something parked, failed or incompletely evidenced. A **quiet morning**
+lands whether or not anything asks the Owner for a decision. Public allowlisted counts and references
+update the weekly review. A **quiet morning**
 requires complete evidenced coverage with only `checked`, `maintained` or `not-applicable` domains
-and none of those triggers. Successful upkeep stays in the report. A verified clean pass resolves
-only managed morning issues for the exact same Module cohort.
+and none of those triggers. Successful upkeep stays in the report and weekly review. A verified clean
+pass resolves only its exact scope's pending observation; historical unknowns retain their evidence.
 _Avoid_: log — the session transcripts beside it are the log; digest, summary.
+
+**Weekly maintenance review**:
+One repository-wide GitHub issue for the Monday-start offering week, updated by daily execution.
+Its fixed format retains merged fixes, verified upkeep, unresolved work, awaiting verification and
+Owner notes. A transferred incident is preserved work, not a resolved defect.
+_Avoid_: daily issue, morning report — the latter is private daily evidence.
+
+**Repository repair**:
+The bounded controller that turns a new eligible repository check failure into a synthetic
+regression, independently reviewed candidate and protected exact-head merge. Its authority concerns
+public repository code; it does not grant Module-folder Repair authority.
+_Avoid_: Module repair, cleanup — both change the target and authority boundary.
 
 Two terms are Organisation-wide and mean the same thing in every repository:
 

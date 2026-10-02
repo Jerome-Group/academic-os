@@ -1,5 +1,8 @@
 # Public morning issues use an allowlist
 
+> [ADR-0038](0038-daily-repair-rolls-up-into-a-weekly-review.md) supersedes daily public issue
+> creation and retirement. The public allowlist and private evidence boundary remain unchanged.
+
 Status: accepted. Issue: #261.
 
 Morning reports combine private filesystem paths, source names and model-authored evidence.

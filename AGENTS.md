@@ -81,8 +81,9 @@ recorded as one.
 
 ### The route through the skills
 
-Where a piece of work starts, what hands on to what, and where research and prototypes live. See
-`docs/agents/workflow.md` before inventing a route.
+Start repository work with [`docs/agents/repository-work.md`](docs/agents/repository-work.md).
+The Organisation's mirrored skill-route guidance remains in `docs/agents/workflow.md`; current
+Owner authorization and installed skill availability determine the applicable route.
 
 ### `/learn`, the skill this repository authors
 

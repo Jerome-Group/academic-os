@@ -95,6 +95,10 @@ and [34166711810](https://github.com/Jerome-Group/academic-os/actions/runs/34166
 and rule-evidence failures respectively. Historical failure is not a current defect by itself;
 latest green runs and missing retained logs also establish no blanket health claim.
 
+This audit's first PR check caught a mirrored-document ownership violation: the proposed workflow
+rewrite belonged to the Organisation. The mirror was restored byte for byte, and repository-owned
+outcome guidance moved to `docs/agents/repository-work.md`. No required gate was weakened.
+
 Requested settings: lead GPT-6.1 Sol ultra; specialist/reviewer dispatches GPT-6.1 Sol medium.
 Dispatch requests are recorded; actual backend model/effort cannot be independently verified here.
 Global settings remained unchanged. Pinned procedure updates still need a separately approved,

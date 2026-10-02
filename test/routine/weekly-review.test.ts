@@ -212,6 +212,49 @@ describe("weekly maintenance queue", () => {
     await run(f, { date: "2026-08-31" });
     assert.ok(body(f, 2).includes("Exact Owner note: review Thursday.\n"));
   });
+  it("keeps thirty unchanged same-week updates byte-stable with Owner text, merges and transferred unknowns", async () => {
+    for (const note of [
+      "",
+      "\n\n  Exact Owner note: retain whitespace.  \n\n",
+    ]) {
+      const f = fixture();
+      f.issues.set(7, {
+        number: 7,
+        title: "Morning report 2026-08-24",
+        state: "OPEN",
+        body: `${morningIssueMarker("legacy", ["ZZ0000"])}\nSynthetic unknown observation.`,
+      });
+      const repository = {
+        merged: [
+          {
+            pullRequest: 12,
+            commit: "a".repeat(40),
+            verification: "verified" as const,
+            rollout: "verified" as const,
+          },
+        ],
+        unresolved: 0,
+        awaiting: 0,
+      };
+      await run(f, { repository });
+      const current = f.issues.get(8);
+      assert.ok(current);
+      current.body += note;
+      const expected = current.body;
+      for (let attempt = 0; attempt < 30; attempt++) {
+        assert.equal((await run(f, { repository })).outcome, "updated");
+        assert.equal(body(f, 8), expected);
+      }
+      assert.equal(f.issues.size, 2);
+      assert.equal(
+        f.events.filter((event) => event.startsWith("create:")).length,
+        1,
+      );
+      assert.match(expected, /PR #12 merged as/u);
+      assert.match(expected, /Transferred evidence-unknown work: #7/u);
+      assert.ok(expected.endsWith(note));
+    }
+  });
   it("preserves a closed quiet current week and reopens only when work becomes pending", async () => {
     const f = fixture();
     await run(f);

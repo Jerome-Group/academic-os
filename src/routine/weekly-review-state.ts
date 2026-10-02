@@ -248,7 +248,7 @@ export function render(
   );
   const pending = observations.filter((s) => s.needsOwner).length;
   const stale = observations.filter((s) => s.date < week).length;
-  const text = [
+  const managed = [
     marker,
     BEGIN,
     `${STATE}${encodeURIComponent(JSON.stringify(state))} -->`,
@@ -291,8 +291,8 @@ export function render(
     "",
     "Missing/partial observations remain unknown. A merge is distinct from combined-main and rollout verification. Backend identity, future schedules and live provider health are not inferred from local checks.",
     END,
-    owner,
   ].join("\n");
+  const text = `${managed}${owner.startsWith("\n") ? "" : "\n"}${owner}`;
   if (Buffer.byteLength(text) > 60_000)
     throw new Error(
       "Weekly review exceeds bounded publication size; preserved issues require reconciliation.",

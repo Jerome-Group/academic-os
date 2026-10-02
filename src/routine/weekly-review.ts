@@ -217,7 +217,7 @@ export async function reconcileWeeklyIssue(input: {
       );
     let owner =
       current === undefined
-        ? "\n## Owner notes\n\n"
+        ? "\n\n## Owner notes\n\n"
         : ownerText(await readIssue(input.issue, current.number));
     for (const previous of older) {
       const notes = ownerText(previous);

@@ -115,7 +115,7 @@ export async function reconcileWeeklyIssue(input: {
     const state: QueueState = {
       scopes: {},
       unknown: [],
-      repository: { merged: [], unresolved: 0, awaiting: 0 },
+      repository: repositorySummary({ merged: [], unresolved: 0, awaiting: 0 }),
     };
     if (current !== undefined) mergeState(state, stateOf(current));
     for (const previous of older) {
@@ -217,7 +217,7 @@ export async function reconcileWeeklyIssue(input: {
       );
     let owner =
       current === undefined
-        ? "\n## Owner notes\n\n"
+        ? "\n\n## Owner notes\n\n"
         : ownerText(await readIssue(input.issue, current.number));
     for (const previous of older) {
       const notes = ownerText(previous);

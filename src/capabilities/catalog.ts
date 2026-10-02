@@ -14,6 +14,7 @@ export interface Capability {
   status: "supported";
   health: "not-observed";
   result: string;
+  options?: Record<string, string>;
 }
 
 function cli(
@@ -48,6 +49,7 @@ function cli(
     writes,
     riskFlags: [
       ...(writes.length ? ["writes-state"] : []),
+      ...(writes.some((w) => w.includes("removed")) ? ["retention-purge"] : []),
       ...(writes.some((w) => w.includes("Google") || w.includes("GitHub"))
         ? ["external-write", "requires-target-authorization"]
         : []),
@@ -164,17 +166,39 @@ export const cliCapabilities: Capability[] = [
     "omit --apply",
     ["test/textbooks/execute-shelf-migration.test.ts"],
   ),
-  cli(
-    "routine morning",
-    [
-      "mounted maintenance content",
-      "private logs/journals",
-      "GitHub managed issues",
-    ],
-    [
-      "Codex executable; configured model; gh; scheduled Google read credentials",
-    ],
-  ),
+  {
+    ...cli(
+      "routine morning",
+      [
+        "mounted maintenance content",
+        "private logs/journals",
+        "GitHub managed issues",
+        "ordinary expired artifacts removed unless --retain-artifacts",
+      ],
+      [
+        "Codex executable; gh; scheduled Google read credentials",
+        "separately authorized live scope and verified backups",
+      ],
+      null,
+      [
+        "test/cli/routine-morning-cli.test.ts",
+        "test/routine/codex-module-session.test.ts",
+        "test/routine/cohort-prelude.test.ts",
+        "test/routine/file-routine-artifacts.test.ts",
+        "test/routine/run-morning-routine.test.ts",
+      ],
+    ),
+    options: {
+      "--retain-artifacts":
+        "Exclusive private run directory and report; skips ordinary retention purge.",
+      "--modules-only":
+        "Refresh active Module task mirrors only; skip shared textbook shelf writes.",
+      "--model":
+        "gpt-6.1-sol; pair with --reasoning-effort; scoped invocation.",
+      "--reasoning-effort":
+        "low|medium|high|xhigh|max|ultra; pair with --model.",
+    },
+  },
   cli(
     "imports status",
     [],

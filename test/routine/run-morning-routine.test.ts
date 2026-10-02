@@ -794,3 +794,201 @@ it("keeps private source prose and paths local across issue creation, update and
   assert.ok(!resolved.updated[0]?.body.includes(secret));
   assert.deepEqual(resolved.closed, [900]);
 });
+
+it("retained mode never lists or removes expired artifacts and reports requested settings", async () => {
+  let touched = false;
+  const refuse = async () => {
+    touched = true;
+    throw new Error("retention forbidden");
+  };
+  const morning = syntheticMorning({
+    artifacts: {
+      listSessionDates: refuse,
+      listReportDates: refuse,
+      removeSession: refuse,
+      removeReport: refuse,
+    },
+  });
+  // Override directly: the synthetic store's collection helpers otherwise return fixture arrays.
+  morning.artifacts.listSessionDates = refuse;
+  morning.artifacts.listReportDates = refuse;
+  const run = {
+    artifactStateRoot: "/private/synthetic-retained",
+    retention: "retained" as const,
+    scope: "modules-only" as const,
+    requestedModel: "gpt-6.1-sol",
+    requestedReasoningEffort: "medium",
+    sandbox: "workspace-write" as const,
+    modelAttestation: "unverified" as const,
+  };
+  const report = await runMorningRoutine({
+    ...morning,
+    date,
+    modules: cohort,
+    run,
+  });
+  assert.equal(touched, false);
+  assert.deepEqual(report.purge, { sessions: [], reports: [] });
+  assert.deepEqual(report.run, run);
+});
+
+const scopedRun = {
+  artifactStateRoot: "/private/synthetic-scoped-artifacts",
+  retention: "retained" as const,
+  scope: "modules-only" as const,
+  requestedModel: "gpt-6.1-sol",
+  requestedReasoningEffort: "medium",
+  sandbox: "workspace-write" as const,
+  modelAttestation: "unverified" as const,
+};
+
+it("a clean modules-only run leaves excluded ordinary failures open", async () => {
+  const marker = morningIssueMarker(
+    "Y2S1",
+    cohort.map(({ module }) => module),
+  );
+  const ordinary = {
+    number: 260,
+    title: `Morning report ${date}`,
+    state: "OPEN" as const,
+    body: `${marker}\n\nShared shelf or Research mirror needs recovery.`,
+  };
+  const morning = syntheticMorning({
+    prelude: {
+      shelf: {
+        step: "textbook-shelf-catch-up",
+        outcome: "skipped",
+        parked: 0,
+        detail: ["excluded"],
+      },
+    },
+    issue: { list: async () => [ordinary] },
+  });
+  const report = await runMorningRoutine({
+    ...morning,
+    date,
+    modules: cohort,
+    run: scopedRun,
+  });
+  assert.equal(report.issue.outcome, "not-needed");
+  assert.deepEqual(morning.closed, []);
+  assert.deepEqual(morning.updated, []);
+  assert.deepEqual(morning.raised, []);
+});
+
+it("scoped failures create their own managed issue and reruns reconcile only that scope", async () => {
+  const codes = cohort.map(({ module }) => module);
+  const ordinary = {
+    number: 260,
+    title: `Morning report ${date}`,
+    state: "OPEN" as const,
+    body: `${morningIssueMarker("Y2S1", codes)}\n\nexcluded-domain failure`,
+  };
+  const first = syntheticMorning({
+    passes: { AB1234: parkedPass },
+    issue: { list: async () => [ordinary] },
+  });
+  await runMorningRoutine({ ...first, date, modules: cohort, run: scopedRun });
+  assert.equal(first.raised[0]?.title, `Morning report ${date} (modules-only)`);
+  assert.ok(
+    first.raised[0]?.body.startsWith(
+      `${morningIssueMarker("Y2S1", codes, "modules-only")}\n`,
+    ),
+  );
+  assert.match(first.raised[0]?.body ?? "", /Run scope — modules-only/u);
+  assert.match(first.raised[0]?.body ?? "", /Artifact retention — retained/u);
+  assert.match(
+    first.raised[0]?.body ?? "",
+    /Requested model — gpt-6.1-sol; reasoning effort — medium; backend attestation — unverified/u,
+  );
+  assert.doesNotMatch(
+    first.raised[0]?.body ?? "",
+    /synthetic-scoped-artifacts/u,
+  );
+  const scoped = {
+    number: 901,
+    title: first.raised[0]?.title ?? "",
+    body: first.raised[0]?.body ?? "",
+    state: "OPEN" as const,
+  };
+  const repeated = syntheticMorning({
+    passes: { AB1234: parkedPass },
+    issue: { list: async () => [ordinary, scoped] },
+  });
+  await runMorningRoutine({
+    ...repeated,
+    date,
+    modules: cohort,
+    run: scopedRun,
+  });
+  assert.deepEqual(
+    repeated.updated.map(({ number }) => number),
+    [901],
+  );
+  assert.deepEqual(repeated.raised, []);
+  const clean = syntheticMorning({
+    issue: { list: async () => [ordinary, scoped] },
+  });
+  await runMorningRoutine({ ...clean, date, modules: cohort, run: scopedRun });
+  assert.deepEqual(clean.closed, [901]);
+  assert.deepEqual(
+    clean.updated.map(({ number }) => number),
+    [901],
+  );
+  const full = syntheticMorning({
+    issue: { list: async () => [ordinary, scoped] },
+  });
+  await runMorningRoutine({ ...full, date, modules: cohort });
+  assert.deepEqual(full.closed, [260]);
+});
+
+it("public run summaries allowlist settings and keep private metadata out", async () => {
+  const secret = "/private/synthetic-sensitive-metadata";
+  const morning = syntheticMorning({ passes: { AB1234: parkedPass } });
+  await runMorningRoutine({
+    ...morning,
+    date,
+    modules: cohort,
+    run: {
+      ...scopedRun,
+      artifactStateRoot: secret,
+      requestedModel: secret,
+      requestedReasoningEffort: secret,
+    },
+  });
+  assert.doesNotMatch(
+    morning.raised[0]?.body ?? "",
+    /synthetic-sensitive-metadata/u,
+  );
+  assert.match(
+    morning.raised[0]?.body ?? "",
+    /Requested model — unavailable; reasoning effort — unavailable; backend attestation — unverified/u,
+  );
+});
+
+it("an unscoped skipped prelude cannot establish ordinary recovery", async () => {
+  const marker = morningIssueMarker(
+    "Y2S1",
+    cohort.map(({ module }) => module),
+  );
+  const ordinary = {
+    number: 260,
+    title: `Morning report ${date}`,
+    state: "OPEN" as const,
+    body: `${marker}\n\nUnresolved ordinary prelude.`,
+  };
+  const morning = syntheticMorning({
+    prelude: {
+      shelf: {
+        step: "textbook-shelf-catch-up",
+        outcome: "skipped",
+        parked: 0,
+        detail: ["unknown scope"],
+      },
+    },
+    issue: { list: async () => [ordinary] },
+  });
+  const report = await runMorningRoutine({ ...morning, date, modules: cohort });
+  assert.equal(report.issue.outcome, "updated");
+  assert.deepEqual(morning.closed, []);
+});

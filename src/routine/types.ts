@@ -22,7 +22,8 @@ export type PreludeStepOutcome =
   | ImportStatusReport["outcome"]
   | ShelfCatchUpReport["outcome"]
   | TaskRefreshReport["outcome"]
-  | "failed";
+  | "failed"
+  | "skipped";
 
 export interface PreludeStepReport {
   step: PreludeStepName;
@@ -113,6 +114,16 @@ export interface MorningIssueReport {
   failure?: RoutineFailure;
 }
 
+export interface MorningRunEvidence {
+  artifactStateRoot: string;
+  retention: "ordinary" | "retained";
+  scope: "monitoring-cohort" | "modules-only";
+  requestedModel: string;
+  requestedReasoningEffort: string;
+  sandbox: "workspace-write";
+  modelAttestation: "unverified";
+}
+
 export interface MorningRoutineReport {
   schemaVersion: 2;
   command: "routine morning";
@@ -123,6 +134,7 @@ export interface MorningRoutineReport {
   purge: RetentionPurge;
   report: string | null;
   issue: MorningIssueReport;
+  run?: MorningRunEvidence;
 }
 
 // The prelude names its steps rather than returning a list, so the wrapper's order is the

@@ -12,6 +12,7 @@ import type {
   MorningIssueReport,
   MorningPreludePort,
   MorningRoutineReport,
+  MorningRunEvidence,
   PreludeStepName,
   PreludeStepReport,
   RetentionPurge,
@@ -22,8 +23,11 @@ import { isCalendarDay } from "./offering-calendar-day.js";
 export const MORNING_ISSUE_LABELS = ["ready-for-human", "decision"] as const;
 export const MORNING_ISSUE_MARKER_VERSION = 1;
 
-function morningIssueTitle(date: string): string {
-  return `Morning report ${date}`;
+function morningIssueTitle(
+  date: string,
+  scope: MorningRunEvidence["scope"] = "monitoring-cohort",
+): string {
+  return `Morning report ${date}${scope === "modules-only" ? " (modules-only)" : ""}`;
 }
 
 // One firing, in the one order that matters: the deterministic prelude, then a session per cohort
@@ -37,6 +41,7 @@ export async function runMorningRoutine(input: {
   session: ModuleSessionPort;
   artifacts: RoutineArtifactStore;
   issue: MorningIssuePort;
+  run?: MorningRunEvidence;
 }): Promise<MorningRoutineReport> {
   const prelude = [
     await preludeStep("import-status", () => input.prelude.inspectImports()),
@@ -51,7 +56,10 @@ export async function runMorningRoutine(input: {
   for (const module of input.modules) {
     modules.push(await modulePass(input.session, module));
   }
-  const purge = await purgeExpiredArtifacts(input.artifacts, input.date);
+  const purge =
+    input.run?.retention === "retained"
+      ? { sessions: [], reports: [] }
+      : await purgeExpiredArtifacts(input.artifacts, input.date);
   const text = renderMorningReport({
     date: input.date,
     prelude,
@@ -64,8 +72,18 @@ export async function runMorningRoutine(input: {
     date: input.date,
     cohort: input.cohort,
     moduleCodes: modules.map(({ module }) => module),
-    body: renderPublicMorningReport({ date: input.date, prelude, modules }),
-    needsOwner: report === null || morningNeedsOwner(prelude, modules),
+    body: renderPublicMorningReport({
+      date: input.date,
+      prelude,
+      modules,
+      ...(input.run === undefined ? {} : { run: input.run }),
+    }),
+    scope: input.run?.scope ?? "monitoring-cohort",
+    needsOwner:
+      report === null ||
+      morningNeedsOwner(prelude, modules) ||
+      (input.run?.scope !== "modules-only" &&
+        prelude.some(({ outcome }) => outcome === "skipped")),
   });
   return {
     schemaVersion: 2,
@@ -77,6 +95,7 @@ export async function runMorningRoutine(input: {
     purge,
     report,
     issue,
+    ...(input.run === undefined ? {} : { run: input.run }),
   };
 }
 
@@ -193,9 +212,14 @@ async function reconcileMorningIssue(input: {
   moduleCodes: readonly string[];
   body: string;
   needsOwner: boolean;
+  scope: MorningRunEvidence["scope"];
 }): Promise<MorningIssueReport> {
-  const title = morningIssueTitle(input.date);
-  const marker = morningIssueMarker(input.cohort, input.moduleCodes);
+  const title = morningIssueTitle(input.date, input.scope);
+  const marker = morningIssueMarker(
+    input.cohort,
+    input.moduleCodes,
+    input.scope,
+  );
   const body = `${marker}\n\n${input.body}`;
   const reconciled: number[] = [];
   try {
@@ -203,7 +227,7 @@ async function reconcileMorningIssue(input: {
       ...new Map(
         (await input.issue.list())
           .filter((candidate) =>
-            isManagedMorningIssue(candidate, marker, input.date),
+            isManagedMorningIssue(candidate, marker, input.date, input.scope),
           )
           .map((candidate) => [candidate.number, candidate]),
       ).values(),
@@ -259,20 +283,26 @@ async function reconcileMorningIssue(input: {
 export function morningIssueMarker(
   cohort: string,
   moduleCodes: readonly string[],
+  scope: MorningRunEvidence["scope"] = "monitoring-cohort",
 ): string {
   const modules = [...new Set(moduleCodes)].sort().join(",");
-  return `<!-- academic-os-morning-issue:v${MORNING_ISSUE_MARKER_VERSION} cohort=${encodeURIComponent(cohort)} modules=${encodeURIComponent(modules)} -->`;
+  return `<!-- academic-os-morning-issue:v${MORNING_ISSUE_MARKER_VERSION} cohort=${encodeURIComponent(cohort)} modules=${encodeURIComponent(modules)}${scope === "modules-only" ? " scope=modules-only" : ""} -->`;
 }
 
 function isManagedMorningIssue(
   issue: MorningIssue,
   marker: string,
   currentDate: string,
+  scope: MorningRunEvidence["scope"],
 ): boolean {
-  const issueDate = /^Morning report (.+)$/u.exec(issue.title)?.[1];
+  const issueDate =
+    /^Morning report (\d{4}-\d{2}-\d{2})(?: \(modules-only\))?$/u.exec(
+      issue.title,
+    )?.[1];
   return (
     issueDate !== undefined &&
     isCalendarDay(issueDate) &&
+    issue.title === morningIssueTitle(issueDate, scope) &&
     issueDate <= currentDate &&
     issue.body.startsWith(`${marker}\n`)
   );

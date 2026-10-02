@@ -3,7 +3,11 @@ import {
   MAINTENANCE_STATUSES,
   maintenanceDomainLabel,
 } from "./maintenance-domains.js";
-import type { ModulePassReport, PreludeStepReport } from "./types.js";
+import type {
+  ModulePassReport,
+  MorningRunEvidence,
+  PreludeStepReport,
+} from "./types.js";
 
 const publicFailureCodes = new Set([
   "ENOENT",
@@ -53,6 +57,7 @@ const outcomes = new Set([
   "partially-refreshed",
   "stale",
   "failed",
+  "skipped",
 ]);
 
 // Public issues expose fixed labels and counts; source prose and paths remain in private reports.
@@ -60,11 +65,13 @@ export function renderPublicMorningReport(input: {
   date: string;
   prelude: readonly PreludeStepReport[];
   modules: readonly ModulePassReport[];
+  run?: MorningRunEvidence;
 }): string {
   return [
     `# Morning report ${input.date}`,
     "",
     "Detailed evidence is retained in the private local morning report.",
+    ...(input.run === undefined ? [] : publicRunSummary(input.run)),
     "",
     "## Prelude",
     "",
@@ -102,4 +109,26 @@ export function renderPublicMorningReport(input: {
       "",
     ]),
   ].join("\n");
+}
+
+function publicRunSummary(run: MorningRunEvidence): string[] {
+  const model =
+    run.requestedModel === "gpt-6.1-sol" || run.requestedModel === "gpt-6-luna"
+      ? run.requestedModel
+      : "unavailable";
+  const effort = new Set([
+    "low",
+    "medium",
+    "high",
+    "xhigh",
+    "max",
+    "ultra",
+  ]).has(run.requestedReasoningEffort)
+    ? run.requestedReasoningEffort
+    : "unavailable";
+  return [
+    `Run scope — ${run.scope === "modules-only" ? "modules-only" : "monitoring-cohort"}`,
+    `Artifact retention — ${run.retention === "retained" ? "retained" : "ordinary"}`,
+    `Requested model — ${model}; reasoning effort — ${effort}; backend attestation — unverified`,
+  ];
 }

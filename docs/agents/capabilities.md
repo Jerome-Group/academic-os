@@ -24,3 +24,8 @@ Synthetic scenarios use temporary roots and injected providers. Live writes and 
 require separately scoped target authority and the applicable recovery/containment procedure in
 [`safe-drive-testing.md`](safe-drive-testing.md). Keep coursework, credentials, private paths and
 free-form operational evidence in private state; public findings carry only safe summaries.
+
+For authorized Module recovery, select the morning action's explicit retention, Module-only scope
+and paired model/effort options from the index. Retention preserves existing artifacts; scoped
+settings belong to that invocation. Verify every Module's session and journal before resolving a
+maintenance failure. A refusal or parked decision remains visible even after successful execution.

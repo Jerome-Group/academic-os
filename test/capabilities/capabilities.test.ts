@@ -102,6 +102,16 @@ it("surfaces local write effects on diagnostic and cloud-read operations", () =>
       .find((action) => action.id === "routine morning")
       ?.riskFlags.includes("external-write"),
   );
+  const morning = actions.find((action) => action.id === "routine morning");
+  assert.deepEqual(Object.keys(morning?.options ?? {}).sort(), [
+    "--model",
+    "--modules-only",
+    "--reasoning-effort",
+    "--retain-artifacts",
+  ]);
+  assert.ok(morning?.writes.some((effect) => effect.includes("removed")));
+  assert.ok(morning?.riskFlags.includes("retention-purge"));
+  assert.ok(morning?.tests.includes("test/routine/cohort-prelude.test.ts"));
 });
 
 it("distinguishes configured executable readiness from PATH presence and maintenance recovery", async () => {

@@ -1,4 +1,12 @@
-import { mkdir, readdir, rm } from "node:fs/promises";
+import {
+  lstat,
+  mkdir,
+  mkdtemp,
+  readdir,
+  realpath,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { join } from "node:path";
 
 import { OperationalError } from "../mounted/index.js";
@@ -34,6 +42,7 @@ export function moduleSessionDirectory(input: {
 // from one — so a purge window has no reach outside the routine's own exhaust.
 export function createFileRoutineArtifactStore(
   stateRoot: string,
+  options: { exclusiveReports?: boolean } = {},
 ): RoutineArtifactStore {
   const roots = routineArtifactRoots(stateRoot);
   return {
@@ -43,8 +52,9 @@ export function createFileRoutineArtifactStore(
         `${calendarDay(date)}${REPORT_EXTENSION}`,
       );
       await mkdir(roots.reports, { recursive: true });
-      await rm(path, { force: true });
-      await writeFileAtomically(path, text);
+      if (options.exclusiveReports === true)
+        await writeFile(path, text, { flag: "wx", mode: 0o600 });
+      else await writeFileAtomically(path, text);
       return path;
     },
     listSessionDates: async () => await datedEntries(roots.sessions, ""),
@@ -87,4 +97,26 @@ function calendarDay(value: string): string {
     );
   }
   return value;
+}
+
+export async function createRetainedRoutineRoot(
+  stateRoot: string,
+): Promise<string> {
+  const root = await realpath(stateRoot);
+  let current = root;
+  for (const name of ["routine", "retained"]) {
+    current = join(current, name);
+    await mkdir(current, { mode: 0o700 }).catch(
+      (error: NodeJS.ErrnoException) => {
+        if (error.code !== "EEXIST") throw error;
+      },
+    );
+    const info = await lstat(current);
+    if (!info.isDirectory() || info.isSymbolicLink())
+      throw new OperationalError(
+        "unsafe-state-root",
+        "Retained routine artifacts require ordinary private directories.",
+      );
+  }
+  return await mkdtemp(join(current, "run-"));
 }

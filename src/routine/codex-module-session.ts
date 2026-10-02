@@ -14,6 +14,10 @@ import {
   observeModuleImportStatus,
 } from "../mounted/index.js";
 import { moduleSessionDirectory } from "./file-routine-artifacts.js";
+import {
+  validateMorningSessionOverride,
+  type MorningSessionSettings,
+} from "./session-settings.js";
 import { MODULE_PASS_SCHEMA } from "./module-pass-schema.js";
 import { morningSessionPrompt } from "./morning-session-prompt.js";
 import {
@@ -67,13 +71,21 @@ export function codexSessionArguments(input: {
   schemaPath: string;
   resultPath: string;
   writeJournalDirectory: string;
+  sessionSettings?: MorningSessionSettings;
 }): string[] {
+  const settings =
+    input.sessionSettings === undefined
+      ? {
+          model: MORNING_SESSION_MODEL,
+          reasoningEffort: MORNING_SESSION_REASONING_EFFORT,
+        }
+      : validateMorningSessionOverride(input.sessionSettings);
   return [
     "exec",
     "--model",
-    MORNING_SESSION_MODEL,
+    settings.model,
     "--config",
-    `model_reasoning_effort="${MORNING_SESSION_REASONING_EFFORT}"`,
+    `model_reasoning_effort="${settings.reasoningEffort}"`,
     "--sandbox",
     MORNING_SESSION_SANDBOX,
     "--skip-git-repo-check",
@@ -91,13 +103,17 @@ export function createCodexModuleSession(input: {
   config: AcademicConfig;
   codexPath: string;
   date: string;
+  artifactStateRoot?: string;
+  sessionSettings?: MorningSessionSettings;
   runner?: CodexSessionRunner;
   clock?: () => Date;
 }): ModuleSessionPort {
+  if (input.sessionSettings !== undefined)
+    validateMorningSessionOverride(input.sessionSettings);
   return {
     run: async (module) => {
       const moduleArtifacts = moduleSessionDirectory({
-        stateRoot: input.config.stateRoot,
+        stateRoot: input.artifactStateRoot ?? input.config.stateRoot,
         date: input.date,
         module: module.module,
       });
@@ -155,6 +171,7 @@ async function runSession(input: {
   date: string;
   module: ConfiguredModule;
   artifacts: string;
+  sessionSettings?: MorningSessionSettings;
   runner?: CodexSessionRunner;
   clock?: () => Date;
   deadline?: number;
@@ -249,6 +266,9 @@ async function runSession(input: {
         schemaPath,
         resultPath,
         writeJournalDirectory,
+        ...(input.sessionSettings === undefined
+          ? {}
+          : { sessionSettings: input.sessionSettings }),
       }),
       timeoutMs: Math.max(
         1,

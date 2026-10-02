@@ -6,9 +6,11 @@ import {
 import { runImportStatus } from "../imports/index.js";
 import {
   activeTaskRegisterTargets,
+  configuredTaskTarget,
   createGoogleTaskRefreshReader,
   refreshTaskTargets,
   type TaskTargetRefreshReport,
+  type TaskRefreshReader,
 } from "../tasks/index.js";
 import {
   createFileShelfIndexStore,
@@ -16,6 +18,7 @@ import {
   executeShelfCatchUp,
   planShelfCatchUp,
 } from "../textbooks/index.js";
+import { planCohortAudit } from "../cohort/index.js";
 import { importStatusPrelude } from "./import-status-prelude.js";
 import type { MorningPreludePort, PreludeStepReport } from "./types.js";
 
@@ -25,6 +28,7 @@ import type { MorningPreludePort, PreludeStepReport } from "./types.js";
 // back to it.
 export function createCohortPrelude(
   config: AcademicConfig,
+  options: { modulesOnly?: boolean; taskReader?: TaskRefreshReader } = {},
 ): MorningPreludePort {
   return {
     inspectImports: async () =>
@@ -36,6 +40,13 @@ export function createCohortPrelude(
         }),
       ),
     catchUpShelf: async () => {
+      if (options.modulesOnly === true)
+        return {
+          step: "textbook-shelf-catch-up",
+          outcome: "skipped",
+          parked: 0,
+          detail: ["Shared shelf writes excluded by modules-only scope."],
+        };
       const shelfRoot = await resolveShelfRoot(config);
       const store = createFileShelfIndexStore(shelfRoot);
       const report = await executeShelfCatchUp({
@@ -61,10 +72,25 @@ export function createCohortPrelude(
     },
     pullTaskRegisters: async () => {
       const reports = await refreshTaskTargets({
-        targets: activeTaskRegisterTargets(config),
-        reader: createGoogleTaskRefreshReader(
-          resolveTasksConfig(config).credentials.scheduledRead,
-        ),
+        targets:
+          options.modulesOnly === true
+            ? planCohortAudit(config).selection.included.map((module) => {
+                const target = configuredTaskTarget(config, module);
+                return {
+                  identity: {
+                    kind: "module" as const,
+                    key: `${module.semester}/${module.module}`,
+                    title: module.module,
+                  },
+                  registerStore: target.registerStore,
+                };
+              })
+            : activeTaskRegisterTargets(config),
+        reader:
+          options.taskReader ??
+          createGoogleTaskRefreshReader(
+            resolveTasksConfig(config).credentials.scheduledRead,
+          ),
       });
       const failed = reports.filter((target) => target.failure !== undefined);
       return {

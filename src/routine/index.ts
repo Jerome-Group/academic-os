@@ -18,6 +18,7 @@ export {
 } from "./codex-module-session.js";
 export {
   createFileRoutineArtifactStore,
+  createRetainedRoutineRoot,
   moduleSessionDirectory,
   routineArtifactRoots,
 } from "./file-routine-artifacts.js";
@@ -79,6 +80,7 @@ export type {
   MorningIssueReport,
   MorningPreludePort,
   MorningRoutineReport,
+  MorningRunEvidence,
   NotedItem,
   ParkedItem,
   PreludeStepName,
@@ -95,3 +97,8 @@ export {
   inspectRoutineExecutables,
   type RoutineExecutableReadiness,
 } from "./executable-readiness.js";
+
+export {
+  validateMorningSessionOverride,
+  type MorningSessionSettings,
+} from "./session-settings.js";

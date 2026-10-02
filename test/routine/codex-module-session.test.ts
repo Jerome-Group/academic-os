@@ -834,3 +834,79 @@ async function maintenanceFixture(): Promise<{
     },
   };
 }
+
+it("uses explicit Sol settings while preserving the sandbox and global/default settings", () => {
+  const base = {
+    prompt: "synthetic",
+    schemaPath: "/private/schema",
+    resultPath: "/private/result",
+    writeJournalDirectory: "/private/journal",
+  };
+  const overridden = codexSessionArguments({
+    ...base,
+    sessionSettings: { model: "gpt-6.1-sol", reasoningEffort: "medium" },
+  });
+  assert.equal(overridden[overridden.indexOf("--model") + 1], "gpt-6.1-sol");
+  assert.ok(overridden.includes('model_reasoning_effort="medium"'));
+  assert.equal(
+    overridden[overridden.indexOf("--sandbox") + 1],
+    "workspace-write",
+  );
+  assert.equal(
+    overridden[overridden.indexOf("--add-dir") + 1],
+    base.writeJournalDirectory,
+  );
+  assert.ok(
+    !overridden.some(
+      (argument) =>
+        argument.includes("bypass") || argument.includes("ignore-rules"),
+    ),
+  );
+  const defaults = codexSessionArguments(base);
+  assert.equal(defaults[defaults.indexOf("--model") + 1], "gpt-6-luna");
+  assert.ok(defaults.includes('model_reasoning_effort="max"'));
+  assert.throws(
+    () =>
+      codexSessionArguments({
+        ...base,
+        sessionSettings: { model: "unapproved", reasoningEffort: "medium" },
+      }),
+    /Morning session overrides/u,
+  );
+});
+
+it("runs the Module's Sol session inside an isolated retained evidence root", async () => {
+  const { createRetainedRoutineRoot } = await import(
+    "../../src/routine/index.js"
+  );
+  const fixture = await maintenanceFixture();
+  const artifactStateRoot = await createRetainedRoutineRoot(fixture.stateRoot);
+  let invoked = false;
+  const session = createCodexModuleSession({
+    config: fixture.config,
+    codexPath: "/private/synthetic-codex",
+    date: "2026-08-23",
+    artifactStateRoot,
+    sessionSettings: { model: "gpt-6.1-sol", reasoningEffort: "medium" },
+    runner: async (input) => {
+      invoked = true;
+      assert.equal(flagFrom(input.arguments, "--model"), "gpt-6.1-sol");
+      assert.equal(flagFrom(input.arguments, "--sandbox"), "workspace-write");
+      assert.ok(input.arguments.includes('model_reasoning_effort="medium"'));
+      assert.ok(input.logPath.startsWith(artifactStateRoot));
+      assert.equal(input.moduleRoot, fixture.moduleRoot);
+      await writeFile(
+        flagFrom(input.arguments, "--output-last-message"),
+        JSON.stringify(passOutcome()),
+      );
+      return 0;
+    },
+  });
+  const result = await session.run({ semester: "Y2S1", module: "MH2100" });
+  assert.equal(invoked, true);
+  assert.ok(result.artifacts.startsWith(artifactStateRoot));
+  await readFile(
+    join(result.artifacts, MORNING_SESSION_VALIDATED_OUTCOME_FILENAME),
+    "utf8",
+  );
+});

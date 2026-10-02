@@ -5,6 +5,7 @@ import {
   readFile,
   readdir,
   rm,
+  symlink,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -127,4 +128,78 @@ describe("the routine's artifact store", () => {
       "/private/state/routine/sessions/2026-08-23/AB1234",
     );
   });
+});
+
+it("isolates retained reruns from same-day reports and later ordinary purge", async () => {
+  const { createRetainedRoutineRoot } = await import(
+    "../../src/routine/index.js"
+  );
+  const stateRoot = await stateRootWith({
+    reports: ["2026-08-23"],
+    sessions: ["2026-08-01"],
+    strays: [],
+  });
+  const ordinaryRoots = routineArtifactRoots(stateRoot);
+  const first = await createRetainedRoutineRoot(stateRoot);
+  const second = await createRetainedRoutineRoot(stateRoot);
+  assert.notEqual(first, second);
+  const store = createFileRoutineArtifactStore(first, {
+    exclusiveReports: true,
+  });
+  const path = await store.writeReport({
+    date: "2026-08-23",
+    text: "retained first",
+  });
+  await assert.rejects(
+    store.writeReport({ date: "2026-08-23", text: "replacement" }),
+    { code: "EEXIST" },
+  );
+  await createFileRoutineArtifactStore(second, {
+    exclusiveReports: true,
+  }).writeReport({ date: "2026-08-23", text: "retained second" });
+  const ordinary = createFileRoutineArtifactStore(stateRoot);
+  await ordinary.removeSession("2026-08-01");
+  await ordinary.removeReport("2026-08-23");
+  assert.equal(await readFile(path, "utf8"), "retained first");
+  assert.deepEqual(await ordinary.listSessionDates(), []);
+  assert.deepEqual(await ordinary.listReportDates(), []);
+  assert.ok(!path.startsWith(ordinaryRoots.reports));
+});
+
+it("preserves the existing same-day report before a retained run", async () => {
+  const { createRetainedRoutineRoot } = await import(
+    "../../src/routine/index.js"
+  );
+  const stateRoot = await stateRootWith({
+    reports: ["2026-08-23"],
+    sessions: [],
+    strays: [],
+  });
+  const existing = join(
+    routineArtifactRoots(stateRoot).reports,
+    "2026-08-23.md",
+  );
+  const root = await createRetainedRoutineRoot(stateRoot);
+  await createFileRoutineArtifactStore(root, {
+    exclusiveReports: true,
+  }).writeReport({ date: "2026-08-23", text: "retained" });
+  assert.equal(await readFile(existing, "utf8"), "# 2026-08-23\n");
+});
+
+it("refuses a retained-artifact ancestor aliased outside private state", async () => {
+  const { createRetainedRoutineRoot } = await import(
+    "../../src/routine/index.js"
+  );
+  const root = await mkdtemp(join(tmpdir(), "academic-os-retained-alias-"));
+  temporaryRoots.push(root);
+  const stateRoot = join(root, "state");
+  const external = join(root, "external");
+  await mkdir(stateRoot);
+  await mkdir(external);
+  await symlink(external, join(stateRoot, "routine"));
+  await assert.rejects(
+    createRetainedRoutineRoot(stateRoot),
+    /ordinary private directories/u,
+  );
+  assert.deepEqual(await readdir(external), []);
 });

@@ -177,6 +177,7 @@ export const cliCapabilities: Capability[] = [
       ],
       [
         "Codex executable; gh; scheduled Google read credentials",
+        "bundled rg on the session PATH; supported package metadata or flat installation",
         "canonical docs/agents/safe-drive-testing.md in the repository installation",
         "separately authorized live scope and verified backups",
       ],
@@ -184,6 +185,7 @@ export const cliCapabilities: Capability[] = [
       [
         "test/cli/routine-morning-cli.test.ts",
         "test/routine/codex-module-session.test.ts",
+        "test/routine/codex-search-path.test.ts",
         "test/routine/cohort-prelude.test.ts",
         "test/routine/file-routine-artifacts.test.ts",
         "test/routine/maintenance-safety-evidence.test.ts",

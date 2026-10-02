@@ -12,6 +12,7 @@ import {
   inspectMountedModule,
   observeModuleImportStatus,
 } from "../mounted/index.js";
+import { codexSearchDirectories } from "./codex-search-path.js";
 import { moduleSessionDirectory } from "./file-routine-artifacts.js";
 import {
   stageMaintenanceSafetyEvidence,
@@ -676,7 +677,7 @@ export function sessionSpawnOptions(input: {
 function sessionEnvironment(codexPath: string): NodeJS.ProcessEnv {
   return {
     ...process.env,
-    PATH: [dirname(codexPath), process.env.PATH]
+    PATH: [...codexSearchDirectories(codexPath), process.env.PATH]
       .filter((entry) => entry !== undefined && entry !== "")
       .join(delimiter),
   };

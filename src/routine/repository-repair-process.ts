@@ -85,6 +85,8 @@ export function repositorySandboxArguments(
       : [
           "-c",
           `sandbox_workspace_write.writable_roots=${JSON.stringify([fixtureRoot])}`,
+          "--allow-unix-socket",
+          fixtureRoot,
         ]),
     "--",
     ...command,
@@ -96,6 +98,7 @@ export async function runRepositoryProcess(input: {
   args: string[];
   cwd: string;
   temporaryRoot?: string;
+  fixtureUnixTransport?: boolean;
   log?: string;
   timeoutMs?: number;
   cleanEnvironment?: boolean;
@@ -115,6 +118,9 @@ export async function runRepositoryProcess(input: {
         )
       )
         delete env[key];
+    delete env.ACADEMIC_OS_REPOSITORY_FIXTURE_TRANSPORT;
+    if (input.fixtureUnixTransport)
+      env.ACADEMIC_OS_REPOSITORY_FIXTURE_TRANSPORT = "unix";
     env.NODE_OPTIONS = "";
     env.NODE_DISABLE_COMPILE_CACHE = "1";
     delete env.NODE_COMPILE_CACHE;

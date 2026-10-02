@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import {
+  chmod,
   mkdir,
   mkdtemp,
   readFile,
   readdir,
+  realpath,
   rm,
   stat,
   symlink,
@@ -13,12 +15,21 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 
+import { sha256 } from "../../src/checksum.js";
 import { researchTaskProvenanceKeys } from "../../src/contract/task-register.js";
 import { createDeferredPathTaskRegisterStore } from "../../src/tasks/deferred-task-register-store.js";
 import { refreshTaskTargets } from "../../src/tasks/refresh-task-registers.js";
 import { createFileTaskRegisterStore } from "../../src/tasks/index.js";
 
 const temporaryRoots: string[] = [];
+
+async function storeFixture() {
+  const stateRoot = await mkdtemp(join(tmpdir(), "academic-os-task-store-"));
+  temporaryRoots.push(stateRoot);
+  const root = join(stateRoot, "target");
+  await mkdir(root);
+  return { root, stateRoot };
+}
 
 afterEach(async () => {
   await Promise.all(
@@ -28,11 +39,12 @@ afterEach(async () => {
 
 describe("the file Task-register store", () => {
   it("persists a register at a target-specific relative path", async () => {
-    const root = await mkdtemp(join(tmpdir(), "academic-os-task-store-"));
-    temporaryRoots.push(root);
+    const { root, stateRoot } = await storeFixture();
     const registerPath = "00 Project Admin/30 Task Register.yaml";
     await mkdir(join(root, "00 Project Admin"));
-    const store = createFileTaskRegisterStore(root, registerPath);
+    const store = createFileTaskRegisterStore(root, registerPath, undefined, {
+      stateRoot,
+    });
 
     await store.write({ listId: "ureca-list", tasks: [] });
 
@@ -47,8 +59,7 @@ describe("the file Task-register store", () => {
   });
 
   it("refuses a register path outside the target root", async () => {
-    const root = await mkdtemp(join(tmpdir(), "academic-os-task-store-"));
-    temporaryRoots.push(root);
+    const { root } = await storeFixture();
 
     assert.throws(
       () => createFileTaskRegisterStore(root, "../Task Register.yaml"),
@@ -61,8 +72,7 @@ describe("the file Task-register store", () => {
   });
 
   it("rejects rich provenance from a module store and retains it in a research store", async () => {
-    const root = await mkdtemp(join(tmpdir(), "academic-os-task-store-"));
-    temporaryRoots.push(root);
+    const { root, stateRoot } = await storeFixture();
     const modulePath = "module.yaml";
     const researchPath = "research.yaml";
     const register = {
@@ -81,11 +91,19 @@ describe("the file Task-register store", () => {
         },
       ],
     };
-    const moduleStore = createFileTaskRegisterStore(root, modulePath);
+    const moduleStore = createFileTaskRegisterStore(
+      root,
+      modulePath,
+      undefined,
+      {
+        stateRoot,
+      },
+    );
     const researchStore = createFileTaskRegisterStore(
       root,
       researchPath,
       researchTaskProvenanceKeys,
+      { stateRoot },
     );
 
     await assert.rejects(
@@ -136,6 +154,46 @@ tasks:
 `;
 
 describe("recoverable selective Task-register writes", () => {
+  it("retains an existing recovery lock and original register when a writer is active", async () => {
+    const fixture = await seededRegister(original);
+    await mkdir(fixture.backupRoot, { mode: 0o700 });
+    const lockName = `${sha256(await realpath(fixture.path))}.lock`;
+    const lock = join(fixture.backupRoot, lockName);
+    await writeFile(lock, "synthetic interrupted writer", {
+      flag: "wx",
+      mode: 0o600,
+    });
+    const register = await fixture.store.read();
+    assert.ok(register);
+    register.listId = "synthetic-new-list";
+    await assert.rejects(
+      fixture.store.write(register),
+      /active or interrupted/u,
+    );
+    assert.equal(await readFile(fixture.path, "utf8"), original);
+    assert.equal(await readFile(lock, "utf8"), "synthetic interrupted writer");
+    assert.deepEqual(await readdir(fixture.backupRoot), [lockName]);
+  });
+  it("reports private storage permission refusal without claiming an active writer", {
+    skip: process.getuid?.() === 0 || process.platform === "win32",
+  }, async () => {
+    const fixture = await seededRegister(original);
+    await mkdir(fixture.backupRoot, { mode: 0o700 });
+    await chmod(fixture.backupRoot, 0o500);
+    try {
+      const register = await fixture.store.read();
+      assert.ok(register);
+      register.listId = "synthetic-new-list";
+      await assert.rejects(
+        fixture.store.write(register),
+        /recovery lock could not be created; inspect private storage/u,
+      );
+      assert.equal(await readFile(fixture.path, "utf8"), original);
+      assert.deepEqual(await readdir(fixture.backupRoot), []);
+    } finally {
+      await chmod(fixture.backupRoot, 0o700);
+    }
+  });
   it("keeps no-op bytes and mtime, including comments and unrecognised local fields", async () => {
     const fixture = await seededRegister(original);
     const before = await stat(fixture.path);

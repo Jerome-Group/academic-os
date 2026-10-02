@@ -100,6 +100,7 @@ export function createRepositoryRepairPorts(input: {
         ),
         cwd: candidate.root,
         temporaryRoot,
+        fixtureUnixTransport: true,
         log: join(evidence, `${action.replace(":", "-")}.log`),
       });
       const diagnostics: string[] = [];
@@ -136,6 +137,7 @@ export function createRepositoryRepairPorts(input: {
             ),
             cwd: candidate.root,
             temporaryRoot,
+            fixtureUnixTransport: true,
             log: join(
               evidence,
               `diagnostic-${failedAction.replace(":", "-")}.log`,

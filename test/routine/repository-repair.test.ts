@@ -323,6 +323,16 @@ test("scope restrictions and exact sandbox argv preserve critical boundaries", (
     "/fixture",
   ]);
   assert.ok(args.includes("sandbox_workspace_write.network_access=false"));
+  assert.equal(args.includes("--allow-unix-socket"), false);
+  const fixtureArgs = repositorySandboxArguments(
+    "/fixture",
+    ["node", "fixture.js"],
+    "/owned-fixture-temp",
+  );
+  assert.equal(
+    fixtureArgs[fixtureArgs.indexOf("--allow-unix-socket") + 1],
+    "/owned-fixture-temp",
+  );
   assert.ok(args.includes("sandbox_workspace_write.exclude_slash_tmp=true"));
   assert.equal(
     args.includes("--dangerously-bypass-approvals-and-sandbox"),
@@ -875,6 +885,7 @@ test("production worker explicitly supplies packaged helpers, Node/npm search an
     assert.ok(
       captured.args.includes('shell_environment_policy.inherit="none"'),
     );
+    assert.equal(captured.args.includes("--allow-unix-socket"), false);
     assert.ok(
       captured.args.includes(
         `sandbox_workspace_write.writable_roots=${JSON.stringify([f.fixtureRoot])}`,
@@ -1014,4 +1025,25 @@ test("failure signatures normalize owned fixture roots and first mkdtemp compone
       second,
     ),
   );
+});
+
+test("controller-only Unix fixture flag is explicit and absent from ordinary worker subprocesses", async () => {
+  const f = await fixture();
+  try {
+    for (const enabled of [false, true]) {
+      const result = await runRepositoryProcess({
+        executable: process.execPath,
+        args: [
+          "-e",
+          "console.log(process.env.ACADEMIC_OS_REPOSITORY_FIXTURE_TRANSPORT ?? 'absent')",
+        ],
+        cwd: f.input.repositoryRoot,
+        temporaryRoot: f.fixtureRoot,
+        fixtureUnixTransport: enabled,
+      });
+      assert.equal(result.output.trim(), enabled ? "unix" : "absent");
+    }
+  } finally {
+    await f.close();
+  }
 });

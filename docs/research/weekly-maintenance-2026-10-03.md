@@ -65,6 +65,15 @@ fixture now verifies the full diagnostic tail and nonzero exit; failure evidence
 An actual bounded comparison captured 65,536 bytes with the tail missing before the fix and
 200,786 bytes with the failure tail and summary intact afterward; both returned exit code 1.
 
+A repeat actual CLI run in an isolated synthetic primary checkout exposed the remaining failures:
+Operations HTTP tests attempted forbidden TCP binds, and two Task-store fixtures used default home
+recovery storage outside the grant. HTTP protocol tests now use private fixture Unix sockets in the
+controller sandbox, with an explicit default-TCP refusal regression; ordinary CI retains actual TCP
+success. Installed-helper probes allowed sockets within the fixture root and refused outside sockets
+and TCP. Model workers gain neither that grant nor its transport flag. Task fixtures supply isolated
+recovery storage. Startup cleanup no longer masks the original bind failure, and a storage refusal
+no longer claims an active Task writer. This intermediate evidence does not establish final rollout.
+
 ## Verification and measurement limits
 
 The first combined full quality run passed all profiles in approximately 54 seconds: format,

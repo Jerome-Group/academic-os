@@ -82,7 +82,7 @@ it("parks partial importer evidence with actionable counts while retaining its c
   const detail = prelude.detail.join("\n");
   assert.match(detail, /AB1234\/NTULearn: current/u);
   assert.match(detail, /NTULearn_Tutorial: partial/u);
-  assert.match(detail, /unread announcements; failed transfers 1/u);
+  assert.match(detail, /unread announcements; failed publications 1/u);
   assert.match(detail, /defer source-withdrawal decisions/u);
 });
 

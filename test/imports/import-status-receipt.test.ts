@@ -13,6 +13,12 @@ import {
 const fixture = JSON.parse(
   readFileSync(resolve("test/fixtures/import-status-v1.json"), "utf8"),
 ) as ImportStatusReceipt;
+const sourceCountsFixture = JSON.parse(
+  readFileSync(
+    resolve("test/fixtures/import-status-v1-source-counts.json"),
+    "utf8",
+  ),
+) as ImportStatusReceipt;
 const observedAt = "2026-09-08T12:00:00.000Z";
 const zeroCounts: ImportCounts = {
   downloaded: 0,
@@ -48,6 +54,32 @@ describe("import status receipt", () => {
 
     assert.equal(validation.valid, true);
     if (validation.valid) assert.deepEqual(validation.receipt, fixture);
+  });
+
+  it("accepts optional source counters and rejects invalid values", () => {
+    const evaluated = evaluateImportStatusReceipt(
+      sourceCountsFixture,
+      observedAt,
+      36,
+    );
+    assert.equal(evaluated.status, "partial");
+    assert.equal(evaluated.receipt?.counts.failures, 1);
+    for (const field of [
+      "newEditions",
+      "reusedFiles",
+      "unresolvedIdentity",
+      "publicationConflicts",
+    ] as const) {
+      for (const invalid of [-1, 1.5, "1"]) {
+        assertInvalid(
+          {
+            ...sourceCountsFixture,
+            counts: { ...sourceCountsFixture.counts, [field]: invalid },
+          },
+          /nonnegative safe integer/u,
+        );
+      }
+    }
   });
 
   it("treats the freshness boundary as current and the next millisecond as stale", () => {

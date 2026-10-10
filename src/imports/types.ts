@@ -13,6 +13,10 @@ export interface ImportCounts {
   markdown: number;
   uncopied: number;
   failures: number;
+  newEditions?: number;
+  reusedFiles?: number;
+  unresolvedIdentity?: number;
+  publicationConflicts?: number;
 }
 
 export interface ImportStatusReceipt {

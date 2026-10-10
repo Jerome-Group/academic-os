@@ -104,7 +104,7 @@ controls are reported instead of silently overlooking an additional tutorial sit
 | `current` | The latest attempt completed within the selected freshness window; inspect its counts as needed |
 | `stale` | Check the existing sync schedule or arrange an Owner-run sync |
 | `running` | Check whether the attempt is still active; a stopped process can leave this status behind |
-| `partial` | Review failed transfer counts or unread categories in the importer's own report |
+| `partial` | Review failed publication counts or unread categories in the importer's own report |
 | `failed` | Inspect the importer's local run report before retrying |
 | `missing` | Deploy the receipt-producing NTULearn version and let the next normal sync publish evidence |
 | `invalid` | Resolve the reported file/control/version/clock problem; no successful fallback was inferred |

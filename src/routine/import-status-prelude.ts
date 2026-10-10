@@ -20,7 +20,7 @@ export function importStatusPrelude(
           : [`${module.module}: ${error.code}; ${error.message}`]),
         ...roots.map(
           (root) =>
-            `${module.module}/${root.destination}: ${root.status}; started ${root.startedAt ?? "unknown"}; finished ${root.finishedAt ?? "unknown"}; retained success ${root.lastSuccessfulAt ?? "unknown"}; unread ${root.unread?.join(", ") || "none"}; failed transfers ${root.counts?.failures ?? "unknown"}; ${root.error ?? root.action}`,
+            `${module.module}/${root.destination}: ${root.status}; started ${root.startedAt ?? "unknown"}; finished ${root.finishedAt ?? "unknown"}; retained success ${root.lastSuccessfulAt ?? "unknown"}; unread ${root.unread?.join(", ") || "none"}; failed publications ${root.counts?.failures ?? "unknown"}; ${root.error ?? root.action}`,
         ),
       ]),
       ...unresolved.map(

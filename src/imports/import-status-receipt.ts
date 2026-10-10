@@ -22,6 +22,12 @@ const countFields = [
   "uncopied",
   "failures",
 ] as const;
+const sourceCountFields = [
+  "newEditions",
+  "reusedFiles",
+  "unresolvedIdentity",
+  "publicationConflicts",
+] as const;
 const unreadCategories = ["announcements", "conversations"] as const;
 
 export function validateImportStatusReceipt(
@@ -115,18 +121,27 @@ function validateCounts(
     problems.push("counts must be an object.");
     return undefined;
   }
-  problems.push(...exactFields(value, countFields, "counts"));
+  problems.push(
+    ...exactFields(value, countFields, "counts", sourceCountFields),
+  );
+  let valid = true;
   for (const field of countFields) {
-    if (!Number.isSafeInteger(value[field]) || (value[field] as number) < 0) {
+    if (!validCount(value[field])) {
       problems.push(`counts.${field} must be a nonnegative safe integer.`);
+      valid = false;
     }
   }
-  return countFields.every(
-    (field) =>
-      Number.isSafeInteger(value[field]) && (value[field] as number) >= 0,
-  )
-    ? (value as unknown as ImportCounts)
-    : undefined;
+  for (const field of sourceCountFields) {
+    if (Object.hasOwn(value, field) && !validCount(value[field])) {
+      problems.push(`counts.${field} must be a nonnegative safe integer.`);
+      valid = false;
+    }
+  }
+  return valid ? (value as unknown as ImportCounts) : undefined;
+}
+
+function validCount(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
 
 function validateUnread(
@@ -222,13 +237,14 @@ function canonicalTimestamp(value: unknown): number | undefined {
 
 function exactFields(
   value: Record<string, unknown>,
-  allowed: readonly string[],
+  required: readonly string[],
   location: string,
+  optional: readonly string[] = [],
 ): string[] {
   const keys = Object.keys(value);
-  const allowedSet = new Set(allowed);
+  const allowedSet = new Set([...required, ...optional]);
   return [
-    ...allowed
+    ...required
       .filter((field) => !Object.hasOwn(value, field))
       .map((field) => `${location} is missing field ${field}.`),
     ...keys

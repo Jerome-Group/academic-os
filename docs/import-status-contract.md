@@ -4,9 +4,10 @@
 destination. NTULearn writes it; Academic OS reads it. It records one attempt and a retained
 successful-attempt timestamp, independently of the human-facing `Last synced.md`.
 
-This document owns the v1 interface. Both repositories test the synthetic example at
-`test/fixtures/import-status-v1.json`; changing its shape requires coordinated producer and
-consumer tests. Folder contract and receipt versions are independent.
+This document owns the v1 interface. Both repositories test the legacy example at
+`test/fixtures/import-status-v1.json` and the optional source-count example at
+`test/fixtures/import-status-v1-source-counts.json`. Changes to either shape require coordinated
+producer and consumer tests. Folder contract and receipt versions are independent.
 
 ## Version 1
 
@@ -29,15 +30,20 @@ consumer tests. Folder contract and receipt versions are independent.
 }
 ```
 
-The object and `counts` have exactly these fields. The UTF-8 JSON document is at most 16 KiB.
-Counts are nonnegative safe integers. `markdown` counts expected ordinary Markdown documents,
-including unchanged documents; it is the existing sync tally, not `markdownWritten`.
+The object has exactly these fields. The five shown `counts` fields are required. `counts` may also
+contain `newEditions`, `reusedFiles`, `unresolvedIdentity`, and `publicationConflicts`; these four
+source-edition counters are optional, and no other fields are allowed. The UTF-8 JSON document is
+at most 16 KiB. Every present count is a nonnegative safe integer. `markdown` counts expected
+ordinary Markdown documents, including unchanged documents; it is the existing sync tally, not
+`markdownWritten`.
 `uncopied` counts stand-ins for items with nothing downloadable. Neither operational file
-contributes to these counts. `failures` counts failed attachment transfers; a thrown read or
-filesystem error is represented by `failed`, even when this count is zero.
+contributes to these counts. `failures` counts failed document or attachment publications; a thrown
+read or filesystem error is represented by `failed`, even when this count is zero. The optional
+source counters do not change the receipt's lifecycle status.
 
 `unread` is a sorted, duplicate-free subset of `announcements` and `conversations`. These name
-unavailable optional reads, not empty categories. New categories or fields require a new version.
+unavailable optional reads, not empty categories. New categories or fields beyond those listed
+above require a new version.
 No course identifier, path, URL, source text or raw exception belongs in a receipt.
 
 Timestamps are canonical UTC instants as emitted by `Date.toISOString()` with four-digit years
@@ -51,8 +57,8 @@ reader's observation time. `finishedAt` must be at or after `startedAt`. A retai
 | Status | Meaning | Required fields |
 | --- | --- | --- |
 | `running` | Published atomically before reading the course | `finishedAt: null`, zero counts, empty `unread` |
-| `complete` | The walk and writes returned with zero transfer failures and no unread categories | Non-null `finishedAt`; `lastSuccessfulAt` equals it |
-| `partial` | The walk returned with transfer failures or unread categories | Non-null `finishedAt`; at least one failure or unread category |
+| `complete` | The walk and writes returned with zero publication failures and no unread categories | Non-null `finishedAt`; `lastSuccessfulAt` equals it |
+| `partial` | The walk returned with publication failures or unread categories | Non-null `finishedAt`; at least one failure or unread category |
 | `failed` | A read, walk or write threw before successful terminal publication | Non-null `finishedAt`; no raw exception |
 
 Before `running`, validate the prior receipt against this interface and the new attempt's

@@ -195,6 +195,43 @@ it("reports every declared root with matching human and JSON evidence", async ()
   ]);
 });
 
+it("classifies extended v1 counts while preserving a partial transfer result", async () => {
+  const target = await fixture(["NTULearn", "NTULearn_Tutorial"]);
+  const sourceCounts = {
+    newEditions: 1,
+    reusedFiles: 2,
+    unresolvedIdentity: 1,
+    publicationConflicts: 1,
+  };
+  const current = receipt();
+  const partial = receipt({ status: "partial" });
+  await writeReceipt(target.moduleRoot, "NTULearn", {
+    ...current,
+    counts: { ...current.counts, ...sourceCounts },
+  });
+  await writeReceipt(target.moduleRoot, "NTULearn_Tutorial", {
+    ...partial,
+    counts: { ...partial.counts, ...sourceCounts },
+  });
+
+  const result = await runCli(
+    "imports",
+    "status",
+    "--config",
+    target.configPath,
+    "--json",
+  );
+
+  assert.equal(result.exitCode, 1);
+  const report = JSON.parse(result.stdout);
+  assert.deepEqual(
+    report.modules[0].roots.map(({ status }: { status: string }) => status),
+    ["current", "partial"],
+  );
+  assert.equal(report.summary.roots.invalid, 0);
+  assert.equal(report.modules[0].roots[1].counts.failures, 1);
+});
+
 it("distinguishes missing, running, partial, stale, and configurable freshness", async () => {
   const target = await fixture();
 

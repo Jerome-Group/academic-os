@@ -1,5 +1,5 @@
 interface:
   display_name: "Learn"
-  short_description: "Teach one module activity target"
+  short_description: "Teach one explicit workspace activity target"
 policy:
   allow_implicit_invocation: false

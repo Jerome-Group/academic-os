@@ -1,13 +1,13 @@
 ---
 name: learn
-description: Teach the Owner one activity target in a module — explain, then check by asking for something back — in that module's own Teaching workspace.
+description: Teach the Owner one activity target — explain, then check by asking for something back — in a module or explicitly supplied personal Teaching workspace.
 disable-model-invocation: true
-argument-hint: "<module code> [what to work on]"
+argument-hint: '<module code | "absolute teaching-folder path"> [what to work on]'
 ---
 
 # Learn
 
-The Owner wants to work through one activity target in a module.
+The Owner wants to work through one activity target in a teaching folder.
 
 This file is a **route**, and it ends at step 4. How a session is conducted — what it produces,
 where an artifact goes, what a record holds, how anything is compiled, what earns an entry in the
@@ -15,7 +15,20 @@ Revisit register — is in the module folder's own pinned documents. You read th
 run the session under them. Where they and this file could be read as disagreeing, they win, and
 this file is the one that is wrong.
 
-## 1. Find the module folder
+## 1. Find the teaching folder
+
+When the Owner supplies an absolute folder path, resolve that exact directory rather than
+searching by module code. Compare resolved paths when a Drive mount has aliases. Confirm the
+directory and every required file in step 2 are materialized and readable, and that it holds
+`70 Learning/`. A missing directory, cloud placeholder or incomplete teaching controls stops the
+route for the Owner to settle; never create them or silently choose a different folder.
+
+An explicit path can reach a personal course outside the semester tree. Read its identity and
+scope from `00 Module Admin/00 Module Profile.md`; its location conveys no enrollment, grading,
+task-list or compute entitlement. The folder's live instructions govern those distinctions.
+
+Otherwise use the module-code search below. A folder path must be absolute; an ambiguous relative
+path stops for the Owner rather than taking its meaning from the working directory.
 
 A module folder is a directory named exactly the module code the Owner gave, one level inside a
 semester folder, inside `Modules/` on their Drive. Search both places macOS mounts a Drive:
@@ -33,8 +46,8 @@ directory is not part of this — `/learn` runs the same from anywhere, includin
 different module.
 
 Stop and ask when the search finds nothing, or finds two folders that are genuinely different.
-Then say the folder it found once, so the Owner sees which one the session is in before it
-starts.
+For either branch, say the resolved folder once, so the Owner sees which one the session is in
+before it starts.
 
 ## 2. Read the folder's own instructions
 

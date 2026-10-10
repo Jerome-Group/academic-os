@@ -25,6 +25,22 @@ async function readSkillText(): Promise<string> {
 }
 
 describe("the learn skill", () => {
+  it("routes an explicit materialized folder without seeding or implicit personal discovery", async () => {
+    const skill = await readFile("skills/learn/SKILL.md", "utf8");
+    assert.match(skill, /When the Owner supplies an absolute folder path/u);
+    assert.match(
+      skill,
+      /every required file in step 2 are materialized and readable/u,
+    );
+    assert.match(
+      skill,
+      /never create them or silently choose a different folder/u,
+    );
+    assert.match(skill, /Otherwise use the module-code search below/u);
+    assert.match(skill, /A folder path must be absolute/u);
+    assert.match(skill, /For either branch, say the resolved folder once/u);
+  });
+
   it("reads no configuration of the system that seeded the folders", async () => {
     assert.equal(systemConfiguration.test(await readSkillText()), false);
   });

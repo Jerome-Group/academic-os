@@ -72,12 +72,19 @@ export const cliCapabilities: Capability[] = [
     "audit",
     ["private audit observation history"],
     ["Drive API inventory additionally requires read credentials"],
+    null,
+    [
+      "test/cli/audit-cli.test.ts",
+      "test/cli/cohort-audit-cli.test.ts",
+      "test/cli/research-project-cli.test.ts",
+    ],
   ),
   cli(
     "seed",
     ["private seed journal/staging", "mounted content with --apply"],
     ["profile and definition; containment and exclusive publication"],
     "omit --apply",
+    ["test/cli/seed-cli.test.ts", "test/cli/research-project-cli.test.ts"],
   ),
   cli(
     "repair",
@@ -123,23 +130,36 @@ export const cliCapabilities: Capability[] = [
   cli(
     "calendar propose",
     ["private proposal state"],
-    ["proposal input; current calendar evidence"],
+    [
+      "proposal input; current calendar evidence; Google Calendar read credentials",
+    ],
   ),
   cli(
     "calendar promote",
     ["Google Calendar events", "private proposal state/mirror"],
-    ["proposal ID; fresh conflict checks; Google Calendar write credentials"],
+    [
+      "proposal ID; fresh conflict checks; Google Calendar read and write credentials",
+    ],
   ),
   cli(
     "tasks provision",
     ["private task state", "Google Tasks list with --apply"],
     ["exact Module or Research-project target; Google Tasks write credentials"],
     "omit --apply",
+    [
+      "test/cli/tasks-provision-cli.test.ts",
+      "test/cli/research-tasks-cli.test.ts",
+    ],
   ),
   cli(
     "tasks refresh",
     ["mounted task register content"],
     ["Google Tasks read credentials"],
+    null,
+    [
+      "test/cli/tasks-refresh-cli.test.ts",
+      "test/cli/research-tasks-cli.test.ts",
+    ],
   ),
   ...["create", "change", "complete", "cancel"].map((action) =>
     cli(
@@ -147,6 +167,11 @@ export const cliCapabilities: Capability[] = [
       ["Google Tasks", "mounted task register content"],
       [
         "exact Module or Research-project target; Google Tasks write and read credentials",
+      ],
+      null,
+      [
+        "test/cli/tasks-operate-cli.test.ts",
+        "test/cli/research-tasks-cli.test.ts",
       ],
     ),
   ),
@@ -156,7 +181,7 @@ export const cliCapabilities: Capability[] = [
     [],
     "omit --apply",
   ),
-  cli("textbooks sweep", ["mounted shelf review content"], [], null, [
+  cli("textbooks sweep", ["private shelf review sheet"], [], null, [
     "test/textbooks/plan-shelf-sweep.test.ts",
   ]),
   cli(
@@ -452,6 +477,7 @@ export function capabilityIndex(): object {
       implementation: "src/capabilities/command.ts",
       tests: [
         "test/capabilities/capabilities.test.ts",
+        "test/capabilities/workflow-checks.test.ts",
         "test/cli/argument-safety.test.ts",
       ],
       status: "supported",

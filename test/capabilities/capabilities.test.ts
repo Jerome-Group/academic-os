@@ -76,6 +76,12 @@ it("surfaces local write effects on diagnostic and cloud-read operations", () =>
       cliCapabilities.find((action) => action.id === id)?.writes,
       [],
     );
+  for (const id of ["calendar propose", "calendar promote"]) {
+    const action = cliCapabilities.find((item) => item.id === id);
+    assert.ok(action);
+    assert.ok(action.reads.includes("configured Google service"));
+    assert.ok(action.prerequisites.some((item) => item.includes("read")));
+  }
   assert.ok(
     JSON.stringify(capabilityIndex()).includes(
       "does not prove scheduled maintenance recovery",

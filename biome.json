@@ -5,6 +5,7 @@
       "**",
       "!!dist",
       "!!node_modules",
+      "!!.audit",
       "!!skills/cheatsheet/scripts/cheatsheet-tool.mjs"
     ]
   },

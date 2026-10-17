@@ -201,7 +201,7 @@ or move contradicts it — a correction to show the Owner, rather than routine w
 One line per decision, appended, JSON:
 
 ```json
-{"schema_version":3,"source_id":"Lectures/Graph Theory/slides.pdf","integration":"NTULearn","role":"lecture","source_path":"03 Lectures/03 Graph Theory/slides.pdf","checksum":"<sha-256 of the source bytes>","decision":"curated","destination":"10 Learning Materials/10 Lecture Materials/MODULE_CODE_Lecture_03_Graph_Theory.pdf","evidence":"Follows the standing precedent for lecture slides.","timestamp":"2026-08-17T06:04:11Z"}
+{"schema_version":3,"source_id":"Lectures/Graph Theory/slides.pdf","integration":"ntulearn","role":"lecture","source_path":"03 Lectures/03 Graph Theory/slides.pdf","checksum":"<sha-256 of the source bytes>","decision":"curated","destination":"10 Learning Materials/10 Lecture Materials/MODULE_CODE_Lecture_03_Graph_Theory.pdf","evidence":"Follows the standing precedent for lecture slides.","timestamp":"2026-08-17T06:04:11Z"}
 ```
 
 - `schema_version` is 3 — the version that carries `withdrawn`. Version 1 and version 2 lines are
@@ -211,9 +211,10 @@ One line per decision, appended, JSON:
   retain the absolute path where the Owner supplied it. `checksum` is the sha-256 this pass computed. A
   `withdrawn` line carries no `checksum`:
   its source is not there to read, and the digest of bytes nobody hashed is an assertion.
-- `integration` names the importer root the item came from; `role` says what the item is to this
-  module. For a manual origin, `integration` is `user` or names its source with a `-manual` suffix;
-  it does not declare an importer root.
+- `integration` is the declared key under the Module Definition's `sources`. The example uses
+  `ntulearn`, whose `destination` is `NTULearn`. `role` says what the item is to this module.
+  For a manual origin, `integration` is `user` or names its source with a `-manual` suffix.
+  It does not declare an importer root.
 - `destination` is module-relative and belongs to `curated` lines. A `rederived` line carries the
   derived artifacts' paths in `derived` instead, and a `withdrawn` line carries neither.
 - `evidence` says why — the precedent followed, the Owner's words, the module ADR the rule lives

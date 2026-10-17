@@ -24,6 +24,7 @@ node dist/src/cli.js capabilities verify --workflow maintenance --json --log "$a
 ```
 
 Require a passed outcome. CLI journeys assert maintenance options, read-only status, curation migration and catch-up behavior.
+The curation CLI journey fills the seeded register example's placeholders and counts its item under the declared integration key.
 Domain journeys exercise bounded repository checks, recovery decisions, weekly evidence, curation rederivation and shelf migration.
 They inspect resulting records, checkpoints and fixture files and inject failures at existing adapters.
 The compiled launcher fixture previews the real installer with an owned config and toolchain `PATH`.

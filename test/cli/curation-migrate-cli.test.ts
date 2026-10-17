@@ -130,6 +130,56 @@ function registerOf(fixture: CohortFixture, module: string): Promise<string> {
 }
 
 describe("academic-os curation migrate", () => {
+  it("counts the seeded register example under its declared integration key", async () => {
+    const fixture = await cohortFixture({ sourceBytes: placedBytes });
+    const moduleRoot = fixture.moduleRoots.get("CC0006");
+    assert.ok(moduleRoot);
+    const procedure = await readFile(
+      "seed-templates/docs/10 Curation Procedure.template.md",
+      "utf8",
+    );
+    const example = procedure
+      .split("## The register line\n")[1]
+      ?.match(/```json\n([^\n]+)\n```/u)?.[1];
+    assert.ok(example);
+    const register = `${example
+      .replaceAll("MODULE_CODE", "CC0006")
+      .replace(
+        "<sha-256 of the source bytes>",
+        sha256Bytes(Buffer.from(placedBytes, "utf8")),
+      )}\n`;
+    const [event] = readCurationRegisterEvents(register);
+    assert.ok(typeof event?.source_path === "string");
+    await writeInto(
+      moduleRoot,
+      join("NTULearn", event.source_path),
+      placedBytes,
+    );
+    await writeInto(
+      moduleRoot,
+      writtenControlPaths.definition,
+      "sources:\n  ntulearn:\n    - {role: primary, destination: NTULearn, evidence: [course-site]}\n",
+    );
+    await writeInto(moduleRoot, registerPath, register);
+
+    const result = await runCli(
+      "curation",
+      "migrate",
+      "--config",
+      fixture.configPath,
+      "--json",
+    );
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    const report = JSON.parse(result.stdout);
+    const module = report.modules.find(
+      ({ module }: { module: string }) => module === "CC0006",
+    );
+    assert.equal(module?.counts["contract-v4"], 1, JSON.stringify(report));
+    assert.equal(await registerOf(fixture, "CC0006"), register);
+    assert.deepEqual(await readdir(fixture.stateRoot), []);
+  });
+
   it("previews what each legacy line becomes and writes nothing", async () => {
     const fixture = await cohortFixture({ sourceBytes: placedBytes });
     const before = await registerOf(fixture, "CC0006");

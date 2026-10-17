@@ -25,6 +25,12 @@ export function planLaunchdJob(input: {
     description.standardOutPath,
     description.standardErrorPath,
   ]);
+  if (description.executableSearchPath !== undefined) {
+    assertAbsolutePaths(
+      target.label,
+      description.executableSearchPath.split(":"),
+    );
+  }
   if (description.schedule.kind === "calendar-interval") {
     assertRealTimeOfDay(target.label, description.schedule);
     assertPinnedTimeZone(
@@ -44,6 +50,9 @@ export function planLaunchdJob(input: {
   }
   const job = {
     programArguments: description.programArguments,
+    ...(description.executableSearchPath === undefined
+      ? {}
+      : { executableSearchPath: description.executableSearchPath }),
     schedule: description.schedule,
     runAtLoad: description.schedule.kind === "keep-alive",
     standardOutPath: description.standardOutPath,

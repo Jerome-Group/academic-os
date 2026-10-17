@@ -769,7 +769,9 @@ operation distinguish missing evidence. GitHub reconciliation failure produces a
 
 ### Install the 06:00 LaunchAgent (macOS)
 
-Build first, then preview the job:
+Build first. Run the installer from a shell with the full toolchain on `PATH`, including npm,
+TeX and Poppler. The job snapshots that shell's exact `PATH`. Every colon-separated entry must
+be absolute. Empty or relative entries are refused. Preview the job:
 
 ```sh
 node scripts/install-morning-routine-launchd.mjs --config "$PWD/academic-os.config.json" --dry-run
@@ -787,6 +789,15 @@ running copy first, and bootstraps the new plist into the user's GUI domain. `St
 at 06:00, `RunAtLoad` false, both streams to `/dev/null` — the dated report is the record. launchd's
 stock coalescing applies: a slept-through 06:00 runs once on wake, and time powered off or logged
 out is not made up.
+
+Reinstall after relocating a toolchain or changing the shell's `PATH`. A rebuild or kickstart
+keeps the loaded job's old environment. After installation, confirm `EnvironmentVariables.PATH`
+in the plist and the environment reported by the loaded job:
+
+```sh
+plutil -p "$HOME/Library/LaunchAgents/com.jerome-group.academic-os.morning-routine.plist"
+launchctl print gui/$(id -u)/com.jerome-group.academic-os.morning-routine
+```
 
 The periodic state refresh is a separate LaunchAgent and this installer never touches it.
 

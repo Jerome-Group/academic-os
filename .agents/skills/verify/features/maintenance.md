@@ -26,8 +26,12 @@ node dist/src/cli.js capabilities verify --workflow maintenance --json --log "$a
 Require a passed outcome. CLI journeys assert maintenance options, read-only status, curation migration and catch-up behavior.
 Domain journeys exercise bounded repository checks, recovery decisions, weekly evidence, curation rederivation and shelf migration.
 They inspect resulting records, checkpoints and fixture files and inject failures at existing adapters.
-The compiled launcher fixture runs real `npm ci` and a script that invokes bare `node` with only an owned custom directory in its inherited PATH.
-It checks custom command lookup, an unrelated inherited variable and a completed private launcher receipt.
+The compiled launcher fixture previews the real installer with an owned config and toolchain `PATH`.
+It decodes the emitted plist with `/usr/bin/plutil` on macOS or `/usr/bin/python3` and standard-library `plistlib` on Linux.
+Linux CI requires that Python3 decoder. The process regression has no platform skip.
+The fixture starts the compiled runner under a fresh minimal scheduler environment, overlaid only with the decoded plist environment.
+It runs real `npm ci`, `npm run`, bare `node` and a bare executable outside Node's directory, whose path contains spaces and `&`.
+It checks the selected Node executable, custom command output, an unrelated inherited variable and a completed private launcher receipt.
 
 ## Gotchas
 
@@ -36,3 +40,4 @@ Curation rederive, textbooks sweep and textbooks migrate currently have domain c
 Textbooks sweep writes a private review sheet and needs no mounted rewrite to produce that sheet.
 Do not run live morning maintenance, perform retention or change LaunchAgents merely to verify this map.
 Real scheduled recovery and model quality remain separate operational evidence.
+The launcher fixture proves installer-to-scheduler transport, not native launchd loading or readiness of the installed TeX and Poppler tools.

@@ -71,6 +71,12 @@ async function main() {
 }
 
 async function describeJob(configPath) {
+  const executableSearchPath = process.env.PATH;
+  if (executableSearchPath === undefined) {
+    throw new Error(
+      "Morning routine scheduling requires PATH. Run the installer from a shell with the full toolchain available.",
+    );
+  }
   await Promise.all([
     access(configPath),
     access(cliPath),
@@ -85,5 +91,6 @@ async function describeJob(configPath) {
     runnerModulePath,
     cliPath,
     configPath,
+    executableSearchPath,
   });
 }

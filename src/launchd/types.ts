@@ -17,6 +17,7 @@ export type LaunchdSchedule =
 export interface LaunchdJobDescription {
   name: string;
   programArguments: string[];
+  executableSearchPath?: string;
   schedule: LaunchdSchedule;
   standardOutPath: string;
   standardErrorPath: string;
@@ -31,6 +32,7 @@ export interface LaunchdJobTarget {
 
 export interface LaunchdJobPlan extends LaunchdJobTarget {
   programArguments: string[];
+  executableSearchPath?: string;
   schedule: LaunchdSchedule;
   runAtLoad: boolean;
   standardOutPath: string;

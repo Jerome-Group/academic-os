@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import {
   access,
   chmod,
@@ -46,7 +46,7 @@ describe("the morning routine's launchd runner", () => {
         fixture.configPath,
         fixture.notificationPath,
       ],
-      { HOME: fixture.root },
+      { ...process.env, HOME: fixture.root },
     );
 
     assert.equal(result.exitCode, 0, JSON.stringify(result));
@@ -67,7 +67,7 @@ describe("the morning routine's launchd runner", () => {
         fixture.configPath,
         fixture.notificationPath,
       ],
-      { HOME: fixture.root },
+      { ...process.env, HOME: fixture.root },
     );
 
     assert.equal(result.exitCode, 2, JSON.stringify(result));
@@ -77,7 +77,7 @@ describe("the morning routine's launchd runner", () => {
     const { sha256 } = await import("../../src/checksum.js");
     const fixture = await runnerFixture(0);
     await access(join(dirname(process.execPath), "npm"));
-    const customBin = join(fixture.root, "custom bin");
+    const customBin = join(fixture.root, "custom bin & tools");
     const customCommand = join(customBin, "morning-path-probe");
     const commandsPath = join(fixture.root, "commands.json");
     const descendantPath = join(fixture.root, "descendant.json");
@@ -117,6 +117,7 @@ writeFileSync(${JSON.stringify(descendantPath)}, JSON.stringify({
   nodePath: process.execPath,
   marker: process.env.ACADEMIC_OS_LAUNCHD_TEST_MARKER,
   customStatus: custom.status,
+  customErrorCode: custom.error?.code ?? null,
   customOutput: custom.stdout,
 }));
 process.exitCode = custom.status ?? 1;
@@ -134,24 +135,64 @@ process.exitCode = install.status === 0 ? script.status ?? 1 : install.status ??
 `,
     );
 
-    const result = await runProcess(
+    const installPath = [
+      customBin,
+      dirname(process.execPath),
+      "/usr/bin",
+      "/bin",
+    ].join(":");
+    const installation = await runProcess(
       process.execPath,
+      [installerPath, "--config", fixture.configPath, "--dry-run"],
+      { HOME: fixture.root, PATH: installPath, TZ: "Asia/Singapore" },
+    );
+    assert.equal(installation.exitCode, 0, JSON.stringify(installation));
+    const preview = JSON.parse(installation.stdout);
+    const decoder = spawnSync(
+      process.platform === "darwin" ? "/usr/bin/plutil" : "/usr/bin/python3",
+      process.platform === "darwin"
+        ? ["-convert", "json", "-o", "-", "--", "-"]
+        : [
+            "-c",
+            "import json, plistlib, sys; json.dump(plistlib.loads(sys.stdin.buffer.read()), sys.stdout)",
+          ],
+      { input: preview.plist, encoding: "utf8" },
+    );
+    assert.equal(
+      decoder.status,
+      0,
+      `Plist decoding requires plutil on macOS or Python3 plistlib on Linux: ${JSON.stringify(decoder)}`,
+    );
+    const plist = JSON.parse(decoder.stdout);
+    assert.deepEqual(plist.ProgramArguments, [
+      process.execPath,
+      runnerPath,
+      fileURLToPath(new URL("../../src/cli.js", import.meta.url)),
+      fixture.configPath,
+    ]);
+    const [selectedNode, selectedRunner, , selectedConfig] =
+      plist.ProgramArguments;
+    const environment = plist.EnvironmentVariables ?? {};
+    const result = await runProcess(
+      selectedNode,
       [
-        runnerPath,
+        selectedRunner,
         fixture.cliPath,
-        fixture.configPath,
+        selectedConfig,
         fixture.notificationPath,
       ],
       {
         HOME: fixture.root,
-        PATH: customBin,
+        PATH: "/usr/bin:/bin",
         TMPDIR: fixture.root,
         npm_config_cache: join(fixture.root, "npm cache"),
         npm_config_script_shell: "/bin/sh",
         ACADEMIC_OS_LAUNCHD_TEST_MARKER: "inherited marker",
+        ...environment,
       },
     );
     const commands = JSON.parse(await readFile(commandsPath, "utf8"));
+    const descendant = JSON.parse(await readFile(descendantPath, "utf8"));
     const receipt = JSON.parse(
       await readFile(
         join(
@@ -165,19 +206,21 @@ process.exitCode = install.status === 0 ? script.status ?? 1 : install.status ??
     assert.equal(
       result.exitCode,
       0,
-      JSON.stringify({ result, commands, receipt }),
+      JSON.stringify({ result, commands, descendant, receipt }),
     );
     assert.equal(commands.install.status, 0);
     assert.equal(commands.script.status, 0);
-    assert.deepEqual(JSON.parse(await readFile(descendantPath, "utf8")), {
-      nodePath: process.execPath,
+    assert.deepEqual(descendant, {
+      nodePath: selectedNode,
       marker: "inherited marker",
       customStatus: 0,
+      customErrorCode: null,
       customOutput: "custom executable\n",
     });
     assert.equal(receipt.status, "completed");
     assert.equal(receipt.exitCode, 0);
     assert.ok(receipt.lastCompletedAt);
+    assert.deepEqual(environment, { PATH: installPath });
   });
 
   it("renders installer wiring without loading a real LaunchAgent", {
@@ -191,7 +234,7 @@ process.exitCode = install.status === 0 ? script.status ?? 1 : install.status ??
     const result = await runProcess(
       process.execPath,
       [installerPath, "--config", fixture.configPath, "--dry-run"],
-      { TZ: "Asia/Singapore" },
+      { ...process.env, TZ: "Asia/Singapore" },
     );
 
     assert.equal(result.exitCode, 0, JSON.stringify(result));
@@ -240,11 +283,11 @@ async function runnerFixture(exitCode: number): Promise<{
 async function runProcess(
   command: string,
   arguments_: string[],
-  environment: NodeJS.ProcessEnv = {},
+  environment: NodeJS.ProcessEnv = process.env,
 ): Promise<{ exitCode: number; stderr: string; stdout: string }> {
   return await new Promise((resolve, reject) => {
     const child = spawn(command, arguments_, {
-      env: { ...process.env, ...environment },
+      env: environment,
     });
     let stdout = "";
     let stderr = "";

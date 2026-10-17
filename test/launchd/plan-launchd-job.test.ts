@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-
-import { launchdJobTarget, planLaunchdJob } from "../../src/launchd/index.js";
 import type { LaunchdJobDescription } from "../../src/launchd/index.js";
+import { launchdJobTarget, planLaunchdJob } from "../../src/launchd/index.js";
 
 const dailyJob: LaunchdJobDescription = {
   name: "nightly-refresh",
@@ -55,6 +54,48 @@ describe("LaunchAgent job planning", () => {
     assert.match(plan.plist, /config &amp; owner\.json/u);
     assert.doesNotMatch(plan.plist, /<key>StartInterval<\/key>/u);
     assert.doesNotMatch(plan.plist, /<key>KeepAlive<\/key>/u);
+    assert.equal("executableSearchPath" in plan, false);
+    assert.doesNotMatch(plan.plist, /<key>EnvironmentVariables<\/key>/u);
+  });
+
+  it("preserves an explicit executable search path and escapes its plist value", () => {
+    const executableSearchPath =
+      "/stale tools & <owner>/'bin'/\"quoted\":/usr/bin:/usr/bin";
+    const plan = planLaunchdJob({
+      description: { ...dailyJob, executableSearchPath },
+      hostTimeZone: "Asia/Singapore",
+      homeDirectory: "/Users/owner",
+      uid: 501,
+    });
+
+    assert.equal(plan.executableSearchPath, executableSearchPath);
+    assert.match(
+      plan.plist,
+      /<key>EnvironmentVariables<\/key>\n<dict>\n<key>PATH<\/key>\n<string>\/stale tools &amp; &lt;owner&gt;\/&apos;bin&apos;\/&quot;quoted&quot;:\/usr\/bin:\/usr\/bin<\/string>\n<\/dict>/u,
+    );
+  });
+
+  it("rejects empty or relative executable search path components", () => {
+    for (const executableSearchPath of [
+      "",
+      "bin",
+      "/usr/bin:bin",
+      ":/usr/bin",
+      "/usr/bin:",
+      "/usr/bin::/bin",
+    ]) {
+      assert.throws(
+        () =>
+          planLaunchdJob({
+            description: { ...dailyJob, executableSearchPath },
+            hostTimeZone: "Asia/Singapore",
+            homeDirectory: "/Users/owner",
+            uid: 501,
+          }),
+        /absolute/u,
+        executableSearchPath,
+      );
+    }
   });
 
   it("keeps a resident job alive and loads it at login", () => {

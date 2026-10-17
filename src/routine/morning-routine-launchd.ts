@@ -3,14 +3,13 @@ import { OFFERING_TIMEZONE } from "./offering-calendar-day.js";
 
 export const MORNING_ROUTINE_LAUNCHD_JOB_NAME = "morning-routine";
 
-// The 05:00 Calendar Refresh is this job's untouched sibling: same installer, same plist shape, one
-// hour apart. Output goes nowhere because the routine writes its own dated report — a log file would
-// be a second record of the same morning, drifting from the one the Owner reads.
+// The routine writes its own dated report. A second log would drift from that record.
 export function describeMorningRoutineLaunchdJob(input: {
   nodePath: string;
   runnerModulePath: string;
   cliPath: string;
   configPath: string;
+  executableSearchPath: string;
 }): LaunchdJobDescription {
   return {
     name: MORNING_ROUTINE_LAUNCHD_JOB_NAME,
@@ -20,6 +19,7 @@ export function describeMorningRoutineLaunchdJob(input: {
       input.cliPath,
       input.configPath,
     ],
+    executableSearchPath: input.executableSearchPath,
     schedule: {
       kind: "calendar-interval",
       hour: 6,

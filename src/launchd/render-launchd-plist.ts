@@ -3,6 +3,7 @@ import type { LaunchdSchedule } from "./types.js";
 export function renderLaunchdPlist(input: {
   label: string;
   programArguments: string[];
+  executableSearchPath?: string;
   schedule: LaunchdSchedule;
   runAtLoad: boolean;
   standardOutPath: string;
@@ -21,6 +22,15 @@ export function renderLaunchdPlist(input: {
       (argument) => `<string>${escapeXml(argument)}</string>`,
     ),
     "</array>",
+    ...(input.executableSearchPath === undefined
+      ? []
+      : [
+          "<key>EnvironmentVariables</key>",
+          "<dict>",
+          "<key>PATH</key>",
+          `<string>${escapeXml(input.executableSearchPath)}</string>`,
+          "</dict>",
+        ]),
     ...renderSchedule(input.schedule),
     "<key>RunAtLoad</key>",
     input.runAtLoad ? "<true/>" : "<false/>",

@@ -12,6 +12,7 @@ function plan(hostTimeZone = "Asia/Singapore") {
         "/private/academic-os/dist/src/routine/morning-routine-launchd-runner.js",
       cliPath: "/private/academic-os/dist/src/cli.js",
       configPath: "/private/academic-os/config.json",
+      executableSearchPath: "/usr/local/bin:/usr/bin:/bin",
     }),
     hostTimeZone,
     homeDirectory: "/Users/owner",

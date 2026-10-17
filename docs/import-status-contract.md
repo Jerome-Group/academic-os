@@ -94,9 +94,8 @@ maintenance continues. This window detects old evidence, not whether a particula
 invocation ran. The standalone command retains its 36-hour default.
 
 A receipt records the result the importer observed. It proves neither exhaustive upstream
-visibility nor the current bytes of every file, and it excludes the separately scheduled media
-pipeline. A complete receipt is not permission to withdraw sources, overwrite curated work or
-skip the module's full curation walk. The existing contract and precedent still govern those
+visibility nor the current bytes of every file. A complete receipt is not permission to withdraw
+sources, overwrite curated work or skip the module's full curation walk. The existing contract and precedent still govern those
 decisions. Reports may be stale immediately after observation, especially across Drive sync.
 
 ## Rollout

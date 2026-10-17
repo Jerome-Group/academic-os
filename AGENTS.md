@@ -24,6 +24,7 @@ prerequisites and verification through `node dist/src/cli.js capabilities index 
 Use `npm run check` for the complete local check. The index is the command and
 feature-to-verification authority; [`docs/agents/capabilities.md`](docs/agents/capabilities.md)
 explains its evidence boundary.
+For runtime proof, load [the project verify skill](.agents/skills/verify/SKILL.md).
 
 What you could not have guessed: `docs/module-folder-contract.md` is **normative**. A module
 folder that disagrees with it is wrong, and a rule that is not in it is not a rule — so a change

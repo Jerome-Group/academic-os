@@ -18,7 +18,7 @@ mkdir -m 700 "$aos_proof/fixtures"
 export TMPDIR="$aos_proof/fixtures" TMP="$aos_proof/fixtures" TEMP="$aos_proof/fixtures"
 git rev-parse HEAD > "$aos_proof/revision.txt"
 git status --short > "$aos_proof/working-tree.txt"
-node dist/src/cli.js capabilities index --json --log "$aos_proof/index.json"
+node dist/src/cli.js capabilities index --json --log "$aos_proof/index.json" > /dev/null
 ```
 
 Ready means the build succeeds and the index contains actions, profiles and workflows.
@@ -31,11 +31,12 @@ There is no server to stop after a normal CLI run.
 Before each feature drive, capture a fresh `capabilities health` observation.
 
 ```sh
-node dist/src/cli.js capabilities health --json --log "$aos_proof/health.json"
+node dist/src/cli.js capabilities health --json --log "$aos_proof/health.json" > /dev/null
 ```
 
 Require the `node` and `npm` entries to have outcome `passed`.
 Choose a new log filename for every observation. Logs refuse replacement.
+Read only the relevant actions and health entries from the saved logs. Keep full payloads out of chat.
 Teaching release verification and the full profile also require the installed TeX and Poppler tools.
 Require passed health for `latexmk`, `pdfinfo`, `pdffonts`, `pdftotext`, `pdftoppm` and `pdftohtml` before claiming release verification.
 Missing tools are prerequisites to resolve or report, not successful verification.

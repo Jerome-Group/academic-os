@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { mkdir, readFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { sha256 } from "../checksum.js";
@@ -15,10 +15,16 @@ export async function runMorningRoutineLaunchdJob(input: {
   evidenceRoot?: string;
   notificationPath?: string;
 }): Promise<number> {
+  const morningEnvironment: NodeJS.ProcessEnv = {
+    ...process.env,
+    PATH: [dirname(input.nodePath), process.env.PATH]
+      .filter(Boolean)
+      .join(delimiter),
+  };
   const morning = spawnSync(
     input.nodePath,
     [input.cliPath, "routine", "morning", "--config", input.configPath],
-    { stdio: "ignore" },
+    { env: morningEnvironment, stdio: "ignore" },
   );
   const exitCode =
     morning.error === undefined && morning.status !== null ? morning.status : 1;

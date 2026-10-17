@@ -134,39 +134,58 @@ export async function runChecks(
   return results;
 }
 
+const workflowTests = {
+  discovery: { areas: ["capabilities"], cli: /^argument-safety\.test\.js$/u },
+  imports: { areas: ["imports"], cli: /^imports-status-cli\.test\.js$/u },
+  recovery: {
+    areas: ["repair", "seed", "pinned"],
+    cli: /^(audit|cohort-audit|research-project|pinned-refresh|repair|seed)-cli\.test\.js$/u,
+  },
+  services: {
+    areas: ["calendar", "tasks", "operations", "launchd"],
+    cli: /^(calendar-.+|tasks-.+|research-tasks)-cli\.test\.js$/u,
+  },
+  teaching: {
+    areas: ["learning-materials", "skills", "cheatsheet", "conformance"],
+    cli: /^learning-materials-cli\.test\.js$/u,
+  },
+  maintenance: {
+    areas: ["routine", "observation", "textbooks", "curation"],
+    cli: /^(routine-.+|textbooks-.+|curation-.+)-cli\.test\.js$/u,
+  },
+};
+
+export const verificationWorkflows = Object.keys(workflowTests);
+
+export async function workflowTestFiles(
+  root: string,
+  workflow: string,
+): Promise<string[]> {
+  const selected = Object.entries(workflowTests).find(
+    ([name]) => name === workflow,
+  )?.[1];
+  if (selected === undefined) throw new Error("Unknown verification workflow.");
+  const files: string[] = [];
+  for (const area of selected.areas) {
+    const path = join(root, "dist/test", area);
+    for (const file of await readdir(path, { recursive: true }))
+      if (file.endsWith(".test.js")) files.push(join(path, file));
+  }
+  for (const file of await readdir(join(root, "dist/test/cli")))
+    if (selected.cli.test(file)) files.push(join(root, "dist/test/cli", file));
+  return [...new Set(files)].sort();
+}
+
 export async function runWorkflowChecks(
   root: string,
   workflow: string,
 ): Promise<ProcessEvidence[]> {
-  const areas: Record<string, string[]> = {
-    discovery: ["capabilities", "cli/argument-safety.test.js"],
-    imports: ["imports", "cli/imports-status-cli.test.js"],
-    recovery: [
-      "repair",
-      "seed",
-      "pinned",
-      "cli/repair-cli.test.js",
-      "cli/seed-cli.test.js",
-    ],
-    services: ["calendar", "tasks", "operations", "launchd"],
-    teaching: ["learning-materials", "skills", "cheatsheet", "conformance"],
-    maintenance: ["routine", "observation", "textbooks", "curation"],
-  };
-  const selected = areas[workflow];
-  if (selected === undefined) throw new Error("Unknown verification workflow.");
-  const files: string[] = [];
-  for (const area of selected) {
-    const path = join(root, "dist/test", area);
-    if (area.endsWith(".test.js")) files.push(path);
-    else
-      for (const file of await readdir(path, { recursive: true }))
-        if (file.endsWith(".test.js")) files.push(join(path, file));
-  }
+  const files = await workflowTestFiles(root, workflow);
   const results = [
     await observeProcess({
       action: `synthetic workflow ${workflow}`,
       executable: process.execPath,
-      arguments: ["--test", "--test-concurrency=4", ...files.sort()],
+      arguments: ["--test", "--test-concurrency=4", ...files],
       cwd: root,
     }),
   ];
@@ -181,12 +200,3 @@ export async function runWorkflowChecks(
     );
   return results;
 }
-
-export const verificationWorkflows = [
-  "discovery",
-  "imports",
-  "recovery",
-  "services",
-  "teaching",
-  "maintenance",
-] as const;

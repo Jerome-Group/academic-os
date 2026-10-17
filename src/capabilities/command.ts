@@ -18,8 +18,7 @@ import {
 } from "./checks.js";
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
-const usage =
-  "Usage: academic-os capabilities index|health|check|verify [health: --config <private-config>] [--profile fast|tests|privacy|templates|coverage|full] [--workflow discovery|imports|recovery|services|teaching|maintenance] [--log <private-new-file>] [--json]";
+const usage = `Usage: academic-os capabilities index|health|check|verify [health: --config <private-config>] [--profile fast|tests|privacy|templates|coverage|full] [--workflow ${verificationWorkflows.join("|")}] [--log <private-new-file>] [--json]`;
 
 export async function runCapabilitiesCommand(
   arguments_: string[],
@@ -155,9 +154,7 @@ export async function runCapabilitiesCommand(
     const workflow = values.get("--workflow") ?? "discovery";
     if (
       !(profile in checkProfiles) ||
-      !verificationWorkflows.includes(
-        workflow as (typeof verificationWorkflows)[number],
-      )
+      !verificationWorkflows.includes(workflow)
     )
       throw new OperationalError("invalid-arguments", usage);
     const checks =

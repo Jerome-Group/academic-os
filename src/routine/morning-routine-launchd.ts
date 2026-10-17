@@ -3,7 +3,6 @@ import { OFFERING_TIMEZONE } from "./offering-calendar-day.js";
 
 export const MORNING_ROUTINE_LAUNCHD_JOB_NAME = "morning-routine";
 
-// The routine writes its own dated report. A second log would drift from that record.
 export function describeMorningRoutineLaunchdJob(input: {
   nodePath: string;
   runnerModulePath: string;

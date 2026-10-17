@@ -26,6 +26,8 @@ node dist/src/cli.js capabilities verify --workflow maintenance --json --log "$a
 Require a passed outcome. CLI journeys assert maintenance options, read-only status, curation migration and catch-up behavior.
 Domain journeys exercise bounded repository checks, recovery decisions, weekly evidence, curation rederivation and shelf migration.
 They inspect resulting records, checkpoints and fixture files and inject failures at existing adapters.
+The compiled launcher fixture runs real `npm ci` and a script that invokes bare `node` with only an owned custom directory in its inherited PATH.
+It checks custom command lookup, an unrelated inherited variable and a completed private launcher receipt.
 
 ## Gotchas
 

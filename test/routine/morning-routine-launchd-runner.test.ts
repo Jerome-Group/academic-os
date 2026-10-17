@@ -1,8 +1,16 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  access,
+  chmod,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
@@ -63,6 +71,113 @@ describe("the morning routine's launchd runner", () => {
     );
 
     assert.equal(result.exitCode, 2, JSON.stringify(result));
+  });
+
+  it("runs npm installation and script descendants with the scheduled toolchain", async () => {
+    const { sha256 } = await import("../../src/checksum.js");
+    const fixture = await runnerFixture(0);
+    await access(join(dirname(process.execPath), "npm"));
+    const customBin = join(fixture.root, "custom bin");
+    const customCommand = join(customBin, "morning-path-probe");
+    const commandsPath = join(fixture.root, "commands.json");
+    const descendantPath = join(fixture.root, "descendant.json");
+    await mkdir(customBin);
+    await writeFile(
+      customCommand,
+      "#!/bin/sh\nprintf 'custom executable\\n'\n",
+    );
+    await chmod(customCommand, 0o700);
+    await writeFile(
+      join(fixture.root, "package.json"),
+      JSON.stringify({
+        name: "scheduled-toolchain-fixture",
+        version: "1.0.0",
+        private: true,
+        scripts: { probe: "node descendant.mjs" },
+      }),
+    );
+    await writeFile(
+      join(fixture.root, "package-lock.json"),
+      JSON.stringify({
+        name: "scheduled-toolchain-fixture",
+        version: "1.0.0",
+        lockfileVersion: 3,
+        requires: true,
+        packages: {
+          "": { name: "scheduled-toolchain-fixture", version: "1.0.0" },
+        },
+      }),
+    );
+    await writeFile(
+      join(fixture.root, "descendant.mjs"),
+      `import { spawnSync } from "node:child_process";
+import { writeFileSync } from "node:fs";
+const custom = spawnSync("morning-path-probe", [], { encoding: "utf8" });
+writeFileSync(${JSON.stringify(descendantPath)}, JSON.stringify({
+  nodePath: process.execPath,
+  marker: process.env.ACADEMIC_OS_LAUNCHD_TEST_MARKER,
+  customStatus: custom.status,
+  customOutput: custom.stdout,
+}));
+process.exitCode = custom.status ?? 1;
+`,
+    );
+    await writeFile(
+      fixture.cliPath,
+      `import { spawnSync } from "node:child_process";
+import { writeFileSync } from "node:fs";
+const options = { cwd: ${JSON.stringify(fixture.root)}, encoding: "utf8" };
+const install = spawnSync("npm", ["ci", "--ignore-scripts", "--no-audit", "--no-fund"], options);
+const script = install.status === 0 ? spawnSync("npm", ["run", "probe", "--silent"], options) : null;
+writeFileSync(${JSON.stringify(commandsPath)}, JSON.stringify({ install, script }));
+process.exitCode = install.status === 0 ? script.status ?? 1 : install.status ?? 1;
+`,
+    );
+
+    const result = await runProcess(
+      process.execPath,
+      [
+        runnerPath,
+        fixture.cliPath,
+        fixture.configPath,
+        fixture.notificationPath,
+      ],
+      {
+        HOME: fixture.root,
+        PATH: customBin,
+        TMPDIR: fixture.root,
+        npm_config_cache: join(fixture.root, "npm cache"),
+        npm_config_script_shell: "/bin/sh",
+        ACADEMIC_OS_LAUNCHD_TEST_MARKER: "inherited marker",
+      },
+    );
+    const commands = JSON.parse(await readFile(commandsPath, "utf8"));
+    const receipt = JSON.parse(
+      await readFile(
+        join(
+          fixture.root,
+          ".local/state/academic-os/morning-launcher",
+          `${sha256(fixture.configPath)}.json`,
+        ),
+        "utf8",
+      ),
+    );
+    assert.equal(
+      result.exitCode,
+      0,
+      JSON.stringify({ result, commands, receipt }),
+    );
+    assert.equal(commands.install.status, 0);
+    assert.equal(commands.script.status, 0);
+    assert.deepEqual(JSON.parse(await readFile(descendantPath, "utf8")), {
+      nodePath: process.execPath,
+      marker: "inherited marker",
+      customStatus: 0,
+      customOutput: "custom executable\n",
+    });
+    assert.equal(receipt.status, "completed");
+    assert.equal(receipt.exitCode, 0);
+    assert.ok(receipt.lastCompletedAt);
   });
 
   it("renders installer wiring without loading a real LaunchAgent", {

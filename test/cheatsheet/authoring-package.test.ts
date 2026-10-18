@@ -88,7 +88,7 @@ it("validates coupled evidence and packages exact independently compiled bytes",
     const second = String.raw`\label{Q1} Reviewed body: $a^2+b^2=c^2$.
 \end{document}`;
     const release = `${first}\n\n${second}\n`;
-    const sourceBytes = Buffer.from("synthetic issued source");
+    const sourceBytes = Buffer.alloc(16 * 1024 * 1024, 0xff);
     await Promise.all([
       writeFile(join(support, "content/00.tex"), first),
       writeFile(join(support, "content/10.tex"), second),
@@ -182,11 +182,16 @@ q1,issued-1,question 1,TOP-A,required,condensed,Q1,
       /already exists/u,
     );
     assert.equal((await stat(emptyDestination)).ino, originalIdentity);
-    const packaged = await createCheatsheetReviewPackage({
-      moduleRoot: root,
+    const packageResult = await run(runtime, [
+      "package-review",
+      "--module-root",
+      root,
+      "--manifest",
       manifestPath,
+      "--destination",
       destination,
-    });
+    ]);
+    const packaged = JSON.parse(packageResult.stdout);
     assert.equal(packaged.verification.isolatedBuild, true);
     assert.ok(packaged.files.includes("Final Aid.tex"));
     assert.ok(packaged.files.includes("authoring/content/00.tex"));

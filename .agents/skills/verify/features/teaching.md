@@ -26,6 +26,7 @@ Require both the synthetic workflow and cheatsheet journey to pass.
 Learning-material unit tests assert source order. CLI journeys assert gap reporting, human/JSON output, read-only behavior, sibling retention and symlink refusal.
 The subprocess journey invokes the shipped cheatsheet runtime through preparation, audit, fitting, verification and review packaging.
 It checks stale sources, interrupted authoring and package retries.
+A package CLI fixture checks exact 16 MiB binary source bytes and provenance.
 Publication function tests check partial evidence and preservation of concurrent bytes.
 
 ## Gotchas

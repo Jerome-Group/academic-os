@@ -28,13 +28,6 @@ export function seedFileByteLength(operation: SeedOperation): number {
 }
 
 export function isCanonicalBase64(source: string): boolean {
-  if (
-    source.length % 4 !== 0 ||
-    !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(
-      source,
-    )
-  ) {
-    return false;
-  }
+  if (source.length % 4 !== 0) return false;
   return Buffer.from(source, "base64").toString("base64") === source;
 }

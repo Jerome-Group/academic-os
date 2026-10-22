@@ -6,6 +6,8 @@ The CLI and Operations server read and update target-specific Tasks and Calendar
 
 - Task list provisioning, refresh and operations preserve exact Module or Research-project identity.
 - Calendar setup and refresh preserve ownership, while proposals and promotion check conflicts.
+- Calendar proposals cover academic timetables, Routine migration, recurring edits, cancellation and restoration.
+- Research-project milestone proposals require explicit evidence status and a verification Task for provisional claims.
 - Operations serves structured task tools through HTTP and enforces its listening-address boundary.
 - Scheduler installers preview jobs and replace only their owned LaunchAgents.
 
@@ -25,6 +27,7 @@ node dist/src/cli.js capabilities verify --workflow services --json --log "$aos_
 
 Require a passed outcome. CLI journeys preload fake Google providers at the production adapter boundary and assert stored provider state and refreshed files.
 They cover task mutations, Calendar proposal/promotion and failure handling.
+Calendar journeys also assert nonmutating timetable and Routine previews, recurring scopes, deleted-event restoration and Research-project milestone evidence refusals.
 Operations journeys open an owned temporary HTTP listener, call it and close it.
 Scheduler journeys use a recording launchctl adapter and inspect the produced plist and replacement order.
 

@@ -7,6 +7,7 @@ import {
   readFile,
   readdir,
   readlink,
+  realpath,
   rm,
   symlink,
   writeFile,
@@ -306,6 +307,193 @@ it("certifies complete canonical aliases and projected missing final roots witho
   assert.equal(projected.exitCode, 0, projected.stdout);
   assert.equal(projected.report.modules[0]?.roots[0]?.directory, "absent");
   assert.equal(projected.report.modules[0]?.roots[0]?.coverage.kind, "matched");
+});
+
+it("rejects declared roots sharing one physical directory without hiding known coverage", async (context) => {
+  const destinations = ["NTULearn", "ntulearn"];
+  const target = await fixture(destinations);
+  const directories = await Promise.all(
+    destinations.map(async (destination) => {
+      const path = join(target.moduleRoot, destination);
+      const metadata = await lstat(path);
+      assert.ok(metadata.isDirectory());
+      return {
+        canonical: await realpath(path),
+        device: metadata.dev,
+        inode: metadata.ino,
+      };
+    }),
+  );
+  await writeCourses(target, [course(join(target.moduleRoot, "NTULearn"))]);
+  if (directories[0]?.canonical !== directories[1]?.canonical) {
+    context.diagnostic(
+      "Canonical coalescence unavailable on this filesystem; distinct declared roots must retain matched/missing coverage.",
+    );
+    assert.notDeepEqual(directories[0], directories[1]);
+    const distinct = await drive(target);
+    assert.equal(distinct.exitCode, 1, distinct.stdout);
+    assert.deepEqual(
+      distinct.report.modules[0]?.roots.map(({ coverage }) => coverage),
+      [{ kind: "matched", courses: [0] }, { kind: "missing" }],
+    );
+    assert.deepEqual(
+      distinct.report.findings.map(({ kind }) => kind),
+      ["missing"],
+    );
+    return;
+  }
+  assert.deepEqual(directories[0], directories[1]);
+  context.diagnostic(
+    `Canonical coalescence observed with identical directory device/inode: ${JSON.stringify(directories)}.`,
+  );
+  const result = await drive(target);
+  assert.equal(result.exitCode, 1, result.stdout);
+  assert.equal(result.report.outcome, "attention");
+  const conflicts = [
+    {
+      kind: "declaration-conflict",
+      module: { semester: "Y2S1", module: "MH2100" },
+      destinations,
+      action:
+        "Give each declared importer destination a separate physical directory and corresponding NTULearn route.",
+    },
+  ];
+  assert.deepEqual(result.report.findings, conflicts);
+  assert.deepEqual(result.report.problems, []);
+  assert.deepEqual(
+    result.report.modules[0]?.roots.map(({ coverage }) => coverage),
+    [
+      { kind: "matched", courses: [0] },
+      { kind: "matched", courses: [0] },
+    ],
+  );
+  assert.deepEqual(
+    result.report.modules[0]?.roots.map(({ path }) => path.canonical),
+    directories.map(({ canonical }) => ({
+      kind: "observed",
+      value: canonical,
+    })),
+  );
+  const human = await drive(target, { human: true });
+  assert.equal(human.exitCode, 1, human.stdout);
+  assert.match(
+    human.stdout,
+    /declaration-conflict: Y2S1\/MH2100.*NTULearn.*ntulearn/u,
+  );
+  assert.doesNotMatch(human.stdout, /course row undefined/u);
+  await writeCourses(target, [
+    course(join(target.moduleRoot, "NTULearn")),
+    null,
+  ]);
+  const unknown = await drive(target);
+  assert.equal(unknown.exitCode, 2, unknown.stdout);
+  assert.equal(unknown.report.outcome, "unobserved");
+  assert.deepEqual(unknown.report.findings, conflicts);
+  assert.deepEqual(
+    unknown.report.courses.map(({ index }) => index),
+    [0, 1],
+  );
+  for (const root of unknown.report.modules[0]?.roots ?? []) {
+    assert.equal(root.coverage.kind, "unobserved");
+    if (root.coverage.kind === "unobserved")
+      assert.deepEqual(root.coverage.knownMatches, [0]);
+  }
+});
+
+it("retains a known declaration conflict beside an unsafe sibling root", async (context) => {
+  const target = await fixture(["NTULearn", "ntulearn", "NTULearn_Unsafe"]);
+  const canonical = await Promise.all(
+    ["NTULearn", "ntulearn"].map((destination) =>
+      realpath(join(target.moduleRoot, destination)),
+    ),
+  );
+  await rm(join(target.moduleRoot, "NTULearn_Unsafe"), { recursive: true });
+  await symlink(target.cwd, join(target.moduleRoot, "NTULearn_Unsafe"));
+  await writeCourses(target, [course(join(target.moduleRoot, "NTULearn"))]);
+  const result = await drive(target);
+  assert.equal(result.exitCode, 2, result.stdout);
+  assert.equal(result.report.outcome, "unobserved");
+  assert.deepEqual(
+    result.report.modules[0]?.roots.map(({ coverage }) => coverage.kind),
+    canonical[0] === canonical[1]
+      ? ["matched", "matched", "unobserved"]
+      : ["matched", "missing", "unobserved"],
+  );
+  assert.ok(
+    result.report.problems.some(({ code }) => code === "symlink-target"),
+  );
+  if (canonical[0] !== canonical[1]) {
+    context.diagnostic(
+      "Canonical coalescence unavailable on this filesystem; unsafe sibling retains distinct-root matched/missing evidence.",
+    );
+    assert.deepEqual(
+      result.report.findings.map(({ kind }) => kind),
+      ["missing"],
+    );
+    return;
+  }
+  assert.deepEqual(result.report.findings, [
+    {
+      kind: "declaration-conflict",
+      module: { semester: "Y2S1", module: "MH2100" },
+      destinations: ["NTULearn", "ntulearn"],
+      action:
+        "Give each declared importer destination a separate physical directory and corresponding NTULearn route.",
+    },
+  ]);
+  assert.deepEqual(
+    result.report.modules[0]?.roots.slice(0, 2).map(({ coverage }) => coverage),
+    [
+      { kind: "matched", courses: [0] },
+      { kind: "matched", courses: [0] },
+    ],
+  );
+});
+
+it("reports every pair of declarations sharing a physical directory", async (context) => {
+  const destinations = ["NTULearn", "ntulearn", "NTULEARN"];
+  const target = await fixture(destinations);
+  const canonical = await Promise.all(
+    destinations.map((destination) =>
+      realpath(join(target.moduleRoot, destination)),
+    ),
+  );
+  await writeCourses(target, [course(join(target.moduleRoot, "NTULearn"))]);
+  const result = await drive(target);
+  assert.equal(result.exitCode, 1, result.stdout);
+  if (new Set(canonical).size === destinations.length) {
+    context.diagnostic(
+      "Canonical coalescence unavailable on this filesystem; all three declaration directories are physically distinct.",
+    );
+    assert.deepEqual(
+      result.report.findings.map(({ kind }) => kind),
+      ["missing", "missing"],
+    );
+    assert.deepEqual(
+      result.report.modules[0]?.roots.map(({ coverage }) => coverage.kind),
+      ["matched", "missing", "missing"],
+    );
+    return;
+  }
+  assert.equal(new Set(canonical).size, 1);
+  assert.deepEqual(
+    result.report.findings,
+    [
+      ["NTULearn", "ntulearn"],
+      ["NTULearn", "NTULEARN"],
+      ["ntulearn", "NTULEARN"],
+    ].map((destinations) => ({
+      kind: "declaration-conflict",
+      module: { semester: "Y2S1", module: "MH2100" },
+      destinations,
+      action:
+        "Give each declared importer destination a separate physical directory and corresponding NTULearn route.",
+    })),
+  );
+  assert.deepEqual(
+    result.report.modules[0]?.roots.map(({ coverage }) => coverage),
+    destinations.map(() => ({ kind: "matched", courses: [0] })),
+  );
 });
 
 it("retains all pairwise key, lexical and physical collisions including excluded routes", async () => {

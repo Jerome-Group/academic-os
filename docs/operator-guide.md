@@ -3,7 +3,7 @@
 The CLI has `seed`, `audit`, `calendar setup`, pull-only `calendar refresh`, private `calendar
 propose`, explicitly authorised `calendar promote`, `tasks provision`, pull-only `tasks refresh`,
 in-session `tasks create`, `tasks change`, `tasks complete` and `tasks cancel`, additive `textbooks
-catch-up`, read-only `imports status`, the unattended `routine morning`, previewed `pinned refresh`, previewed
+catch-up`, read-only `imports status` and `offering readiness`, the unattended `routine morning`, previewed `pinned refresh`, previewed
 `curation migrate`, previewed `curation rederive` and separately gated `repair` commands. It does
 not orchestrate a week of study or evolve a module's instructions on its own.
 
@@ -118,6 +118,36 @@ The [shared interface](import-status-contract.md) defines fields and rollout. De
 repository independently is supported; missing receipts do not change Module conformance. The
 report does not trigger live sync, install schedules, refresh pinned documents or grant permission
 to curate or withdraw sources. For source-by-source work, run the module's existing Curation route.
+
+## Offering readiness
+
+```sh
+node dist/src/cli.js offering readiness --config academic-os.config.json
+node dist/src/cli.js offering readiness --config academic-os.config.json --max-age-hours 48 --json
+```
+
+The active Module cohort is grouped into `ready`, `attention` and `unobserved`, retaining excluded
+past/future Modules and unresolved mappings. Each Module carries independent control conformance,
+import receipt, ordered Source Map material and local Task-list binding evidence. A failed Module
+retains healthy siblings. Receipt observation can survive a failed mounted control inspection.
+
+`ready` requires all four checks. Known control deviations, warnings or decisions, material gaps,
+valid unbound Task Registers and stale, missing, running, partial or failed imports need `attention`. Missing or invalid
+Source Maps, invalid Task Registers, invalid or unreadable receipts, manual-review controls and
+failed inspections are `unobserved`. Unobserved evidence takes precedence over attention. An empty
+cohort or unresolved mapping also makes the report unobserved. Exit codes are 0, 1 and 2 respectively;
+invalid requests exit 2.
+
+Controls are compared with the current contract and canonical pinned bytes. They are not aged by
+mtime. The receipt window defaults to 36 hours and `--max-age-hours` applies only to imports.
+A Task-list ID counts only after the entire local register validates. It proves a recorded binding;
+live Google access and task freshness remain unverified. Destination preflight and learning mastery
+are also explicitly unverified. This command loads no credentials, calls no providers and writes
+no mounted controls, private history or other files.
+
+Suggested `audit`, `pinned refresh`, `imports status`, `learning materials` and `tasks provision`
+commands carry the enclosing Module identity. They are next steps to review and are never executed
+by readiness. Existing preview and authorization requirements still govern those commands.
 
 ## Learning materials
 

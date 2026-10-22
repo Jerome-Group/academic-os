@@ -288,6 +288,16 @@ export const cliCapabilities: Capability[] = [
     ["optional importer-owned receipt; absence is unavailable evidence"],
   ),
   cli("learning materials", []),
+  {
+    ...cli("offering readiness", []),
+    reads: ["active Module controls, mounted inventory and importer receipts"],
+    result:
+      "Local-only readiness; 0 ready, 1 attention, 2 unobserved or invalid request. Live Google access, task freshness, destination preflight and learning mastery remain unverified. No filesystem or provider writes.",
+    options: {
+      "--max-age-hours":
+        "Positive receipt freshness window in hours; defaults to 36. Applies only to import receipts.",
+    },
+  },
 ];
 
 export function capabilityIndex(): object {

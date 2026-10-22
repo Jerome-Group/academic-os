@@ -374,7 +374,7 @@ export function capabilityIndex(): object {
         status: "supported",
         health: "not-observed",
         result:
-          "MCP structuredContent and isError; transport errors remain distinct.",
+          "MCP content containing JSON text and isError; transport errors remain distinct.",
       });
     }
   for (const name of [

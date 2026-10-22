@@ -14,6 +14,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { it } from "node:test";
 
+import { createMcpDispatcher } from "../../src/operations/index.js";
 import {
   capabilityIndex,
   cliCapabilities,
@@ -57,6 +58,46 @@ it("discovers commands, prerequisites, effects and feature verification without 
     JSON.parse((await runCli("--help")).stdout).actions,
     index.actions,
   );
+});
+
+it("describes MCP result fields returned by Operations", async () => {
+  const discovered = await runCli("capabilities", "index", "--json");
+  assert.equal(discovered.exitCode, 0, discovered.stdout);
+  const index: { actions: typeof cliCapabilities } = JSON.parse(
+    discovered.stdout,
+  );
+  const actions = index.actions.filter((action) => action.surface === "mcp");
+  assert.ok(actions.length > 0);
+  const dispatch = createMcpDispatcher({
+    serverInfo: { name: "fixture", title: "Fixture", version: "1" },
+    tools: [
+      {
+        name: "observe",
+        title: "Observe",
+        description: "Return a report.",
+        fields: [],
+        call: async () => ({ report: { outcome: "observed" }, failed: false }),
+      },
+    ],
+  });
+  const response = await dispatch({
+    jsonrpc: "2.0",
+    id: 1,
+    method: "tools/call",
+    params: { name: "observe" },
+  });
+  assert.ok(response?.result !== null && typeof response?.result === "object");
+  for (const action of actions) {
+    const fields = action.result.match(
+      /\b(?:structuredContent|content|isError)\b/gu,
+    );
+    assert.ok(fields !== null, `${action.id} describes no MCP result fields`);
+    for (const field of fields)
+      assert.ok(
+        Object.hasOwn(response.result, field),
+        `${action.id} advertises absent result field ${field}`,
+      );
+  }
 });
 
 it("surfaces local write effects on diagnostic and cloud-read operations", () => {

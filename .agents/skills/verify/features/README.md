@@ -9,7 +9,7 @@ Keep proof after fixture cleanup. Record each feature as passed, failed or verif
 
 | Feature | Existing workflows |
 | --- | --- |
-| [Discovery and importer observations](discovery-imports.md) | `discovery`, `imports`, quality profiles |
+| [Discovery, readiness and importer observations](discovery-imports.md) | `discovery`, `imports`, quality profiles |
 | [Module and Research-project lifecycle](folder-lifecycle.md) | `recovery` |
 | [Tasks, Calendar and Operations](services.md) | `services` |
 | [Teaching and cheatsheet releases](teaching.md) | `teaching` |

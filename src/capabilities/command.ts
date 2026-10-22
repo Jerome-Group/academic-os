@@ -59,6 +59,17 @@ export async function runCapabilitiesCommand(
         evidence: action.tests,
         scope: "mapping only; run checks for current evidence",
       };
+      if (action.id.startsWith("capabilities ")) {
+        action.usage = [usage];
+        continue;
+      }
+      if (action.id.startsWith("schedule ")) {
+        const scriptPath = resolve(root, action.implementation);
+        action.usage = [
+          `Usage: node ${scriptPath} --config <absolute-path> [--dry-run]\n       node ${scriptPath} --remove`,
+        ];
+        continue;
+      }
       const source = await readFile(
         resolve(root, action.implementation),
         "utf8",

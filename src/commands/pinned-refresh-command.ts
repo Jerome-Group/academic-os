@@ -142,6 +142,8 @@ function renderHuman(
 function closingLine(
   report: PinnedRefreshReport | ResearchSharedControlRefreshReport,
 ): string {
+  if (report.unresolved.length > 0 || report.refusals.length > 0)
+    return "Refresh incomplete. Resolve the reported problems and retry.";
   if (report.rewrites.length === 0) return "Every pinned copy is current.";
   return report.mode === "preview"
     ? "Preview only. Re-run with --apply."

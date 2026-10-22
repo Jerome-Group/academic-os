@@ -30,7 +30,7 @@ afterEach(async () => {
   );
 });
 
-async function cohortFixture(): Promise<{
+async function cohortFixture(modules = ["CC0006", "MH2100"]): Promise<{
   configPath: string;
   stateRoot: string;
   moduleRoots: Map<string, string>;
@@ -42,7 +42,7 @@ async function cohortFixture(): Promise<{
   const stateRoot = join(root, "state");
   await mkdir(stateRoot, { recursive: true });
   const moduleRoots = new Map<string, string>();
-  for (const module of ["CC0006", "MH2100"]) {
+  for (const module of modules) {
     const moduleRoot = join(driveMount, "Modules", "Y2S1", module);
     moduleRoots.set(module, moduleRoot);
     for (const name of pinnedDocumentNames) {
@@ -80,7 +80,7 @@ async function cohortFixture(): Promise<{
         Y2S1: {
           root: "Modules/Y2S1",
           status: "active",
-          modules: ["CC0006", "MH2100"],
+          modules,
         },
       },
       research: {
@@ -115,6 +115,64 @@ describe("academic-os pinned refresh", () => {
     assert.equal(report.command, "pinned refresh");
     assert.equal(report.outcome, "current");
     assert.deepEqual(report.counts, { current: 14, stale: 0, missing: 0 });
+    assert.deepEqual(await readdir(fixture.stateRoot), []);
+  });
+
+  it("retains the human success message for a completely current cohort", async () => {
+    const fixture = await cohortFixture();
+    const result = await runCli(
+      "pinned",
+      "refresh",
+      "--config",
+      fixture.configPath,
+    );
+
+    assert.equal(result.exitCode, 0, JSON.stringify(result));
+    assert.match(result.stdout, /Every pinned copy is current\.\n$/u);
+  });
+
+  it("reports an incomplete refresh when its only module is unresolved", async () => {
+    const fixture = await cohortFixture(["MH2100"]);
+    const moduleRoot = fixture.moduleRoots.get("MH2100");
+    assert.ok(moduleRoot);
+    await rm(moduleRoot, { recursive: true });
+    const arguments_ = ["pinned", "refresh", "--config", fixture.configPath];
+    const json = await runCli(...arguments_, "--json");
+
+    assert.equal(json.exitCode, 2, JSON.stringify(json));
+    const report = JSON.parse(json.stdout);
+    assert.equal(report.outcome, "current");
+    assert.equal(report.unresolved.length, 1);
+    assert.equal(report.unresolved[0].module, "MH2100");
+    assert.deepEqual(report.counts, { current: 0, stale: 0, missing: 0 });
+    assert.deepEqual(report.rewrites, []);
+
+    const human = await runCli(...arguments_);
+    assert.equal(human.exitCode, 2, JSON.stringify(human));
+    assert.match(human.stdout, /Unresolved Y2S1\/MH2100:/u);
+    assert.doesNotMatch(human.stdout, /Every pinned copy is current\./u);
+    assert.match(human.stdout, /Refresh incomplete\./u);
+    assert.deepEqual(await readdir(fixture.stateRoot), []);
+  });
+
+  it("closes refused refreshes with an incomplete message", async () => {
+    const fixture = await cohortFixture();
+    const moduleRoot = fixture.moduleRoots.get("MH2100");
+    assert.ok(moduleRoot);
+    await rm(join(moduleRoot, "docs"), { recursive: true });
+    const result = await runCli(
+      "pinned",
+      "refresh",
+      "--config",
+      fixture.configPath,
+      "--apply",
+    );
+
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(result.stdout, /Pinned document refresh: refused \(apply\)/u);
+    assert.match(result.stdout, /Refused MH2100/u);
+    assert.doesNotMatch(result.stdout, /Every pinned copy is current\./u);
+    assert.match(result.stdout, /Refresh incomplete\./u);
     assert.deepEqual(await readdir(fixture.stateRoot), []);
   });
 

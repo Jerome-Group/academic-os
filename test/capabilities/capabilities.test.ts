@@ -60,6 +60,40 @@ it("discovers commands, prerequisites, effects and feature verification without 
   );
 });
 
+it("reports complete capability usage with executable workflow names", async () => {
+  const result = await runCli("capabilities", "index", "--json");
+  assert.equal(result.exitCode, 0, result.stdout);
+  const index: { actions: { id: string; usage: string[] }[] } = JSON.parse(
+    result.stdout,
+  );
+  const actions = index.actions.filter((action) =>
+    action.id.startsWith("capabilities "),
+  );
+  assert.equal(actions.length, 4);
+  for (const action of actions)
+    assert.deepEqual(action.usage, [
+      "Usage: academic-os capabilities index|health|check|verify [health: --config <private-config>] [--profile fast|tests|privacy|templates|coverage|full] [--workflow discovery|imports|recovery|services|teaching|maintenance] [--log <private-new-file>] [--json]",
+    ]);
+});
+
+it("reports scheduler usage with the actual installer paths", async () => {
+  const result = await runCli("capabilities", "index", "--json");
+  assert.equal(result.exitCode, 0, result.stdout);
+  const index: {
+    actions: { id: string; implementation: string; usage: string[] }[];
+  } = JSON.parse(result.stdout);
+  const actions = index.actions.filter((action) =>
+    action.id.startsWith("schedule "),
+  );
+  assert.equal(actions.length, 4);
+  for (const action of actions) {
+    const installer = join(process.cwd(), action.implementation);
+    assert.deepEqual(action.usage, [
+      `Usage: node ${installer} --config <absolute-path> [--dry-run]\n       node ${installer} --remove`,
+    ]);
+  }
+});
+
 it("describes MCP result fields returned by Operations", async () => {
   const discovered = await runCli("capabilities", "index", "--json");
   assert.equal(discovered.exitCode, 0, discovered.stdout);

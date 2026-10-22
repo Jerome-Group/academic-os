@@ -117,6 +117,19 @@ window, or `--json` for the same report as data. No login or sync is started. Se
 [receipt contract](docs/import-status-contract.md) for compatibility and the
 [coordinated roadmap](docs/research/coordinated-module-management.md) for proposed next features.
 
+## Check offering readiness
+
+```sh
+node dist/src/cli.js offering readiness --config academic-os.config.json --json
+```
+
+One read-only report groups active Modules by local control conformance, import receipt freshness,
+ordered learning-material gaps and validated Task-list bindings. Exit 0 means ready, 1 attention,
+and 2 unobserved or invalid input. Missing or invalid evidence cannot establish readiness.
+`--max-age-hours` changes only the import receipt window, which defaults to 36 hours. Live Google
+access, task freshness, destination preflight and learning mastery remain unverified. Suggested
+commands are not executed. See the [operator guide](docs/operator-guide.md#offering-readiness).
+
 ## Check learning materials
 
 ```sh

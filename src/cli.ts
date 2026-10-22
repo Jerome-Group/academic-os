@@ -10,6 +10,7 @@ import { runCurationMigrateCommand } from "./commands/curation-migrate-command.j
 import { runCurationRederiveCommand } from "./commands/curation-rederive-command.js";
 import { runImportsStatusCommand } from "./commands/imports-status-command.js";
 import { runLearningMaterialsCommand } from "./commands/learning-materials-command.js";
+import { runOfferingReadinessCommand } from "./commands/offering-readiness-command.js";
 import { writeOperationalError } from "./commands/operational-error-output.js";
 import { runPinnedRefreshCommand } from "./commands/pinned-refresh-command.js";
 import { runRepairCommand } from "./commands/repair-command.js";
@@ -86,6 +87,8 @@ try {
     await runImportsStatusCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "learning" && arguments_[1] === "materials") {
     await runLearningMaterialsCommand(arguments_.slice(1), json);
+  } else if (arguments_[0] === "offering" && arguments_[1] === "readiness") {
+    await runOfferingReadinessCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "audit") {
     await runAuditCommand(arguments_, json);
   } else {

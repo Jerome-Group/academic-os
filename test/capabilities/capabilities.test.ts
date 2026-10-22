@@ -146,7 +146,11 @@ it("surfaces local write effects on diagnostic and cloud-read operations", () =>
       cliCapabilities.find((action) => action.id === id)?.writes.length,
       id,
     );
-  for (const id of ["imports status", "learning materials"])
+  for (const id of [
+    "imports status",
+    "learning materials",
+    "offering readiness",
+  ])
     assert.deepEqual(
       cliCapabilities.find((action) => action.id === id)?.writes,
       [],

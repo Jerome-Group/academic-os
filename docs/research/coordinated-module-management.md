@@ -13,7 +13,8 @@ roadmap schedules no work and authorizes no live data changes.
 | 1 | Import health | One read-only report of missing, stale and unsuccessful imports across declared roots | Atomic per-destination lifecycle receipts |
 | 2 | Learning-material visibility | Source Map unit-order references, empty units and explicit tutorial gaps | Receipt freshness qualifies the available source evidence |
 | 3 | Daily Module maintenance | Nine required domains, private work orders, control backups and pre/post audits | Per-root import status independently triggers attention |
-| Next | Destination preflight and offering readiness | Explain which configured Modules lack valid imports, current controls or usable task bindings | Offline validation that configured destinations match exact declared importer roots |
+| 4 | Destination preflight | Compare configured destinations with exact active Module importer roots, retaining independent findings and unknown evidence | Explicit offline configuration and path comparison before sync |
+| 5 | Offering readiness | Report local offering readiness across active Modules, delivered independently in [PR 317](https://github.com/Jerome-Group/academic-os/pull/317) | Import observations remain evidence with their own limits |
 | Later | Durable review inbox | Keep unresolved source questions visible until resolved, without repeating the same new issue every morning | Preserve evidence needed to identify repeated sightings |
 | Later | Assessment signal intake | Preview a sourced Task or Calendar milestone from an unresolved assessment notice | Versioned factual signals from already permitted course reads |
 | Later | Study-plan proposals | Propose a bounded week's work from explicit learning records, Tasks and confirmed dates | Import freshness as an input-quality warning |
@@ -60,22 +61,30 @@ keep their existing boundaries. [ADR-0032](../adr/0032-daily-maintenance-require
 records the decision; [the operator guide](../operator-guide.md#morning-routine) describes artifacts
 and reporting. The existing schedule, model and timeout remain in place.
 
-## Next: destination preflight, then offering readiness
+## 4. Destination preflight
 
-Current NTULearn configuration checks duplicate and nested destinations; Academic OS separately
-declares exact importer roots in Module Definitions. A path can satisfy the first check and still
-point into the wrong Module or a curated directory. This gap is visible at NTULearn's
-`src/config.mjs` and Academic OS's `src/cohort/plan-cohort-audit.ts` and
-`src/conformance/definition-shape.ts`.
+`imports preflight` compares both supplied configurations without starting NTULearn. Relative
+producer config filenames and destinations resolve against the explicit checkout root. Active
+Definitions supply exact importer roots, while past and future mappings remain exclusions.
+Every producer row still participates in duplicate-key and equal or nested destination checks.
 
-Start with an offline comparison supplied both private configuration files. Report every missing,
-extra and mismatched mapping with its remedy. Existing standalone NTULearn users remain supported;
-contract checking is an explicit operation. Once that seam is proven, aggregate it with pinned
-control conformance and Task-list binding for an offering-readiness report. Unknown evidence stays
-unknown; the report does not seed, move, sync or provision anything.
+The report preserves missing roots, extra routes, interior or curated mismatches, all collision
+pairs and unresolved evidence independently. Safe complete aliases and projected missing roots
+can establish route coverage. Unknown boundaries withhold claims they could change. Keys and
+site IDs never supply a guessed Module association.
 
-Acceptance: fixture offerings with primary and tutorial sites, future semesters, duplicated
-destinations, stale controls and absent bindings each produce precise independent findings.
+Compiled CLI fixtures cover primary and tutorial roots, arbitrary keys and swapped IDs, aliases,
+relative config bases, malformed siblings, unsafe roots and unchanged config, mount and private
+State bytes. The operation reads no credentials or providers and performs no writes. Identity,
+live provider visibility and later sync safety remain unverified. See
+[the operator guide](../operator-guide.md#import-destination-preflight).
+
+## 5. Offering readiness
+
+The independent [readiness delivery](https://github.com/Jerome-Group/academic-os/pull/317) adds a
+local active-Module readiness report. Destination preflight remains an explicit operation with
+its own inputs and evidence limits. Neither report authorizes seeding, moving, syncing or
+provisioning a Module.
 
 ## Later: durable review inbox
 

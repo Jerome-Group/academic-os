@@ -148,6 +148,7 @@ it("surfaces local write effects on diagnostic and cloud-read operations", () =>
     );
   for (const id of [
     "imports status",
+    "imports preflight",
     "learning materials",
     "offering readiness",
   ])

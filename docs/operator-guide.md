@@ -84,6 +84,46 @@ This checkout includes `scripts/setup-calendar-local.sh`, which walks through th
 Google approvals, private config update, setup preview, explicit setup apply, initial Refresh and
 optional LaunchAgent installation. It stops before any event migration or Promotion.
 
+## Import destination preflight
+
+Compare active Module importer declarations with an explicit NTULearn configuration before syncing:
+
+```sh
+node dist/src/cli.js imports preflight --config academic-os.config.json \
+  --ntulearn-config config/courses.json --ntulearn-root /absolute/ntulearn
+```
+
+Supply all three options. Both relative NTULearn config filenames and relative course destinations
+resolve against `--ntulearn-root`, even when the config is external or the caller uses another
+working directory. The command reads JSON and filesystem metadata. It never executes code from
+the supplied checkout, loads credentials, contacts a provider or writes config, mounted files or
+private State. The existing mounted-target resolver requires a safe, existing private `stateRoot`.
+
+Each active Module needs a safely readable, fully validated Definition. Complete normalized roots
+use exact case. Complete canonical aliases can cover the same root. An absent final importer
+directory has projected physical identity and can still have configured coverage. A symlinked or
+non-directory declared root cannot certify coverage. Interior and curated destinations are
+mismatches, and the exact expected root may independently be missing.
+
+Add `--json` for indexed course observations, per-root coverage, Module scope and findings with
+remedies. Malformed rows retain independently usable destinations. Duplicate keys and equal or
+nested destinations receive every pairwise conflict, with case folded for producer collisions.
+Past and future Modules and their identifiable routes are explicit exclusions. Those routes still
+participate in file-wide collisions because NTULearn validates all courses before selecting any.
+Unresolved mappings and unreadable Modules remain visible beside healthy siblings.
+
+Unknown evidence withholds only conclusions it could change. A missing destination claim needs
+every potentially covering course ruled out. An extra route needs every possible configured
+Module boundary ruled out. Known matches and independently established findings stay visible.
+Keys and site IDs never establish Module identity. Swapped IDs therefore cannot certify or
+disprove route ownership.
+
+Exit 0 means a nonempty resolved active cohort has exactly one covering route per safe declared
+root and no findings. Exit 1 means known actionable findings with complete evidence. Exit 2 means
+unobserved evidence, an empty cohort or an invalid request, retaining known findings where the
+report is available. Site-to-Module identity, live provider visibility and later sync safety remain
+explicitly unverified. `--apply`, `--semester` and other unsupported options are refused.
+
 ## Import status
 
 Check the active Module cohort without starting a sync or reading private importer State:

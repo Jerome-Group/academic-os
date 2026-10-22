@@ -287,6 +287,30 @@ export const cliCapabilities: Capability[] = [
     [],
     ["optional importer-owned receipt; absence is unavailable evidence"],
   ),
+  {
+    ...cli(
+      "imports preflight",
+      [],
+      [
+        "explicit NTULearn configuration and absolute checkout root",
+        "existing safe private state root; no state is read or written",
+      ],
+    ),
+    invocation:
+      "node dist/src/cli.js imports preflight --config <private-config> --ntulearn-config <filename> --ntulearn-root <absolute-checkout> --json",
+    reads: [
+      "active cohort Module Definitions and mounted path metadata",
+      "NTULearn courses JSON and destination path metadata",
+    ],
+    result:
+      "Versioned JSON; 0 ready, 1 known route findings with complete evidence, 2 unobserved or invalid request. No credentials, provider calls or writes. Site-to-Module identity, live provider visibility and later sync safety remain unverified.",
+    options: {
+      "--ntulearn-config":
+        "Required JSON filename; relative filenames resolve against --ntulearn-root.",
+      "--ntulearn-root":
+        "Required absolute checkout root; relative destinations resolve here. Checkout code is never executed.",
+    },
+  },
   cli("learning materials", []),
   {
     ...cli("offering readiness", []),

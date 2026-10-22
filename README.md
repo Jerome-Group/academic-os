@@ -117,6 +117,18 @@ window, or `--json` for the same report as data. No login or sync is started. Se
 [receipt contract](docs/import-status-contract.md) for compatibility and the
 [coordinated roadmap](docs/research/coordinated-module-management.md) for proposed next features.
 
+Before syncing, compare configured NTULearn destinations with exact declared importer roots:
+
+```sh
+node dist/src/cli.js imports preflight --config academic-os.config.json \
+  --ntulearn-config config/courses.json --ntulearn-root /absolute/ntulearn --json
+```
+
+Relative NTULearn config filenames and destinations use the supplied checkout root. The report
+preserves missing, extra, mismatched and conflicting routes beside unknown evidence. It reads no
+credentials, runs no checkout code and writes nothing. Site-to-Module identity, provider visibility
+and later sync safety remain unverified. See [preflight operation](docs/operator-guide.md#import-destination-preflight).
+
 ## Check offering readiness
 
 ```sh

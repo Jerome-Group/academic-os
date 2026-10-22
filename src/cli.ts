@@ -9,6 +9,7 @@ import { runCalendarSetupCommand } from "./commands/calendar-setup-command.js";
 import { runCurationMigrateCommand } from "./commands/curation-migrate-command.js";
 import { runCurationRederiveCommand } from "./commands/curation-rederive-command.js";
 import { runImportsStatusCommand } from "./commands/imports-status-command.js";
+import { runImportsPreflightCommand } from "./commands/imports-preflight-command.js";
 import { runLearningMaterialsCommand } from "./commands/learning-materials-command.js";
 import { runOfferingReadinessCommand } from "./commands/offering-readiness-command.js";
 import { writeOperationalError } from "./commands/operational-error-output.js";
@@ -83,6 +84,8 @@ try {
     arguments_[1] === "repository-status"
   ) {
     await runRoutineRepositoryStatusCommand(arguments_.slice(1), json);
+  } else if (arguments_[0] === "imports" && arguments_[1] === "preflight") {
+    await runImportsPreflightCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "imports" && arguments_[1] === "status") {
     await runImportsStatusCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "learning" && arguments_[1] === "materials") {

@@ -6,6 +6,7 @@ Agents locate declared learning materials and use the shipped cheatsheet runtime
 
 - Learning-material status reports Source Map availability and declared gaps.
 - Installed router instructions preserve Module and Research-project ownership boundaries.
+- The `learn` router also accepts an explicit absolute personal teaching-folder path with existing materialized controls.
 - Cheatsheet preparation qualifies source manifests and coverage.
 - Release verification and packaging preserve bytes and expose incomplete semantic review.
 
@@ -35,5 +36,6 @@ Fit measurements in the synthetic journey are fixture inputs.
 Compilation and source hashes do not establish mathematical correctness or acceptable rendered pages.
 The journey intentionally leaves semantic review unreviewed. Preserve that result.
 Router document assertions do not measure the quality of a model-led teaching session.
+The personal teaching-folder route has router-text assertions, not an executed teaching session.
 Router finder execution assertions require macOS and skip on other platforms.
 Missing TeX or Poppler prevents release verification. Record the attempted command and missing executable.

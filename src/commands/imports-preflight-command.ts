@@ -86,9 +86,11 @@ function renderHuman(report: ImportPreflightReport): string {
     const subject =
       finding.kind === "missing"
         ? `${finding.module.semester}/${finding.module.module}/${finding.destination}`
-        : finding.kind === "conflict"
-          ? `course rows ${finding.courses.join(", ")} (${finding.reasons.join(", ")})`
-          : `course row ${finding.course}`;
+        : finding.kind === "declaration-conflict"
+          ? `${finding.module.semester}/${finding.module.module} declarations ${finding.destinations.join(", ")}`
+          : finding.kind === "conflict"
+            ? `course rows ${finding.courses.join(", ")} (${finding.reasons.join(", ")})`
+            : `course row ${finding.course}`;
     lines.push(`${finding.kind}: ${subject}. ${finding.action}`);
   }
   for (const problem of report.problems)

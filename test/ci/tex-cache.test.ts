@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { it } from "node:test";
 import { parse } from "yaml";
 
-it("caches TeX package payloads without apt transient state", async () => {
+it("both TeX jobs reuse completed packages without apt transient state", async () => {
   const workflow: {
     jobs: Record<
       string,
@@ -21,6 +21,21 @@ it("caches TeX package payloads without apt transient state", async () => {
   } = parse(await readFile(".github/workflows/ci.yml", "utf8"));
   const root = await mkdtemp(join(tmpdir(), "academic-tex-cache-"));
   try {
+    const source = workflow.jobs["rule-coverage"]?.steps.find((step) =>
+      step.uses?.startsWith("actions/cache@"),
+    )?.with?.path;
+    assert.ok(source !== undefined);
+    assert.ok(source.startsWith("~/"));
+    const folder = source.slice(2).split("/")[0];
+    assert.ok(folder);
+    const archives = join(root, folder);
+    await mkdir(join(archives, "partial"), { recursive: true });
+    await writeFile(join(archives, "lock"), "apt lock");
+    await writeFile(join(archives, "partial", "unfinished.deb"), "incomplete");
+    const packages = ["first.deb", "second.deb"].map((name) =>
+      join(archives, name),
+    );
+    for (const path of packages) await writeFile(path, "complete package");
     for (const jobName of ["rule-coverage", "templates"]) {
       const job = workflow.jobs[jobName];
       assert.ok(job);
@@ -29,19 +44,6 @@ it("caches TeX package payloads without apt transient state", async () => {
       )?.with?.path;
       assert.ok(configured !== undefined);
       assert.ok(configured.startsWith("~/"));
-      const folder = configured.slice(2).split("/")[0];
-      assert.ok(folder);
-      const archives = join(root, folder);
-      await mkdir(join(archives, "partial"), { recursive: true });
-      await writeFile(join(archives, "lock"), "apt lock");
-      await writeFile(
-        join(archives, "partial", "unfinished.deb"),
-        "incomplete",
-      );
-      const packages = ["first.deb", "second.deb"].map((name) =>
-        join(archives, name),
-      );
-      for (const path of packages) await writeFile(path, "complete package");
       const selected: string[] = [];
       for await (const path of glob(join(root, configured.slice(2))))
         selected.push(path);

@@ -1,0 +1,15 @@
+{
+  "syncRevision": null,
+  "lastInspectedRevision": "fb381df4d0f5cbf8a4e9f2cca0e91bf8760378ea",
+  "outcome": "blocked",
+  "reason": "Creation draft awaits exact product-head mapping and the real-code mutation gate.",
+  "files": [
+    "src/mounted/seed-mounted-module.ts",
+    "src/mounted/seed-mounted-research-project.ts",
+    "src/mounted/seed-mounted-target.ts",
+    "src/mounted/execute-seed-operations.ts",
+    "src/mounted/seed-operation-journal.ts",
+    "src/mounted/seed-target-state.ts",
+    "src/mounted/seed-ownership.ts"
+  ]
+}

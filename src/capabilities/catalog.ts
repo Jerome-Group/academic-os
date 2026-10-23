@@ -558,7 +558,7 @@ export function capabilityIndex(): object {
       result:
         profile === "formal"
           ? "Bounded seed ownership models, compiled schedules and real cleanup mutation controls; expected counterexamples are required. No syscall atomicity or concurrent-writer guarantee."
-          : "Per-check exit, duration, bounded output count/hash; full coverage run includes every test and privacy check once plus seed ownership verification.",
+          : "Per-check exit, duration, bounded output count/hash; full includes all compiled tests, privacy checks and seed ownership verification.",
     });
   return {
     schemaVersion: 1,

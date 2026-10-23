@@ -317,6 +317,42 @@ describe("correcting a split source on the mount", () => {
     );
   });
 
+  for (const appeared of [false, true]) {
+    it(`checks a destination absent during planning when it ${appeared ? "reappears" : "stays absent"}`, async () => {
+      const cohort = await mountedModule(splitRegister);
+      const module = cohort.modules[0];
+      assert.ok(module);
+      const moduleRoot = cohort.moduleRoots.get("AB1234") ?? "";
+      const target = join(moduleRoot, chapterTwo);
+      await rm(target);
+      module.artifacts = new Map(
+        [...module.artifacts].filter(([location]) => location !== chapterTwo),
+      );
+      const plan = planFor(cohort);
+      if (appeared) await writeFile(target, chapterTwoBytes);
+
+      const report = await executeCurationRederivation({
+        plan,
+        cohort,
+        mode: "apply",
+      });
+
+      assert.equal(report.outcome, appeared ? "refused" : "settled");
+      assert.equal(report.appended, appeared ? 0 : 1);
+      assert.deepEqual(report.modules[0]?.rederivations[0]?.derived, [
+        chapterOne,
+      ]);
+      assert.deepEqual(report.modules[0]?.rederivations[0]?.missing, [
+        chapterTwo,
+      ]);
+      if (appeared)
+        assert.equal(
+          await readFile(join(moduleRoot, registerPath), "utf8"),
+          splitRegister,
+        );
+    });
+  }
+
   it("applies nothing and writes no journal when the cohort holds no split", async () => {
     const single = `${curatedLine(chapterOne)}\n`;
     const cohort = await mountedModule(single);

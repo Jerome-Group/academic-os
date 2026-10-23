@@ -105,13 +105,19 @@ export const cliCapabilities: Capability[] = [
   ),
   cli(
     "curation migrate",
-    ["mounted register content with --apply"],
+    [
+      "private curation journal with --apply",
+      "mounted register content with --apply",
+    ],
     [],
     "omit --apply",
   ),
   cli(
     "curation rederive",
-    ["mounted register content with --apply"],
+    [
+      "private curation journal with --apply",
+      "mounted register content with --apply",
+    ],
     [],
     "omit --apply",
     ["test/curation/plan-curation-rederivation.test.ts"],

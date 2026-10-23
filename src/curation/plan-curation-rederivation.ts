@@ -108,6 +108,7 @@ type SortedDestinations = {
   copies: string[];
   unreadable: string[];
   missing: string[];
+  observedArtifacts: PlannedCurationRederivation["observedArtifacts"];
 };
 
 type DecidedCandidate =
@@ -209,6 +210,12 @@ function sortDestinations(
     copies: [...copies].sort(),
     unreadable: [...unreadable].sort(),
     missing: [...missing].sort(),
+    observedArtifacts: [...new Set(lines.map(({ destination }) => destination))]
+      .sort()
+      .map((location) => ({
+        location,
+        sha256: observed.artifacts.get(location),
+      })),
   };
 }
 
@@ -249,6 +256,7 @@ function rederivation(
     copies: decided.copies,
     unreadable: decided.unreadable,
     missing: decided.missing,
+    observedArtifacts: decided.observedArtifacts,
     line: JSON.stringify(event),
   };
 }

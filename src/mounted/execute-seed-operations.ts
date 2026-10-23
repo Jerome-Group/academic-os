@@ -127,10 +127,11 @@ export async function publishSeedPlan(
       targetMetadata.isSymbolicLink()
     )
       return publicationBlocked(targetLabel);
-    identity = {
-      device: String(targetMetadata.dev),
-      inode: String(targetMetadata.ino),
-    };
+    const claim = journal.started.ownership?.publicationDirectories.find(
+      ({ path }) => path === "",
+    );
+    if (claim === undefined) return publicationBlocked(targetLabel);
+    identity = claim.identity;
   }
   return await applyOperations({
     root: targetRoot,

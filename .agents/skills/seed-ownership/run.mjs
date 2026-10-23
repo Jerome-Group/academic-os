@@ -5,6 +5,7 @@ import {
   cp,
   mkdir,
   mkdtemp,
+  readdir,
   readFile,
   realpath,
   symlink,
@@ -235,6 +236,25 @@ try {
     "ConcurrentSeedJournal.tla",
     "UniqueSequence",
   );
+  for (const binding of ["same", "independent"])
+    await model(
+      `journal-owner-${binding}`,
+      await readFile(
+        join(verification, `journal-owner-${binding}.cfg`),
+        "utf8",
+      ),
+      "JournalMutationOwnership.tla",
+    );
+  for (const [broken, invariant] of [
+    ["bypass", "UniqueSequence"],
+    ["early-release", "ExclusiveCallbacks"],
+  ])
+    await model(
+      `broken-owner-${broken}`,
+      `SPECIFICATION Spec\nCHECK_DEADLOCK FALSE\nCONSTANTS Binding = "same" Broken = "${broken}"\nINVARIANT ${invariant}\n`,
+      "JournalMutationOwnership.tla",
+      invariant,
+    );
   if (modelOnly) results.outcome = "model-only";
   else {
     assert.equal(
@@ -275,6 +295,11 @@ try {
       durationMs: prerequisites.durationMs,
       log: join(evidence, "protocol-prerequisites.log"),
     };
+    results.journalOwnership = await ownershipProtocols(
+      root,
+      "journal-ownership",
+    );
+    results.repairOwnership = await repairOwnership(root, "repair-ownership");
     results.product = await schedules(root, "baseline");
     await save();
     assert.equal(
@@ -374,6 +399,95 @@ try {
       results.restored.every(({ outcome }) => outcome === "passed"),
       "restored product must preserve both sentinels",
     );
+    const ownerTarget = join(scratch, "src/journal-mutation-owner.ts");
+    const originalOwner = await readFile(ownerTarget, "utf8");
+    await writeFile(
+      join(evidence, "original-journal-mutation-owner.ts"),
+      originalOwner,
+    );
+    results.ownerMutations = [];
+    results.ownerRestored = [];
+    for (const mutation of ["bypass", "early-release"]) {
+      let changed;
+      if (mutation === "bypass") {
+        const start = originalOwner.indexOf("  let database: DatabaseSync;");
+        const end = originalOwner.indexOf(
+          "\nasync function requireCanonicalAncestry(",
+          start,
+        );
+        assert.ok(
+          start >= 0 && end > start,
+          "review owner bypass after a function move",
+        );
+        changed =
+          originalOwner.slice(0, start) +
+          '  return { kind: "owned", value: await run(resolve(input.journalPath)) };\n}\n' +
+          originalOwner.slice(end);
+      } else {
+        const old =
+          '    return { kind: "owned", value: await run(journalPath) };\n  } finally {\n    try {\n      database.exec("ROLLBACK");\n    } finally {\n      database.close();\n    }\n  }';
+        const replacement =
+          '    database.exec("ROLLBACK");\n    database.close();\n    return { kind: "owned", value: await run(journalPath) };\n  } finally {\n  }';
+        assert.equal(
+          originalOwner.split(old).length,
+          2,
+          "one exact callback lifetime guard",
+        );
+        changed = originalOwner.replace(old, replacement);
+      }
+      await writeFile(ownerTarget, changed);
+      await command(
+        "git",
+        [
+          "diff",
+          "--no-index",
+          "--",
+          join(evidence, "original-journal-mutation-owner.ts"),
+          ownerTarget,
+        ],
+        root,
+        `owner-${mutation}-diff`,
+        evidence,
+        true,
+      );
+      await command(
+        "npm",
+        ["run", "build"],
+        scratch,
+        `owner-${mutation}-build`,
+        evidence,
+      );
+      const cases = await ownershipMutation(scratch, mutation);
+      const repair = await repairOwnership(scratch, `repair-${mutation}`, true);
+      results.ownerMutations.push({ mutation, cases, repair });
+      await save();
+      await writeFile(ownerTarget, originalOwner);
+      await command(
+        "npm",
+        ["run", "build"],
+        scratch,
+        `owner-${mutation}-restored-build`,
+        evidence,
+      );
+      const restored = await ownershipProtocols(
+        scratch,
+        `owner-${mutation}-restored`,
+        mutation === "bypass"
+          ? "owns continuation through read"
+          : "owns continuation through (cleanup|outcome-sync)",
+        mutation === "bypass" ? 2 : 4,
+      );
+      const restoredRepair = await repairOwnership(
+        scratch,
+        `repair-${mutation}-restored`,
+      );
+      results.ownerRestored.push({
+        mutation,
+        cases: restored,
+        repair: restoredRepair,
+      });
+      await save();
+    }
     await command(
       "git",
       ["diff", "--exit-code", "HEAD", "--", ...coverage.files],
@@ -453,6 +567,141 @@ async function schedules(productRoot, name, selected) {
   return cases;
 }
 
+async function ownershipProtocols(productRoot, name, pattern, count = 33) {
+  const destination = join(evidence, name);
+  await mkdir(destination);
+  const run = await command(
+    process.execPath,
+    [
+      "--test",
+      "--test-reporter=tap",
+      ...(pattern ? [`--test-name-pattern=${pattern}`] : []),
+      ...(pattern ? [] : ["dist/test/mounted/journal-mutation-owner.test.js"]),
+      "dist/test/cli/journal-ownership-cli.test.js",
+      ...(pattern ? [] : ["dist/test/repair/repair-journal-ownership.test.js"]),
+    ],
+    productRoot,
+    name,
+    evidence,
+    false,
+    { AOS_JOURNAL_EVIDENCE_ROOT: destination },
+  );
+  assert.match(run.output, new RegExp(`# tests ${count}\\n`, "u"));
+  assert.match(run.output, new RegExp(`# pass ${count}\\n`, "u"));
+  assert.match(run.output, /# fail 0\n/u);
+  return {
+    outcome: "passed",
+    tests: count,
+    fixtures: destination,
+    log: join(evidence, `${name}.log`),
+    durationMs: run.durationMs,
+  };
+}
+
+async function ownershipMutation(productRoot, mutation) {
+  const points = mutation === "bypass" ? ["read"] : ["cleanup", "outcome-sync"];
+  const name = `owner-${mutation}`;
+  const destination = join(evidence, name);
+  await mkdir(destination);
+  const run = await command(
+    process.execPath,
+    [
+      "--test",
+      "--test-reporter=tap",
+      `--test-name-pattern=owns continuation through (${points.join("|")})`,
+      "dist/test/cli/journal-ownership-cli.test.js",
+    ],
+    productRoot,
+    name,
+    evidence,
+    true,
+    { AOS_JOURNAL_EVIDENCE_ROOT: destination },
+  );
+  assert.equal(
+    run.code,
+    1,
+    "broken owner must fail an actual compiled assertion",
+  );
+  assert.match(run.output, /ERR_ASSERTION/u);
+  assert.match(run.output, new RegExp(`# fail ${points.length * 2}\\n`, "u"));
+  const directories = await readdir(destination);
+  const cases = [];
+  for (const adapter of ["module", "research"])
+    for (const point of points) {
+      const matches = directories.filter((entry) =>
+        entry.startsWith(`journal-${adapter}-${point}-`),
+      );
+      assert.equal(matches.length, 1, "one retained mutant process fixture");
+      const fixture = join(destination, matches[0]);
+      const loser = JSON.parse(
+        await readFile(join(fixture, "loser.json"), "utf8"),
+      );
+      assert.equal(loser.code, 0, "mutation must admit the competing CLI");
+      assert.equal(
+        JSON.parse(loser.stdout).outcome,
+        "completed",
+        "competing CLI actually completes instead of refusing",
+      );
+      const trace = await readFile(join(fixture, "loser.trace"), "utf8");
+      assert.match(
+        trace,
+        /journal-read/u,
+        "mutant contender reaches continuation read",
+      );
+      cases.push({
+        adapter,
+        point,
+        outcome: "expected-assertion-failure",
+        loserExit: loser.code,
+        loserOutcome: "completed",
+        fixture,
+      });
+    }
+  return {
+    outcome: "expected-assertion-failure",
+    cases,
+    log: join(evidence, `${name}.log`),
+    durationMs: run.durationMs,
+  };
+}
+
+async function repairOwnership(productRoot, name, broken = false) {
+  const destination = join(evidence, name);
+  const run = await command(
+    process.execPath,
+    [join(verification, "repair-owner-probe.mjs"), productRoot, destination],
+    productRoot,
+    name,
+    evidence,
+    true,
+  );
+  const result = JSON.parse(
+    await readFile(join(destination, "results.json"), "utf8"),
+  );
+  assert.equal(run.code, broken ? 1 : 0);
+  assert.equal(result.outcome, broken ? "failed" : "passed");
+  if (broken) {
+    assert.match(result.error, /competing repair performed provider effects/u);
+    assert.ok(
+      result.loserCalls.includes("create-admin"),
+      "broken owner repeats a fake provider operation",
+    );
+    assert.equal(
+      result.calls.filter((call) => call === "create-admin").length,
+      2,
+    );
+  }
+  return {
+    outcome: broken ? "expected-assertion-failure" : "passed",
+    loserProviderCalls: result.loserCalls.length,
+    createAdminCalls: result.calls.filter((call) => call === "create-admin")
+      .length,
+    fixture: destination,
+    log: join(evidence, `${name}.log`),
+    durationMs: run.durationMs,
+  };
+}
+
 async function command(
   program,
   args,
@@ -460,11 +709,13 @@ async function command(
   name,
   logs = cwd,
   permitFailure = false,
+  environment = {},
 ) {
   const started = performance.now();
   const result = await new Promise((done, reject) => {
     const child = spawn(program, args, {
       cwd,
+      env: { ...process.env, ...environment },
       stdio: ["ignore", "pipe", "pipe"],
     });
     let output = "";

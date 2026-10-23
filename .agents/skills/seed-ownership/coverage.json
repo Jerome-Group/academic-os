@@ -1,8 +1,8 @@
 {
-  "syncRevision": "64dfe99bcca15c13e9c49ab385da71656b857d1e",
-  "lastInspectedRevision": "64dfe99bcca15c13e9c49ab385da71656b857d1e",
+  "syncRevision": "2d000f1a79e33c0178379abe247588b682242e67",
+  "lastInspectedRevision": "2d000f1a79e33c0178379abe247588b682242e67",
   "outcome": "updated",
-  "reason": "Reconciled the merged ownership protocol; all models, 34 compiled schedules, real cleanup mutations and restored passes succeeded.",
+  "reason": "Preserved the filesystem model and added exact-journal owner composition, process and repair probes, actual owner mutations, and restored passes.",
   "files": [
     "src/mounted/seed-mounted-module.ts",
     "src/mounted/seed-mounted-research-project.ts",
@@ -10,6 +10,11 @@
     "src/mounted/execute-seed-operations.ts",
     "src/mounted/seed-operation-journal.ts",
     "src/mounted/seed-target-state.ts",
-    "src/mounted/seed-ownership.ts"
+    "src/mounted/seed-ownership.ts",
+    "src/journal-mutation-owner.ts",
+    "src/repair/execute-repair.ts",
+    "src/repair/repair-journal.ts",
+    "src/repair/index.ts",
+    "src/commands/repair-command.ts"
   ]
 }

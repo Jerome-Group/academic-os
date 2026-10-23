@@ -25,7 +25,9 @@ npm run seed-ownership:check
 ```
 
 Read the printed `results.json` and each failed child log.
-Require outcome `passed`, both positive models, five expected model counterexamples, two expected residual counterexamples, four protocol prerequisite regressions, all 34 compiled schedules, both real-code mutation failures, and both restored passes.
+Require outcome `passed`, four positive models, seven broken-model counterexamples, and both residual counterexamples.
+Require four protocol prerequisites, 34 filesystem schedules, 33 journal protocol tests, and the repair provider probe.
+Require both cleanup mutation failures and restored passes, six owner mutation CLI failures and restored passes, and both repair mutation failures and restored passes.
 `model-only` is a partial result. A successful process exit alone does not complete this skill.
 The runner retains source patches, exact heads, manifests, fixture journals, and TLC traces in a fresh OS temporary directory.
 It uses synthetic Module and Research-project folders only.
@@ -37,10 +39,12 @@ It uses synthetic Module and Research-project folders only.
 TLC checks a bounded model. The compiled schedules and real-code mutation connect that model to the TypeScript implementation.
 Their combined result is model safety plus implementation evidence.
 
-Passing models assume one invocation and path substitutions between guarded operations.
+The filesystem model assumes one journal owner and path substitutions between guarded operations.
 Filesystem observation, creation, writes, syncs, journal persistence, and deletion remain separate actions.
 The syscall-swap and concurrent-writer configurations must fail with their named counterexamples.
-Treat those results as unresolved product boundaries, including concurrent resume tracked in #335.
+The uncontrolled-writer counterexample describes a missing owner, rather than the guarded public apply path.
+The separate owner model checks two processes sharing one journal and two processes using independent journals.
+Its kernel exclusion and process-death release are premises connected to compiled process tests, not proofs of SQLite or the operating system.
 
 ## Maintain
 
@@ -50,7 +54,8 @@ Treat those results as unresolved product boundaries, including concurrent resum
 4. Keep every filesystem await distinct. State any excluded state, environmental restriction, or reduced bound beside the result. Change a promise only with cited product evidence.
 5. Run the command. For each failure, replay the trace against the source and classify it as model drift, product bug, or blocked execution.
 6. Require the real cleanup mutation to lose the protected sentinel in both adapters. Require the exact `protected artifact manifest changed` assertion, then the restored passes. Source-text or digest failures do not demonstrate sensitivity.
-7. Record `in sync`, `updated`, `bug`, or `blocked` for each check. Advance the sync revision only after the checked source and results agree. Keep verification upkeep in a separate commit from product repairs.
+7. Require owner bypass and early release to admit real competing CLI calls. Inspect each retained `loser.json` and its trace. Require both repair mutants to repeat the fake provider operation, then require every restored check to pass.
+8. Record `in sync`, `updated`, `bug`, or `blocked` for each check. Advance the sync revision only after the checked source and results agree. Keep verification upkeep in a separate commit from product repairs.
 
 For a separate checkout, `--product-root` selects the exact committed product source while keeping these verification files.
 `--evidence-parent` selects an existing parent beneath an OS temporary directory.

@@ -232,7 +232,9 @@ test("an unsafe ownership namespace refuses without normalizing or entering it",
   const root = await journalFixture(t, "unsafe-namespace");
   const directory = join(root, "journal-ownership");
   await mkdir(directory, { mode: 0o755 });
+  await chmod(directory, 0o755);
   const before = await lstat(directory);
+  assert.equal(before.mode & 0o777, 0o755);
   assert.equal(
     (
       await withJournalMutationOwner(

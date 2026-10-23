@@ -24,6 +24,7 @@ it("keeps private immutable migration evidence outside ordinary retention", asyn
       number: 42,
       title: "Synthetic incident",
       body: "synthetic private evidence",
+      comments: [],
       reason: "weekly-transfer" as const,
     };
     await store.archiveIssue(snapshot);
@@ -65,6 +66,7 @@ it("refuses aliased or shared weekly evidence directories", async () => {
       number: 42,
       title: "Synthetic",
       body: "synthetic",
+      comments: [],
       reason: "weekly-transfer" as const,
     };
     await assert.rejects(

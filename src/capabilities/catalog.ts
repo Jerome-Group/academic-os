@@ -275,7 +275,7 @@ export const cliCapabilities: Capability[] = [
       [
         "mounted maintenance content",
         "private logs/journals",
-        "GitHub managed issues",
+        "GitHub weekly anchors, immutable review comments and state-only retirement",
         "protected repository pull requests and clean primary checkout rollout",
         "ordinary expired artifacts removed unless --retain-artifacts",
       ],
@@ -296,6 +296,9 @@ export const cliCapabilities: Capability[] = [
         "test/routine/morning-session-prompt.test.ts",
         "test/routine/run-morning-routine.test.ts",
         "test/routine/weekly-review.test.ts",
+        "test/routine/weekly-publication-subprocess.test.ts",
+        "test/routine/weekly-publication-admission.test.ts",
+        "test/routine/gh-morning-issue.test.ts",
         "test/routine/repository-repair.test.ts",
         "test/routine/file-weekly-evidence.test.ts",
         "test/routine/gh-weekly-repository-history.test.ts",
@@ -305,7 +308,7 @@ export const cliCapabilities: Capability[] = [
       "--retain-artifacts":
         "Exclusive private run directory and report; skips ordinary retention purge.",
       "--modules-only":
-        "Refresh active Module task mirrors only; skip shared shelf writes and repository repair; update only this weekly coverage scope.",
+        "Refresh active Module task mirrors only; skip shared shelf writes and repository repair; publish only this weekly coverage scope; preserve repository observations.",
       "--model":
         "gpt-6.1-sol; pair with --reasoning-effort; scoped invocation.",
       "--reasoning-effort":

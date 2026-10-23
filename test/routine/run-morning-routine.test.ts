@@ -3,17 +3,16 @@ import { describe, it } from "node:test";
 
 import type { ConfiguredModule } from "../../src/config/index.js";
 import {
-  MORNING_ISSUE_LABELS,
+  WEEKLY_ISSUE_LABELS,
   type ModulePassOutcome,
   type ModulePassReport,
-  type MorningIssue,
-  type MorningIssuePort,
+  type WeeklyDiscussionPort,
   type MorningPreludePort,
-  morningIssueMarker,
   type PreludeStepReport,
   type RoutineArtifactStore,
   runMorningRoutine,
 } from "../../src/routine/index.js";
+import { weeklyFixture } from "../fixtures/weekly-discussion.js";
 import { syntheticMaintenanceCoverage } from "../fixtures/maintenance-coverage.js";
 
 const date = "2026-08-23";
@@ -44,19 +43,11 @@ function syntheticMorning(overrides: {
   sessionDates?: string[];
   reportDates?: string[];
   artifacts?: Partial<RoutineArtifactStore>;
-  issue?: Partial<MorningIssuePort>;
+  issue?: Partial<WeeklyDiscussionPort>;
 }) {
   const calls = overrides.calls ?? [];
   const rendered: string[] = [];
   const removed: string[] = [];
-  const raised: Array<{
-    title: string;
-    body: string;
-    labels: readonly string[];
-  }> = [];
-  const updated: Array<{ number: number; body: string }> = [];
-  const reopened: number[] = [];
-  const closed: number[] = [];
   const prelude: MorningPreludePort = {
     inspectImports: async () => {
       calls.push("prelude:imports");
@@ -103,61 +94,18 @@ function syntheticMorning(overrides: {
       removed.push(`report:${day}`);
     },
   };
-  const issueState = new Map<number, MorningIssue>();
-  const issue: MorningIssuePort = {
-    read: async (number) => {
-      calls.push("issue:read");
-      const found = issueState.get(number);
-      if (found === undefined) throw new Error("missing synthetic issue");
-      return { ...found };
-    },
-    list: async () => {
-      calls.push("issue:list");
-      return await (overrides.issue?.list?.() ?? Promise.resolve([]));
-    },
-    raise: async (input) => {
-      calls.push("issue:raise");
-      if (overrides.issue?.raise !== undefined) {
-        return await overrides.issue.raise(input);
-      }
-      raised.push(input);
-      issueState.set(900, {
-        number: 900,
-        title: input.title,
-        body: input.body,
-        state: "OPEN",
-      });
-      return 900;
-    },
-    update: async (input) => {
-      calls.push("issue:update");
-      updated.push(input);
-      await overrides.issue?.update?.(input);
-    },
-    reopen: async (number) => {
-      calls.push("issue:reopen");
-      reopened.push(number);
-      await overrides.issue?.reopen?.(number);
-    },
-    close: async (number) => {
-      calls.push("issue:close");
-      closed.push(number);
-      await overrides.issue?.close?.(number);
-    },
-  };
+  const weekly = weeklyFixture(overrides.issue);
   return {
     calls,
     rendered,
     removed,
-    raised,
-    updated,
-    reopened,
-    closed,
+    ...weekly,
+    weeklyStateRoot: weekly.stateRoot,
+    published: weekly.appended,
     cohort: "Y2S1",
     prelude,
     session,
     artifacts,
-    issue,
   };
 }
 
@@ -203,18 +151,18 @@ describe("one firing of the morning routine", () => {
       ...morning,
     });
 
-    assert.deepEqual(morning.calls, [
-      "prelude:imports",
-      "prelude:shelf",
-      "prelude:tasks",
-      "session:AB1234",
-      "session:CD5678",
-      "session:EF9012",
-      "report",
-      "issue:list",
-      "issue:raise",
-      "issue:read",
-    ]);
+    assert.deepEqual(
+      morning.calls.filter((c) => !c.startsWith("issue:")),
+      [
+        "prelude:imports",
+        "prelude:shelf",
+        "prelude:tasks",
+        "session:AB1234",
+        "session:CD5678",
+        "session:EF9012",
+        "report",
+      ],
+    );
     assert.deepEqual(
       report.modules.map(({ module }) => module),
       ["AB1234", "CD5678", "EF9012"],
@@ -299,13 +247,6 @@ describe("one firing of the morning routine", () => {
 });
 
 describe("the morning's issue policy", () => {
-  it("marks a canonical cohort and Module set without duplicate entries", () => {
-    assert.equal(
-      morningIssueMarker("Y2S1", ["CD5678", "AB1234", "CD5678"]),
-      morningIssueMarker("Y2S1", ["AB1234", "CD5678"]),
-    );
-  });
-
   it("reports unhealthy imports even when every LLM reports a quiet pass", async () => {
     const morning = syntheticMorning({
       prelude: {
@@ -325,7 +266,10 @@ describe("the morning's issue policy", () => {
     assert.equal(report.schemaVersion, 2);
     assert.equal(report.outcome, "reported");
     assert.equal(report.modules.length, 3);
-    assert.doesNotMatch(morning.raised[0]?.body ?? "", /unread announcements/u);
+    assert.doesNotMatch(
+      morning.published[0]?.body ?? "",
+      /unread announcements/u,
+    );
     assert.match(morning.rendered[0] ?? "", /unread announcements/u);
   });
 
@@ -384,13 +328,13 @@ describe("the morning's issue policy", () => {
       morning.raised[0]?.title,
       "Weekly maintenance review 2026-08-17",
     );
-    assert.deepEqual(morning.raised[0]?.labels, MORNING_ISSUE_LABELS);
+    assert.deepEqual(morning.raised[0]?.labels, WEEKLY_ISSUE_LABELS);
     assert.ok(
       morning.raised[0]?.body.startsWith(
-        "<!-- academic-os-weekly-issue:v1 week=2026-08-17 -->",
+        "<!-- academic-os-weekly-issue:v2 week=2026-08-17 -->",
       ),
     );
-    assert.match(morning.raised[0]?.body ?? "", /private daily evidence/u);
+    assert.match(morning.published[0]?.body ?? "", /private daily evidence/u);
   });
 
   it("creates the first quiet weekly review and still lands the daily report", async () => {
@@ -508,14 +452,14 @@ describe("the morning's issue policy", () => {
 
     assert.equal(report.report, null);
     assert.equal(report.issue.outcome, "created");
-    assert.match(morning.raised[0]?.body ?? "", /private daily evidence/u);
+    assert.match(morning.published[0]?.body ?? "", /private daily evidence/u);
   });
 
   it("leaves the report on the mini when the tracker cannot be reached", async () => {
     const morning = syntheticMorning({
       passes: { CD5678: parkedPass },
       issue: {
-        list: async () => {
+        listIssues: async () => {
           throw new Error("github is unreachable");
         },
       },
@@ -596,10 +540,13 @@ it("public run summaries allowlist settings and keep private metadata out", asyn
     },
   });
   assert.doesNotMatch(
-    morning.raised[0]?.body ?? "",
+    morning.published[0]?.body ?? "",
     /synthetic-sensitive-metadata/u,
   );
-  assert.match(morning.raised[0]?.body ?? "", /Backend identity/u);
+  assert.match(
+    morning.published[0]?.body ?? "",
+    /Missing evidence remains unknown/u,
+  );
 });
 
 it("runs repository repair after Modules and records private outcomes before weekly projection", async () => {
@@ -633,9 +580,9 @@ it("runs repository repair after Modules and records private outcomes before wee
   );
   assert.equal(report.repositoryRepair?.outcome, "blocked");
   assert.ok(morning.rendered[0]?.includes(secret));
-  assert.ok(!morning.raised[0]?.body.includes(secret));
-  assert.match(morning.raised[0]?.body ?? "", /PR #12 merged as/u);
-  assert.match(morning.raised[0]?.body ?? "", /rollout failed/u);
+  assert.ok(!morning.published[0]?.body.includes(secret));
+  assert.match(morning.published[0]?.body ?? "", /PR #12 merged as/u);
+  assert.match(morning.published[0]?.body ?? "", /rollout failed/u);
 });
 
 it("repository dispatch failure preserves private daily report and actionable weekly review", async () => {
@@ -682,9 +629,9 @@ it("durable weekly history recovers an earlier merge despite current healthy rep
     },
   });
   assert.equal(week, "2026-08-17");
-  assert.match(morning.raised[0]?.body ?? "", /PR #17 merged as/u);
+  assert.match(morning.published[0]?.body ?? "", /PR #17 merged as/u);
   assert.match(
-    morning.raised[0]?.body ?? "",
+    morning.published[0]?.body ?? "",
     /combined-main verification awaiting; rollout awaiting/u,
   );
 });
@@ -705,5 +652,5 @@ it("missing weekly merge history cannot turn a healthy repair into verified comp
     },
   });
   assert.equal(report.issue.actionable, true);
-  assert.match(morning.raised[0]?.body ?? "", /repository work: 1/u);
+  assert.match(morning.published[0]?.body ?? "", /repository work: 1/u);
 });

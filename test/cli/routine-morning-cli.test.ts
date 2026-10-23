@@ -1,16 +1,10 @@
 import assert from "node:assert/strict";
-import {
-  chmod,
-  mkdir,
-  mkdtemp,
-  readFile,
-  rm,
-  writeFile,
-} from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 
+import { writeWeeklyGhFixture } from "../fixtures/weekly-gh-provider.js";
 import { runCli } from "../support/run-cli.js";
 
 const temporaryRoots: string[] = [];
@@ -117,26 +111,7 @@ it("retains distinct CLI-run metadata and reports while preserving prior evidenc
   await mkdir(join(stateRoot, "routine/reports"), { recursive: true });
   const oldReport = join(stateRoot, "routine/reports/2000-01-01.md");
   await writeFile(oldReport, "old preserved report\n");
-  const ghPath = join(root, "fake-gh.mjs");
-  await writeFile(
-    ghPath,
-    `#!/usr/bin/env node
-import {readFileSync,writeFileSync} from 'node:fs';
-const path = ${JSON.stringify(join(root, "fake-issue.json"))};
-const args=process.argv.slice(2);
-let issue; try {issue=JSON.parse(readFileSync(path,'utf8'));} catch {}
-if(args[0]==='pr') process.stdout.write('[]');
-else if(args[0]==='api' && args[1].endsWith('/issues/42')) process.stdout.write(JSON.stringify(issue));
-else if(args[0]==='api') process.stdout.write(JSON.stringify({count:issue?1:0,issues:issue?[issue]:[]}));
-else if(args[0]==='issue' && args[1]==='create') {
- issue={number:42,title:args[args.indexOf('--title')+1],body:readFileSync(0,'utf8'),state:'open'};
- writeFileSync(path,JSON.stringify(issue));process.stdout.write('https://github.com/synthetic/repo/issues/42');
-} else if(args[0]==='issue' && args[1]==='edit') {
- issue.body=readFileSync(0,'utf8');writeFileSync(path,JSON.stringify(issue));
-} else {process.exitCode=1;}
-`,
-  );
-  await chmod(ghPath, 0o700);
+  const { ghPath, providerPath } = await writeWeeklyGhFixture(root);
   const path = await configFile({
     driveMount,
     stateRoot,
@@ -188,5 +163,9 @@ else if(args[0]==='issue' && args[1]==='create') {
     assert.deepEqual(metadata.run, report.run);
     await readFile(report.report, "utf8");
   }
+  const provider = JSON.parse(await readFile(providerPath, "utf8"));
+  assert.equal(provider.issues.length, 1);
+  assert.equal(provider.comments.length, 1);
+  assert.equal(reports[1].issue.outcome, "not-needed");
   assert.equal(await readFile(oldReport, "utf8"), "old preserved report\n");
 });

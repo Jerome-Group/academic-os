@@ -115,6 +115,8 @@ export interface MorningIssueReport {
   number: number | null;
   numbers?: number[];
   failure?: RoutineFailure;
+  publicationId?: number;
+  publicationUrl?: string;
 }
 
 export interface MorningRunEvidence {
@@ -191,26 +193,60 @@ export interface WeeklyIssueEvidenceStore {
     number: number;
     title: string;
     body: string;
+    comments: WeeklyComment[];
     reason: "weekly-transfer";
   }): Promise<void>;
 }
 
-export interface MorningIssuePort {
-  read?(number: number): Promise<MorningIssue>;
-  list(): Promise<MorningIssue[]>;
-  raise(input: {
-    title: string;
-    body: string;
-    labels: readonly string[];
-  }): Promise<number>;
-  update(input: { number: number; body: string }): Promise<void>;
-  reopen(number: number): Promise<void>;
-  close(number: number, transferTo?: number): Promise<void>;
+export interface WeeklyDiscussionIdentity {
+  repositoryId: number;
+  publisherId: number;
 }
-
-export interface MorningIssue {
+export interface WeeklyIssue {
   number: number;
+  id: number;
+  creatorId: number;
   title: string;
   body: string;
   state: "OPEN" | "CLOSED";
+  url: string;
+}
+export interface WeeklyComment {
+  id: number;
+  issueNumber: number;
+  creatorId: number;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+  url: string;
+}
+export interface WeeklyIssueListing {
+  issues: WeeklyIssue[];
+  totalCount: number;
+  bodyBytes: number;
+  pages: number;
+}
+export interface WeeklyCommentListing {
+  comments: WeeklyComment[];
+  pages: number;
+}
+export interface WeeklyDiscussionPort {
+  identify(): Promise<WeeklyDiscussionIdentity>;
+  listIssues(): Promise<WeeklyIssueListing>;
+  readIssue(number: number): Promise<WeeklyIssue>;
+  listComments(number: number): Promise<WeeklyCommentListing>;
+  readComment(id: number): Promise<WeeklyComment>;
+  createIssue(input: {
+    title: string;
+    body: string;
+    labels: readonly string[];
+  }): Promise<WeeklyIssue>;
+  appendComment(input: {
+    number: number;
+    body: string;
+  }): Promise<WeeklyComment>;
+  setState(input: {
+    number: number;
+    state: WeeklyIssue["state"];
+  }): Promise<WeeklyIssue>;
 }

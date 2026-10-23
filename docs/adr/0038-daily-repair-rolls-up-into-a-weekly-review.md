@@ -9,12 +9,46 @@ Daily issues asked the Owner to repeatedly distinguish resolved work from unreso
 The Owner chose daily discovery and eligible automatic repository repair with one weekly review,
 including merged fixes. The schedule and the narrow Module Maintenance authority remain intact.
 
-One repository-wide issue represents each Monday-start offering week. Exact scope observations
-share its managed state without one narrow run overwriting broader coverage. Fixed public sections
-separate merge facts, verified maintenance, unresolved work, awaiting verification and Owner notes.
-Successful repairs remain visible throughout the week. Independent merge discovery recovers facts
-when a process stops before issue publication. Original private text is snapshotted before migration;
-verified transfer retires a predecessor without claiming resolution.
+One repository-wide issue represents each Monday-start offering week. Its introduction is created
+once. Immutable as-of review comments carry exact scope observations and the fixed public sections.
+Owner body text and comments stay in place. Publication exposes no body replacement, comment edit,
+or deletion operation. Issue #349 demonstrated that a final read before body replacement still
+loses a concurrent Owner edit.
+
+A private repository-wide JSONL journal serializes publication across weeks through the existing
+journal mutation owner. Maintenance runs capture exact scope and repository predecessor heads
+before work. The publication callback combines contributions from a complete bounded scan of trusted
+history. Incomparable contradictory observations remain awaiting fresh work that names both heads.
+Same-day positive maintenance receipts use maxima. Exact merge identities union, and missing
+verification never erases a positive receipt. An unchanged quiet observation within the same week
+keeps its honest public as-of date. New positive receipts, changed status, conflict reconciliation,
+and a new week publish.
+
+The private journal binds numeric authenticated publisher and repository IDs. A marker, login, or
+author association grants no authority. Exact original machine comments remain privately retained.
+Changed or missing known comments require reconciliation. Privileged same-account edits cannot be
+attributed independently. Durable intents precede remote writes. A timed-out POST remains unknown
+even after a negative list, until an exact trusted match is read back. It is never reposted
+automatically. A recognizable anchor survives failure before its first review comment.
+
+Rollover scans closed trusted anchors as well as open ones and privately snapshots complete observed
+body and comment text before transfer and close. The successor links Owner notes at their source.
+A verified fixed transfer comment and state-only close retire a predecessor without claiming
+resolution. Legacy markers without exact private publication receipts remain evidence-unknown.
+The bounded scan admits at most 500 observations and 10,000 raw issue records or comments, with at
+most 100 provider pages per listing. Raw issue records include pull requests. Discussion text and
+the private journal each have a 32 MiB bound. Admission covers the complete observed history plus
+the known planned anchor, review, transfer and state work before its first remote mutation.
+Journal headroom includes JSON-escaped intent, readback and receipt bytes. Each new record reserves
+a possible additional provider page, because a page need not contain 100 records.
+
+Later concurrent growth, provider page layout or unused response metadata can still exceed a bounded
+read budget after a preserved effect. That stops further publication and retains unresolved intents;
+it does not authorize a repost. This is admission under observed history, not a provider transaction.
+The bounded history window keeps evidence simpler than recursive carry records. It neither seals
+closed discussions nor
+provides provider snapshot isolation. The serialized writer boundary is one host with one canonical
+configured private state root, including retained runs.
 
 The repository owns a bounded repair controller and discoverable CLI entrypoints now. Deterministic
 checks precede model dispatch. Only new eligible failures dispatch an implementer and independent

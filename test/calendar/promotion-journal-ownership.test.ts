@@ -36,39 +36,38 @@ for (const phase of ["read", "file-sync", "directory-sync"]) {
     assert.equal(JSON.parse(repeated.stdout).accepted, false);
     assert.equal((await readFile(target, "utf8")).trim().split("\n").length, 1);
   });
+  it(`recovers a killed Calendar receipt owner at ${phase} without replacing ownership files`, async (t) => {
+    const root = await journalFixture(t, `calendar-receipt-death-${phase}`);
+    const owner = journalProcess(t, root, "owner", [childScript, root, phase]);
+    await owner.wait("held");
+    const ownershipRoot = join(root, "journal-ownership");
+    const before = (await readdir(ownershipRoot)).filter((name) =>
+      name.endsWith(".sqlite"),
+    );
+    assert.equal(before.length, 1);
+    const name = before[0];
+    assert.ok(name);
+    const identity = await lstat(join(ownershipRoot, name), { bigint: true });
+    owner.child.kill("SIGKILL");
+    assert.equal((await owner.done).signal, "SIGKILL");
+    const successor = journalProcess(t, root, "successor", [
+      childScript,
+      root,
+      "none",
+    ]);
+    const result = await successor.done;
+    assert.equal(result.code, 0, JSON.stringify(result));
+    assert.equal(JSON.parse(result.stdout).accepted, phase === "read");
+    assert.deepEqual(
+      (await readdir(ownershipRoot)).filter((name) => name.endsWith(".sqlite")),
+      before,
+    );
+    const after = await lstat(join(ownershipRoot, name), { bigint: true });
+    assert.deepEqual([after.dev, after.ino], [identity.dev, identity.ino]);
+    const receipt = await readFile(
+      join(root, "calendar", "promotions.jsonl"),
+      "utf8",
+    );
+    assert.equal(receipt.trim().split("\n").length, 1);
+  });
 }
-
-it("recovers a killed Calendar receipt owner without replacing ownership files", async (t) => {
-  const root = await journalFixture(t, "calendar-receipt-death");
-  const owner = journalProcess(t, root, "owner", [childScript, root, "read"]);
-  await owner.wait("held");
-  const ownershipRoot = join(root, "journal-ownership");
-  const before = (await readdir(ownershipRoot)).filter((name) =>
-    name.endsWith(".sqlite"),
-  );
-  assert.equal(before.length, 1);
-  const name = before[0];
-  assert.ok(name);
-  const identity = await lstat(join(ownershipRoot, name), { bigint: true });
-  owner.child.kill("SIGKILL");
-  assert.equal((await owner.done).signal, "SIGKILL");
-  const successor = journalProcess(t, root, "successor", [
-    childScript,
-    root,
-    "none",
-  ]);
-  const result = await successor.done;
-  assert.equal(result.code, 0, JSON.stringify(result));
-  assert.equal(JSON.parse(result.stdout).accepted, true);
-  assert.deepEqual(
-    (await readdir(ownershipRoot)).filter((name) => name.endsWith(".sqlite")),
-    before,
-  );
-  const after = await lstat(join(ownershipRoot, name), { bigint: true });
-  assert.deepEqual([after.dev, after.ino], [identity.dev, identity.ino]);
-  const receipt = await readFile(
-    join(root, "calendar", "promotions.jsonl"),
-    "utf8",
-  );
-  assert.equal(receipt.trim().split("\n").length, 1);
-});

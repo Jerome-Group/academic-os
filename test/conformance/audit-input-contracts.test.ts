@@ -159,12 +159,19 @@ describe("Module audit input contracts", () => {
       ]) {
         const input = controls();
         declareImporter(input, root);
-        input.profile = (input.profile ?? "").replace(original, replacement);
-        const finding = audit(input).findings.find(
-          ({ ruleId }) => ruleId === "MF-PROFILE-002",
-        );
-        assert.equal(finding?.status, "requires-decision", replacement);
-        assert.match(finding?.evidence ?? "", /importer.*interior/iu);
+        for (const provenance of ["Evidence", "Checked"]) {
+          input.profile = (input.profile ?? "")
+            .replace(original, replacement)
+            .replace(
+              "| Rank | Source | Role | Governs | Evidence |",
+              `| Rank | Source | Role | Governs | ${provenance} |`,
+            );
+          const finding = audit(input).findings.find(
+            ({ ruleId }) => ruleId === "MF-PROFILE-002",
+          );
+          assert.equal(finding?.status, "requires-decision", replacement);
+          assert.match(finding?.evidence ?? "", /importer.*interior/iu);
+        }
       }
     }
   });

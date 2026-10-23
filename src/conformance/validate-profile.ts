@@ -1,3 +1,4 @@
+import { citesImporterInterior } from "../contract/importer-citations.js";
 import { controlFinding, failedControl } from "./control-finding.js";
 import { writtenControlPaths } from "./control-paths.js";
 import {
@@ -29,6 +30,7 @@ const fixedProfileTables = new Map([
 export function validateProfile(
   source: string | undefined,
   definition: ValidatedDefinition | undefined,
+  importerRoots: readonly string[],
 ): Finding[] {
   if (source === undefined) {
     return [
@@ -48,7 +50,7 @@ export function validateProfile(
           "The Profile has the locked structure and allows prose in its prose sections.",
         )
       : failedControl("MF-PROFILE-001", profilePath, problems),
-    validateProfileEvidence(source),
+    validateProfileEvidence(source, importerRoots),
   ];
   if (definition !== undefined && problems.length === 0) {
     findings.push(validateProfileAgreement(source, definition));
@@ -56,9 +58,12 @@ export function validateProfile(
   return findings;
 }
 
-function validateProfileEvidence(source: string): Finding {
+function validateProfileEvidence(
+  source: string,
+  importerRoots: readonly string[],
+): Finding {
   const problems = [
-    ...evidenceTableProblems(source),
+    ...evidenceTableProblems(source, importerRoots),
     ...explicitUnknownProblems(source),
   ];
   return problems.length === 0
@@ -78,7 +83,10 @@ function validateProfileEvidence(source: string): Finding {
       );
 }
 
-function evidenceTableProblems(source: string): string[] {
+function evidenceTableProblems(
+  source: string,
+  importerRoots: readonly string[],
+): string[] {
   return ["Offering", "Assessment Structure", "Source Authority"].flatMap(
     (section) => {
       const rows = firstDirectTableRows(sectionBody(source, section));
@@ -96,8 +104,13 @@ function evidenceTableProblems(source: string): string[] {
           const subject =
             row[0] === "" || row[0] === undefined ? "row" : row[0];
           const evidence = row[provenanceIndex]?.trim() ?? "";
-          return evidence === ""
-            ? [`${section} ${JSON.stringify(subject)} has no evidence.`]
+          if (evidence === "") {
+            return [`${section} ${JSON.stringify(subject)} has no evidence.`];
+          }
+          return citesImporterInterior(evidence, importerRoots)
+            ? [
+                `${section} ${JSON.stringify(subject)} cites an importer interior; cite a landmark, file name, or document in words.`,
+              ]
             : [];
         });
     },

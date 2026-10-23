@@ -24,7 +24,11 @@ export function auditModuleControls(
   );
   const findings = [
     ...definition.findings,
-    ...validateProfile(controls.profile, definition.definition),
+    ...validateProfile(
+      controls.profile,
+      definition.definition,
+      definition.importerRoots,
+    ),
     validateCurationRegister(controls.curationRegister),
     validateTaskRegister(controls.taskRegister, definition.importerRoots),
     validateSourceMap(controls.sourceMap),

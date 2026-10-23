@@ -84,8 +84,9 @@ export function isResearchAuditObservation(
     isIsoTimestamp(value.observedAt) &&
     isResearchInventory(value.inventory, envelope.target.projectKey) &&
     isRecord(value.metadataAvailability) &&
+    typeof value.metadataAvailability.contentChecksums === "string" &&
     ["unavailable", "entry-specific"].includes(
-      String(value.metadataAvailability.contentChecksums),
+      value.metadataAvailability.contentChecksums,
     ) &&
     typeof value.metadataAvailability.reason === "string" &&
     Array.isArray(value.findings) &&
@@ -123,8 +124,10 @@ function isResearchFinding(value: unknown): value is ResearchFinding {
   return (
     expectedEnforcement !== undefined &&
     value.enforcement === expectedEnforcement &&
-    findingStatuses.has(String(value.status)) &&
-    findingSeverities.has(String(value.severity)) &&
+    typeof value.status === "string" &&
+    findingStatuses.has(value.status) &&
+    typeof value.severity === "string" &&
+    findingSeverities.has(value.severity) &&
     typeof value.path === "string" &&
     typeof value.evidence === "string" &&
     typeof value.explanation === "string" &&

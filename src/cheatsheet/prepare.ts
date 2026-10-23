@@ -56,13 +56,14 @@ export async function prepareCheatsheet(input: {
       : undefined;
   if (identity?.code !== input.moduleCode)
     throw new Error("Requested module disagrees with Definition identity.");
+  const definitionValidation = validateDefinition(
+    controls.find(({ kind }) => kind === "definition")?.text,
+    input.moduleCode,
+    `S${identity.semester}`,
+  );
   const controlFindings = [
-    ...validateDefinition(
-      controls.find(({ kind }) => kind === "definition")?.text,
-      input.moduleCode,
-      `S${identity.semester}`,
-    ).findings,
-    ...validateProfile(profile, identity),
+    ...definitionValidation.findings,
+    ...validateProfile(profile, identity, definitionValidation.importerRoots),
   ];
   const sourceMap =
     controls.find(({ kind }) => kind === "sourceMap")?.text ?? "";

@@ -34,7 +34,8 @@ function isInventoryEntry(value: unknown): boolean {
   return (
     isRecord(value) &&
     typeof value.path === "string" &&
-    inventoryEntryKinds.has(String(value.kind)) &&
+    typeof value.kind === "string" &&
+    inventoryEntryKinds.has(value.kind) &&
     (value.size === undefined || isNonnegativeInteger(value.size)) &&
     (value.modifiedAt === undefined || isIsoTimestamp(value.modifiedAt)) &&
     (value.providerMetadata === undefined ||
@@ -45,16 +46,20 @@ function isInventoryEntry(value: unknown): boolean {
 function isInventoryProvenance(value: unknown): boolean {
   return (
     isRecord(value) &&
-    ["mounted", "drive-api", "synthetic"].includes(String(value.source)) &&
+    typeof value.source === "string" &&
+    ["mounted", "drive-api", "synthetic"].includes(value.source) &&
     typeof value.target === "string" &&
-    ["complete", "partial"].includes(String(value.completeness)) &&
+    typeof value.completeness === "string" &&
+    ["complete", "partial"].includes(value.completeness) &&
     Array.isArray(value.diagnostics) &&
     isNonnegativeInteger(value.excludedTrashedItems) &&
     value.diagnostics.every(
       (diagnostic) =>
         isRecord(diagnostic) &&
-        diagnosticKinds.has(String(diagnostic.kind)) &&
-        ["warning", "error"].includes(String(diagnostic.severity)) &&
+        typeof diagnostic.kind === "string" &&
+        diagnosticKinds.has(diagnostic.kind) &&
+        typeof diagnostic.severity === "string" &&
+        ["warning", "error"].includes(diagnostic.severity) &&
         typeof diagnostic.evidence === "string",
     )
   );

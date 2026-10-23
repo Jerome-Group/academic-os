@@ -47,6 +47,36 @@ it("discovers synthetic MH2100 midterm with ordered provenance and detects chang
       ["lecture.md", "tutorial.md"],
     );
     assert.deepEqual(first.candidates[1]?.missing, ["official solution"]);
+    for (const root of ["NTULearn", "ProviderMirror"]) {
+      await writeFile(
+        join(admin, "10 Module Definition.yaml"),
+        (controls.definition ?? "").replace(
+          "    - {role: primary, destination: NTULearn, evidence: [course-site]}",
+          `    - {role: primary, destination: NTULearn, evidence: [course-site]}\n    - {role: supplementary, destination: ProviderMirror, evidence: [course-site]}`,
+        ),
+      );
+      await writeFile(
+        join(admin, "00 Module Profile.md"),
+        (controls.profile ?? "").replace(
+          "Week 7 | NTULearn",
+          `Week 7 | ${root}/Week 01/notice.md`,
+        ),
+      );
+      const invalidCitation = await prepareCheatsheet(input);
+      assert.equal(invalidCitation.status, "needs-choice");
+      assert.match(invalidCitation.unresolved.join(" "), /MF-PROFILE-002/u);
+    }
+    await writeFile(
+      join(admin, "10 Module Definition.yaml"),
+      controls.definition ?? "",
+    );
+    await writeFile(
+      join(admin, "00 Module Profile.md"),
+      (controls.profile ?? "").replace(
+        "Week 7 | NTULearn",
+        "Week 7 | notice.md",
+      ),
+    );
     assert.deepEqual(await prepareCheatsheet(input), first);
     await writeFile(join(root, "lecture.md"), "synthetic changed source");
     assert.notEqual(

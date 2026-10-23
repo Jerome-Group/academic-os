@@ -21,6 +21,74 @@ afterEach(async () => {
 });
 
 describe("academic-os calendar promote", () => {
+  for (const ambiguous of [false, true]) {
+    it(`promotes a public fixed-event Proposal with Google defaults after ${ambiguous ? "a lost" : "a successful"} response and retries once`, async () => {
+      const fixture = await setupFixture();
+      const inputPath = join(fixture.inputRoot, "fixed-event.json");
+      await writeFile(
+        inputPath,
+        `${JSON.stringify({
+          schemaVersion: 1,
+          source: { kind: "instruction", reference: "private-fixed-event" },
+          item: {
+            kind: "fixed-event",
+            calendarRole: "Academic",
+            summary: "Topology seminar",
+            start: { dateTime: "2026-08-20T10:00:00+08:00" },
+            end: { dateTime: "2026-08-20T11:00:00+08:00" },
+          },
+        })}\n`,
+      );
+      const proposed = await runCalendarPropose(fixture, inputPath, "--json");
+      assert.equal(proposed.exitCode, 0, JSON.stringify(proposed));
+      const preview = JSON.parse(proposed.stdout);
+      assert.equal(preview.outcome, "ready");
+      const proposal = preview.proposal;
+      assert.equal(proposal.intendedEvent.eventType, undefined);
+      const eventId = `a${crypto.createHash("sha256").update(proposal.idempotencyKey).digest("hex").slice(0, 31)}`;
+      await mutateProvider(fixture, (provider) => {
+        provider.createdEventOverrides = {
+          [eventId]: {
+            kind: "calendar#event",
+            etag: '"provider-version"',
+            status: "confirmed",
+            htmlLink: "https://example.invalid/calendar/event",
+            created: "2026-08-19T21:00:00.000Z",
+            updated: "2026-08-19T21:00:00.000Z",
+            creator: { email: "owner@example.invalid" },
+            organizer: { email: "calendar@example.invalid", self: true },
+            iCalUID: `${eventId}@google.com`,
+            sequence: 0,
+            reminders: { useDefault: true },
+            eventType: "default",
+          },
+        };
+        if (ambiguous) provider.ambiguousCreateFailures = [eventId];
+      });
+
+      const promoted = await runPromote(fixture, proposal.id, "--json");
+      assert.equal(promoted.exitCode, 0, JSON.stringify(promoted));
+      const report = JSON.parse(promoted.stdout);
+      assert.equal(report.outcome, "promoted");
+      assert.equal(report.verifiedEvent.id, eventId);
+      assert.equal(report.verifiedEvent.eventType, "default");
+      const retry = await runPromote(fixture, proposal.id, "--json");
+      assert.equal(retry.exitCode, 0, JSON.stringify(retry));
+      assert.equal(JSON.parse(retry.stdout).outcome, "retry");
+      const provider = await readProvider(fixture);
+      assert.equal(provider.events["academic-id"]?.length, 1);
+      assert.equal(
+        provider.requests.filter(({ method }) => method === "POST").length,
+        1,
+      );
+      const journal = await readFile(
+        join(fixture.calendarRoot, "promotions.jsonl"),
+        "utf8",
+      );
+      assert.equal(journal.trim().split("\n").length, 1);
+    });
+  }
+
   it("promotes one bulk Academic Proposal and retries without duplicates", async () => {
     const fixture = await setupFixture();
     const inputPath = join(fixture.inputRoot, "academic-timetable.json");
@@ -342,6 +410,16 @@ describe("academic-os calendar promote", () => {
       it(`refuses mismatched ${operation} readback after ${ambiguous ? "a lost" : "a successful"} response`, async () => {
         const mismatches = [
           { summary: "Unapproved title" },
+          ...[
+            "birthday",
+            "focusTime",
+            "fromGmail",
+            "outOfOffice",
+            "workingLocation",
+            "unexpected-event-type",
+          ].map((eventType) => ({ eventType })),
+          { eventType: null },
+          { unexpectedProviderField: "unapproved" },
           { visibility: "public" },
           { transparency: "transparent" },
           { description: "Unapproved description" },
@@ -394,6 +472,7 @@ describe("academic-os calendar promote", () => {
       await mutateProvider(fixture, (provider) => {
         provider.createdEventOverrides = {
           [fixture.eventId]: {
+            eventType: "default",
             transparency: null,
             start: { dateTime: "2026-08-20T02:00:00Z" },
             end: { dateTime: "2026-08-20T03:00:00Z" },

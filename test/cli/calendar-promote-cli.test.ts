@@ -341,7 +341,13 @@ describe("academic-os calendar promote", () => {
           { start: { dateTime: "2026-08-21T10:00:00+08:00" } },
           { end: { dateTime: "2026-08-21T11:00:00+08:00" } },
           ...(operation === "restore"
-            ? [{ reminders: { useDefault: true } }, { attachments: [] }]
+            ? [
+                { reminders: { useDefault: true } },
+                { attachments: [] },
+                { source: { url: "https://example.invalid/unapproved" } },
+                { conferenceData: { entryPoints: [] } },
+                { extendedProperties: { private: { custom: "changed" } } },
+              ]
             : []),
         ];
         for (const mismatch of mismatches) {
@@ -1256,6 +1262,26 @@ describe("academic-os calendar promote", () => {
         mutations[0]?.method,
         scope === "this-and-future" ? "PATCH" : "DELETE",
       );
+      if (scope === "this-and-future") {
+        assert.partialDeepStrictEqual(
+          (await readProvider(fixture)).events["academic-id"]?.[0],
+          { recurrence: ["RRULE:FREQ=WEEKLY;UNTIL=20260820T015959Z"] },
+        );
+        const retry = await runPromote(fixture, "proposal-recurring", "--json");
+        assert.equal(retry.exitCode, 0, JSON.stringify(retry));
+        assert.equal(JSON.parse(retry.stdout).outcome, "retry");
+        assert.equal(
+          (await readProvider(fixture)).requests.filter(
+            ({ method }) => method === "PATCH",
+          ).length,
+          1,
+        );
+        const journal = await readFile(
+          join(fixture.calendarRoot, "promotions.jsonl"),
+          "utf8",
+        );
+        assert.equal(journal.trim().split("\n").length, 1);
+      }
     }
   });
 
@@ -1507,6 +1533,25 @@ async function setupReadbackFixture(
             overrides: [{ method: "popup", minutes: 5 }],
           },
           attachments: [{ fileUrl: "https://example.invalid/approved" }],
+          source: {
+            url: "https://example.invalid/approved",
+            title: "Approved source",
+          },
+          conferenceData: {
+            entryPoints: [
+              {
+                entryPointType: "video",
+                uri: "https://example.invalid/conference",
+              },
+            ],
+          },
+          extendedProperties: {
+            private: {
+              custom: "retained",
+              academicOsIdempotencyKey: fixture.idempotencyKey,
+            },
+            shared: { reference: "retained-shared" },
+          },
         }
       : {}),
   };

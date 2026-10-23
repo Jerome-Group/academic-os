@@ -1,4 +1,5 @@
 import { OperationalError } from "../operational-error.js";
+import { idempotentExtendedProperties } from "./calendar-event-helpers.js";
 import {
   addTravelBuffer,
   collectCalendarAvailability,
@@ -356,6 +357,7 @@ async function createRestoreProposal(input: {
   }
   const intendedEvent = restorableEvent(tombstone.event);
   const digest = calendarStateDigest({ operation: "restore", tombstone });
+  const idempotencyKey = `restore-${digest}`;
   const proposal: CalendarProposal = {
     id: `proposal-${digest.slice(0, 24)}`,
     status: "ready",
@@ -366,13 +368,19 @@ async function createRestoreProposal(input: {
       calendarRole: input.actionInput.calendarRole,
       calendarId: mirror.calendarId,
     },
-    intendedEvent,
+    intendedEvent: {
+      ...intendedEvent,
+      extendedProperties: idempotentExtendedProperties(
+        intendedEvent,
+        idempotencyKey,
+      ),
+    },
     restoredFrom: {
       calendarRole: input.actionInput.calendarRole,
       eventId: tombstone.event.id,
       deletedAt: tombstone.deletedAt,
     },
-    idempotencyKey: `restore-${digest}`,
+    idempotencyKey,
     liveVersions: liveVersions(mirrors),
     relevantAvailabilityVersion: {
       digest: calendarStateDigest([]),
@@ -431,6 +439,15 @@ function restorableEvent(event: CalendarEvent): CalendarEvent {
     recurringEventId: _recurringEventId,
     originalStartTime: _originalStartTime,
     organizer: _organizer,
+    etag: _etag,
+    created: _created,
+    updated: _updated,
+    creator: _creator,
+    htmlLink: _htmlLink,
+    iCalUID: _iCalUID,
+    kind: _kind,
+    hangoutLink: _hangoutLink,
+    locked: _locked,
     ...rest
   } = event;
   return rest as CalendarEvent;

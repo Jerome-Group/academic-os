@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import {
   mkdir,
   mkdtemp,
-  readFile,
   readdir,
+  readFile,
   symlink,
   writeFile,
 } from "node:fs/promises";

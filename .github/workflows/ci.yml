@@ -78,11 +78,17 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Identify the package platform
+        id: tex-platform
+        run: |
+          . /etc/os-release
+          architecture=$(dpkg --print-architecture)
+          echo "id=${ID}-${VERSION_ID}-${architecture}" >> "$GITHUB_OUTPUT"
       - name: Cache the TeX Live and Poppler packages
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/rule-coverage-archives/*.deb
-          key: rule-coverage-tex-poppler-${{ hashFiles('.github/tex-live-packages.txt') }}
+          key: rule-coverage-tex-poppler-${{ steps.tex-platform.outputs.id }}-${{ hashFiles('.github/tex-live-packages.txt') }}
       - name: Install TeX Live and Poppler
         env:
           APT_ACQUIRE: >-
@@ -150,12 +156,18 @@ jobs:
       # mirror is retried rather than waited on.
       #
       # The archives are cached on top, because the install's own download is the other half that
-      # varies. The key names the package set, so changing the set is a miss and nothing else is.
+      # varies. The key names the Ubuntu release, package architecture and package set.
+      - name: Identify the package platform
+        id: tex-platform
+        run: |
+          . /etc/os-release
+          architecture=$(dpkg --print-architecture)
+          echo "id=${ID}-${VERSION_ID}-${architecture}" >> "$GITHUB_OUTPUT"
       - name: Cache the TeX Live packages
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/rule-coverage-archives/*.deb
-          key: rule-coverage-tex-poppler-${{ hashFiles('.github/tex-live-packages.txt') }}
+          key: rule-coverage-tex-poppler-${{ steps.tex-platform.outputs.id }}-${{ hashFiles('.github/tex-live-packages.txt') }}
       - name: Install TeX Live
         env:
           APT_ACQUIRE: >-

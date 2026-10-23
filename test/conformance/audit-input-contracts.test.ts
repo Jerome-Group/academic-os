@@ -234,7 +234,10 @@ describe("Module audit input contracts", () => {
           ["MF-DEFINITION-001", "fail"],
           ["MF-TASKS-001", "fail"],
         ]) {
-          const finding = result.findings.find(({ ruleId }) => ruleId === rule);
+          const finding = result.findings.find(
+            ({ ruleId, status: actual }) =>
+              ruleId === rule && actual === status,
+          );
           assert.equal(finding?.status, status, `${rule} ${citation}`);
           assert.match(finding?.evidence ?? "", /importer.*interior/iu);
         }

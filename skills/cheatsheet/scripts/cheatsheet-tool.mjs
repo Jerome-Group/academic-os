@@ -8067,15 +8067,18 @@ import { isAbsolute as isAbsolute2, win32 } from "node:path";
 
 // src/contract/importer-citations.ts
 var importerLandmarks = /* @__PURE__ */ new Set([
+  "",
   "Course.md",
   "Last synced.md",
-  "Announcements"
+  "Announcements",
+  "Announcements/"
 ]);
 function citesImporterInterior(citation, importerRoots) {
-  const [root, landmark] = citation.split("/");
-  if (root === void 0 || !importerRoots.includes(root)) return false;
-  if (landmark === void 0 || landmark === "") return false;
-  return !importerLandmarks.has(landmark);
+  const separator = citation.indexOf("/");
+  if (separator === -1) return false;
+  const root = citation.slice(0, separator);
+  if (!importerRoots.includes(root)) return false;
+  return !importerLandmarks.has(citation.slice(separator + 1));
 }
 
 // src/conformance/value-shape.ts

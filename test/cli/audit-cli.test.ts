@@ -163,7 +163,7 @@ describe("academic-os audit", () => {
         const result = await runCli("audit", "--config", configPath, "--json");
         assert.equal(
           result.exitCode,
-          status === "conformant" ? 0 : 2,
+          status === "conformant" ? 0 : 3,
           citation,
         );
         const report = JSON.parse(result.stdout) as JsonReport;

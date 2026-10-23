@@ -164,7 +164,7 @@ export async function runCapabilitiesCommand(
     const profile = values.get("--profile") ?? "fast";
     const workflow = values.get("--workflow") ?? "discovery";
     if (
-      !(profile in checkProfiles) ||
+      !Object.hasOwn(checkProfiles, profile) ||
       !verificationWorkflows.includes(workflow)
     )
       throw new OperationalError("invalid-arguments", usage);

@@ -244,6 +244,13 @@ it("refuses unknown commands and unsafe log destinations before useful work", as
   for (const arguments_ of [
     ["not-a-command", "--json"],
     ["capabilities", "check", "--profile", "untrusted", "--json"],
+    ...["constructor", "toString", "__proto__"].map((profile) => [
+      "capabilities",
+      "check",
+      "--profile",
+      profile,
+      "--json",
+    ]),
     [
       "capabilities",
       "check",

@@ -174,15 +174,11 @@ export const cliCapabilities: Capability[] = [
       "proposal ID; fresh conflict checks; Google Calendar read and write credentials",
       "local same-host private state with reliable SQLite filesystem locking for receipt append",
     ],
-    undefined,
-    [
-      "test/cli/calendar-promote-cli.test.ts",
-      "test/calendar/promotion-journal-ownership.test.ts",
-    ],
     null,
     [
       "test/cli/calendar-promote-cli.test.ts",
       "test/cli/calendar-occupancy-cli.test.ts",
+      "test/calendar/promotion-journal-ownership.test.ts",
     ],
   ),
   cli(

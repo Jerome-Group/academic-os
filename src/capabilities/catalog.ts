@@ -81,22 +81,40 @@ export const cliCapabilities: Capability[] = [
   ),
   cli(
     "seed",
-    ["private seed journal/staging", "mounted content with --apply"],
-    ["profile and definition; containment and exclusive publication"],
+    [
+      "private seed journal/staging",
+      "private journal ownership storage with --apply",
+      "mounted content with --apply",
+    ],
+    [
+      "profile and definition; containment and exclusive publication",
+      "local same-host private state with reliable SQLite filesystem locking",
+    ],
     "omit --apply",
-    ["test/cli/seed-cli.test.ts", "test/cli/research-project-cli.test.ts"],
+    [
+      "test/cli/seed-cli.test.ts",
+      "test/cli/research-project-cli.test.ts",
+      "test/cli/journal-ownership-cli.test.ts",
+      "test/mounted/journal-mutation-owner.test.ts",
+    ],
   ),
   cli(
     "repair",
     [
       "private recovery journal",
+      "private journal ownership storage with --apply",
       "Google Drive and mounted content with --apply",
     ],
     [
       "approved ID-bound plan; complete inventory; independent byte and Drive recoveries",
+      "local same-host private state with reliable SQLite filesystem locking",
     ],
     "omit --apply",
-    ["test/cli/repair-cli.test.ts", "test/repair/resume-repair.test.ts"],
+    [
+      "test/cli/repair-cli.test.ts",
+      "test/repair/resume-repair.test.ts",
+      "test/repair/repair-journal-ownership.test.ts",
+    ],
   ),
   cli(
     "pinned refresh",

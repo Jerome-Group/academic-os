@@ -7,22 +7,17 @@ import {
   repairApprovalDigest,
   repairDecisionDigest,
   type RepairExecutionDrive,
-  type RepairExecutionJournalStore,
   type RepairExecutionRecovery,
   type RepairJournalEvent,
 } from "../../src/repair/index.js";
 import { repairPlanDraft } from "./fixtures.js";
+import { memoryRepairJournal } from "../support/memory-repair-journal.js";
 
 test("previews without recovery or mutation, then recovers before ID-bound apply", async () => {
   const plan = createRepairPlan(repairPlanDraft());
   const calls: string[] = [];
   const events: RepairJournalEvent[] = [];
-  const store: RepairExecutionJournalStore = {
-    read: async () => [...events],
-    append: async (event) => {
-      events.push(event);
-    },
-  };
+  const store = memoryRepairJournal(events);
   const recovery: RepairExecutionRecovery = {
     recover: async () => {
       calls.push("recover");
@@ -210,12 +205,7 @@ test("accepts only an equivalent regenerated Finder icon after completion", asyn
       recover: async () => recoveryResult,
       verify: async () => undefined,
     },
-    journal: {
-      read: async () => [...events],
-      append: async (event: RepairJournalEvent) => {
-        events.push(event);
-      },
-    },
+    journal: memoryRepairJournal(events),
   };
 
   assert.equal((await executeRepairPlan(input)).outcome, "completed");
@@ -300,12 +290,7 @@ test("fails closed when the target changes during recovery", async () => {
       recover: async () => recoveryResult,
       verify: async () => undefined,
     },
-    journal: {
-      read: async () => [...events],
-      append: async (event) => {
-        events.push(event);
-      },
-    },
+    journal: memoryRepairJournal(events),
   });
 
   assert.equal(report.outcome, "blocked");
@@ -411,12 +396,7 @@ test("retires an approved local-only artifact only after verified recovery", asy
       },
       verifyRetired: async () => retired,
     },
-    journal: {
-      read: async () => [...events],
-      append: async (event) => {
-        events.push(event);
-      },
-    },
+    journal: memoryRepairJournal(events),
   });
 
   assert.equal(report.outcome, "completed");

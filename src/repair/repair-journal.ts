@@ -1,5 +1,6 @@
 import { mkdir, open, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { withJournalMutationOwner } from "../journal-mutation-owner.js";
 
 import type {
   RepairExecutionJournalStore,
@@ -11,27 +12,89 @@ export function createFileRepairJournalStore(
   stateRoot: string,
 ): RepairExecutionJournalStore {
   return {
-    read: async (changeSetId) =>
+    inspect: async (changeSetId) =>
       await readJournal(journalPath(stateRoot, changeSetId)),
-    append: async (event) => {
-      const path = journalPath(stateRoot, event.changeSetId);
-      const existing = await readJournal(path);
-      if (event.sequence !== existing.length) {
-        throw new RepairPlanError(
-          "Repair journal sequence is not append-only.",
-        );
-      }
-      await mkdir(dirname(path), { recursive: true, mode: 0o700 });
-      const file = await open(path, event.sequence === 0 ? "wx" : "a", 0o600);
-      try {
-        await file.writeFile(`${JSON.stringify(event)}\n`, "utf8");
-        await file.sync();
-      } finally {
-        await file.close();
-      }
-      if (event.sequence === 0) await syncDirectory(dirname(path));
-    },
+    mutate: async (changeSetId, run) =>
+      await withJournalMutationOwner(
+        { stateRoot, journalPath: journalPath(stateRoot, changeSetId) },
+        async (path) => {
+          let active = true;
+          const pending: Array<{
+            promise: Promise<unknown>;
+            settled: boolean;
+          }> = [];
+          function admit<T>(operation: () => Promise<T>): Promise<T> {
+            if (!active)
+              return Promise.reject(
+                new RepairPlanError(
+                  "Repair journal mutation session has expired.",
+                ),
+              );
+            const promise = operation();
+            const tracked = { promise, settled: false };
+            pending.push(tracked);
+            void promise.then(
+              () => {
+                tracked.settled = true;
+              },
+              () => {
+                tracked.settled = true;
+              },
+            );
+            return promise;
+          }
+          let outcome:
+            | { kind: "returned"; value: Awaited<ReturnType<typeof run>> }
+            | { kind: "threw"; error: unknown };
+          try {
+            const value = await run({
+              read: () => admit(async () => await readJournal(path)),
+              append: (event) =>
+                admit(async () => {
+                  if (event.changeSetId !== changeSetId)
+                    throw new RepairPlanError(
+                      "Repair journal event belongs to another change set.",
+                    );
+                  await appendJournal(path, event);
+                }),
+            });
+            outcome = { kind: "returned", value };
+          } catch (error) {
+            outcome = { kind: "threw", error };
+          } finally {
+            active = false;
+          }
+          const settled = await Promise.allSettled(
+            pending
+              .filter(({ settled }) => !settled)
+              .map(({ promise }) => promise),
+          );
+          const failed = settled.find((result) => result.status === "rejected");
+          if (outcome.kind === "threw") throw outcome.error;
+          if (failed?.status === "rejected") throw failed.reason;
+          return outcome.value;
+        },
+      ),
   };
+}
+
+async function appendJournal(
+  path: string,
+  event: RepairJournalEvent,
+): Promise<void> {
+  const existing = await readJournal(path);
+  if (event.sequence !== existing.length) {
+    throw new RepairPlanError("Repair journal sequence is not append-only.");
+  }
+  await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+  const file = await open(path, event.sequence === 0 ? "wx" : "a", 0o600);
+  try {
+    await file.writeFile(`${JSON.stringify(event)}\n`, "utf8");
+    await file.sync();
+  } finally {
+    await file.close();
+  }
+  if (event.sequence === 0) await syncDirectory(dirname(path));
 }
 
 async function readJournal(path: string): Promise<RepairJournalEvent[]> {

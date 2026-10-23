@@ -5,21 +5,16 @@ import {
   createRepairPlan,
   executeRepairPlan,
   type RepairExecutionDrive,
-  type RepairExecutionJournalStore,
   type RepairExecutionRecovery,
   type RepairJournalEvent,
 } from "../../src/repair/index.js";
 import { repairPlanDraft } from "./fixtures.js";
+import { memoryRepairJournal } from "../support/memory-repair-journal.js";
 
 test("reconciles an externally completed operation before explicit resume", async () => {
   const plan = createRepairPlan(repairPlanDraft());
   const events: RepairJournalEvent[] = [];
-  const store: RepairExecutionJournalStore = {
-    read: async () => [...events],
-    append: async (event) => {
-      events.push(event);
-    },
-  };
+  const store = memoryRepairJournal(events);
   const recoveryResult = {
     drive: {
       changeSetId: plan.changeSetId,
@@ -139,12 +134,7 @@ test("reconciles an externally completed operation before explicit resume", asyn
 test("requires explicit resume to finish interrupted recovery", async () => {
   const plan = createRepairPlan(repairPlanDraft());
   const events: RepairJournalEvent[] = [];
-  const store: RepairExecutionJournalStore = {
-    read: async () => [...events],
-    append: async (event) => {
-      events.push(event);
-    },
-  };
+  const store = memoryRepairJournal(events);
   const recoveryResult = {
     drive: {
       changeSetId: plan.changeSetId,
@@ -299,12 +289,7 @@ for (const phase of ["final-recovery", "postcondition"] as const) {
         }
       },
     };
-    const journal: RepairExecutionJournalStore = {
-      read: async () => [...events],
-      append: async (event) => {
-        events.push(event);
-      },
-    };
+    const journal = memoryRepairJournal(events);
 
     const interrupted = await executeRepairPlan({
       plan,
@@ -345,7 +330,7 @@ for (const phase of ["final-recovery", "postcondition"] as const) {
               throw new Error(reason);
             },
           },
-          journal: { read: journal.read, append: unexpectedWrite },
+          journal: memoryRepairJournal(events, unexpectedWrite),
         });
         assert.equal(refused.outcome, "blocked");
         assert.ok(refused.evidence.includes(reason));
@@ -453,20 +438,17 @@ test("reconciles unlink completed before local retirement journal publication", 
     verifyContinuation: async () => ({ blockers: [], recovered: [] }),
     verifyPostcondition: async () => [],
   };
-  const journal: RepairExecutionJournalStore = {
-    read: async () => [...events],
-    append: async (event) => {
-      if (
-        interruptPublication &&
-        event.type === "operation-completed" &&
-        event.operationId === "retire-finder-metadata"
-      ) {
-        interruptPublication = false;
-        throw new Error("journal publication interrupted");
-      }
-      events.push(event);
-    },
-  };
+  const journal = memoryRepairJournal(events, async (event) => {
+    if (
+      interruptPublication &&
+      event.type === "operation-completed" &&
+      event.operationId === "retire-finder-metadata"
+    ) {
+      interruptPublication = false;
+      throw new Error("journal publication interrupted");
+    }
+    events.push(event);
+  });
   const input = {
     plan,
     mode: "apply" as const,
@@ -640,12 +622,7 @@ test("reconciles local artifacts carried by a retired parent and ignores generat
       },
       verifyRetired: async () => parentRetired,
     },
-    journal: {
-      read: async () => [...events],
-      append: async (event: RepairJournalEvent) => {
-        events.push(event);
-      },
-    },
+    journal: memoryRepairJournal(events),
   };
 
   const interrupted = await executeRepairPlan({ ...input, resume: false });

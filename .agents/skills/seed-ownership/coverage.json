@@ -1,8 +1,8 @@
 {
-  "syncRevision": "64dfe99bcca15c13e9c49ab385da71656b857d1e",
-  "lastInspectedRevision": "64dfe99bcca15c13e9c49ab385da71656b857d1e",
+  "syncRevision": "2d000f1a79e33c0178379abe247588b682242e67",
+  "lastInspectedRevision": "2d000f1a79e33c0178379abe247588b682242e67",
   "outcome": "updated",
-  "reason": "Reconciled the merged ownership protocol; all models, 34 compiled schedules, real cleanup mutations and restored passes succeeded.",
+  "reason": "Preserved the filesystem model and added exact-journal owner composition, process and repair probes, actual owner mutations, and restored passes.",
   "files": [
     "src/mounted/seed-mounted-module.ts",
     "src/mounted/seed-mounted-research-project.ts",
@@ -10,6 +10,25 @@
     "src/mounted/execute-seed-operations.ts",
     "src/mounted/seed-operation-journal.ts",
     "src/mounted/seed-target-state.ts",
-    "src/mounted/seed-ownership.ts"
-  ]
+    "src/mounted/seed-ownership.ts",
+    "src/journal-mutation-owner.ts",
+    "src/repair/execute-repair.ts",
+    "src/repair/repair-journal.ts",
+    "src/repair/index.ts",
+    "src/commands/repair-command.ts"
+  ],
+  "sourceHashes": {
+    "src/mounted/seed-mounted-module.ts": "2fb149978e279f34f8e781206af161792c5d02e7933e714c2a2ebeb713b1b6c3",
+    "src/mounted/seed-mounted-research-project.ts": "b5aee6dd3f0dd469301420182362db9d7ed939bfa05190c66b126283febb18f5",
+    "src/mounted/seed-mounted-target.ts": "25dcf40b4501108249dd1b9964ab58c8cf0252a447ccb5a80929667201f85817",
+    "src/mounted/execute-seed-operations.ts": "aaae11b752b42847c966d95d7eb1fcdeccbec99edaba101c6e117bd1bb71f432",
+    "src/mounted/seed-operation-journal.ts": "1ab1e83f21350aab31babae783142cc77342899f42c455cd4985c5d7ccbf1015",
+    "src/mounted/seed-target-state.ts": "7eba622f1cabe949344028372ee6fee5bfcfe6aa2a3804c4aa09f4603b34ebca",
+    "src/mounted/seed-ownership.ts": "9228e89919dc7d0dc0b6159c089497f9f177f9aa36d45611d2832545470687f2",
+    "src/journal-mutation-owner.ts": "0e0123904932abca3bcb70c7a63503789c1b7fffa99f66e67e83c8ddeb885b1c",
+    "src/repair/execute-repair.ts": "cb2e6c2994c8bfb3be7063d2e59c5747cb7034b2273eefdd5034bdd9dc60984b",
+    "src/repair/repair-journal.ts": "f3952080ee6e52ea3f7dc21d9b02915fb49ead456048d50a554b06b8efd7ee90",
+    "src/repair/index.ts": "1a2bbe5b0697f9524d3221a914f977e0d06aebd0c641af1fe3c157521a3265aa",
+    "src/commands/repair-command.ts": "8da10304c70cd32a592c8b28900af05d83c7a3ea699208fbcf7188150e008bed"
+  }
 }

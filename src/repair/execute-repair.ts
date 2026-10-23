@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { JournalMutationResult } from "../journal-mutation-owner.js";
 
 import { repairInventoryPaths } from "./repair-inventory-paths.js";
 import { RepairPlanError } from "./repair-plan-error.js";
@@ -117,9 +118,17 @@ export type RepairJournalEvent =
       outcome: "blocked" | "partially-completed" | "completed";
     });
 
-export interface RepairExecutionJournalStore {
-  read(changeSetId: string): Promise<RepairJournalEvent[]>;
+export interface RepairMutationJournal {
+  read(): Promise<RepairJournalEvent[]>;
   append(event: RepairJournalEvent): Promise<void>;
+}
+
+export interface RepairExecutionJournalStore {
+  inspect(changeSetId: string): Promise<RepairJournalEvent[]>;
+  mutate<T>(
+    changeSetId: string,
+    run: (journal: RepairMutationJournal) => Promise<T>,
+  ): Promise<JournalMutationResult<T>>;
 }
 
 export interface RepairExecutionReport {
@@ -151,7 +160,41 @@ export async function executeRepairPlan(
       "Resume requires explicit apply mode.",
     ]);
   }
-  const events = await input.journal.read(input.plan.changeSetId);
+  if (input.mode === "preview") {
+    const inspected = await inspectRepairPlan(
+      input,
+      await input.journal.inspect(input.plan.changeSetId),
+    );
+    return !("kind" in inspected)
+      ? inspected
+      : report(input.plan, "preview", inspected.completed, [
+          "Preview only; recovery and mutation were not started.",
+        ]);
+  }
+  const result = await input.journal.mutate(
+    input.plan.changeSetId,
+    async (journal) => {
+      const inspected = await inspectRepairPlan(input, await journal.read());
+      if (!("kind" in inspected)) return inspected;
+      return await continueRepairPlan({ ...input, journal }, inspected);
+    },
+  );
+  return result.kind === "owned"
+    ? result.value
+    : report(input.plan, "blocked", new Set(), [result.evidence]);
+}
+
+type RepairContinuation = {
+  kind: "continue";
+  events: RepairJournalEvent[];
+  completed: Set<string>;
+  recovered: Array<{ operationId: string; result: RepairOperationResult }>;
+};
+
+async function inspectRepairPlan(
+  input: ExecuteRepairPlanInput,
+  events: RepairJournalEvent[],
+): Promise<RepairExecutionReport | RepairContinuation> {
   validateJournal(events, input.plan);
   const completed = completedOperationIds(events);
   let freshInventory: CompleteRepairInventory;
@@ -256,7 +299,7 @@ export async function executeRepairPlan(
     for (const recovered of continuation.recovered) {
       inspectedCompleted.add(recovered.operationId);
     }
-    if (!input.resume) {
+    if (input.mode === "preview" || !input.resume) {
       if (recovery !== undefined) {
         try {
           await input.recovery.verify(recovery);
@@ -272,16 +315,36 @@ export async function executeRepairPlan(
           : "Journal, recovery and current target match; pass apply and resume explicitly.",
       ]);
     }
-    for (const recovered of continuation.recovered) {
-      if (!completed.has(recovered.operationId)) {
+    return {
+      kind: "continue",
+      events,
+      completed,
+      recovered: continuation.recovered,
+    };
+  }
+  return { kind: "continue", events, completed, recovered: [] };
+}
+
+type RepairMutationInput = Omit<ExecuteRepairPlanInput, "journal"> & {
+  journal: RepairMutationJournal;
+};
+
+async function continueRepairPlan(
+  input: RepairMutationInput,
+  { events, completed, recovered }: RepairContinuation,
+): Promise<RepairExecutionReport> {
+  if (events.length > 0) {
+    for (const recoveredOperation of recovered) {
+      if (!completed.has(recoveredOperation.operationId)) {
         await append(input, events, {
           type: "operation-completed",
-          operationId: recovered.operationId,
-          result: recovered.result,
+          operationId: recoveredOperation.operationId,
+          result: recoveredOperation.result,
         });
-        completed.add(recovered.operationId);
+        completed.add(recoveredOperation.operationId);
       }
     }
+    const recovery = findRecovery(events);
     if (recovery === undefined) {
       try {
         const resumedRecovery = await input.recovery.recover(input.plan);
@@ -696,7 +759,7 @@ function localRetirementResult(
 }
 
 async function verifyLocalRetirements(
-  input: ExecuteRepairPlanInput,
+  input: Pick<ExecuteRepairPlanInput, "plan" | "local">,
 ): Promise<void> {
   for (const operation of input.plan.operations) {
     if (operation.kind !== "retire-local-artifact") continue;
@@ -735,7 +798,7 @@ function resolveParent(
 }
 
 async function fail(
-  input: ExecuteRepairPlanInput,
+  input: RepairMutationInput,
   events: RepairJournalEvent[],
   phase: "recovery" | "operation" | "verification",
   error: unknown,
@@ -765,7 +828,7 @@ type AppendRepairEvent = RepairJournalEvent extends infer Event
   : never;
 
 async function append(
-  input: ExecuteRepairPlanInput,
+  input: RepairMutationInput,
   events: RepairJournalEvent[],
   event: AppendRepairEvent,
 ): Promise<void> {

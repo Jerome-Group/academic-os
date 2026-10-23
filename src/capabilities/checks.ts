@@ -146,8 +146,8 @@ const workflowTests = {
     cli: /^imports-(status|preflight)-cli\.test\.js$/u,
   },
   recovery: {
-    areas: ["repair", "seed", "pinned"],
-    cli: /^(audit|cohort-audit|research-project|pinned-refresh|repair|seed)-cli\.test\.js$/u,
+    areas: ["mounted", "repair", "seed", "pinned"],
+    cli: /^(audit|cohort-audit|research-project|pinned-refresh|repair|seed|journal-ownership)-cli\.test\.js$/u,
   },
   services: {
     areas: ["calendar", "tasks", "operations", "launchd"],

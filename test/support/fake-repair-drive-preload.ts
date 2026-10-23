@@ -1,4 +1,5 @@
 import { GoogleAuth } from "google-auth-library";
+import { appendFile } from "node:fs/promises";
 
 interface RequestOptions {
   url?: string;
@@ -10,6 +11,8 @@ const prototype = GoogleAuth.prototype as unknown as {
 };
 
 prototype.request = async ({ url, params }) => {
+  if (process.env.AOS_REPAIR_REQUEST_TRACE)
+    await appendFile(process.env.AOS_REPAIR_REQUEST_TRACE, `${url}\n`);
   if (url?.endsWith("/module-id")) {
     return {
       data: {

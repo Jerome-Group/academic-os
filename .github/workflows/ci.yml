@@ -87,6 +87,7 @@ jobs:
             ${{ runner.temp }}/seed-ownership-*/*.log
             ${{ runner.temp }}/seed-ownership-*/*.cfg
             ${{ runner.temp }}/seed-ownership-*/original-seed-ownership.ts
+            ${{ runner.temp }}/seed-ownership-*/original-journal-mutation-owner.ts
             ${{ runner.temp }}/seed-ownership-*/verification/*
             ${{ runner.temp }}/seed-ownership-*/baseline/**/*.json
             ${{ runner.temp }}/seed-ownership-*/baseline/**/journals/seeds/*.jsonl
@@ -94,6 +95,14 @@ jobs:
             ${{ runner.temp }}/seed-ownership-*/mutation/**/journals/seeds/*.jsonl
             ${{ runner.temp }}/seed-ownership-*/restored/**/*.json
             ${{ runner.temp }}/seed-ownership-*/restored/**/journals/seeds/*.jsonl
+            ${{ runner.temp }}/seed-ownership-*/journal-ownership/**/*.json
+            ${{ runner.temp }}/seed-ownership-*/journal-ownership/**/*.jsonl
+            ${{ runner.temp }}/seed-ownership-*/journal-ownership/**/*.trace
+            ${{ runner.temp }}/seed-ownership-*/owner-*/**/*.json
+            ${{ runner.temp }}/seed-ownership-*/owner-*/**/*.jsonl
+            ${{ runner.temp }}/seed-ownership-*/owner-*/**/*.trace
+            ${{ runner.temp }}/seed-ownership-*/repair-*/**/*.json
+            ${{ runner.temp }}/seed-ownership-*/repair-*/**/*.jsonl
 
   rule-coverage:
     runs-on: ubuntu-latest

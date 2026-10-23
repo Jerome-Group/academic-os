@@ -8,7 +8,7 @@ import {
 } from "../config/index.js";
 import { OperationalError } from "../mounted/index.js";
 import {
-  createFileShelfIndexStore,
+  createFileShelfIndexReader,
   createFileShelfReader,
   planShelfSweep,
   renderShelfReviewSheet,
@@ -31,7 +31,7 @@ export async function runTextbooksSweepCommand(
   ]);
   const sweep = await planShelfSweep({
     reader: createFileShelfReader(shelfRoot),
-    index: await createFileShelfIndexStore(shelfRoot).read(),
+    index: await createFileShelfIndexReader(shelfRoot).read(),
   });
   const sheet = shelfReviewSheetPath(stateRoot);
   await writeSheet(sheet, renderShelfReviewSheet({ sweep, shelf: shelfRoot }));

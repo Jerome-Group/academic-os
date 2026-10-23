@@ -5,31 +5,22 @@ import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 
 import {
-  createFileShelfIndexStore,
+  createFileShelfIndexReader,
   SHELF_INDEX_FILENAME,
   type ShelfIndexAppend,
 } from "../../src/textbooks/index.js";
+import {
+  appendShelfEntries,
+  readShelfIndexDocument,
+} from "../../src/textbooks/file-shelf-index-store.js";
 
-const temporaryRoots: string[] = [];
-
-const ownerWrittenIndex = [
-  "books:",
-  "  Rosen:",
-  "    file: Discrete Mathematics and Its Applications 8e Rosen.pdf",
-  "    title: Discrete Mathematics and Its Applications",
-  "    edition: 8e",
-  "    authors: [Rosen]",
-  "    division: Chapter # the book's own word",
-  `    sha256: ${"a".repeat(64)}`,
-  "",
-].join("\n");
-
+const roots: string[] = [];
+const ownerIndex = `# Shelf\nowner: retained\nbooks:\n  Rosen:\n    file: Discrete Mathematics 8e Rosen.pdf\n    title: Discrete Mathematics\n    authors: [Rosen]\n    division: Chapter # Owner word\n    extra: retained\n    sha256: ${"a".repeat(64)}\n`;
 const axler: ShelfIndexAppend = {
   key: "Axler",
   entry: {
-    file: "Linear Algebra Done Right 4e Axler.pdf",
-    title: "Linear Algebra Done Right",
-    edition: "4e",
+    file: "Linear Algebra 4e Axler.pdf",
+    title: "Linear Algebra",
     authors: ["Axler"],
     sha256: "b".repeat(64),
   },
@@ -37,73 +28,32 @@ const axler: ShelfIndexAppend = {
 
 afterEach(async () => {
   await Promise.all(
-    temporaryRoots.splice(0).map((root) => rm(root, { recursive: true })),
+    roots.splice(0).map((root) => rm(root, { recursive: true })),
   );
 });
 
-describe("the Shelf index on a shelf", () => {
-  it("reads the Owner's entries", async () => {
-    const shelf = await shelfWithIndex(ownerWrittenIndex);
-
-    assert.deepEqual(await createFileShelfIndexStore(shelf).read(), {
-      books: {
-        Rosen: {
-          file: "Discrete Mathematics and Its Applications 8e Rosen.pdf",
-          title: "Discrete Mathematics and Its Applications",
-          edition: "8e",
-          authors: ["Rosen"],
-          division: "Chapter",
-          sha256: "a".repeat(64),
-        },
-      },
-    });
-  });
-
-  it("reads a shelf with no index yet as an index with no books", async () => {
-    const shelf = await shelfWithIndex(undefined);
-
-    assert.deepEqual(await createFileShelfIndexStore(shelf).read(), {
+describe("Shelf index documents", () => {
+  it("reads the Owner facts and genuine absence", async () => {
+    const shelf = await fixture();
+    assert.deepEqual(await createFileShelfIndexReader(shelf).read(), {
       books: {},
     });
-  });
-
-  it("appends beneath the entries and comments already there", async () => {
-    const shelf = await shelfWithIndex(ownerWrittenIndex);
-
-    await createFileShelfIndexStore(shelf).append([axler]);
-
+    await writeFile(join(shelf, SHELF_INDEX_FILENAME), ownerIndex);
     assert.equal(
-      await readFile(join(shelf, SHELF_INDEX_FILENAME), "utf8"),
-      [
-        ownerWrittenIndex.trimEnd(),
-        "  Axler:",
-        "    file: Linear Algebra Done Right 4e Axler.pdf",
-        "    title: Linear Algebra Done Right",
-        "    edition: 4e",
-        "    authors: [Axler]",
-        `    sha256: ${"b".repeat(64)}`,
-        "",
-      ].join("\n"),
+      (await createFileShelfIndexReader(shelf).read()).books.Rosen?.division,
+      "Chapter",
     );
   });
 
-  it("writes the first entry onto a shelf with no index", async () => {
-    const shelf = await shelfWithIndex(undefined);
-
-    await createFileShelfIndexStore(shelf).append([axler]);
-
+  it("adds nodes after existing Owner comments, fields and order", async () => {
+    const shelf = await fixture(ownerIndex);
+    const { document } = await readShelfIndexDocument(shelf);
+    const output = appendShelfEntries(document, [axler]);
+    assert.ok(output.startsWith(ownerIndex));
+    assert.match(output, / {2}Axler:\n/u);
     assert.equal(
       await readFile(join(shelf, SHELF_INDEX_FILENAME), "utf8"),
-      [
-        "books:",
-        "  Axler:",
-        "    file: Linear Algebra Done Right 4e Axler.pdf",
-        "    title: Linear Algebra Done Right",
-        "    edition: 4e",
-        "    authors: [Axler]",
-        `    sha256: ${"b".repeat(64)}`,
-        "",
-      ].join("\n"),
+      ownerIndex,
     );
   });
 
@@ -111,54 +61,50 @@ describe("the Shelf index on a shelf", () => {
     "books: null\n",
     "books:\n",
     "",
-    "# Owner's shelf\nbooks: ~\n",
-    "books: null # Owner's shelf\n",
+    "# Owner\nbooks: ~\n",
   ]) {
-    it(`appends to an empty index ${JSON.stringify(contents)}`, async () => {
-      const shelf = await shelfWithIndex(contents);
-      const store = createFileShelfIndexStore(shelf);
-
-      assert.deepEqual(await store.read(), { books: {} });
-      await store.append([axler]);
-
-      assert.deepEqual(await store.read(), { books: { Axler: axler.entry } });
-      if (contents.includes("#")) {
-        assert.match(
-          await readFile(join(shelf, SHELF_INDEX_FILENAME), "utf8"),
-          /# Owner's shelf/u,
-        );
-      }
+    it(`constructs an append to empty YAML ${JSON.stringify(contents)}`, async () => {
+      const shelf = await fixture(contents);
+      const { document } = await readShelfIndexDocument(shelf);
+      const output = appendShelfEntries(document, [axler]);
+      assert.match(output, /Axler:/u);
+      if (contents.includes("#")) assert.match(output, /# Owner/u);
     });
   }
 
-  it("refuses to write over an entry the index already holds", async () => {
-    const shelf = await shelfWithIndex(ownerWrittenIndex);
-    const store = createFileShelfIndexStore(shelf);
-
-    await assert.rejects(
-      store.append([{ key: "Rosen", entry: axler.entry }]),
-      /Rosen/u,
+  it("validates the complete batch before modifying nodes", async () => {
+    const shelf = await fixture(ownerIndex);
+    const { document } = await readShelfIndexDocument(shelf);
+    assert.throws(
+      () =>
+        appendShelfEntries(document, [
+          axler,
+          { key: "Rosen", entry: axler.entry },
+        ]),
+      /Duplicate Shelf append/u,
     );
     assert.equal(
-      await readFile(join(shelf, SHELF_INDEX_FILENAME), "utf8"),
-      ownerWrittenIndex,
+      document.toString({ flowCollectionPadding: false }),
+      ownerIndex,
     );
   });
 
-  it("refuses an index it cannot read as one", async () => {
-    const shelf = await shelfWithIndex("books:\n  Rosen: a book\n");
-    const store = createFileShelfIndexStore(shelf);
-
-    await assert.rejects(store.read(), /Shelf index/u);
-    await assert.rejects(store.append([axler]), /Shelf index/u);
-  });
+  for (const contents of [
+    "books:\n  Rosen: a book\n",
+    "books: [",
+    Buffer.from([0xff, 0xfe]),
+  ]) {
+    it("refuses corrupt data instead of interpreting it as absence", async () => {
+      const shelf = await fixture(contents);
+      await assert.rejects(createFileShelfIndexReader(shelf).read());
+    });
+  }
 });
 
-async function shelfWithIndex(contents: string | undefined): Promise<string> {
-  const shelf = await mkdtemp(join(tmpdir(), "academic-os-shelf-"));
-  temporaryRoots.push(shelf);
-  if (contents !== undefined) {
+async function fixture(contents?: string | Buffer): Promise<string> {
+  const shelf = await mkdtemp(join(tmpdir(), "academic-os-index-"));
+  roots.push(shelf);
+  if (contents !== undefined)
     await writeFile(join(shelf, SHELF_INDEX_FILENAME), contents);
-  }
   return shelf;
 }

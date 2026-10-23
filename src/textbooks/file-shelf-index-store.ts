@@ -1,37 +1,46 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { Document, isMap, isScalar, isSeq, parseDocument } from "yaml";
 
 import { OperationalError } from "../operational-error.js";
-import { writeFileAtomically } from "../write-file-atomically.js";
+import { readShelfFile } from "./shelf-file-observation.js";
 import type {
   ShelfIndex,
   ShelfIndexAppend,
   ShelfIndexEntry,
-  ShelfIndexStore,
+  ShelfIndexReader,
 } from "./types.js";
 
 export const SHELF_INDEX_FILENAME = "00 Index.yaml";
 
 const SHA256 = /^[0-9a-f]{64}$/u;
 
-export function createFileShelfIndexStore(shelfRoot: string): ShelfIndexStore {
-  const indexPath = join(shelfRoot, SHELF_INDEX_FILENAME);
+export function createFileShelfIndexReader(
+  shelfRoot: string,
+): ShelfIndexReader {
   return {
-    read: async () => readIndex(await readDocument(indexPath)),
-    append: async (appends) => await appendEntries(indexPath, appends),
+    read: async () => (await readShelfIndexDocument(shelfRoot)).index,
   };
 }
 
 // The index is edited in place rather than rewritten, so the Owner's comments, ordering and
 // formatting survive a catch-up: what an append changes is the entries it adds and nothing else.
-async function appendEntries(
-  indexPath: string,
+export function appendShelfEntries(
+  document: Document,
   appends: readonly ShelfIndexAppend[],
-): Promise<void> {
-  if (appends.length === 0) return;
-  const document = await readDocument(indexPath);
+): string {
   const index = readIndex(document);
+  const keys = new Set(Object.keys(index.books));
+  const files = new Set(Object.values(index.books).map((entry) => entry.file));
+  const hashes = new Set(
+    Object.values(index.books).map((entry) => entry.sha256),
+  );
+  for (const { key, entry } of appends) {
+    readEntry(entry);
+    if (keys.has(key) || files.has(entry.file) || hashes.has(entry.sha256))
+      throw new Error(`Duplicate Shelf append: ${key}, ${entry.file}.`);
+    keys.add(key);
+    files.add(entry.file);
+    hashes.add(entry.sha256);
+  }
   const books = document.get("books", true);
   if (isScalar(books) && books.value === null) {
     const empty = document.createNode({});
@@ -49,10 +58,7 @@ async function appendEntries(
     }
     document.setIn(["books", key], entryNode(document, entry));
   }
-  await writeFileAtomically(
-    indexPath,
-    document.toString({ flowCollectionPadding: false }),
-  );
+  return document.toString({ flowCollectionPadding: false });
 }
 
 function entryNode(document: Document, entry: ShelfIndexEntry): unknown {
@@ -71,19 +77,19 @@ function entryNode(document: Document, entry: ShelfIndexEntry): unknown {
   return node;
 }
 
-async function readDocument(indexPath: string): Promise<Document> {
-  let contents: string;
-  try {
-    contents = await readFile(indexPath, "utf8");
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      return new Document({ books: {} });
-    }
-    throw unreadableIndex();
-  }
+export async function readShelfIndexDocument(shelfRoot: string) {
+  const observed = await readShelfFile(shelfRoot, SHELF_INDEX_FILENAME);
+  const contents =
+    observed === null
+      ? "books: {}\n"
+      : new TextDecoder("utf-8", { fatal: true }).decode(observed.bytes);
   const document = parseDocument(contents);
   if (document.errors.length > 0) throw unreadableIndex();
-  return document;
+  return {
+    document,
+    index: readIndex(document),
+    observation: observed?.observation ?? null,
+  };
 }
 
 function readIndex(document: Document): ShelfIndex {

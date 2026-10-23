@@ -1,18 +1,20 @@
 import { isMountArtifact } from "../contract/mount-artifacts.js";
-import { createHash } from "node:crypto";
-import { createReadStream, type Dirent } from "node:fs";
+import type { Dirent } from "node:fs";
 import { readdir } from "node:fs/promises";
-import { join } from "node:path";
-import { pipeline } from "node:stream/promises";
 
 import { OperationalError } from "../operational-error.js";
 import { SHELF_INDEX_FILENAME } from "./file-shelf-index-store.js";
+import { observeShelfFile } from "./shelf-file-observation.js";
 import type { ShelfReader } from "./types.js";
 
 export function createFileShelfReader(shelfRoot: string): ShelfReader {
   return {
     listBooks: async () => await listShelfRoot(shelfRoot),
-    checksum: async (file) => await checksum(join(shelfRoot, file)),
+    checksum: async (file) => {
+      const observed = await observeShelfFile(shelfRoot, file);
+      if (observed === null) throw new Error(`Shelf book missing: ${file}.`);
+      return observed.sha256;
+    },
   };
 }
 
@@ -29,6 +31,15 @@ async function listShelfRoot(shelfRoot: string): Promise<string[]> {
       `The Textbook shelf cannot be listed: ${shelfRoot}.`,
     );
   }
+  for (const entry of entries) {
+    if (
+      !entry.name.startsWith(".") &&
+      entry.name !== SHELF_INDEX_FILENAME &&
+      !entry.isFile() &&
+      !entry.isDirectory()
+    )
+      throw new Error(`Nonordinary Shelf entry: ${entry.name}.`);
+  }
   return entries
     .filter(
       (entry) =>
@@ -38,17 +49,4 @@ async function listShelfRoot(shelfRoot: string): Promise<string[]> {
     )
     .map(({ name }) => name)
     .sort();
-}
-
-async function checksum(path: string): Promise<string> {
-  const digest = createHash("sha256");
-  try {
-    await pipeline(createReadStream(path), digest);
-  } catch {
-    throw new OperationalError(
-      "operational-failure",
-      `A book on the shelf cannot be read: ${path}.`,
-    );
-  }
-  return digest.digest("hex");
 }

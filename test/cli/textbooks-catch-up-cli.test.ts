@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 
 import { runCli } from "../support/run-cli.js";
@@ -168,6 +168,7 @@ describe("academic-os textbooks catch-up", () => {
       shelf.configPath,
       `${JSON.stringify({
         driveMount: shelf.driveMount,
+        stateRoot: join(dirname(shelf.configPath), "state"),
         textbooks: { shelfRoot: "../elsewhere" },
       })}\n`,
     );
@@ -193,6 +194,8 @@ async function setupShelf(
   temporaryRoots.push(workspace);
   const driveMount = join(workspace, "drive");
   const root = join(driveMount, "Modules", "Textbooks");
+  const stateRoot = join(workspace, "state");
+  await mkdir(stateRoot);
   await mkdir(root, { recursive: true });
   for (const [file, contents] of Object.entries(books)) {
     await writeFile(join(root, file), contents);
@@ -203,6 +206,7 @@ async function setupShelf(
     configPath,
     `${JSON.stringify({
       driveMount,
+      stateRoot,
       textbooks: { shelfRoot: join("Modules", "Textbooks") },
     })}\n`,
   );

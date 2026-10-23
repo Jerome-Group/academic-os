@@ -69,8 +69,10 @@ The Operations server needs no credentials of its own: it runs the same task ope
 mini under the same pair.
 
 `textbooks catch-up` needs `textbooks.shelfRoot` — the Textbook shelf relative to the Drive mount,
-beside the semester roots. It reads the shelf and writes only the shelf's own `00 Index.yaml`, so
-it needs no credentials at all.
+beside the semester roots, and the configured private `stateRoot` outside Drive. It needs no
+credentials. Actual appends need `cc` plus native exclusive rename, atomic exchange and directory
+sync support on Darwin or Linux. Preview and no-op runs need no compiler. Apply retains index
+captures on the Shelf and durable run intent in private state.
 
 `routine morning` needs `routine.codexPath` and `routine.ghPath` — absolute paths to the Codex CLI
 it runs each Module pass under and to the `gh` CLI it raises the morning's issue through. Both are
@@ -696,9 +698,31 @@ node dist/src/cli.js textbooks migrate --config academic-os.config.json --apply
 
 Renames run first and the index last, because the index records final filenames. Every rename is a
 write to the Owner's own books, so each one refuses a target anything on the shelf already carries
-rather than replacing it, and each is journalled to `stateRoot/journals/textbooks/migration.jsonl`
-before and after it happens — a run that dies mid-pass leaves the exact list of books that moved.
-Nothing outside the sheet is renamed, and no path in the command deletes anything.
+rather than replacing it. One canonical journal under `stateRoot/journals/textbooks/`, keyed by
+the canonical Shelf path, records exact intent and observed effects. Same-host commands using
+the same configured canonical state root share one mutation owner across planning and publication.
+Different devices, state roots, manual editors and sync clients remain outside this coordination.
+
+The index publishes through a synced hidden proposal and atomic exchange. The proposal name then
+retains the original index permanently, even after success, preserving later writes through old
+open descriptors. Captures are recovery documents, not active catalogs. Their exact paths appear
+in the report. Never delete, move or merge one automatically. A late Owner edit may be retained
+there while the proposed index is already canonical; that reports `partial` and
+`published-unconfirmed`, with a nonzero exit status.
+
+An unresolved run fences new apply. Observe its exact recorded identities and hashes without
+changing the Shelf:
+
+```sh
+node dist/src/cli.js textbooks reconcile --config academic-os.config.json --run <run-id> --json
+```
+
+A later owned apply can acknowledge a proved applied or unapplied run. Partial observations name
+the exact paths requiring inspection and remain fenced. No automatic rollback or second exchange
+is attempted. A checksum is fresh evidence, not an atomic condition on rename. Namespace changes
+after the last check can still move a substituted source; readback reports partial work and
+withholds the migration index batch. Configured-mount, Drive-sync and power-loss recovery require
+their own evidence.
 
 Verify with a catch-up: after a clean migration `textbooks catch-up` has nothing to append and
 nothing to park, which is the baseline the daily pass runs against from then on.

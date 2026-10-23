@@ -6,14 +6,8 @@ import {
   resolveStateRoot,
 } from "../config/index.js";
 import { OperationalError } from "../mounted/index.js";
-import { exitCodeForOutcome } from "../report/index.js";
 import {
-  createFileShelfIndexStore,
-  createFileShelfMigrationJournal,
-  createFileShelfReader,
-  createFileShelfRenamer,
-  executeShelfMigration,
-  planShelfMigration,
+  openFileShelf,
   readShelfReviewSheet,
   type ShelfMigrationReport,
   shelfReviewSheetPath,
@@ -34,27 +28,19 @@ export async function runTextbooksMigrateCommand(
     resolveShelfRoot(config),
     resolveStateRoot(config),
   ]);
-  const store = createFileShelfIndexStore(shelfRoot);
-  const plan = await planShelfMigration({
-    reader: createFileShelfReader(shelfRoot),
-    index: await store.read(),
+  const shelf = await openFileShelf({ shelfRoot, stateRoot });
+  const report = await shelf.migrate({
     review: readShelfReviewSheet(
       await readSheet(shelfReviewSheetPath(stateRoot)),
     ),
-  });
-  const report = await executeShelfMigration({
-    plan,
-    renamer: createFileShelfRenamer(shelfRoot),
-    store,
-    journal: createFileShelfMigrationJournal(stateRoot),
     mode: parsed.apply ? "apply" : "preview",
   });
   process.stdout.write(
     json ? `${JSON.stringify(report, null, 2)}\n` : `${renderHuman(report)}\n`,
   );
-  if (report.outcome === "requires-decision") {
-    process.exitCode = exitCodeForOutcome(report.outcome);
-  }
+  if (report.outcome === "requires-decision") process.exitCode = 3;
+  else if (["refused", "partial"].includes(report.outcome))
+    process.exitCode = 2;
 }
 
 function parseMigrateArguments(arguments_: string[]): {
@@ -96,5 +82,12 @@ function renderHuman(report: ShelfMigrationReport): string {
     ...report.renames.map(({ from, to }) => `Rename ${from} -> ${to}`),
     ...report.appends.map(({ key, file }) => `Index ${key}: ${file}`),
     ...report.blockers.map((blocker) => `Blocked: ${blocker}`),
+    ...(report.mutation?.reasons.map((reason) => `Evidence: ${reason}`) ?? []),
+    ...(report.mutation?.captures.map(
+      (path) => `Retained index capture/proposal: ${path}`,
+    ) ?? []),
+    ...(report.mutation?.recovery === undefined
+      ? []
+      : [`Recovery: ${JSON.stringify(report.mutation.recovery)}`]),
   ].join("\n");
 }

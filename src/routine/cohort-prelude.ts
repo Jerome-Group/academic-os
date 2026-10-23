@@ -1,6 +1,7 @@
 import {
   type AcademicConfig,
   resolveShelfRoot,
+  resolveStateRoot,
   resolveTasksConfig,
 } from "../config/index.js";
 import { runImportStatus } from "../imports/index.js";
@@ -12,12 +13,7 @@ import {
   type TaskTargetRefreshReport,
   type TaskRefreshReader,
 } from "../tasks/index.js";
-import {
-  createFileShelfIndexStore,
-  createFileShelfReader,
-  executeShelfCatchUp,
-  planShelfCatchUp,
-} from "../textbooks/index.js";
+import { openFileShelf } from "../textbooks/index.js";
 import { planCohortAudit } from "../cohort/index.js";
 import { importStatusPrelude } from "./import-status-prelude.js";
 import type { MorningPreludePort, PreludeStepReport } from "./types.js";
@@ -47,27 +43,39 @@ export function createCohortPrelude(
           parked: 0,
           detail: ["Shared shelf writes excluded by modules-only scope."],
         };
-      const shelfRoot = await resolveShelfRoot(config);
-      const store = createFileShelfIndexStore(shelfRoot);
-      const report = await executeShelfCatchUp({
-        plan: await planShelfCatchUp({
-          reader: createFileShelfReader(shelfRoot),
-          index: await store.read(),
-        }),
-        store,
-        mode: "apply",
-      });
+      const [shelfRoot, stateRoot] = await Promise.all([
+        resolveShelfRoot(config),
+        resolveStateRoot(config),
+      ]);
+      const report = await (
+        await openFileShelf({ shelfRoot, stateRoot })
+      ).catchUp({ mode: "apply" });
       return {
         step: "textbook-shelf-catch-up",
         outcome: report.outcome,
         parked: report.counts.parked,
         detail: [
-          `${report.counts.books} on the shelf, ${report.counts.indexed} already indexed, ${report.counts.appends} appended`,
-          ...report.appends.map(({ key, file }) => `Appended ${key} — ${file}`),
+          `${report.counts.books} on the shelf, ${report.counts.indexed} already indexed, ${report.counts.appends} proposed; index ${report.index}`,
+          ...report.appends.map(({ key, file }) => `Proposed ${key} — ${file}`),
+          ...(report.mutation?.reasons ?? []),
+          ...(report.mutation?.captures.map(
+            (path) => `Retained index capture/proposal: ${path}`,
+          ) ?? []),
+          ...(report.mutation?.recovery === undefined
+            ? []
+            : [`Recovery: ${JSON.stringify(report.mutation.recovery)}`]),
           ...report.parked.map(
             (book) => `Parked ${book.file} — ${book.reason}; ${book.note}`,
           ),
         ],
+        ...(["partial", "refused"].includes(report.outcome)
+          ? {
+              failure: {
+                code: "shelf-mutation-incomplete",
+                message: report.mutation?.reasons.join(" ") ?? report.outcome,
+              },
+            }
+          : {}),
       };
     },
     pullTaskRegisters: async () => {

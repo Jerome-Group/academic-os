@@ -1,6 +1,8 @@
 # Seed ownership coverage
 
 `coverage.json` records the last successful product revision. A candidate run leaves that record unchanged until every gate passes.
+Its exact covered-file SHA-256 map binds ordinary execution to those bytes independently of Git object reachability after squash landing.
+The recorded revision still identifies the inspected history. Hash equality detects source drift; it supplies no model or implementation proof.
 The earlier inspection reconciled #340 through `64dfe99bcca15c13e9c49ab385da71656b857d1e`.
 This inspection extends through `2d000f1a79e33c0178379abe247588b682242e67`.
 `787dc825fff9379c990f0e3680492b972125799a` wraps the seed apply before observations and replaces unrestricted repair append with a bound mutation session.

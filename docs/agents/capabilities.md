@@ -13,7 +13,7 @@ profiles. They return structured status, exit codes, durations and evidence dige
 failed run's private evidence and retry the same bounded workflow after fixing its cause. CI calls
 these entrypoints too. Optional logs belong outside the repository and every academic mount.
 The `formal` profile runs bounded seed ownership models, compiled adapter schedules and real cleanup mutations.
-It requires Java 21, the pinned TLC jar or download access, and the Git history named by the formal skill's coverage record.
+It requires Java 21, the pinned TLC jar or download access, a clean Git checkout and the exact covered source bytes recorded by the formal skill.
 The `full` profile includes that same verification. Expected syscall-race and concurrent-writer counterexamples remain product limits.
 Java health observes the selected executable's version invocation. The formal runner separately enforces major version 21 and the TLC checksum.
 Configured health rejects aliases into its declared mount. Other actions cannot discover private

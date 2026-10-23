@@ -124,18 +124,14 @@ try {
       );
       results.candidateRevision = candidate;
     }
-    const drift = await command(
-      "git",
-      ["diff", revision, "--", ...coverage.files],
-      root,
-      "covered-diff",
-      evidence,
-    );
-    assert.equal(
-      drift.output,
-      "",
-      "covered source changed since sync revision; follow skill maintenance before advancing coverage.json",
-    );
+    results.sourceHashes = await sourceHashes(coverage.files);
+    if (candidate === undefined) {
+      assert.deepEqual(
+        results.sourceHashes,
+        coverage.sourceHashes,
+        "covered source binding changed; follow skill maintenance before advancing coverage.json",
+      );
+    }
     const dirty = await command(
       "git",
       ["status", "--porcelain"],
@@ -503,6 +499,12 @@ try {
       results.sourceRevision,
       "product HEAD changed during mutation controls",
     );
+    results.finalSourceHashes = await sourceHashes(coverage.files);
+    assert.deepEqual(
+      results.finalSourceHashes,
+      results.sourceHashes,
+      "covered source changed during verification",
+    );
     assert.equal(
       (
         await command(
@@ -538,6 +540,22 @@ function save() {
   return writeFile(
     join(evidence, "results.json"),
     `${JSON.stringify(results, null, 2)}\n`,
+  );
+}
+
+async function sourceHashes(files) {
+  assert.ok(Array.isArray(files) && files.length > 0, "covered files required");
+  assert.ok(files.every((path) => typeof path === "string"));
+  assert.equal(new Set(files).size, files.length, "covered files are unique");
+  return Object.fromEntries(
+    await Promise.all(
+      files.map(async (path) => [
+        path,
+        createHash("sha256")
+          .update(await readFile(join(root, path)))
+          .digest("hex"),
+      ]),
+    ),
   );
 }
 

@@ -35,7 +35,8 @@ It uses synthetic Module and Research-project folders only.
 ## Read the claim
 
 [The coverage record](coverage.md) maps actions to source and states the model bounds and environment assumptions.
-[The machine record](coverage.json) names the last checked source revision.
+[The machine record](coverage.json) names the last checked source revision and binds every covered file to its SHA-256.
+The ordinary run compares exact source bytes, so a squash merge does not require the original product commit object.
 TLC checks a bounded model. The compiled schedules and real-code mutation connect that model to the TypeScript implementation.
 Their combined result is model safety plus implementation evidence.
 
@@ -49,7 +50,7 @@ Its kernel exclusion and process-death release are premises connected to compile
 ## Maintain
 
 1. Run the existing command and retain its outcome before editing verification.
-2. Diff every covered file from `coverage.json` to the product commit. Read each intervening commit message. Search for moved functions and new writers of the same journal or roots.
+2. Diff every covered file from the recorded revision to the product commit. Fetch that historical revision if absent; if unavailable, record the blocked history inspection. Read each intervening commit message. Search for moved functions and new writers of the same journal or roots.
 3. Classify each change as no effect, model drift, an intended promise change, or a possible product bug. Update actions from source before rerunning.
 4. Keep every filesystem await distinct. State any excluded state, environmental restriction, or reduced bound beside the result. Change a promise only with cited product evidence.
 5. Run the command. For each failure, replay the trace against the source and classify it as model drift, product bug, or blocked execution.
@@ -60,6 +61,6 @@ Its kernel exclusion and process-death release are premises connected to compile
 For a separate checkout, `--product-root` selects the exact committed product source while keeping these verification files.
 `--evidence-parent` selects an existing parent beneath an OS temporary directory.
 The normal command rejects covered-source drift and uncommitted changes.
-During maintenance, `--candidate-revision <full-product-HEAD>` runs the candidate without changing the recorded sync revision.
-Advance the record only after that run passes and its source mapping agrees. Commit the verification, then run the ordinary command from the clean checkout.
+During maintenance, `--candidate-revision <full-product-HEAD>` runs a clean candidate and captures `sourceHashes` without changing the record.
+After that full run passes and its source mapping agrees, advance the revision and copy those exact hashes into the record. Commit the verification, then run the ordinary command from the clean checkout.
 Each schedule batch runs in a fresh Node process so restored builds cannot reuse mutated imports.

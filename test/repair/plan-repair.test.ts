@@ -8,8 +8,60 @@ import {
   repairApprovalDigest,
   repairDecisionDigest,
   repairInventoryDigest,
+  verifyRepairPlan,
 } from "../../src/repair/index.js";
 import { repairPlanDraft } from "./fixtures.js";
+import {
+  nestedRepairPlanDraft,
+  repairChildKinds,
+  repairFileParentFixture,
+} from "./parent-fixtures.js";
+
+for (const childKind of repairChildKinds) {
+  test(`rejects a planned file parent for ${childKind} during planning and verification`, () => {
+    const { draft, plan } = repairFileParentFixture(childKind);
+    const parentError =
+      /planned parent must be an earlier create-folder operation/u;
+    assert.throws(() => createRepairPlan(draft), parentError);
+    assert.throws(() => verifyRepairPlan(plan), parentError);
+  });
+}
+
+test("accepts nested planned folders and ordinary created files", () => {
+  const plan = createRepairPlan(nestedRepairPlanDraft());
+  assert.doesNotThrow(() => verifyRepairPlan(plan));
+  assert.deepEqual(
+    plan.operations.find(
+      ({ operationId }) => operationId === "create-nested-file",
+    ),
+    {
+      operationId: "create-nested-file",
+      kind: "create-file",
+      parent: { kind: "planned", operationId: "create-nested-folder" },
+      name: "Synthetic nested file.txt",
+      mimeType: "text/plain",
+      contents: "Synthetic nested file.\n",
+    },
+  );
+});
+
+for (const operationId of ["missing-folder", "later-folder", "create-admin"]) {
+  test(`rejects a planned parent that is not an earlier folder: ${operationId}`, () => {
+    const draft = repairPlanDraft();
+    const operation = draft.operations[0];
+    assert.ok(operation?.kind === "create-folder");
+    operation.parent = { kind: "planned", operationId };
+    draft.operations.push({
+      operationId: "later-folder",
+      kind: "create-folder",
+      parent: { kind: "existing", id: "module-id" },
+      name: "Later folder",
+    });
+    draft.approval.decisionDigest = repairDecisionDigest(draft.decisions);
+    draft.approval.approvedPlanDigest = repairApprovalDigest(draft);
+    assert.throws(() => createRepairPlan(draft), /planned parent/u);
+  });
+}
 
 test("creates a versioned ID-bound repair plan from approved decisions", () => {
   const plan = createRepairPlan(repairPlanDraft());

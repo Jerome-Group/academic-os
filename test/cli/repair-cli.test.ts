@@ -13,44 +13,20 @@ import { test } from "node:test";
 
 import { createRepairPlan } from "../../src/repair/index.js";
 import { repairPlanDraft } from "../repair/fixtures.js";
+import {
+  nestedRepairPlanDraft,
+  repairChildKinds,
+  repairFileParentFixture,
+} from "../repair/parent-fixtures.js";
 import { runCliWithEnvironment } from "../support/run-cli.js";
 
 test("compiled repair CLI previews equivalent versioned JSON and human reports", async () => {
-  const root = await mkdtemp(join(tmpdir(), "academic-os-repair-cli-"));
-  const driveMount = join(root, "Drive");
-  const stateRoot = join(root, "State");
-  const snapshotRoot = join(root, "Snapshot");
-  const moduleRoot = join(driveMount, "Modules", "Y9S9", "ZZ9999");
-  await mkdir(join(moduleRoot, "001 Source Material"), { recursive: true });
-  await Promise.all([mkdir(stateRoot), mkdir(snapshotRoot)]);
-  await writeFile(
-    join(moduleRoot, "001 Source Material", "ZZ9999 Source A.pdf"),
-    "Drive-backed placeholder",
-  );
-  const configPath = join(root, "academic-os.config.json");
-  await writeFile(
-    configPath,
-    JSON.stringify({
-      driveMount,
-      stateRoot,
-      activeSemester: "Y9S9",
-      semesters: {
-        Y9S9: { root: "Modules/Y9S9", status: "active", modules: ["ZZ9999"] },
-      },
-      driveApi: { moduleFolderIds: { Y9S9: { ZZ9999: "module-id" } } },
-      repair: { driveRecoveryRootId: "recovery-root", snapshotRoot },
-    }),
-  );
-  const planPath = join(root, "approved.repair-plan.json");
+  const { configPath, planPath, stateRoot, environment } =
+    await repairCliFixture();
   await writeFile(
     planPath,
     JSON.stringify(createRepairPlan(repairPlanDraft())),
   );
-  const preload = new URL(
-    "../support/fake-repair-drive-preload.js",
-    import.meta.url,
-  ).href;
-  const environment = { NODE_OPTIONS: `--import=${preload}` };
 
   const json = await runCliWithEnvironment(
     environment,
@@ -164,4 +140,113 @@ for (const kind of ["ordinary", "two-dot", "alias", "outside"] as const) {
     assert.deepEqual(await readdir(inside), []);
     assert.deepEqual(await readdir(outside), []);
   });
+}
+
+for (const childKind of repairChildKinds) {
+  test(`compiled repair preview refuses ${childKind} beneath a planned file before provider or journal access`, async () => {
+    const fixture = await repairCliFixture();
+    const { plan } = repairFileParentFixture(childKind);
+    await writeFile(fixture.planPath, JSON.stringify(plan));
+    const result = await runCliWithEnvironment(
+      fixture.environment,
+      "repair",
+      "--config",
+      fixture.configPath,
+      "--plan",
+      fixture.planPath,
+      "--json",
+    );
+    assert.equal(result.exitCode, 2, `${result.stdout}\n${result.stderr}`);
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.error.code, "invalid-config");
+    assert.match(
+      report.error.message,
+      /planned parent must be an earlier create-folder operation/u,
+    );
+    assert.equal(await readFile(fixture.requestTrace, "utf8"), "");
+    assert.deepEqual(await readdir(fixture.stateRoot), []);
+    assert.deepEqual(await readdir(fixture.snapshotRoot), []);
+    assert.equal(
+      await readFile(fixture.sourcePath, "utf8"),
+      "Drive-backed placeholder",
+    );
+  });
+}
+
+test("compiled repair preview accepts nested folders and files without writing state", async () => {
+  const fixture = await repairCliFixture();
+  await writeFile(
+    fixture.planPath,
+    JSON.stringify(createRepairPlan(nestedRepairPlanDraft())),
+  );
+  const result = await runCliWithEnvironment(
+    fixture.environment,
+    "repair",
+    "--config",
+    fixture.configPath,
+    "--plan",
+    fixture.planPath,
+    "--json",
+  );
+  assert.equal(result.exitCode, 0, `${result.stdout}\n${result.stderr}`);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.outcome, "preview");
+  assert.ok(report.remainingOperations.includes("create-nested-folder"));
+  assert.ok(report.remainingOperations.includes("create-nested-file"));
+  assert.notEqual(await readFile(fixture.requestTrace, "utf8"), "");
+  assert.deepEqual(await readdir(fixture.stateRoot), []);
+  assert.deepEqual(await readdir(fixture.snapshotRoot), []);
+  assert.equal(
+    await readFile(fixture.sourcePath, "utf8"),
+    "Drive-backed placeholder",
+  );
+});
+
+async function repairCliFixture() {
+  const root = await mkdtemp(join(tmpdir(), "academic-os-repair-cli-"));
+  const driveMount = join(root, "Drive");
+  const stateRoot = join(root, "State");
+  const snapshotRoot = join(root, "Snapshot");
+  const moduleRoot = join(driveMount, "Modules", "Y9S9", "ZZ9999");
+  await mkdir(join(moduleRoot, "001 Source Material"), { recursive: true });
+  await Promise.all([mkdir(stateRoot), mkdir(snapshotRoot)]);
+  const sourcePath = join(
+    moduleRoot,
+    "001 Source Material",
+    "ZZ9999 Source A.pdf",
+  );
+  await writeFile(sourcePath, "Drive-backed placeholder");
+  const configPath = join(root, "academic-os.config.json");
+  await writeFile(
+    configPath,
+    JSON.stringify({
+      driveMount,
+      stateRoot,
+      activeSemester: "Y9S9",
+      semesters: {
+        Y9S9: { root: "Modules/Y9S9", status: "active", modules: ["ZZ9999"] },
+      },
+      driveApi: { moduleFolderIds: { Y9S9: { ZZ9999: "module-id" } } },
+      repair: { driveRecoveryRootId: "recovery-root", snapshotRoot },
+    }),
+  );
+  const planPath = join(root, "approved.repair-plan.json");
+  const requestTrace = join(root, "requests.log");
+  await writeFile(requestTrace, "");
+  const preload = new URL(
+    "../support/fake-repair-drive-preload.js",
+    import.meta.url,
+  ).href;
+  return {
+    configPath,
+    planPath,
+    stateRoot,
+    snapshotRoot,
+    sourcePath,
+    requestTrace,
+    environment: {
+      NODE_OPTIONS: `--import=${preload}`,
+      AOS_REPAIR_REQUEST_TRACE: requestTrace,
+    },
+  };
 }

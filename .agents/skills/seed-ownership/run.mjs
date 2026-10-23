@@ -12,7 +12,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
@@ -534,7 +534,10 @@ try {
 
 function within(parentPath, candidate) {
   const path = relative(parentPath, candidate);
-  return path === "" || (!path.startsWith("..") && !isAbsolute(path));
+  return (
+    path === "" ||
+    (path !== ".." && !path.startsWith(`..${sep}`) && !isAbsolute(path))
+  );
 }
 function save() {
   return writeFile(

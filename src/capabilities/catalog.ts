@@ -624,7 +624,7 @@ export function capabilityIndex(): object {
         ...(["formal", "full"].includes(profile)
           ? [
               "Java 21 via JAVA or PATH; pinned TLC download or TLA2TOOLS_JAR",
-              "clean committed checkout; Git history containing the seed ownership sync revision",
+              "clean committed checkout; covered-source hashes match the checked-in formal binding",
             ]
           : []),
       ],
@@ -643,7 +643,7 @@ export function capabilityIndex(): object {
       health: "not-observed",
       result:
         profile === "formal"
-          ? "Bounded seed ownership models, compiled schedules and real cleanup mutation controls; expected counterexamples are required. No syscall atomicity or concurrent-writer guarantee."
+          ? "Bounded seed filesystem and cooperating journal-owner models, compiled schedules and mutation controls; expected counterexamples are required. Same-host canonical-state assumptions apply. No guarantee against syscall swaps, uncontrolled writers or distributed ownership."
           : "Per-check exit, duration, bounded output count/hash; full includes all compiled tests, privacy checks and seed ownership verification.",
     });
   return {

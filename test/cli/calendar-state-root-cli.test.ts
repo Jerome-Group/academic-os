@@ -78,7 +78,8 @@ for (const kind of ["ordinary", "..private", "alias", "outside"]) {
     );
     if (kind === "outside") {
       assert.equal(result.exitCode, 0, JSON.stringify(result));
-      assert.equal(JSON.parse(result.stdout).outcome, "preview");
+      assert.equal(JSON.parse(result.stdout).outcome, "configured");
+      assert.equal(JSON.parse(result.stdout).workspace, "written");
       assert.equal(
         (await realpath(stateRoot)).startsWith(
           `${await realpath(driveMount)}/`,

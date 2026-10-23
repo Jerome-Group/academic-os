@@ -60,6 +60,50 @@ const deviation: ResearchAuditResult = {
 };
 
 describe("Research-project audit observations", () => {
+  it("diagnoses a non-scalar prior pass without inventing a resolved finding", async () => {
+    const target = await researchTarget();
+    const passing: ResearchAuditResult = {
+      outcome: "conformant",
+      findings: deviation.findings.map((finding) => ({
+        ...finding,
+        status: "pass",
+        severity: "information",
+      })),
+    };
+    const first = await record(
+      target,
+      mountedInventory,
+      passing,
+      "2026-08-31T01:00:00.000Z",
+    );
+    const malformed = {
+      ...first.observation,
+      findings: first.observation.findings.map((finding) => ({
+        ...finding,
+        status: ["pass"],
+      })),
+    };
+    await writeFile(first.observationPath, JSON.stringify(malformed));
+
+    const result = await record(
+      target,
+      mountedInventory,
+      passing,
+      "2026-08-31T02:00:00.000Z",
+    );
+
+    assert.deepEqual(
+      result.historyDiagnostics.map(({ kind }) => kind),
+      ["corrupt-history"],
+    );
+    assert.equal(result.comparison.basis, "no-prior-observation");
+    assert.deepEqual(result.comparison.resolved, []);
+    assert.deepEqual(
+      JSON.parse(await readFile(first.observationPath, "utf8")),
+      malformed,
+    );
+  });
+
   it("keeps missing history read-only and stores a distinct Research schema", async () => {
     const target = await researchTarget();
     const missing = await readResearchProjectAuditHistory(target);

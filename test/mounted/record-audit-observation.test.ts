@@ -138,6 +138,40 @@ describe("recordMountedAuditObservation", () => {
     ]);
   });
 
+  it("diagnoses a non-scalar prior pass without inventing a resolved finding", async () => {
+    const target = await mountedTarget();
+    const passing: AuditResult = {
+      outcome: "conformant",
+      findings: deviation.findings.map((finding) => ({
+        ...finding,
+        status: "pass",
+        severity: "information",
+      })),
+    };
+    const first = await record(target, passing, "2026-08-11T01:00:00.000Z");
+    const malformed = {
+      ...first.observation,
+      findings: first.observation.findings.map((finding) => ({
+        ...finding,
+        status: ["pass"],
+      })),
+    };
+    await writeFile(first.observationPath, JSON.stringify(malformed));
+
+    const result = await record(target, passing, "2026-08-11T02:00:00.000Z");
+
+    assert.deepEqual(
+      result.historyDiagnostics.map(({ kind }) => kind),
+      ["corrupt-history"],
+    );
+    assert.equal(result.comparison.basis, "no-prior-observation");
+    assert.deepEqual(result.comparison.resolved, []);
+    assert.deepEqual(
+      JSON.parse(await readFile(first.observationPath, "utf8")),
+      malformed,
+    );
+  });
+
   it("preserves complete history when publication is interrupted", async () => {
     const target = await mountedTarget();
     const first = await record(target, deviation, "2026-08-11T01:00:00.000Z");

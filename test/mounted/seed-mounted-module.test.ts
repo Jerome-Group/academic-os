@@ -24,6 +24,8 @@ import { createModuleSeedPlan } from "../../src/seed/index.js";
 import { validModuleControls } from "../fixtures/module-controls.js";
 import { testModuleContract } from "../fixtures/module-contract.js";
 
+import { seedOwnershipTests } from "../support/seed-ownership.js";
+
 const temporaryRoots: string[] = [];
 
 afterEach(async () => {
@@ -41,6 +43,17 @@ const interruptionPoints: SeedExecutionCheckpoint[] = [
 ];
 
 describe("seedMountedModule", () => {
+  seedOwnershipTests(async () => {
+    const fixture = await mountedSeedFixture();
+    return {
+      parentRoot: fixture.semesterRoot,
+      targetRoot: join(fixture.semesterRoot, "MH2100"),
+      stateRoot: fixture.stateRoot,
+      run: (options) =>
+        seedMountedModule(fixture.config, fixture.plan, "apply", options),
+    };
+  });
+
   for (const interruptionPoint of interruptionPoints) {
     it(`resumes safely after interruption ${interruptionPoint}`, async () => {
       const fixture = await mountedSeedFixture();

@@ -25,6 +25,7 @@ import { validModuleControls } from "../fixtures/module-controls.js";
 import { testModuleContract } from "../fixtures/module-contract.js";
 
 import { seedOwnershipTests } from "../support/seed-ownership.js";
+import { assertSeedPartialRootIdentity } from "../support/seed-partial-root-identity.js";
 
 const temporaryRoots: string[] = [];
 
@@ -43,6 +44,16 @@ const interruptionPoints: SeedExecutionCheckpoint[] = [
 ];
 
 describe("seedMountedModule", () => {
+  it("adds to a partial root whose inode exceeds numeric precision", async () => {
+    const fixture = await mountedSeedFixture();
+    await assertSeedPartialRootIdentity({
+      kind: "module",
+      config: fixture.config,
+      plan: fixture.plan,
+      targetRoot: join(fixture.semesterRoot, "MH2100"),
+    });
+  });
+
   seedOwnershipTests(async () => {
     const fixture = await mountedSeedFixture();
     return {

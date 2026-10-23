@@ -1,3 +1,4 @@
+import { exactInstant } from "./calendar-occurrences.js";
 import { OperationalError } from "../operational-error.js";
 import {
   localNtuDateTime,
@@ -49,6 +50,7 @@ export interface ParsedCalendarBulkCreateItem {
 }
 
 export interface ParsedCalendarAcademicTimetableProposalInput {
+  recipe: unknown;
   operation: "academic-timetable";
   source: CalendarProposalSource;
   calendarRole: "Academic";
@@ -130,6 +132,48 @@ export function parseCalendarAcademicTimetableProposalInput(
     source,
     calendarRole: "Academic",
     items: [...parsedClasses, ...parsedExams],
+    recipe: {
+      schemaVersion: 1,
+      source,
+      item: {
+        operation: "academic-timetable",
+        calendarRole: "Academic",
+        term: item.term,
+        classes: classes.map((entry) => canonicalTimetableEntry(entry, true)),
+        exams: exams.map((entry) => canonicalTimetableEntry(entry, false)),
+      },
+    },
+  };
+}
+
+function canonicalTimetableEntry(value: unknown, isClass: boolean): unknown {
+  const entry = requireObject(value, "timetable entry");
+  const names = isClass
+    ? [
+        "key",
+        "summary",
+        "weekday",
+        "startTime",
+        "endTime",
+        "description",
+        "location",
+      ]
+    : [
+        "key",
+        "summary",
+        "date",
+        "startTime",
+        "endTime",
+        "description",
+        "location",
+      ];
+  return {
+    ...Object.fromEntries(
+      names
+        .filter((name) => entry[name] !== undefined)
+        .map((name) => [name, entry[name]]),
+    ),
+    ...(isClass ? { weeks: parseNtuWeekSelection(entry.weeks, "weeks") } : {}),
   };
 }
 
@@ -431,7 +475,7 @@ export function parseCalendarChangeProposalInput(
   };
 }
 
-function parseEventPatch(
+export function parseEventPatch(
   value: unknown,
   allowEmpty: boolean,
 ): CalendarEventPatch {
@@ -457,7 +501,53 @@ function parseEventPatch(
   ) {
     invalidInput("item.patch must contain only supported event fields");
   }
-  return patch as CalendarEventPatch;
+  const result: CalendarEventPatch = {};
+  for (const key of ["summary", "description", "location"] as const)
+    if (patch[key] !== undefined) {
+      if (typeof patch[key] !== "string")
+        invalidInput(`item.patch.${key} must be a string`);
+      result[key] = patch[key];
+    }
+  if (patch.recurrence !== undefined)
+    result.recurrence = parseEventRecurrence(patch.recurrence) ?? [];
+  for (const key of ["start", "end"] as const)
+    if (patch[key] !== undefined) {
+      const point = requireObject(patch[key], `item.patch.${key}`);
+      if (point.date !== undefined) {
+        if (point.dateTime !== undefined || point.timeZone !== undefined)
+          invalidInput(`item.patch.${key} must use one date value`);
+        result[key] = {
+          date: requireDate(point.date, `item.patch.${key}.date`),
+        };
+      } else
+        result[key] = parseTimedPoint(
+          point,
+          `item.patch.${key}`,
+          "Asia/Singapore",
+        );
+    }
+  if (patch.transparency !== undefined) {
+    if (patch.transparency !== "opaque" && patch.transparency !== "transparent")
+      invalidInput("item.patch.transparency must be opaque or transparent");
+    result.transparency = patch.transparency;
+  }
+  if (patch.visibility !== undefined) {
+    if (
+      patch.visibility !== "private" &&
+      patch.visibility !== "public" &&
+      patch.visibility !== "default"
+    )
+      invalidInput("item.patch.visibility is invalid");
+    result.visibility = patch.visibility;
+  }
+  if (patch.attachments !== undefined) {
+    if (!Array.isArray(patch.attachments))
+      invalidInput("item.patch.attachments must be an array");
+    result.attachments = patch.attachments;
+  }
+  for (const key of ["reminders", "conferenceData", "source"] as const)
+    if (patch[key] !== undefined) result[key] = patch[key];
+  return result;
 }
 
 function parseRecurrenceScope(
@@ -685,6 +775,7 @@ function parseTimedPoint(
   ) {
     invalidInput(`${name}.dateTime must be an ISO-8601 instant with an offset`);
   }
+  exactInstant(dateTime);
   const timeZone =
     point.timeZone === undefined
       ? defaultTimezone

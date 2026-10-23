@@ -1,3 +1,4 @@
+import { saveAssessedCalendarProposal } from "./save-assessed-calendar-proposal.js";
 import { calendarStateDigest } from "./calendar-state-digest.js";
 import { isRecurringMaster } from "./calendar-event-helpers.js";
 import type { ParsedCalendarRoutineMigrationProposalInput } from "./calendar-proposal-input.js";
@@ -7,6 +8,7 @@ import {
 } from "./read-current-calendar-mirrors.js";
 import type {
   CalendarEvent,
+  CalendarProposalReader,
   CalendarProposalStore,
   CalendarProposeReport,
   CalendarProviderIdentity,
@@ -21,6 +23,7 @@ import type {
 
 export async function createRoutineMigrationProposal(input: {
   value: ParsedCalendarRoutineMigrationProposalInput;
+  reader: CalendarProposalReader;
   workspace: OwnedCalendarWorkspace;
   mirrorStore: OwnedCalendarMirrorStore;
   proposalStore: CalendarProposalStore;
@@ -209,16 +212,13 @@ export async function createRoutineMigrationProposal(input: {
     },
     conflictSummary: { blockers: 0, warnings: 0 },
   };
-  await input.proposalStore.writeCurrent(proposal);
-  return {
-    schemaVersion: 1,
-    command: "calendar propose",
-    outcome: "ready",
+  return await saveAssessedCalendarProposal({
     proposal,
-    conflicts: [],
-    warnings: [],
-    workspace: "written",
-  };
+    workspace: input.workspace,
+    mirrors,
+    reader: input.reader,
+    proposalStore: input.proposalStore,
+  });
 }
 
 function createMove(

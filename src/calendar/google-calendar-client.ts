@@ -1,16 +1,14 @@
 import { GoogleAuth } from "google-auth-library";
 
 import { checkedNextPageToken } from "../provider-page-token.js";
-import { createHash } from "node:crypto";
 
 import { OperationalError } from "../operational-error.js";
 
 import { CalendarSyncTokenExpiredError } from "./calendar-refresh-error.js";
-import { idempotentExtendedProperties } from "./calendar-event-helpers.js";
 import {
-  futureCalendarRecurrence,
-  trimCalendarRecurrence,
-} from "./calendar-recurrence.js";
+  isCalendarEvent,
+  idempotentExtendedProperties,
+} from "./calendar-event-helpers.js";
 import type {
   CalendarEvent,
   CalendarEventPatch,
@@ -91,13 +89,8 @@ export function createGoogleCalendarPromotionWriter(
           : {}),
       });
     },
-    readEvent: async ({ calendarId, eventId }) => {
-      const response: { data: CalendarEvent } = await requester.request({
-        url: `${eventCollectionUrl(calendarId)}/${encodeURIComponent(eventId)}`,
-        method: "GET",
-      });
-      return response.data;
-    },
+    readEvent: async ({ calendarId, eventId }) =>
+      await readExactEvent(requester, calendarId, eventId),
     patchEvent: async ({ calendarId, eventId, patch }) => {
       const params = patchRequestParameters(patch);
       await requester.request({
@@ -126,272 +119,6 @@ export function createGoogleCalendarPromotionWriter(
         throw error;
       }
     },
-    splitRecurringEvent: async (input) =>
-      await splitGoogleRecurringEvent(requester, input),
-  };
-}
-
-async function splitGoogleRecurringEvent(
-  requester: CalendarRequester,
-  input: Parameters<CalendarPromotionWriter["splitRecurringEvent"]>[0],
-): Promise<{ eventId: string }> {
-  const originalRecurrence = input.recurringMaster.recurrence;
-  if (
-    originalRecurrence !== undefined &&
-    (originalRecurrence.length !== 1 ||
-      !originalRecurrence[0]?.startsWith("RRULE:"))
-  ) {
-    throw new OperationalError(
-      "invalid-target",
-      "Recurring splits require one RRULE without RDATE or EXDATE adjustments; the source series was retained.",
-    );
-  }
-  if (
-    input.exceptions.length > 0 &&
-    (input.patch.start !== undefined || input.patch.recurrence !== undefined)
-  ) {
-    throw new OperationalError(
-      "invalid-target",
-      "A recurring split with retained exceptions cannot change its start or recurrence; resolve the exceptions before changing their occurrence anchors.",
-    );
-  }
-  const newEventId = `a${createHash("sha256").update(input.idempotencyKey).digest("hex").slice(0, 31)}`;
-  if (await eventExists(requester, input.targetCalendarId, newEventId)) {
-    await replayRecurrenceExceptions(requester, input, newEventId);
-    return { eventId: newEventId };
-  }
-  let instance: CalendarEvent;
-  try {
-    instance = (
-      await requester.request<CalendarEvent>({
-        url: `${eventCollectionUrl(input.sourceCalendarId)}/${encodeURIComponent(input.instanceId)}`,
-        method: "GET",
-      })
-    ).data;
-  } catch (error) {
-    if (
-      !isMissingEventError(error) ||
-      input.occurrence?.id !== input.instanceId
-    )
-      throw error;
-    instance = input.occurrence;
-  }
-  if (instance.status === "cancelled") {
-    if (input.occurrence?.id !== input.instanceId)
-      throw new OperationalError(
-        "invalid-target",
-        "A cancelled split occurrence requires its bound Proposal snapshot.",
-      );
-    instance = input.occurrence;
-  }
-  const splitPoint = instance.originalStartTime ?? instance.start;
-  const splitBoundary = splitPoint?.dateTime ?? splitPoint?.date;
-  if (splitBoundary === undefined || originalRecurrence === undefined) {
-    throw new Error(
-      "This-and-future Promotion requires a timed recurring occurrence and master.",
-    );
-  }
-  const priorOccurrenceCount =
-    input.patch.recurrence === undefined
-      ? await countPriorOccurrences(
-          requester,
-          input.sourceCalendarId,
-          input.recurringEventId,
-          originalRecurrence,
-          splitBoundary,
-        )
-      : 0;
-  const futureRecurrence =
-    input.patch.recurrence ??
-    futureCalendarRecurrence(originalRecurrence, priorOccurrenceCount);
-  await trimRecurringMaster(requester, input, splitBoundary);
-  await createFutureSeries(
-    requester,
-    input,
-    instance,
-    newEventId,
-    futureRecurrence,
-  );
-  await replayRecurrenceExceptions(requester, input, newEventId);
-  return { eventId: newEventId };
-}
-
-async function countPriorOccurrences(
-  requester: CalendarRequester,
-  calendarId: string,
-  recurringEventId: string,
-  recurrence: string[],
-  splitBoundary: string,
-): Promise<number> {
-  if (
-    !recurrence.some(
-      (line) => line.startsWith("RRULE:") && /;COUNT=/u.test(line),
-    )
-  )
-    return 0;
-  if (
-    recurrence.some(
-      (line) => line.startsWith("RRULE:") && !/;(?:COUNT|UNTIL)=/u.test(line),
-    )
-  ) {
-    throw new OperationalError(
-      "invalid-target",
-      "A counted recurring split requires every recurrence rule to have a finite bound.",
-    );
-  }
-  let count = 0;
-  let pageToken: string | undefined;
-  const seenPageTokens = new Set<string>();
-  do {
-    const priorInstances = await requester.request<CalendarEventsPage>({
-      url: `${eventCollectionUrl(calendarId)}/${encodeURIComponent(recurringEventId)}/instances`,
-      method: "GET",
-      params: {
-        showDeleted: true,
-        ...(pageToken === undefined ? {} : { pageToken }),
-      },
-    });
-    for (const event of priorInstances.data.items ?? []) {
-      const originalStart =
-        event.originalStartTime?.dateTime ?? event.originalStartTime?.date;
-      if (
-        originalStart === undefined ||
-        !Number.isFinite(Date.parse(originalStart))
-      ) {
-        throw new OperationalError(
-          "operational-failure",
-          "A recurring occurrence returned no valid original start; the source series was retained.",
-        );
-      }
-      if (Date.parse(originalStart) < Date.parse(splitBoundary)) count += 1;
-    }
-    pageToken = checkedNextPageToken(
-      priorInstances.data.nextPageToken,
-      seenPageTokens,
-    );
-  } while (pageToken !== undefined);
-  return count;
-}
-
-async function trimRecurringMaster(
-  requester: CalendarRequester,
-  input: Parameters<CalendarPromotionWriter["splitRecurringEvent"]>[0],
-  splitBoundary: string,
-): Promise<void> {
-  const trimmed = {
-    ...writableEvent(input.recurringMaster),
-    recurrence: trimCalendarRecurrence(
-      input.recurringMaster.recurrence ?? [],
-      splitBoundary,
-    ),
-  };
-  await requester.request({
-    url: `${eventCollectionUrl(input.sourceCalendarId)}/${encodeURIComponent(input.recurringEventId)}`,
-    method: "PUT",
-    data: trimmed,
-    params: richEventRequestParameters(trimmed),
-  });
-}
-
-async function createFutureSeries(
-  requester: CalendarRequester,
-  input: Parameters<CalendarPromotionWriter["splitRecurringEvent"]>[0],
-  instance: CalendarEvent,
-  eventId: string,
-  recurrence: string[],
-): Promise<void> {
-  const master = input.recurringMaster;
-  const future = {
-    ...writableEvent(master),
-    id: eventId,
-    start: instance.start,
-    end: instance.end,
-    ...input.patch,
-    recurrence: input.patch.recurrence ?? recurrence,
-    extendedProperties: idempotentExtendedProperties(
-      master,
-      input.idempotencyKey,
-    ),
-  };
-  await requester.request({
-    url: eventCollectionUrl(input.targetCalendarId),
-    method: "POST",
-    data: future,
-    params: richEventRequestParameters(future),
-  });
-}
-
-async function replayRecurrenceExceptions(
-  requester: CalendarRequester,
-  input: Parameters<CalendarPromotionWriter["splitRecurringEvent"]>[0],
-  eventId: string,
-): Promise<void> {
-  for (const exception of input.exceptions) {
-    const originalStart =
-      exception.originalStartTime?.dateTime ??
-      exception.originalStartTime?.date;
-    if (originalStart === undefined) continue;
-    const instances = await requester.request<CalendarEventsPage>({
-      url: `${eventCollectionUrl(input.targetCalendarId)}/${eventId}/instances`,
-      method: "GET",
-      params: { originalStart },
-    });
-    const replacement = instances.data.items?.[0];
-    if (replacement === undefined) {
-      throw new Error(
-        `Calendar returned no replacement instance for ${originalStart}.`,
-      );
-    }
-    const patch = writableException(exception);
-    await requester.request({
-      url: `${eventCollectionUrl(input.targetCalendarId)}/${encodeURIComponent(replacement.id)}`,
-      method: "PATCH",
-      data: patch,
-      params: richEventRequestParameters(patch),
-    });
-  }
-}
-
-async function eventExists(
-  requester: CalendarRequester,
-  calendarId: string,
-  eventId: string,
-): Promise<boolean> {
-  try {
-    await requester.request({
-      url: `${eventCollectionUrl(calendarId)}/${eventId}`,
-      method: "GET",
-    });
-    return true;
-  } catch (error) {
-    if (isMissingEventError(error)) return false;
-    throw error;
-  }
-}
-
-function writableEvent(event: CalendarEvent): Record<string, unknown> {
-  const value = { ...event };
-  for (const key of [
-    "id",
-    "etag",
-    "created",
-    "updated",
-    "htmlLink",
-    "iCalUID",
-    "kind",
-    "recurringEventId",
-    "originalStartTime",
-    "sequence",
-    "status",
-  ])
-    delete value[key];
-  return value;
-}
-
-function writableException(event: CalendarEvent): Record<string, unknown> {
-  return {
-    ...writableEvent(event),
-    ...(typeof event.status === "string" ? { status: event.status } : {}),
   };
 }
 
@@ -399,7 +126,25 @@ function eventCollectionUrl(calendarId: string): string {
   return `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`;
 }
 
-function patchRequestParameters(patch: CalendarEventPatch): {
+async function readExactEvent(
+  requester: CalendarRequester,
+  calendarId: string,
+  eventId: string,
+): Promise<CalendarEvent> {
+  const response = await requester.request<unknown>({
+    url: `${eventCollectionUrl(calendarId)}/${encodeURIComponent(eventId)}`,
+    method: "GET",
+  });
+  const event = requireCalendarEvent(response.data);
+  if (event.id !== eventId)
+    throw new OperationalError(
+      "operational-failure",
+      "Calendar provider returned a different resource identity for an exact read.",
+    );
+  return event;
+}
+
+function patchRequestParameters(patch: CalendarEventPatch | CalendarEvent): {
   supportsAttachments?: true;
   conferenceDataVersion?: 1;
 } {
@@ -441,6 +186,46 @@ export function createGoogleCalendarProposalReader(
 ): CalendarProposalReader {
   return {
     listCalendars: async () => await listCalendars(requester),
+    readEvent: async ({ calendarId, eventId }) =>
+      await readExactEvent(requester, calendarId, eventId),
+    listStoredEvents: async ({ calendarId }) =>
+      (
+        await listEventPages(
+          async (pageToken) =>
+            (
+              await requester.request<CalendarEventsPage>({
+                url: eventCollectionUrl(calendarId),
+                method: "GET",
+                params: {
+                  singleEvents: false,
+                  showDeleted: true,
+                  ...(pageToken === undefined ? {} : { pageToken }),
+                },
+              })
+            ).data,
+        )
+      ).events,
+    listSeriesInstances: async ({ calendarId, eventId, originalStart }) =>
+      (
+        await listEventPages(async (pageToken) => {
+          try {
+            return (
+              await requester.request<CalendarEventsPage>({
+                url: `${eventCollectionUrl(calendarId)}/${encodeURIComponent(eventId)}/instances`,
+                method: "GET",
+                params: {
+                  originalStart,
+                  showDeleted: true,
+                  ...(pageToken === undefined ? {} : { pageToken }),
+                },
+              })
+            ).data;
+          } catch (error) {
+            if (isMissingEventError(error)) return { items: [] };
+            throw error;
+          }
+        })
+      ).events,
     listEventOccurrences: async ({ calendarId, timeMin, timeMax }) => {
       const result = await listEventPages(async (pageToken) => {
         const response: { data: CalendarEventsPage } = await requester.request({
@@ -527,12 +312,43 @@ async function listEventPages(
   readPage: (pageToken: string | undefined) => Promise<CalendarEventsPage>,
 ): Promise<{ events: CalendarEvent[]; nextSyncToken?: string }> {
   const events: CalendarEvent[] = [];
+  const seenEventIds = new Set<string>();
   let pageToken: string | undefined;
   const seenPageTokens = new Set<string>();
+  let pageCount = 0;
   let nextSyncToken: string | undefined;
   do {
+    if (pageCount >= 1000)
+      throw new OperationalError(
+        "operational-failure",
+        "Calendar provider page budget 1000 exceeded; coverage is incomplete.",
+      );
+    pageCount += 1;
     const page = await readPage(pageToken);
-    events.push(...(page.items ?? []));
+    if (
+      typeof page !== "object" ||
+      page === null ||
+      (page.items !== undefined && !Array.isArray(page.items))
+    )
+      throw new OperationalError(
+        "operational-failure",
+        "Calendar provider returned an invalid event page.",
+      );
+    for (const value of page.items ?? []) {
+      const event = requireCalendarEvent(value);
+      if (seenEventIds.has(event.id))
+        throw new OperationalError(
+          "operational-failure",
+          "Calendar provider repeated an event identity; coverage is incomplete.",
+        );
+      seenEventIds.add(event.id);
+      events.push(event);
+    }
+    if (events.length > 100000)
+      throw new OperationalError(
+        "operational-failure",
+        "Calendar provider event budget 100000 exceeded; coverage is incomplete.",
+      );
     pageToken = checkedNextPageToken(page.nextPageToken, seenPageTokens);
     nextSyncToken = page.nextSyncToken ?? nextSyncToken;
   } while (pageToken !== undefined);
@@ -584,11 +400,64 @@ async function listCalendars(
         ...(pageToken === undefined ? {} : { pageToken }),
       },
     });
-    calendars.push(...(response.data.items ?? []));
+    if (
+      typeof response.data !== "object" ||
+      response.data === null ||
+      (response.data.items !== undefined && !Array.isArray(response.data.items))
+    )
+      throw new OperationalError(
+        "operational-failure",
+        "Calendar provider returned an invalid Calendar list page.",
+      );
+    for (const calendar of response.data.items ?? []) {
+      if (
+        typeof calendar !== "object" ||
+        calendar === null ||
+        typeof calendar.id !== "string" ||
+        calendar.id === "" ||
+        typeof calendar.summary !== "string" ||
+        [calendar.selected, calendar.hidden, calendar.primary].some(
+          (value) => value !== undefined && typeof value !== "boolean",
+        ) ||
+        (calendar.timeZone !== undefined &&
+          typeof calendar.timeZone !== "string")
+      )
+        throw new OperationalError(
+          "operational-failure",
+          "Calendar provider returned invalid Calendar metadata.",
+        );
+      if (calendar.timeZone !== undefined) {
+        try {
+          new Intl.DateTimeFormat("en", {
+            timeZone: calendar.timeZone,
+          }).format();
+        } catch {
+          throw new OperationalError(
+            "operational-failure",
+            "Calendar provider returned an invalid timezone.",
+          );
+        }
+      }
+      calendars.push(calendar);
+    }
+    if (seenPageTokens.size >= 1000 || calendars.length > 100000)
+      throw new OperationalError(
+        "operational-failure",
+        "Calendar list resource budget exceeded; coverage is incomplete.",
+      );
     pageToken = checkedNextPageToken(
       response.data.nextPageToken,
       seenPageTokens,
     );
   } while (pageToken !== undefined);
   return calendars;
+}
+
+function requireCalendarEvent(value: unknown): CalendarEvent {
+  if (!isCalendarEvent(value))
+    throw new OperationalError(
+      "operational-failure",
+      "Calendar provider returned an invalid event resource.",
+    );
+  return value;
 }

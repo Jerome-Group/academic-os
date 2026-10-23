@@ -69,7 +69,9 @@ attendees, reminders, recurrence exceptions, visibility and conferencing unless 
 changed. Private state lives beneath configured `stateRoot/calendar/` as atomic last-good mirrors,
 separate Proposals, Calendar tombstones, per-calendar sync state and an append-only Promotion
 journal. Tombstones retain last-known details indefinitely from the Management horizon; restoring
-one is always an explicit Promotion.
+one is always an explicit Promotion. Restore recreates the exact normalized writable resource
+retained in that tombstone with a new identity. A detached instance becomes a standalone event;
+a recurring master recreates only that master. It does not promise unavailable exception replay.
 
 Agents route Owned-calendar writes through one fast Promotion path: Refresh, preview the exact
 diff, execute the authorised change, reread Google, append one journal entry and Refresh. A
@@ -105,8 +107,61 @@ no per-event colour policy.
 
 Bootstrap binds the Google primary calendar as **Academic**, reuses or creates **Commitments** and
 **Routine**, and stores their exact IDs privately; later operation never guesses identity from a
-calendar name. Conflict checks inspect the proposed interval, adding travel buffer only when the
-Proposal supplies one.
+calendar name. Conflict checks derive intended occupancy from the exact write plan, adding travel
+buffer only when the Proposal supplies one.
+
+## Complete availability and recovery
+
+Preview and every additional Promotion write use one assessor. It resolves the actual
+master, instance or immutable future boundary, compiles the exact payloads and exception actions,
+then checks intended occurrences against each other and live availability from all Owned and
+selected visible Observed calendars. The transport writer executes that plan without choosing
+another anchor, remaining count or replay action. Stored intervals, digests and calendar counts
+are display evidence; they cannot authorize a write.
+Each preview and every additional write requires current exact `accessRole: owner` for all three
+configured Owned calendars. Missing, malformed or weaker access refuses; an old workspace role
+binding cannot authorize a formerly owned calendar. Selected Observed calendars can remain readers
+and supply availability without becoming write targets.
+
+Busy recurrence coverage supports one DAILY or WEEKLY RRULE, positive INTERVAL, finite COUNT or
+inclusive UNTIL, weekly nonordinal BYDAY/WKST and supported EXDATE values. COUNT counts base
+positions before exclusions or cancelled instances. RDATE, other rule parts, uncertain exception
+remapping and exhausted occurrence, iteration or provider-page budgets refuse the whole operation.
+There is no implicit future cutoff. Complete source inventory, including sparse cancellations,
+uses paginated stored-resource reads without the mirror's Management horizon when absence or
+mapping matters. Future scope preserves prefix events by original identity; an actual start moved
+across that boundary does not change its membership.
+
+Singular timed boundaries use exact offset instants. Recurrence and busy all-day conversion support
+UTC and Asia/Singapore, with Singapore local dates from 1982-01-01 onward. Each generated start/end
+must agree with installed Intl timezone data; the review binds the expansion engine, ICU and
+timezone-data versions. All-day ends are exclusive and use the actual calendar timezone. Other
+zones or unsupported dates refuse a busy occupancy change. A timed offset expresses an absolute
+instant; its declared zone determines the recurring wall time, including provider-normalized UTC
+representations.
+
+Cancellation, transparent milestones and structurally occupancy-preserving metadata writes do not
+require finite busy expansion. Unbounded metadata edits remain supported when geometry, recurrence,
+blocking policy and calendar conversion stay unchanged. Routine keeps its role-based warning
+policy; recurring Routine warnings cover the anchor only and do not claim complete enumeration.
+Malformed geometry still refuses before an exemption is applied.
+Future cancellation uses the exact live provider instance's master and original-start identity
+as its boundary; it does not enumerate an unbounded prefix. It trims RRULEs and removes known
+future overrides. RDATE or unknown positive recurrence lines refuse before trimming because the
+current cancellation plan cannot remove their future positions exactly.
+
+Every unjournaled legacy Proposal requires re-preview. Version 2 review evidence binds intent,
+originals, complete inventories where needed, the exact plan, coverage, calendars and relevant live
+availability. Recovery accepts only the plan's exact original state or an exact accepted prefix,
+including content and idempotency identity. Every remaining trim, move, create or replay reassesses
+availability. A refusal preserves accepted effects and performs zero additional writes. Unknown
+partial state requires reconciliation; a missing unrecorded cancellation cannot distinguish an
+accepted delete from an independent deletion and therefore requires reconciliation too. Completed
+receipts permit strict read-only verification and finalization, never repair writes.
+
+Google provides no transaction spanning these observations and writes. Another actor can change
+availability after assessment. Fixture checks establish the local request and recovery behavior;
+real-account Calendar parity requires separately authorized live verification.
 
 The CLI surface is `calendar setup`, `calendar refresh`, `calendar propose` and `calendar promote`.
 Only `calendar promote <id>` mutates events. Setup previews any calendar creation before applying

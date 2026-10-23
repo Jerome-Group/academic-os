@@ -10,6 +10,13 @@ interface FakeCalendar {
 
 interface FakeCalendarState {
   ambiguousCreateFailures?: string[];
+  strictOccurrences?: boolean;
+  occurrenceEvents?: Record<string, unknown[]>;
+  instanceEvents?: Record<string, unknown[]>;
+  responsePages?: Record<
+    string,
+    Array<{ items: unknown[]; nextPageToken?: string }>
+  >;
   calendars: FakeCalendar[];
   createdEventOverrides?: Record<string, Record<string, unknown>>;
   eventReadFailures?: string[];
@@ -24,6 +31,7 @@ interface FakeCalendarState {
   nextId?: number;
   omitCreatedFromIncremental?: boolean;
   patchFailures?: string[];
+  deleteFailures?: string[];
   reverseRecurrenceOnPatch?: string[];
   requests?: Array<{
     body?: unknown;
@@ -115,6 +123,13 @@ prototype.request = async function (options) {
   ) {
     const calendarId = decodeURIComponent(eventMatch[1] ?? "");
     const eventId = decodeURIComponent(eventMatch[2] ?? "");
+    if (state.deleteFailures?.includes(eventId) === true) {
+      state.deleteFailures = state.deleteFailures.filter(
+        (id) => id !== eventId,
+      );
+      await writeFile(statePath, `${JSON.stringify(state)}\n`);
+      throw new Error("Synthetic Calendar delete failed before acceptance.");
+    }
     const events = state.events?.[calendarId] ?? [];
     const index = events.findIndex(
       (candidate) =>
@@ -124,10 +139,24 @@ prototype.request = async function (options) {
         candidate.id === eventId,
     );
     if (index < 0) throw { response: { status: 404 } };
-    events.splice(index, 1);
-    publishIncremental(state, calendarId, [
-      { id: eventId, status: "cancelled" },
-    ]);
+    const master = events[index];
+    const deleted = events.filter(
+      (event) =>
+        isRecord(event) &&
+        (event.id === eventId ||
+          (isRecord(master) &&
+            master.recurrence !== undefined &&
+            event.recurringEventId === eventId)),
+    );
+    for (const event of deleted) events.splice(events.indexOf(event), 1);
+    publishIncremental(
+      state,
+      calendarId,
+      deleted.map((event) => ({
+        id: isRecord(event) ? event.id : eventId,
+        status: "cancelled",
+      })),
+    );
     await writeFile(statePath, `${JSON.stringify(state)}\n`);
     return { data: {} };
   }
@@ -141,62 +170,62 @@ prototype.request = async function (options) {
     const originalStart = (
       options.params as { originalStart?: string } | undefined
     )?.originalStart;
-    if (originalStart === undefined) {
-      const events = state.events?.[calendarId] ?? [];
-      const master = events.find(
-        (candidate) =>
-          typeof candidate === "object" &&
-          candidate !== null &&
-          "id" in candidate &&
-          candidate.id === seriesId,
-      ) as { start?: unknown } | undefined;
+    const events = state.events?.[calendarId] ?? [];
+    const master = events.find(
+      (event) => isRecord(event) && event.id === seriesId,
+    );
+    const key = `${calendarId}/${seriesId}/${originalStart ?? "all"}`;
+    const page = staticPage(state, key, options.params);
+    if (page !== undefined) {
+      await writeFile(statePath, `${JSON.stringify(state)}\n`);
+      return { data: page };
+    }
+    const configured = state.instanceEvents?.[key];
+    if (configured !== undefined) {
+      const actual = events.filter(
+        (event) =>
+          isRecord(event) &&
+          event.recurringEventId === seriesId &&
+          (originalStart === undefined ||
+            pointInstant(event.originalStartTime) ===
+              Date.parse(originalStart)),
+      );
+      await writeFile(statePath, `${JSON.stringify(state)}\n`);
       return {
         data: {
-          items: [
-            ...(master?.start === undefined
-              ? []
-              : [
-                  {
-                    id: `${seriesId}-first`,
-                    recurringEventId: seriesId,
-                    originalStartTime: master.start,
-                  },
-                ]),
-            ...events.filter(
-              (candidate) =>
-                typeof candidate === "object" &&
-                candidate !== null &&
-                "recurringEventId" in candidate &&
-                candidate.recurringEventId === seriesId,
-            ),
-          ],
+          items: configured.map((event) =>
+            isRecord(event)
+              ? (actual.find(
+                  (candidate) =>
+                    isRecord(candidate) && candidate.id === event.id,
+                ) ?? event)
+              : event,
+          ),
         },
       };
     }
-    const instance = state.events?.[calendarId]?.find(
-      (candidate) =>
-        typeof candidate === "object" &&
-        candidate !== null &&
-        "recurringEventId" in candidate &&
-        candidate.recurringEventId === seriesId &&
-        "originalStartTime" in candidate &&
-        typeof candidate.originalStartTime === "object" &&
-        candidate.originalStartTime !== null &&
-        "dateTime" in candidate.originalStartTime &&
-        candidate.originalStartTime.dateTime === originalStart,
-    ) ?? {
-      id: `${seriesId}-exception-${Date.parse(originalStart ?? "")}`,
-      recurringEventId: seriesId,
-      originalStartTime: { dateTime: originalStart },
-    };
-    state.events ??= {};
-    state.events[calendarId] ??= [];
-    if (!state.events[calendarId].includes(instance)) {
-      state.events[calendarId].push(instance);
+    if (state.strictOccurrences === true) {
+      await writeFile(statePath, `${JSON.stringify(state)}\n`);
+      return { data: { items: [] } };
     }
+    const items =
+      originalStart === undefined
+        ? events.filter(
+            (event) => isRecord(event) && event.recurringEventId === seriesId,
+          )
+        : events.filter(
+            (event) =>
+              isRecord(event) &&
+              event.recurringEventId === seriesId &&
+              pointInstant(event.originalStartTime) ===
+                Date.parse(originalStart),
+          );
+    if (originalStart !== undefined && items.length === 0 && isRecord(master))
+      items.push(legacyInstance(master, originalStart));
     await writeFile(statePath, `${JSON.stringify(state)}\n`);
-    return { data: { items: [instance] } };
+    return { data: { items } };
   }
+
   if (
     options.method === "PATCH" &&
     eventMatch !== null &&
@@ -214,13 +243,38 @@ prototype.request = async function (options) {
       throw new Error("Synthetic Calendar patch failed before acceptance.");
     }
     const events = state.events?.[calendarId] ?? [];
-    const index = events.findIndex(
+    let index = events.findIndex(
       (candidate) =>
         typeof candidate === "object" &&
         candidate !== null &&
         "id" in candidate &&
         candidate.id === eventId,
     );
+    if (index < 0) {
+      const configured = Object.values(state.instanceEvents ?? {})
+        .flat()
+        .find((event) => isRecord(event) && event.id === eventId);
+      let virtual = configured;
+      if (virtual === undefined && state.strictOccurrences !== true) {
+        const master = events.find(
+          (event) =>
+            isRecord(event) &&
+            typeof event.id === "string" &&
+            eventId.startsWith(`${event.id}-exception-`),
+        );
+        if (isRecord(master) && typeof master.id === "string")
+          virtual = legacyInstance(
+            master,
+            new Date(
+              Number(eventId.slice(`${master.id}-exception-`.length)),
+            ).toISOString(),
+          );
+      }
+      if (virtual !== undefined) {
+        events.push(virtual);
+        index = events.length - 1;
+      }
+    }
     if (index < 0) throw new Error(`Synthetic event ${eventId} not found.`);
     if (state.ignoredPatches?.includes(eventId) === true) {
       await writeFile(statePath, `${JSON.stringify(state)}\n`);
@@ -415,10 +469,49 @@ prototype.request = async function (options) {
     if (state.eventReadFailures?.includes(calendarId) === true) {
       throw new Error(`Synthetic event read failed for ${calendarId}.`);
     }
-    const events =
+    const optionsParams = options.params as
+      | {
+          singleEvents?: boolean;
+          timeMin?: string;
+          timeMax?: string;
+          syncToken?: string;
+          pageToken?: string;
+        }
+      | undefined;
+    const route = `${calendarId}/${optionsParams?.singleEvents === true ? "occurrences" : optionsParams?.syncToken !== undefined || optionsParams?.timeMin !== undefined ? "changes" : "stored"}`;
+    const explicitPage = staticPage(state, route, options.params);
+    if (explicitPage !== undefined) return { data: explicitPage };
+    let events =
       params?.syncToken === undefined
         ? (state.events?.[calendarId] ?? [])
         : (state.incrementalEvents?.[calendarId]?.[params.syncToken] ?? []);
+    if (optionsParams?.singleEvents === true) {
+      const actual = events.filter(
+        (event) => !isRecord(event) || event.recurrence === undefined,
+      );
+      events = [
+        ...(state.occurrenceEvents?.[calendarId] ?? []).filter(
+          (event) =>
+            !isRecord(event) ||
+            !actual.some(
+              (stored) => isRecord(stored) && stored.id === event.id,
+            ),
+        ),
+        ...actual,
+      ];
+      const minimum = Date.parse(optionsParams.timeMin ?? "");
+      const maximum = Date.parse(optionsParams.timeMax ?? "");
+      events = events.filter((event) => {
+        if (!isRecord(event) || event.status === "cancelled") return false;
+        const start = pointInstant(event.start);
+        const end = pointInstant(event.end);
+        return (
+          !Number.isFinite(start) ||
+          !Number.isFinite(end) ||
+          (start < maximum && end > minimum)
+        );
+      });
+    }
     const offset = Number(params?.pageToken ?? "0");
     const pageSize = state.eventPageSizes?.[calendarId] ?? events.length;
     const nextOffset = offset + pageSize;
@@ -450,7 +543,82 @@ function publishIncremental(
     state.nextSyncTokens?.[calendarId] ??
     `${calendarId.replace(/-id$/u, "")}-sync-1`;
   state.incrementalEvents[calendarId][nextSyncToken] = [
-    ...(state.incrementalEvents[calendarId][nextSyncToken] ?? []),
+    ...(state.incrementalEvents[calendarId][nextSyncToken] ?? []).filter(
+      (previous) =>
+        !isRecord(previous) ||
+        !events.some((event) => isRecord(event) && event.id === previous.id),
+    ),
     ...events,
   ];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function pointInstant(point: unknown): number {
+  return isRecord(point)
+    ? Date.parse(
+        typeof point.dateTime === "string"
+          ? point.dateTime
+          : typeof point.date === "string"
+            ? `${point.date}T00:00:00+08:00`
+            : "",
+      )
+    : NaN;
+}
+function legacyInstance(
+  master: Record<string, unknown>,
+  originalStart: string,
+): Record<string, unknown> {
+  const value = { ...master };
+  delete value.recurrence;
+  const duration = pointInstant(master.end) - pointInstant(master.start);
+  return {
+    ...value,
+    id: `${master.id}-exception-${Date.parse(originalStart)}`,
+    recurringEventId: master.id,
+    originalStartTime: { dateTime: originalStart },
+    start: {
+      dateTime: originalStart,
+      ...(isRecord(master.start) && typeof master.start.timeZone === "string"
+        ? { timeZone: master.start.timeZone }
+        : {}),
+    },
+    end: {
+      dateTime: new Date(Date.parse(originalStart) + duration).toISOString(),
+      ...(isRecord(master.end) && typeof master.end.timeZone === "string"
+        ? { timeZone: master.end.timeZone }
+        : {}),
+    },
+  };
+}
+function staticPage(
+  state: FakeCalendarState,
+  key: string,
+  value: unknown,
+): { items: unknown[]; nextPageToken?: string } | undefined {
+  const pages = state.responsePages?.[key];
+  if (pages === undefined) return undefined;
+  const token =
+    isRecord(value) && typeof value.pageToken === "string"
+      ? value.pageToken
+      : "0";
+  const index = Number(token);
+  const page = pages[index];
+  if (page === undefined)
+    throw new Error(`Unknown static Calendar page ${key}/${token}`);
+  return {
+    items: page.items.map((item) =>
+      isRecord(item)
+        ? ((state.events?.[key.split("/")[0] ?? ""] ?? []).find(
+            (current) => isRecord(current) && current.id === item.id,
+          ) ?? item)
+        : item,
+    ),
+    ...(page.nextPageToken === undefined
+      ? index + 1 < pages.length
+        ? { nextPageToken: String(index + 1) }
+        : {}
+      : { nextPageToken: page.nextPageToken }),
+  };
 }

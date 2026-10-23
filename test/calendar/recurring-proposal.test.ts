@@ -141,6 +141,7 @@ it("keeps future all-day recurrence exceptions and excludes past exceptions", as
       recurringEventId: "master",
       originalStartTime: { date: "2026-10-04" },
       start: { date: "2026-10-05" },
+      end: { date: "2026-10-06" },
     },
   ]);
   const result = await propose(fixture, "split");
@@ -148,18 +149,26 @@ it("keeps future all-day recurrence exceptions and excludes past exceptions", as
   const proposal = fixture.proposal();
   assert.ok(proposal?.operation === "update");
   assert.deepEqual(
-    proposal.recurrenceExceptions?.map((event) => event.id),
+    proposal.review?.inventories[0]?.events
+      .filter((event) => event.id === "future")
+      .map((event) => event.id),
     ["future"],
   );
 });
 
-it("selects future recurrence exceptions by instant across different offsets", async () => {
+it("refuses future exceptions whose original anchors cannot map exactly", async () => {
   const fixture = fixtures([
     {
       id: "master",
       recurrence: ["RRULE:FREQ=DAILY;COUNT=10"],
-      start: { dateTime: "2026-10-01T10:00:00+08:00" },
-      end: { dateTime: "2026-10-01T11:00:00+08:00" },
+      start: {
+        dateTime: "2026-10-01T10:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
+      end: {
+        dateTime: "2026-10-01T11:00:00+08:00",
+        timeZone: "Asia/Singapore",
+      },
     },
     {
       id: "split",
@@ -179,12 +188,9 @@ it("selects future recurrence exceptions by instant across different offsets", a
       originalStartTime: { dateTime: "2026-10-03T09:00:00+09:00" },
     },
   ]);
-  await propose(fixture, "split");
-  const proposal = fixture.proposal();
-  assert.ok(proposal?.operation === "update");
-  assert.deepEqual(
-    proposal.recurrenceExceptions?.map((event) => event.id),
-    ["later"],
+  await assert.rejects(
+    propose(fixture, "split"),
+    /unsupported|no exact replacement/u,
   );
 });
 
@@ -205,7 +211,15 @@ async function propose(fixture: ReturnType<typeof fixtures>, eventId: string) {
     mirrorStore: fixture.mirrorStore,
     proposalStore: fixture.proposalStore,
     reader: {
-      listCalendars: async () => [],
+      listCalendars: async () =>
+        OWNED_CALENDAR_ROLES.map((role) => ({
+          id: workspace.ownedCalendarIds[role],
+          summary: role,
+          accessRole: "owner",
+          timeZone: "Asia/Singapore",
+        })),
+      listStoredEvents: async () =>
+        fixture.mirrors.get("Academic")?.items.map(({ event }) => event) ?? [],
       listEventOccurrences: async () => [],
     },
   });

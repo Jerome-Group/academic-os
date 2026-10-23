@@ -7,7 +7,7 @@ import { failedModulePass, routineFailure } from "./routine-failure.js";
 import type {
   ModulePassReport,
   ModuleSessionPort,
-  MorningIssuePort,
+  WeeklyDiscussionPort,
   MorningIssueReport,
   MorningPreludePort,
   MorningRoutineReport,
@@ -16,13 +16,13 @@ import type {
   PreludeStepReport,
   RetentionPurge,
   RoutineArtifactStore,
-  WeeklyIssueEvidenceStore,
   WeeklyRepositorySummary,
 } from "./types.js";
-import { offeringWeekStart, reconcileWeeklyIssue } from "./weekly-review.js";
-
-export const MORNING_ISSUE_LABELS = ["ready-for-human", "decision"] as const;
-export const MORNING_ISSUE_MARKER_VERSION = 1;
+import {
+  beginWeeklyObservation,
+  offeringWeekStart,
+  reconcileWeeklyIssue,
+} from "./weekly-review.js";
 
 // One firing, in the one order that matters: the deterministic prelude, then a session per cohort
 // module in sequence, then the purge, then the report. Nothing between the steps can end the run —
@@ -34,8 +34,8 @@ export async function runMorningRoutine(input: {
   prelude: MorningPreludePort;
   session: ModuleSessionPort;
   artifacts: RoutineArtifactStore;
-  issue: MorningIssuePort;
-  weeklyEvidence?: WeeklyIssueEvidenceStore;
+  issue: WeeklyDiscussionPort;
+  weeklyStateRoot: string;
   weeklyRepository?: WeeklyRepositorySummary;
   repositoryRepair?: () => Promise<RepositoryRepairReport>;
   weeklyRepositoryHistory?: (
@@ -43,6 +43,20 @@ export async function runMorningRoutine(input: {
   ) => Promise<WeeklyRepositorySummary>;
   run?: MorningRunEvidence;
 }): Promise<MorningRoutineReport> {
+  const basis = await beginWeeklyObservation({
+    issue: input.issue,
+    stateRoot: input.weeklyStateRoot,
+    date: input.date,
+    cohort: input.cohort,
+    moduleCodes: input.modules.map(({ module }) => module),
+    scope: input.run?.scope ?? "monitoring-cohort",
+  }).then(
+    (observation) => ({ kind: "ready" as const, observation }),
+    (error: unknown) => ({
+      kind: "failed" as const,
+      failure: routineFailure(error, "weekly-basis-failed"),
+    }),
+  );
   const prelude = [
     await preludeStep("import-status", () => input.prelude.inspectImports()),
     await preludeStep("textbook-shelf-catch-up", () =>
@@ -62,7 +76,11 @@ export async function runMorningRoutine(input: {
     (repositoryRepair === undefined
       ? undefined
       : weeklyRepairSummary(repositoryRepair));
-  if (input.weeklyRepositoryHistory !== undefined) {
+  if (input.run?.scope === "modules-only") repository = undefined;
+  if (
+    input.run?.scope !== "modules-only" &&
+    input.weeklyRepositoryHistory !== undefined
+  ) {
     try {
       const history = await input.weeklyRepositoryHistory(
         offeringWeekStart(input.date),
@@ -111,62 +129,64 @@ export async function runMorningRoutine(input: {
     ...(repositoryRepair === undefined ? {} : { repositoryRepair }),
   });
   const report = await writtenReport(input.artifacts, input.date, text);
-  const issue = await reconcileWeeklyIssue({
-    ...(input.weeklyEvidence === undefined
-      ? {}
-      : { evidence: input.weeklyEvidence }),
-    issue: input.issue,
-    date: input.date,
-    cohort: input.cohort,
-    moduleCodes: modules.map(({ module }) => module),
-    ...(repository === undefined ? {} : { repository }),
-    summary: {
-      targets: modules.length,
-      preludePending: prelude.filter(
-        (step) =>
-          step.parked > 0 ||
-          step.failure !== undefined ||
-          step.outcome === "skipped",
-      ).length,
-      parked: modules.reduce((n, module) => n + module.parked.length, 0),
-      failures: modules.reduce((n, module) => n + module.failures.length, 0),
-      verifiedMaintenance: modules.reduce(
-        (n, module) =>
-          n +
-          module.maintenance.filter((entry) => entry.status === "maintained")
-            .length,
-        0,
-      ),
-      checkedMaintenance: modules.reduce(
-        (n, module) =>
-          n +
-          module.maintenance.filter((entry) => entry.status === "checked")
-            .length,
-        0,
-      ),
-      verifiedControlWrites: modules.reduce(
-        (n, module) => n + module.docWrites.length,
-        0,
-      ),
-      awaitingMaintenance: modules.reduce(
-        (n, module) =>
-          n +
-          module.maintenance.filter(
-            (entry) =>
-              entry.status !== "checked" &&
-              entry.status !== "maintained" &&
-              entry.status !== "not-applicable",
-          ).length,
-        0,
-      ),
-    },
-    scope: input.run?.scope ?? "monitoring-cohort",
-    needsOwner:
-      report === null ||
-      morningNeedsOwner(prelude, modules) ||
-      (input.run?.scope !== "modules-only" &&
-        prelude.some(({ outcome }) => outcome === "skipped")),
-  });
+  const issue: MorningIssueReport =
+    basis.kind === "failed"
+      ? { outcome: "failed", number: null, failure: basis.failure }
+      : await reconcileWeeklyIssue({
+          observation: basis.observation,
+          stateRoot: input.weeklyStateRoot,
+          issue: input.issue,
+          ...(repository === undefined ? {} : { repository }),
+          summary: {
+            targets: modules.length,
+            preludePending: prelude.filter(
+              (step) =>
+                step.parked > 0 ||
+                step.failure !== undefined ||
+                step.outcome === "skipped",
+            ).length,
+            parked: modules.reduce((n, module) => n + module.parked.length, 0),
+            failures: modules.reduce(
+              (n, module) => n + module.failures.length,
+              0,
+            ),
+            verifiedMaintenance: modules.reduce(
+              (n, module) =>
+                n +
+                module.maintenance.filter(
+                  (entry) => entry.status === "maintained",
+                ).length,
+              0,
+            ),
+            checkedMaintenance: modules.reduce(
+              (n, module) =>
+                n +
+                module.maintenance.filter((entry) => entry.status === "checked")
+                  .length,
+              0,
+            ),
+            verifiedControlWrites: modules.reduce(
+              (n, module) => n + module.docWrites.length,
+              0,
+            ),
+            awaitingMaintenance: modules.reduce(
+              (n, module) =>
+                n +
+                module.maintenance.filter(
+                  (entry) =>
+                    entry.status !== "checked" &&
+                    entry.status !== "maintained" &&
+                    entry.status !== "not-applicable",
+                ).length,
+              0,
+            ),
+          },
+          needsOwner:
+            report === null ||
+            morningNeedsOwner(prelude, modules) ||
+            (input.run?.scope !== "modules-only" &&
+              prelude.some(({ outcome }) => outcome === "skipped")),
+        });
   return {
     schemaVersion: 2,
     command: "routine morning",
@@ -286,15 +306,6 @@ function morningNeedsOwner(
         module.failures.length > 0,
     )
   );
-}
-
-export function morningIssueMarker(
-  cohort: string,
-  moduleCodes: readonly string[],
-  scope: MorningRunEvidence["scope"] = "monitoring-cohort",
-): string {
-  const modules = [...new Set(moduleCodes)].sort().join(",");
-  return `<!-- academic-os-morning-issue:v${MORNING_ISSUE_MARKER_VERSION} cohort=${encodeURIComponent(cohort)} modules=${encodeURIComponent(modules)}${scope === "modules-only" ? " scope=modules-only" : ""} -->`;
 }
 
 function morningOutcome(

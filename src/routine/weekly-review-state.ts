@@ -1,350 +1,510 @@
+import { createHash } from "node:crypto";
 import { isCalendarDay } from "./offering-calendar-day.js";
 import { offeringWeekStart } from "./offering-week-start.js";
-import type {
-  MorningIssue,
-  WeeklyRepositorySummary,
-  WeeklyScopeSummary,
-} from "./types.js";
+import type { WeeklyRepositorySummary, WeeklyScopeSummary } from "./types.js";
 
-const BEGIN = "<!-- academic-os-weekly-managed:begin -->";
-const END = "<!-- academic-os-weekly-managed:end -->";
-const STATE = "<!-- academic-os-weekly-state:v1 ";
-interface MaintenanceReceipt {
-  verifiedMaintenance: number;
-  verifiedControlWrites: number;
-}
-interface ScopeState {
-  receipts: Record<string, MaintenanceReceipt>;
+export interface WeeklyObservation {
+  scope: string;
   date: string;
-  needsOwner: boolean;
+  parents: string[];
+  repositoryParents: string[];
   summary: WeeklyScopeSummary;
+  needsOwner: boolean;
+  repository?: WeeklyRepositorySummary;
 }
-export interface QueueState {
-  scopes: Record<string, ScopeState>;
-  unknown: number[];
-  repository: WeeklyRepositorySummary;
+export interface PublishedObservation {
+  id: string;
+  observation: WeeklyObservation;
+  issueNumber: number;
+  commentId: number;
+  url: string;
 }
-export const counts = [
-  "targets",
-  "preludePending",
-  "parked",
-  "failures",
-  "verifiedMaintenance",
-  "checkedMaintenance",
-  "verifiedControlWrites",
-  "awaitingMaintenance",
-] as const;
-const statuses = ["verified", "awaiting", "failed"];
-
-export function ownerText(issue: MorningIssue): string {
-  const start = issue.body.indexOf(BEGIN),
-    end = issue.body.indexOf(END);
-  if (
-    start < 0 ||
-    end < start ||
-    issue.body.indexOf(BEGIN, start + BEGIN.length) >= 0 ||
-    issue.body.indexOf(END, end + END.length) >= 0
-  )
-    throw new Error("Weekly managed section requires reconciliation.");
-  return (
-    issue.body
-      .slice(0, start)
-      .replace(/^<!-- academic-os-weekly-issue:[^\n]+ -->\n*/u, "") +
-    issue.body
-      .slice(end + END.length)
-      .replace(
-        /\n\n<!-- academic-os-weekly-transfer:v1 successor=(\d+) -->\nTransferred to weekly review #\1; closure records transfer, not resolution\./gu,
-        "",
-      )
-  );
+export function digest(value: unknown): string {
+  return createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }
-function record(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+export function record(value: unknown): Record<string, unknown> {
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    throw new Error("Invalid weekly record.");
+  return value as Record<string, unknown>;
 }
-export function count(value: unknown): value is number {
-  return Number.isSafeInteger(value) && (value as number) >= 0;
+export function count(value: unknown): number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0)
+    throw new Error("Invalid weekly count.");
+  return value;
 }
-export function issueNumbers(value: unknown): number[] {
-  if (value === undefined) return [];
-  if (
-    !Array.isArray(value) ||
-    value.length > 1000 ||
-    !value.every((n) => count(n) && n > 0)
-  )
+export function positive(value: unknown): number {
+  const n = count(value);
+  if (n === 0) throw new Error("Invalid weekly identity.");
+  return n;
+}
+export function day(value: unknown): string {
+  if (typeof value !== "string" || !isCalendarDay(value))
+    throw new Error("Invalid weekly observation date.");
+  return value;
+}
+export function hash(value: unknown): string {
+  if (typeof value !== "string" || !/^[a-f0-9]{64}$/u.test(value))
+    throw new Error("Invalid weekly digest.");
+  return value;
+}
+export function hashes(value: unknown): string[] {
+  if (!Array.isArray(value) || value.length > 500)
+    throw new Error("Invalid weekly parents.");
+  const result = value.map(hash);
+  if (new Set(result).size !== result.length)
+    throw new Error("Duplicate weekly parent.");
+  return result.sort();
+}
+export function issueNumbers(value: unknown = []): number[] {
+  if (!Array.isArray(value) || value.length > 500)
     throw new Error("Invalid weekly issue references.");
-  return [...new Set(value)].sort((a, b) => a - b);
+  return [...new Set(value.map(positive))].sort((a, b) => a - b);
 }
-export function retainMergeEvidence(
-  previous: WeeklyRepositorySummary["merged"][number] | undefined,
-  next: WeeklyRepositorySummary["merged"][number],
-): WeeklyRepositorySummary["merged"][number] {
-  return {
-    ...next,
-    ...(next.originIssue === undefined && previous?.originIssue !== undefined
-      ? { originIssue: previous.originIssue }
-      : {}),
-    verification:
-      next.verification === "awaiting" && previous !== undefined
-        ? previous.verification
-        : next.verification,
-    rollout:
-      next.rollout === "awaiting" && previous !== undefined
-        ? previous.rollout
-        : next.rollout,
-  };
-}
-function readReceipts(
-  value: unknown,
-  fallbackDate: string,
-  summary: Record<string, unknown>,
-): Record<string, MaintenanceReceipt> {
-  const receipts: Record<string, MaintenanceReceipt> = {};
-  const entries =
-    value === undefined
-      ? {
-          [fallbackDate]: {
-            verifiedMaintenance: summary.verifiedMaintenance,
-            verifiedControlWrites: summary.verifiedControlWrites,
-          },
-        }
-      : value;
-  if (!record(entries) || Object.keys(entries).length > 366)
-    throw new Error("Invalid maintenance receipts.");
-  for (const [date, receipt] of Object.entries(entries)) {
-    if (
-      !isCalendarDay(date) ||
-      !record(receipt) ||
-      !count(receipt.verifiedMaintenance) ||
-      !count(receipt.verifiedControlWrites)
-    )
-      throw new Error("Invalid maintenance receipt.");
-    receipts[date] = {
-      verifiedMaintenance: receipt.verifiedMaintenance,
-      verifiedControlWrites: receipt.verifiedControlWrites,
-    };
-  }
-  return receipts;
-}
-export function mergeReceipts(
-  previous: Record<string, MaintenanceReceipt>,
-  incoming: Record<string, MaintenanceReceipt>,
-): Record<string, MaintenanceReceipt> {
-  const receipts = { ...previous };
-  for (const [date, receipt] of Object.entries(incoming))
-    receipts[date] = {
-      verifiedMaintenance: Math.max(
-        receipts[date]?.verifiedMaintenance ?? 0,
-        receipt.verifiedMaintenance,
-      ),
-      verifiedControlWrites: Math.max(
-        receipts[date]?.verifiedControlWrites ?? 0,
-        receipt.verifiedControlWrites,
-      ),
-    };
-  return receipts;
+function status(value: unknown): "verified" | "failed" | "awaiting" {
+  if (value !== "verified" && value !== "failed" && value !== "awaiting")
+    throw new Error("Invalid verification status.");
+  return value;
 }
 export function repositorySummary(value: unknown): WeeklyRepositorySummary {
-  if (
-    !record(value) ||
-    !Array.isArray(value.merged) ||
-    !count(value.unresolved) ||
-    !count(value.awaiting)
-  )
-    throw new Error("Invalid weekly repository counts.");
+  const input = record(value);
+  if (!Array.isArray(input.merged) || input.merged.length > 500)
+    throw new Error("Invalid weekly merge evidence.");
   return {
-    pendingIssueNumbers: issueNumbers(value.pendingIssueNumbers),
-    pendingPullRequestNumbers: issueNumbers(value.pendingPullRequestNumbers),
-    unresolved: value.unresolved,
-    awaiting: value.awaiting,
-    merged: value.merged.map((fix) => {
-      if (
-        !record(fix) ||
-        !count(fix.pullRequest) ||
-        (fix.originIssue !== undefined &&
-          (!count(fix.originIssue) || fix.originIssue === 0)) ||
-        fix.pullRequest === 0 ||
-        typeof fix.commit !== "string" ||
-        !/^[a-f0-9]{40}$/u.test(fix.commit) ||
-        typeof fix.verification !== "string" ||
-        !statuses.includes(fix.verification) ||
-        typeof fix.rollout !== "string" ||
-        !statuses.includes(fix.rollout)
-      )
-        throw new Error("Invalid weekly merge evidence.");
-      return {
-        pullRequest: fix.pullRequest,
-        ...(fix.originIssue === undefined
-          ? {}
-          : { originIssue: fix.originIssue as number }),
-        commit: fix.commit,
-        verification: fix.verification as "verified" | "awaiting" | "failed",
-        rollout: fix.rollout as "verified" | "awaiting" | "failed",
-      };
-    }),
-  };
-}
-export function stateOf(issue: MorningIssue): QueueState {
-  const start = issue.body.indexOf(STATE),
-    end = issue.body.indexOf(" -->", start);
-  if (start < 0 || end < 0)
-    throw new Error("Weekly state requires reconciliation.");
-  const value: unknown = JSON.parse(
-    decodeURIComponent(issue.body.slice(start + STATE.length, end)),
-  );
-  if (
-    !record(value) ||
-    !record(value.scopes) ||
-    !Array.isArray(value.unknown) ||
-    !value.unknown.every((n) => count(n) && n > 0)
-  )
-    throw new Error("Invalid weekly state.");
-  const scopes: Record<string, ScopeState> = {};
-  for (const [id, observation] of Object.entries(value.scopes)) {
-    if (
-      !/^[a-f0-9]{64}$/u.test(id) ||
-      !record(observation) ||
-      typeof observation.date !== "string" ||
-      !isCalendarDay(observation.date) ||
-      typeof observation.needsOwner !== "boolean" ||
-      !record(observation.summary) ||
-      !counts.every((key) =>
-        count((observation.summary as Record<string, unknown>)[key]),
-      )
-    )
-      throw new Error("Invalid weekly scope observation.");
-    scopes[id] = {
-      receipts: readReceipts(
-        observation.receipts,
-        observation.date,
-        observation.summary,
+    pendingIssueNumbers: issueNumbers(input.pendingIssueNumbers),
+    pendingPullRequestNumbers: issueNumbers(input.pendingPullRequestNumbers),
+    merged: input.merged
+      .map((value) => {
+        const fix = record(value);
+        if (
+          typeof fix.commit !== "string" ||
+          !/^[a-f0-9]{40}$/u.test(fix.commit)
+        )
+          throw new Error("Invalid merge commit.");
+        return {
+          pullRequest: positive(fix.pullRequest),
+          ...(fix.originIssue === undefined
+            ? {}
+            : { originIssue: positive(fix.originIssue) }),
+          commit: fix.commit,
+          verification: status(fix.verification),
+          rollout: status(fix.rollout),
+        };
+      })
+      .sort(
+        (a, b) =>
+          a.pullRequest - b.pullRequest || a.commit.localeCompare(b.commit),
       ),
-      date: observation.date,
-      needsOwner: observation.needsOwner,
-      summary: Object.fromEntries(
-        counts.map((key) => [
-          key,
-          (observation.summary as Record<string, unknown>)[key],
-        ]),
-      ) as unknown as WeeklyScopeSummary,
-    };
-  }
-  return {
-    scopes,
-    unknown: [...value.unknown],
-    repository: repositorySummary(value.repository),
+    unresolved: count(input.unresolved),
+    awaiting: count(input.awaiting),
   };
 }
-export function render(
-  marker: string,
-  state: QueueState,
-  owner: string,
-  week: string,
-): string {
-  const observations = Object.values(state.scopes);
-  const maintenanceReceipts = observations.flatMap((scope) =>
-    Object.entries(scope.receipts)
-      .filter(([date]) => offeringWeekStart(date) === week)
-      .map(([, receipt]) => receipt),
+export function parseObservation(value: unknown): WeeklyObservation {
+  const input = record(value),
+    summary = record(input.summary);
+  if (typeof input.needsOwner !== "boolean")
+    throw new Error("Invalid weekly attention.");
+  return {
+    scope: hash(input.scope),
+    date: day(input.date),
+    parents: hashes(input.parents),
+    repositoryParents: hashes(input.repositoryParents),
+    summary: {
+      targets: count(summary.targets),
+      preludePending: count(summary.preludePending),
+      parked: count(summary.parked),
+      failures: count(summary.failures),
+      verifiedMaintenance: count(summary.verifiedMaintenance),
+      checkedMaintenance: count(summary.checkedMaintenance),
+      verifiedControlWrites: count(summary.verifiedControlWrites),
+      awaitingMaintenance: count(summary.awaitingMaintenance),
+    },
+    needsOwner: input.needsOwner,
+    ...(input.repository === undefined
+      ? {}
+      : { repository: repositorySummary(input.repository) }),
+  };
+}
+export const observationPrefix = "<!-- academic-os-weekly-observation:v2 ";
+export function observationMarker(observation: WeeklyObservation): string {
+  return `${observationPrefix}${encodeURIComponent(JSON.stringify(observation))} -->`;
+}
+export function parsePublication(body: string): WeeklyObservation | undefined {
+  if (!body.startsWith(observationPrefix)) return undefined;
+  const end = body.indexOf(" -->\n");
+  if (end < 0) throw new Error("Malformed weekly publication.");
+  const raw = JSON.parse(
+    decodeURIComponent(body.slice(observationPrefix.length, end)),
   );
-  const pending = observations.filter((s) => s.needsOwner).length;
-  const stale = observations.filter((s) => s.date < week).length;
-  const managed = [
-    marker,
-    BEGIN,
-    `${STATE}${encodeURIComponent(JSON.stringify(state))} -->`,
+  const observation = parseObservation(raw);
+  if (JSON.stringify(raw) !== JSON.stringify(observation))
+    throw new Error("Noncanonical weekly publication.");
+  return observation;
+}
+export function validateHistory(
+  records: PublishedObservation[],
+  date: string,
+): void {
+  if (records.length > 500)
+    throw new Error("Weekly history exceeds 500 observations.");
+  const byId = new Map(records.map((r) => [r.id, r]));
+  const visited = new Set<string>();
+  const visiting = new Set<string>();
+  function visit(id: string): void {
+    if (visited.has(id)) return;
+    if (visiting.has(id)) throw new Error("Cyclic weekly basis.");
+    visiting.add(id);
+    const item = byId.get(id)?.observation;
+    for (const ancestor of [
+      ...(item?.parents ?? []),
+      ...(item?.repositoryParents ?? []),
+    ])
+      visit(ancestor);
+    visiting.delete(id);
+    visited.add(id);
+  }
+  for (const { observation, id } of records) {
+    if (observation.date > date || digest(observation) !== id)
+      throw new Error("Future or invalid weekly observation.");
+    for (const parent of observation.parents) {
+      const known = byId.get(parent);
+      if (
+        known === undefined ||
+        known.observation.scope !== observation.scope ||
+        known.observation.date > observation.date
+      )
+        throw new Error("Unknown or inconsistent scope basis.");
+    }
+    for (const parent of observation.repositoryParents) {
+      const known = byId.get(parent);
+      if (
+        known?.observation.repository === undefined ||
+        known.observation.date > observation.date
+      )
+        throw new Error("Unknown or inconsistent repository basis.");
+    }
+    visit(id);
+  }
+}
+export function scopeHeads(
+  records: PublishedObservation[],
+  scope: string,
+): string[] {
+  const scopes = records.filter((r) => r.observation.scope === scope);
+  const parents = new Set(scopes.flatMap((r) => r.observation.parents));
+  return scopes
+    .map((r) => r.id)
+    .filter((id) => !parents.has(id))
+    .sort();
+}
+export function repositoryHeads(records: PublishedObservation[]): string[] {
+  const repos = records.filter((r) => r.observation.repository !== undefined);
+  const parents = new Set(
+    repos.flatMap((r) => r.observation.repositoryParents),
+  );
+  return repos
+    .map((r) => r.id)
+    .filter((id) => !parents.has(id))
+    .sort();
+}
+function scopeStatus(observation: WeeklyObservation): string {
+  const {
+    verifiedMaintenance: _m,
+    verifiedControlWrites: _w,
+    ...summary
+  } = observation.summary;
+  return JSON.stringify([summary, observation.needsOwner]);
+}
+export interface WeeklyView {
+  scopes: number;
+  pending: number;
+  stale: number;
+  conflicts: string[];
+  checked: number;
+  parked: number;
+  failures: number;
+  awaitingMaintenance: number;
+  maintained: number;
+  controlWrites: number;
+  repository: WeeklyRepositorySummary;
+  unknown: number[];
+  actionable: boolean;
+}
+export function reduceWeekly(
+  records: PublishedObservation[],
+  week: string,
+  unknown: number[],
+): WeeklyView {
+  const view: WeeklyView = {
+    scopes: 0,
+    pending: 0,
+    stale: 0,
+    conflicts: [],
+    checked: 0,
+    parked: 0,
+    failures: 0,
+    awaitingMaintenance: 0,
+    maintained: 0,
+    controlWrites: 0,
+    repository: {
+      merged: [],
+      unresolved: 0,
+      awaiting: 0,
+      pendingIssueNumbers: [],
+      pendingPullRequestNumbers: [],
+    },
+    unknown: [...new Set(unknown)].sort((a, b) => a - b),
+    actionable: false,
+  };
+  for (const scope of new Set(records.map((r) => r.observation.scope))) {
+    const ids = scopeHeads(records, scope),
+      heads = records.filter((r) => ids.includes(r.id));
+    const observations = heads.map((r) => r.observation);
+    view.scopes += 1;
+    if (new Set(observations.map(scopeStatus)).size > 1)
+      view.conflicts.push(...ids);
+    if (observations.some((o) => o.needsOwner)) view.pending += 1;
+    if (observations.every((o) => o.date < week)) view.stale += 1;
+    view.checked += Math.max(
+      0,
+      ...observations.map((o) => o.summary.checkedMaintenance),
+    );
+    view.parked += Math.max(0, ...observations.map((o) => o.summary.parked));
+    view.failures += Math.max(
+      0,
+      ...observations.map((o) => o.summary.failures),
+    );
+    view.awaitingMaintenance += Math.max(
+      0,
+      ...observations.map((o) => o.summary.awaitingMaintenance),
+    );
+    const dates = new Set(
+      records
+        .filter(
+          (r) =>
+            r.observation.scope === scope &&
+            offeringWeekStart(r.observation.date) === week,
+        )
+        .map((r) => r.observation.date),
+    );
+    for (const date of dates) {
+      const entries = records.filter(
+        (r) => r.observation.scope === scope && r.observation.date === date,
+      );
+      view.maintained += Math.max(
+        0,
+        ...entries.map((r) => r.observation.summary.verifiedMaintenance),
+      );
+      view.controlWrites += Math.max(
+        0,
+        ...entries.map((r) => r.observation.summary.verifiedControlWrites),
+      );
+    }
+  }
+  const repoIds = repositoryHeads(records),
+    repoHeads = records.filter((r) => repoIds.includes(r.id));
+  const repoStatus = (r: PublishedObservation) =>
+    JSON.stringify([
+      r.observation.repository?.unresolved,
+      r.observation.repository?.awaiting,
+    ]);
+  if (new Set(repoHeads.map(repoStatus)).size > 1)
+    view.conflicts.push(...repoIds);
+  view.repository.unresolved = Math.max(
+    0,
+    ...repoHeads.map((r) => r.observation.repository?.unresolved ?? 0),
+  );
+  view.repository.awaiting = Math.max(
+    0,
+    ...repoHeads.map((r) => r.observation.repository?.awaiting ?? 0),
+  );
+  const byId = new Map(records.map((r) => [r.id, r]));
+  const ancestry = new Map<string, Set<string>>();
+  function repositoryAncestors(child: PublishedObservation): Set<string> {
+    const known = ancestry.get(child.id);
+    if (known !== undefined) return known;
+    const result = new Set(child.observation.repositoryParents);
+    for (const id of child.observation.repositoryParents) {
+      const parent = byId.get(id);
+      if (parent !== undefined)
+        for (const ancestor of repositoryAncestors(parent))
+          result.add(ancestor);
+    }
+    ancestry.set(child.id, result);
+    return result;
+  }
+  const fixes = records.flatMap((r) =>
+    (r.observation.repository?.merged ?? []).map((fix) => ({ r, fix })),
+  );
+  const reducedFixes: WeeklyRepositorySummary["merged"] = [];
+  for (const key of new Set(
+    fixes.map(({ fix }) => `${fix.pullRequest}:${fix.commit}`),
+  )) {
+    const matching = fixes.filter(
+        ({ fix }) => `${fix.pullRequest}:${fix.commit}` === key,
+      ),
+      first = matching[0];
+    if (first === undefined) continue;
+    function verification(
+      check: "verification" | "rollout",
+    ): "verified" | "failed" | "awaiting" {
+      const actual = matching.filter(({ fix }) => fix[check] !== "awaiting");
+      const heads = actual.filter(
+        ({ r }) =>
+          !actual.some(
+            (next) =>
+              next.r.id !== r.id && repositoryAncestors(next.r).has(r.id),
+          ),
+      );
+      const results = new Set(heads.map(({ fix }) => fix[check]));
+      if (results.size > 1) {
+        view.conflicts.push(...heads.map(({ r }) => r.id));
+        return "awaiting";
+      }
+      return heads[0]?.fix[check] ?? "awaiting";
+    }
+    const fix = {
+      ...first.fix,
+      verification: verification("verification"),
+      rollout: verification("rollout"),
+    };
+    reducedFixes.push(fix);
+    const originIssues = [
+      ...new Set(
+        matching.flatMap(({ fix }) =>
+          fix.originIssue === undefined ? [] : [fix.originIssue],
+        ),
+      ),
+    ];
+    const verified =
+      fix.verification === "verified" && fix.rollout === "verified";
+    if (
+      !verified ||
+      matching.some(({ r }) => offeringWeekStart(r.observation.date) === week)
+    )
+      view.repository.merged.push(fix);
+    for (const origin of originIssues)
+      if (!verified) view.repository.pendingIssueNumbers?.push(origin);
+  }
+  const verifiedFixes = fixes.filter(({ fix }) => {
+    const reduced = reducedFixes.find(
+      (f) => f.pullRequest === fix.pullRequest && f.commit === fix.commit,
+    );
+    return (
+      reduced?.verification === "verified" && reduced.rollout === "verified"
+    );
+  });
+  const unverifiedFixes = fixes.filter((fix) => !verifiedFixes.includes(fix));
+  view.repository.pendingIssueNumbers = issueNumbers([
+    ...records.flatMap(
+      (r) => r.observation.repository?.pendingIssueNumbers ?? [],
+    ),
+    ...(view.repository.pendingIssueNumbers ?? []),
+  ]).filter(
+    (n) =>
+      !verifiedFixes.some(({ fix }) => fix.originIssue === n) ||
+      unverifiedFixes.some(({ fix }) => fix.originIssue === n),
+  );
+  view.repository.pendingPullRequestNumbers = issueNumbers(
+    records.flatMap(
+      (r) => r.observation.repository?.pendingPullRequestNumbers ?? [],
+    ),
+  ).filter(
+    (n) =>
+      !verifiedFixes.some(({ fix }) => fix.pullRequest === n) ||
+      unverifiedFixes.some(({ fix }) => fix.pullRequest === n),
+  );
+  view.repository.merged.sort(
+    (a, b) => a.pullRequest - b.pullRequest || a.commit.localeCompare(b.commit),
+  );
+  view.conflicts = [...new Set(view.conflicts)].sort();
+  view.actionable =
+    view.pending +
+      view.stale +
+      view.conflicts.length +
+      view.unknown.length +
+      view.parked +
+      view.failures +
+      view.awaitingMaintenance +
+      view.repository.unresolved +
+      view.repository.awaiting +
+      (view.repository.pendingIssueNumbers?.length ?? 0) +
+      (view.repository.pendingPullRequestNumbers?.length ?? 0) >
+      0 ||
+    view.repository.merged.some(
+      (fix) => fix.verification !== "verified" || fix.rollout !== "verified",
+    );
+  if (
+    Object.values(view).some(
+      (value) => typeof value === "number" && !Number.isSafeInteger(value),
+    )
+  )
+    throw new Error("Weekly totals exceed safe integer bounds.");
+  return view;
+}
+export function renderPublication(
+  observation: WeeklyObservation,
+  records: PublishedObservation[],
+  view: WeeklyView,
+  predecessors: number[],
+): string {
+  const body = [
+    observationMarker(observation),
+    `As of ${observation.date}. Includes current observation ${digest(observation)} and the publications linked below.`,
+    "",
     "## Overview/Coverage",
     "",
-    `${observations.length} exact maintenance scopes observed; ${pending} require review; ${stale} await this week's observation.`,
+    `${view.scopes} exact maintenance scopes observed; ${view.pending} require review; ${view.stale} await this week's observation.`,
     "",
     "## Merged repository fixes",
     "",
-    ...(state.repository.merged.length === 0
+    ...(view.repository.merged.length === 0
       ? ["None recorded."]
-      : state.repository.merged.map(
+      : view.repository.merged.map(
           (fix) =>
             `- PR #${fix.pullRequest} merged as ${fix.commit}; combined-main verification ${fix.verification}; rollout ${fix.rollout}.`,
         )),
     "",
     "## Verified maintenance",
     "",
-    `Verified maintenance entries: ${maintenanceReceipts.reduce((n, receipt) => n + receipt.verifiedMaintenance, 0)}. Checked entries: ${observations.reduce((n, s) => n + s.summary.checkedMaintenance, 0)}; verified control writes: ${maintenanceReceipts.reduce((n, receipt) => n + receipt.verifiedControlWrites, 0)}. Detailed work and source provenance remain in private daily evidence.`,
+    `Verified maintenance entries: ${view.maintained}. Checked entries: ${view.checked}; verified control writes: ${view.controlWrites}. Detailed work remains in private daily evidence.`,
     "",
     "## Unresolved work",
     "",
-    `Pending scopes: ${pending}; repository work: ${state.repository.unresolved}; parked items: ${observations.reduce((n, s) => n + s.summary.parked, 0)}; failures: ${observations.reduce((n, s) => n + s.summary.failures, 0)}.`,
-    ...(state.repository.pendingIssueNumbers ?? []).map(
+    `Pending scopes: ${view.pending}; repository work: ${view.repository.unresolved}; parked items: ${view.parked}; failures: ${view.failures}.`,
+    ...(view.repository.pendingIssueNumbers ?? []).map(
       (n) => `- Repository issue awaiting reconciliation: #${n}.`,
     ),
-    ...(state.repository.pendingPullRequestNumbers ?? []).map(
+    ...(view.repository.pendingPullRequestNumbers ?? []).map(
       (n) => `- Repository pull request awaiting reconciliation: #${n}.`,
     ),
-    ...state.unknown.map(
+    ...view.unknown.map(
       (n) =>
-        `- Transferred evidence-unknown work: #${n}; not automatically resolved.`,
+        `- Evidence-unknown predecessor or publication: #${n}. Closure does not resolve it.`,
     ),
     "",
     "## Awaiting verification",
     "",
-    `Prior-week scopes: ${stale}; maintenance entries: ${observations.reduce((n, s) => n + s.summary.awaitingMaintenance, 0)}; repository work: ${state.repository.awaiting}.`,
+    `Prior-week scopes: ${view.stale}; maintenance entries: ${view.awaitingMaintenance}; repository work: ${view.repository.awaiting}.`,
+    ...view.conflicts.map(
+      (id) =>
+        `- Incomparable observations require fresh work that observes both heads: ${id}. Counters are conservative bounds.`,
+    ),
     "",
     "## Verification limits",
     "",
-    "Missing/partial observations remain unknown. A merge is distinct from combined-main and rollout verification. Backend identity, future schedules and live provider health are not inferred from local checks.",
-    END,
+    "Missing evidence remains unknown. A merge is distinct from combined-main and rollout verification. Same account privileged edits cannot be attributed independently. Enumeration is bounded and does not provide provider snapshot isolation.",
+    "",
+    "## Prior Owner notes",
+    "",
+    ...[...new Set(predecessors)]
+      .sort((a, b) => a - b)
+      .map((n) => `- Owner notes and discussion remain in #${n}.`),
+    "",
+    "## Included publications",
+    "",
+    ...records.map((r) => `- [${r.id}](${r.url})`),
   ].join("\n");
-  const text = `${managed}${owner.startsWith("\n") ? "" : "\n"}${owner}`;
-  if (Buffer.byteLength(text) > 60_000)
-    throw new Error(
-      "Weekly review exceeds bounded publication size; preserved issues require reconciliation.",
-    );
-  return text;
-}
-export function mergeState(target: QueueState, incoming: QueueState): void {
-  for (const [id, scope] of Object.entries(incoming.scopes)) {
-    const existing = target.scopes[id];
-    const receipts = mergeReceipts(existing?.receipts ?? {}, scope.receipts);
-    if (existing === undefined || existing.date < scope.date)
-      target.scopes[id] = { ...scope, receipts };
-    else {
-      if (
-        existing.date === scope.date &&
-        JSON.stringify({ ...existing, receipts: {} }) !==
-          JSON.stringify({ ...scope, receipts: {} })
-      )
-        throw new Error(
-          "Conflicting same-day scope observations require reconciliation.",
-        );
-      existing.receipts = receipts;
-    }
-  }
-  target.unknown = [...new Set([...target.unknown, ...incoming.unknown])].sort(
-    (a, b) => a - b,
-  );
-  const fixes = new Map(
-    target.repository.merged.map((fix) => [
-      `${fix.pullRequest}:${fix.commit}`,
-      fix,
-    ]),
-  );
-  for (const fix of incoming.repository.merged)
-    if (!fixes.has(`${fix.pullRequest}:${fix.commit}`))
-      fixes.set(`${fix.pullRequest}:${fix.commit}`, fix);
-  target.repository.merged = [...fixes.values()];
-  target.repository.pendingIssueNumbers = issueNumbers([
-    ...(target.repository.pendingIssueNumbers ?? []),
-    ...(incoming.repository.pendingIssueNumbers ?? []),
-  ]);
-  target.repository.pendingPullRequestNumbers = issueNumbers([
-    ...(target.repository.pendingPullRequestNumbers ?? []),
-    ...(incoming.repository.pendingPullRequestNumbers ?? []),
-  ]);
-  // Missing fresh repository evidence cannot erase unresolved earlier work.
-  target.repository.unresolved = Math.max(
-    target.repository.unresolved,
-    incoming.repository.unresolved,
-  );
-  target.repository.awaiting = Math.max(
-    target.repository.awaiting,
-    incoming.repository.awaiting,
-  );
+  if (Buffer.byteLength(body) > 60_000)
+    throw new Error("Weekly review exceeds bounded publication size.");
+  return body;
 }

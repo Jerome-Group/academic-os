@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { lstat, mkdir, writeFile } from "node:fs/promises";
+import { lstat, mkdir, open } from "node:fs/promises";
 import { join } from "node:path";
 
 import { OperationalError } from "../mounted/index.js";
@@ -23,6 +23,7 @@ export function createFileWeeklyEvidenceStore(
         const info = await lstat(root);
         if (
           !info.isDirectory() ||
+          info.uid !== process.getuid?.() ||
           info.isSymbolicLink() ||
           (info.mode & 0o077) !== 0
         )
@@ -31,11 +32,25 @@ export function createFileWeeklyEvidenceStore(
             "Weekly migration evidence requires private ordinary directories.",
           );
       }
-      await writeFile(
+      const file = await open(
         join(root, `issue-${input.number}-${randomUUID()}.json`),
-        `${JSON.stringify({ schemaVersion: 1, observedAt: new Date().toISOString(), ...input }, null, 2)}\n`,
-        { flag: "wx", mode: 0o600 },
+        "wx",
+        0o600,
       );
+      try {
+        await file.writeFile(
+          `${JSON.stringify({ schemaVersion: 2, observedAt: new Date().toISOString(), ...input }, null, 2)}\n`,
+        );
+        await file.sync();
+      } finally {
+        await file.close();
+      }
+      const directory = await open(root, "r");
+      try {
+        await directory.sync();
+      } finally {
+        await directory.close();
+      }
     },
   };
 }

@@ -28,7 +28,6 @@ import {
 } from "../routine/index.js";
 import { parseArgumentTokens } from "./argument-tokens.js";
 import { renderModulePassSummary } from "./render-module-pass-summary.js";
-import { createFileWeeklyEvidenceStore } from "../routine/file-weekly-evidence.js";
 import { runRepositoryRepair } from "../routine/repository-repair.js";
 import { createGhWeeklyRepositoryHistory } from "../routine/gh-weekly-repository-history.js";
 
@@ -84,7 +83,7 @@ export async function runRoutineMorningCommand(
     }),
     run,
     issue: createGhMorningIssue(routine.ghPath),
-    weeklyEvidence: createFileWeeklyEvidenceStore(stateRoot),
+    weeklyStateRoot: stateRoot,
     weeklyRepositoryHistory: createGhWeeklyRepositoryHistory(routine.ghPath),
     ...(options.modulesOnly
       ? {}

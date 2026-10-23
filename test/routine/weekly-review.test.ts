@@ -1,666 +1,544 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
-import { offeringCalendarDay } from "../../src/routine/offering-calendar-day.js";
+import { readFile, readdir } from "node:fs/promises";
+import { join } from "node:path";
+import { it } from "node:test";
 import {
-  morningIssueMarker,
-  weeklyRepairSummary,
-} from "../../src/routine/run-morning-routine.js";
-import type {
-  MorningIssue,
-  MorningIssuePort,
-  WeeklyIssueEvidenceStore,
-} from "../../src/routine/types.js";
-import {
+  beginWeeklyObservation,
   offeringWeekStart,
   reconcileWeeklyIssue,
-  weeklyIssueMarker,
   weeklyScopeId,
 } from "../../src/routine/weekly-review.js";
+import { weeklyRepairSummary } from "../../src/routine/run-morning-routine.js";
+import type {
+  WeeklyRepositorySummary,
+  WeeklyScopeSummary,
+} from "../../src/routine/types.js";
+import { weeklyFixture } from "../fixtures/weekly-discussion.js";
 
-function fixture() {
-  const issues = new Map<number, MorningIssue>();
-  const events: string[] = [];
-  const originals: MorningIssue[] = [];
-  const issue: MorningIssuePort = {
-    list: async () => [...issues.values()].map((value) => ({ ...value })),
-    read: async (number) => {
-      events.push(`read:${number}`);
-      const value = issues.get(number);
-      assert.ok(value);
-      return { ...value };
-    },
-    raise: async (input) => {
-      const number = Math.max(0, ...issues.keys()) + 1;
-      issues.set(number, { ...input, number, state: "OPEN" });
-      events.push(`create:${number}`);
-      return number;
-    },
-    update: async ({ number, body }) => {
-      const previous = issues.get(number);
-      assert.ok(previous);
-      issues.set(number, { ...previous, body });
-      events.push(`update:${number}`);
-    },
-    reopen: async (number) => {
-      const previous = issues.get(number);
-      assert.ok(previous);
-      issues.set(number, { ...previous, state: "OPEN" });
-      events.push(`reopen:${number}`);
-    },
-    close: async (number, transferTo) => {
-      const previous = issues.get(number);
-      assert.ok(previous);
-      issues.set(number, { ...previous, state: "CLOSED" });
-      events.push(`close:${number}`);
-      if (transferTo !== undefined)
-        events.push(`transfer:${number}:${transferTo}`);
-    },
-  };
-  const evidence: WeeklyIssueEvidenceStore = {
-    archiveIssue: async (input) => {
-      originals.push({ ...input, state: "OPEN" });
-      events.push(`archive:${input.number}`);
-    },
-  };
-  return { issue, evidence, issues, events, originals };
-}
-const summary = {
-  targets: 2,
+const summary: WeeklyScopeSummary = {
+  targets: 1,
   preludePending: 0,
   parked: 0,
   failures: 0,
-  verifiedMaintenance: 3,
-  checkedMaintenance: 2,
-  verifiedControlWrites: 1,
+  verifiedMaintenance: 0,
+  checkedMaintenance: 9,
+  verifiedControlWrites: 0,
   awaitingMaintenance: 0,
 };
-const observation = {
-  date: "2026-08-24",
-  cohort: "synthetic-cohort",
-  moduleCodes: ["AB1234", "CD5678"],
+const scope = {
+  date: "2026-10-23",
+  cohort: "private-cohort",
+  moduleCodes: ["PRIVATE1234"],
   scope: "monitoring-cohort" as const,
-  summary,
-  needsOwner: false,
 };
-function queueState(body: string) {
-  const value = /<!-- academic-os-weekly-state:v1 (\S+) -->/u.exec(body)?.[1];
-  assert.ok(value);
-  return JSON.parse(decodeURIComponent(value));
-}
-async function run(
-  f: ReturnType<typeof fixture>,
-  changes: Partial<Parameters<typeof reconcileWeeklyIssue>[0]> = {},
+async function publish(
+  f: ReturnType<typeof weeklyFixture>,
+  changes: {
+    date?: string;
+    moduleCodes?: string[];
+    summary?: WeeklyScopeSummary;
+    needsOwner?: boolean;
+    repository?: WeeklyRepositorySummary;
+  } = {},
 ) {
-  return await reconcileWeeklyIssue({ ...observation, ...f, ...changes });
+  const observation = await beginWeeklyObservation({
+    ...scope,
+    ...changes,
+    issue: f.issue,
+    stateRoot: f.stateRoot,
+  });
+  return reconcileWeeklyIssue({
+    issue: f.issue,
+    stateRoot: f.stateRoot,
+    observation,
+    summary: changes.summary ?? summary,
+    needsOwner: changes.needsOwner ?? false,
+    ...(changes.repository === undefined
+      ? {}
+      : { repository: changes.repository }),
+  });
 }
-function body(f: ReturnType<typeof fixture>, number = 1) {
-  const found = f.issues.get(number);
-  assert.ok(found);
-  return found.body;
+function last(f: ReturnType<typeof weeklyFixture>): string {
+  return f.appended.at(-1)?.body ?? "";
 }
 
-describe("weekly maintenance queue", () => {
-  it("uses offering Monday through missed Monday and year boundaries", () => {
-    assert.equal(offeringWeekStart("2026-08-26"), "2026-08-24");
-    assert.equal(offeringWeekStart("2026-01-01"), "2025-12-29");
-    assert.equal(
-      offeringWeekStart(offeringCalendarDay(new Date("2026-08-23T16:00:00Z"))),
-      "2026-08-24",
-    );
-    assert.throws(() => offeringWeekStart("2026-02-31"));
+it("keeps Monday offering identity and exact private scope hashing", () => {
+  assert.equal(offeringWeekStart("2026-10-25"), "2026-10-19");
+  assert.equal(
+    weeklyScopeId("p", ["B", "A", "A"], "modules-only"),
+    weeklyScopeId("p", ["A", "B"], "modules-only"),
+  );
+  assert.notEqual(
+    weeklyScopeId("p", ["A"], "modules-only"),
+    weeklyScopeId("p", ["A"], "monitoring-cohort"),
+  );
+});
+it("creates a static anchor, preserves body/comments and suppresses quiet same-week day churn", async () => {
+  const f = weeklyFixture();
+  assert.equal((await publish(f)).outcome, "created");
+  const issue = f.issues.get(900);
+  assert.ok(issue);
+  issue.body += "\n OWNER  whitespace\t\n";
+  const bytes = issue.body;
+  const original = f.comments.get(100);
+  assert.ok(original);
+  assert.equal(
+    (await publish(f, { date: "2026-10-24" })).outcome,
+    "not-needed",
+  );
+  assert.equal(f.appended.length, 1);
+  assert.equal(issue.body, bytes);
+  assert.equal(f.comments.get(100)?.body, original.body);
+  assert.match(last(f), /As of 2026-10-23/u);
+  assert.doesNotMatch(last(f), /private-cohort|PRIVATE1234/u);
+  for (const section of [
+    "Overview/Coverage",
+    "Merged repository fixes",
+    "Verified maintenance",
+    "Unresolved work",
+    "Awaiting verification",
+    "Verification limits",
+  ])
+    assert.ok(last(f).includes(`## ${section}`));
+});
+it("new positive daily receipts publish and same-day maxima retain verified work", async () => {
+  const f = weeklyFixture();
+  await publish(f, {
+    summary: { ...summary, verifiedMaintenance: 3, verifiedControlWrites: 2 },
   });
-  it("creates the first quiet review and updates one issue for every day, cohort and scope", async () => {
-    const f = fixture();
-    const first = await run(f, { date: "2026-08-26" });
-    assert.equal(first.outcome, "created");
-    assert.equal(first.actionable, false);
-    await run(f, {
-      date: "2026-08-27",
-      cohort: "different-cohort",
-      moduleCodes: ["EF9012"],
-      scope: "modules-only",
-    });
-    assert.equal(f.issues.size, 1);
-    assert.equal(
-      f.issues.get(1)?.title,
-      "Weekly maintenance review 2026-08-24",
-    );
-    assert.equal(Object.keys(queueState(body(f)).scopes).length, 2);
-    for (const heading of [
-      "Overview/Coverage",
-      "Merged repository fixes",
-      "Verified maintenance",
-      "Unresolved work",
-      "Awaiting verification",
-      "Owner notes",
-      "Verification limits",
-    ])
-      assert.ok(body(f).includes(`## ${heading}`));
+  assert.equal((await publish(f, { summary })).outcome, "not-needed");
+  await publish(f, {
+    date: "2026-10-24",
+    summary: { ...summary, verifiedMaintenance: 1 },
   });
-  it("hashes the exact scope without publishing configured identities", () => {
-    assert.equal(
-      weeklyScopeId("private", ["B", "A", "A"], "modules-only"),
-      weeklyScopeId("private", ["A", "B"], "modules-only"),
-    );
-    assert.notEqual(
-      weeklyScopeId("private", ["A"], "modules-only"),
-      weeklyScopeId("private", ["A"], "monitoring-cohort"),
-    );
-    assert.equal(
-      weeklyIssueMarker("2026-08-24"),
-      "<!-- academic-os-weekly-issue:v1 week=2026-08-24 -->",
-    );
+  assert.match(last(f), /Verified maintenance entries: 4\./u);
+  assert.match(last(f), /verified control writes: 2\./u);
+});
+it("incomparable same-scope results await fresh work naming both; different scopes combine", async () => {
+  const f = weeklyFixture();
+  const a = await beginWeeklyObservation({
+    ...scope,
+    issue: f.issue,
+    stateRoot: f.stateRoot,
   });
-  it("narrow clean observations cannot clear broader or different cohort work", async () => {
-    const f = fixture();
-    await run(f, { needsOwner: true });
-    const result = await run(f, {
-      moduleCodes: ["AB1234"],
-      scope: "modules-only",
-    });
-    assert.equal(result.actionable, true);
-    await run(f, { cohort: "other", needsOwner: false });
-    const state = queueState(body(f));
-    assert.equal(
-      state.scopes[
-        weeklyScopeId(
-          observation.cohort,
-          observation.moduleCodes,
-          observation.scope,
-        )
-      ].needsOwner,
-      true,
-    );
+  const b = await beginWeeklyObservation({
+    ...scope,
+    issue: f.issue,
+    stateRoot: f.stateRoot,
   });
-  it("same exact fresh scope can clear its current-week pending observation", async () => {
-    const f = fixture();
-    await run(f, { needsOwner: true });
-    const result = await run(f, { date: "2026-08-25" });
-    assert.equal(result.actionable, false);
-    assert.equal(f.issues.size, 1);
+  await reconcileWeeklyIssue({
+    issue: f.issue,
+    stateRoot: f.stateRoot,
+    observation: a,
+    summary,
+    needsOwner: false,
   });
-  it("quiet next-week observation retains unresolved predecessor as unknown", async () => {
-    const f = fixture();
-    await run(f, { needsOwner: true });
-    const result = await run(f, { date: "2026-08-31" });
-    assert.equal(result.actionable, true);
-    assert.equal(f.issues.get(1)?.state, "CLOSED");
-    assert.ok(body(f, 2).includes("#1; not automatically resolved"));
-    assert.equal(f.originals[0]?.number, 1);
-    assert.ok(f.events.indexOf("read:2") < f.events.indexOf("close:1"));
-    assert.ok(f.events.indexOf("archive:1") < f.events.indexOf("close:1"));
+  const conflict = await reconcileWeeklyIssue({
+    issue: f.issue,
+    stateRoot: f.stateRoot,
+    observation: b,
+    summary: { ...summary, parked: 1 },
+    needsOwner: true,
   });
-  it("missing scopes retain prior-week awaiting status", async () => {
-    const f = fixture();
-    await run(f);
-    const result = await run(f, {
-      date: "2026-08-31",
-      moduleCodes: ["AB1234"],
-      scope: "modules-only",
-    });
-    assert.equal(result.actionable, true);
-    assert.match(body(f, 2), /1 await this week's observation/u);
+  assert.equal(conflict.actionable, true);
+  assert.match(last(f), /Incomparable observations/u);
+  await publish(f, { moduleCodes: ["OTHER"], summary });
+  assert.match(last(f), /2 exact maintenance scopes/u);
+  const fresh = await beginWeeklyObservation({
+    ...scope,
+    issue: f.issue,
+    stateRoot: f.stateRoot,
   });
-  it("preserves Owner text outside the managed section on update and rollover", async () => {
-    const f = fixture();
-    await run(f);
-    const previous = f.issues.get(1);
-    assert.ok(previous);
-    previous.body += "Exact Owner note: review Thursday.\n";
-    await run(f, { date: "2026-08-25" });
-    assert.ok(body(f).includes("Exact Owner note: review Thursday.\n"));
-    await run(f, { date: "2026-08-31" });
-    assert.ok(body(f, 2).includes("Exact Owner note: review Thursday.\n"));
+  assert.equal(fresh.parents.length, 2);
+  const resolved = await reconcileWeeklyIssue({
+    issue: f.issue,
+    stateRoot: f.stateRoot,
+    observation: fresh,
+    summary,
+    needsOwner: false,
   });
-  it("keeps thirty unchanged same-week updates byte-stable with Owner text, merges and transferred unknowns", async () => {
-    for (const note of [
-      "",
-      "\n\n  Exact Owner note: retain whitespace.  \n\n",
-    ]) {
-      const f = fixture();
-      f.issues.set(7, {
-        number: 7,
-        title: "Morning report 2026-08-24",
-        state: "OPEN",
-        body: `${morningIssueMarker("legacy", ["ZZ0000"])}\nSynthetic unknown observation.`,
-      });
-      const repository = {
-        merged: [
-          {
-            pullRequest: 12,
-            commit: "a".repeat(40),
-            verification: "verified" as const,
-            rollout: "verified" as const,
-          },
-        ],
-        unresolved: 0,
-        awaiting: 0,
-      };
-      await run(f, { repository });
-      const current = f.issues.get(8);
-      assert.ok(current);
-      current.body += note;
-      const expected = current.body;
-      for (let attempt = 0; attempt < 30; attempt++) {
-        assert.equal((await run(f, { repository })).outcome, "updated");
-        assert.equal(body(f, 8), expected);
-      }
-      assert.equal(f.issues.size, 2);
-      assert.equal(
-        f.events.filter((event) => event.startsWith("create:")).length,
-        1,
-      );
-      assert.match(expected, /PR #12 merged as/u);
-      assert.match(expected, /Transferred evidence-unknown work: #7/u);
-      assert.ok(expected.endsWith(note));
-    }
-  });
-  it("keeps the first quiet publication byte-stable when repository discovery is absent", async () => {
-    const f = fixture();
-    await run(f);
-    const expected = body(f);
-    for (let attempt = 0; attempt < 30; attempt++) {
-      await run(f);
-      assert.equal(body(f), expected);
-    }
-    assert.equal(f.issues.size, 1);
-  });
-  it("preserves a closed quiet current week and reopens only when work becomes pending", async () => {
-    const f = fixture();
-    await run(f);
-    await f.issue.close(1);
-    const quiet = await run(f);
-    assert.equal(quiet.outcome, "updated");
-    assert.equal(f.issues.get(1)?.state, "CLOSED");
-    assert.ok(!f.events.includes("reopen:1"));
-    const failed = await run(f, { needsOwner: true });
-    assert.equal(failed.outcome, "reopened");
-  });
-  it("requires snapshots before transferring a legacy incident and never republishes its prose", async () => {
-    const f = fixture();
-    const secret = "/private/synthetic-course/source.pdf";
-    f.issues.set(7, {
-      number: 7,
-      title: "Morning report 2026-08-23",
-      state: "OPEN",
-      body: `${morningIssueMarker("legacy", ["ZZ0000"])}\n\n${secret}`,
-    });
-    const result = await run(f);
-    assert.equal(result.actionable, true);
-    assert.equal(f.issues.get(7)?.state, "CLOSED");
-    assert.equal(f.originals[0]?.body.includes(secret), true);
-    assert.equal(body(f, 8).includes(secret), false);
-    assert.match(body(f, 8), /#7; not automatically resolved/u);
-    assert.equal(body(f, 7), f.originals[0]?.body);
-    assert.ok(f.events.includes("transfer:7:8"));
-    assert.ok(!f.events.includes("update:7"));
-    assert.ok(f.events.indexOf("archive:7") < f.events.indexOf("close:7"));
-  });
-  it("snapshot failure and absence leave predecessors open", async () => {
-    for (const missing of [true, false]) {
-      const f = fixture();
-      await run(f);
-      const evidence = missing
-        ? undefined
-        : {
-            archiveIssue: async () => {
-              throw Error("private snapshot failed");
-            },
-          };
-      const result = await reconcileWeeklyIssue({
-        ...observation,
-        issue: f.issue,
-        date: "2026-08-31",
-        ...(evidence === undefined ? {} : { evidence }),
-      });
-      assert.equal(result.outcome, "failed");
-      assert.equal(f.issues.get(1)?.state, "OPEN");
-    }
-  });
-  it("failed successor readback never retires predecessors", async () => {
-    const f = fixture();
-    await run(f, { needsOwner: true });
-    const read = f.issue.read;
-    assert.ok(read);
-    f.issue.read = async (number) => ({
-      ...(await read(number)),
-      ...(number === 2 ? { body: "stale readback" } : {}),
-    });
-    const result = await run(f, { date: "2026-08-31" });
-    assert.equal(result.outcome, "failed");
-    assert.equal(f.issues.get(1)?.state, "OPEN");
-    assert.equal(f.originals.length, 0);
-  });
-  it("interrupted retirement repeats without losing evidence or duplicating Owner carry", async () => {
-    const f = fixture();
-    await run(f, { needsOwner: true });
-    const old = f.issues.get(1);
-    assert.ok(old);
-    old.body += "Owner note.\n";
-    const close = f.issue.close;
-    let fail = true;
-    f.issue.close = async (n, transferTo) => {
-      if (fail && n === 1) {
-        fail = false;
-        throw Error("interrupted close");
-      }
-      await close(n, transferTo);
-    };
-    assert.equal((await run(f, { date: "2026-08-31" })).outcome, "failed");
-    assert.equal(f.issues.get(1)?.state, "OPEN");
-    const repeated = await run(f, { date: "2026-08-31" });
-    assert.equal(repeated.outcome, "updated");
-    assert.equal(f.issues.size, 2);
-    assert.equal(f.issues.get(1)?.state, "CLOSED");
-    assert.equal(body(f, 2).split("Owner note.").length - 1, 1);
-  });
-  it("reconciles duplicate current-week issues after verified carry and snapshot", async () => {
-    const f = fixture();
-    await run(f, { needsOwner: true });
-    f.issues.set(2, { ...(f.issues.get(1) as MorningIssue), number: 2 });
-    const result = await run(f);
-    assert.equal(result.number, 1);
-    assert.equal(f.issues.get(2)?.state, "CLOSED");
-    assert.equal(result.actionable, true);
-  });
-  it("refuses malformed weekly state, future observations and unmanaged legacy ownership", async () => {
-    const f = fixture();
-    await run(f);
-    const old = f.issues.get(1);
-    assert.ok(old);
-    old.body = old.body.replace("academic-os-weekly-state:v1", "broken-state");
-    assert.equal((await run(f)).outcome, "failed");
-    assert.equal(f.events.filter((e) => e.startsWith("update:")).length, 0);
-    const clean = fixture();
-    clean.issues.set(4, {
-      number: 4,
-      title: "Morning report 2026-08-23",
-      body: "unmanaged Owner issue",
-      state: "OPEN",
-    });
-    await run(clean);
-    assert.equal(clean.issues.get(4)?.state, "OPEN");
-  });
-  it("retains merged facts through quiet reports while rollout remains independently pending", async () => {
-    const f = fixture();
-    const merged = {
-      pullRequest: 12,
+  assert.equal(resolved.actionable, false);
+  assert.doesNotMatch(last(f), /Incomparable observations/u);
+});
+it("missing repository verification retains positive exact receipts; contradictory receipts await fresh check", async () => {
+  const f = weeklyFixture(),
+    fix = {
+      pullRequest: 19,
+      originIssue: 17,
       commit: "a".repeat(40),
       verification: "verified" as const,
-      rollout: "awaiting" as const,
+      rollout: "verified" as const,
     };
-    await run(f, {
-      repository: { merged: [merged], unresolved: 0, awaiting: 1 },
-    });
-    const result = await run(f, {
-      date: "2026-08-25",
-      summary: { ...summary, verifiedMaintenance: 0, verifiedControlWrites: 0 },
-      repository: { merged: [], unresolved: 0, awaiting: 0 },
-    });
-    assert.equal(result.actionable, true);
-    assert.match(body(f), /PR #12 merged as/u);
-    assert.match(
-      body(f),
-      /combined-main verification verified; rollout awaiting/u,
-    );
-    assert.match(body(f), /Verified maintenance entries: 3/u);
-    const verified = await run(f, {
-      date: "2026-08-25",
-      summary: { ...summary, verifiedMaintenance: 0, verifiedControlWrites: 0 },
-      repository: {
-        merged: [{ ...merged, rollout: "verified" }],
-        unresolved: 0,
-        awaiting: 0,
-      },
-    });
-    assert.equal(verified.actionable, false);
+  const base = await beginWeeklyObservation({
+    ...scope,
+    issue: f.issue,
+    stateRoot: f.stateRoot,
   });
-  it("safe merge projection does not publish repair messages, paths or pretend a merged fix rolled out", () => {
-    const projected = weeklyRepairSummary({
-      schemaVersion: 1,
-      outcome: "blocked",
-      pullRequest: 12,
-      mergeCommit: "a".repeat(40),
-      postmergeVerification: "passed",
-      rolloutVerification: "blocked",
-      code: "/private/secret",
-      evidence: "/private/secret",
-      modelAttestation: "unverified",
-    });
-    assert.equal(projected.merged[0]?.rollout, "failed");
-    assert.equal(projected.unresolved, 1);
-    assert.ok(!JSON.stringify(projected).includes("private"));
-    assert.equal(
-      weeklyRepairSummary({
-        schemaVersion: 1,
-        outcome: "merged",
-        pullRequest: 12,
-        modelAttestation: "unverified",
-      }).merged.length,
-      0,
-    );
+  const concurrent = await beginWeeklyObservation({
+    ...scope,
+    issue: f.issue,
+    stateRoot: f.stateRoot,
   });
-});
-
-it("retains exact merge verification through missing collector receipts and accepts new evidenced failures", async () => {
-  const f = fixture();
-  const merged = {
-    pullRequest: 12,
-    commit: "a".repeat(40),
-    verification: "verified" as const,
-    rollout: "verified" as const,
-  };
-  await run(f, {
-    repository: { merged: [merged], unresolved: 0, awaiting: 0 },
+  await reconcileWeeklyIssue({
+    issue: f.issue,
+    stateRoot: f.stateRoot,
+    observation: base,
+    summary,
+    needsOwner: false,
+    repository: { merged: [fix], unresolved: 0, awaiting: 0 },
   });
-  await run(f, {
-    date: "2026-08-25",
+  await reconcileWeeklyIssue({
+    issue: f.issue,
+    stateRoot: f.stateRoot,
+    observation: concurrent,
+    summary,
+    needsOwner: false,
     repository: {
-      merged: [{ ...merged, verification: "awaiting", rollout: "awaiting" }],
+      merged: [{ ...fix, verification: "failed" }],
       unresolved: 0,
       awaiting: 0,
     },
   });
+  assert.match(last(f), /combined-main verification awaiting/u);
+  await publish(f, {
+    repository: {
+      merged: [{ ...fix, verification: "awaiting", rollout: "awaiting" }],
+      unresolved: 0,
+      awaiting: 0,
+    },
+  });
+  assert.match(last(f), /combined-main verification awaiting/u);
+  await publish(f, {
+    repository: { merged: [fix], unresolved: 0, awaiting: 0 },
+  });
   assert.match(
-    body(f),
+    last(f),
     /combined-main verification verified; rollout verified/u,
   );
-  await run(f, {
-    date: "2026-08-25",
-    repository: {
-      merged: [{ ...merged, rollout: "failed" }],
-      unresolved: 1,
-      awaiting: 0,
-    },
-  });
-  await run(f, {
-    date: "2026-08-26",
-    repository: {
-      merged: [{ ...merged, verification: "awaiting", rollout: "awaiting" }],
-      unresolved: 0,
-      awaiting: 0,
-    },
-  });
-  assert.match(body(f), /combined-main verification verified; rollout failed/u);
-});
-
-it("accumulates weekly maintenance by exact day/scope and conservatively deduplicates reruns", async () => {
-  const f = fixture();
-  await run(f);
-  await run(f);
-  assert.match(body(f), /Verified maintenance entries: 3/u);
-  await run(f, {
-    date: "2026-08-25",
-    summary: { ...summary, verifiedMaintenance: 0, verifiedControlWrites: 0 },
-  });
-  assert.match(body(f), /Verified maintenance entries: 3/u);
-  assert.match(body(f), /verified control writes: 1/u);
-  await run(f, {
-    date: "2026-08-25",
-    summary: { ...summary, verifiedMaintenance: 2, verifiedControlWrites: 2 },
-  });
-  await run(f, {
-    date: "2026-08-25",
-    summary: { ...summary, verifiedMaintenance: 1, verifiedControlWrites: 1 },
-  });
-  assert.match(body(f), /Verified maintenance entries: 5/u);
-  assert.match(body(f), /verified control writes: 3/u);
-  await run(f, {
-    date: "2026-08-31",
-    summary: { ...summary, verifiedMaintenance: 0, verifiedControlWrites: 0 },
-  });
-  assert.match(body(f, 2), /Verified maintenance entries: 0/u);
-});
-
-it("keeps safe pending issue/PR identities until corresponding exact merge is independently verified", async () => {
-  const f = fixture();
-  await run(f, {
-    repository: {
-      merged: [],
-      unresolved: 1,
-      awaiting: 0,
-      pendingIssueNumbers: [17],
-      pendingPullRequestNumbers: [12],
-    },
-  });
-  await run(f, {
-    date: "2026-08-25",
-    repository: {
-      merged: [],
-      unresolved: 0,
-      awaiting: 0,
-      pendingIssueNumbers: [],
-      pendingPullRequestNumbers: [],
-    },
-  });
-  assert.match(body(f), /Repository issue awaiting reconciliation: #17/u);
+  await publish(f, { repository: { merged: [], unresolved: 0, awaiting: 0 } });
   assert.match(
-    body(f),
-    /Repository pull request awaiting reconciliation: #12/u,
-  );
-  const result = await run(f, {
-    date: "2026-08-25",
-    repository: {
-      merged: [
-        {
-          originIssue: 17,
-          pullRequest: 12,
-          commit: "a".repeat(40),
-          verification: "verified",
-          rollout: "verified",
-        },
-      ],
-      unresolved: 0,
-      awaiting: 0,
-    },
-  });
-  assert.equal(result.actionable, false);
-  assert.doesNotMatch(body(f), /Repository issue awaiting reconciliation/u);
-  assert.deepEqual(
-    weeklyRepairSummary({
-      schemaVersion: 1,
-      outcome: "unchanged",
-      issue: 17,
-      pullRequest: 12,
-      modelAttestation: "unverified",
-    }).pendingIssueNumbers,
-    [17],
+    last(f),
+    /combined-main verification verified; rollout verified/u,
   );
 });
-
-it("duplicate scope receipts retain earlier maintenance even when the canonical observation is newer", async () => {
-  const f = fixture();
-  await run(f, {
-    date: "2026-08-25",
-    summary: { ...summary, verifiedMaintenance: 0, verifiedControlWrites: 0 },
-  });
-  const other = fixture();
-  await run(other);
-  f.issues.set(2, { ...(other.issues.get(1) as MorningIssue), number: 2 });
-  await run(f, {
-    date: "2026-08-25",
-    summary: { ...summary, verifiedMaintenance: 0, verifiedControlWrites: 0 },
-  });
-  assert.match(body(f), /Verified maintenance entries: 3/u);
-  assert.equal(f.issues.get(2)?.state, "CLOSED");
-});
-
-it("does not claim transfer when the close result or original-body preservation cannot be read back", async () => {
-  const f = fixture();
-  await run(f);
-  const close = f.issue.close;
-  f.issue.close = async (number, transferTo) => {
-    await close(number, transferTo);
-    const issue = f.issues.get(number);
-    assert.ok(issue);
-    issue.body += "Concurrent Owner note.";
+it("unknown POST is durably fenced, exact committed response loss reuses without duplicate", async () => {
+  const f = weeklyFixture();
+  await publish(f);
+  const append = f.issue.appendComment;
+  f.issue.appendComment = async (input) => {
+    await append(input);
+    throw Error("response lost");
   };
-  const result = await run(f, { date: "2026-08-31" });
+  const basis = await beginWeeklyObservation({
+    ...scope,
+    issue: f.issue,
+    stateRoot: f.stateRoot,
+  });
+  const result = await reconcileWeeklyIssue({
+    issue: f.issue,
+    stateRoot: f.stateRoot,
+    observation: basis,
+    summary: { ...summary, parked: 2 },
+    needsOwner: true,
+  });
   assert.equal(result.outcome, "failed");
-  assert.equal(result.numbers, undefined);
-  assert.ok(f.originals.length > 0);
+  f.issue.appendComment = append;
+  await publish(f, { summary: { ...summary, parked: 2 }, needsOwner: true });
+  assert.equal(f.appended.length, 2);
+  f.issue.appendComment = async () => {
+    throw Error("not yet committed");
+  };
+  await publish(f, { summary: { ...summary, parked: 3 }, needsOwner: true });
+  await assert.rejects(
+    () =>
+      beginWeeklyObservation({
+        ...scope,
+        issue: f.issue,
+        stateRoot: f.stateRoot,
+      }),
+    /remains fenced/u,
+  );
+  assert.equal(f.appended.length, 2);
 });
-
-it("rollover leaves completed merges in their original week and carries only pending merge evidence", async () => {
-  const f = fixture();
-  await run(f, {
+it("known edited/deleted publications retain private originals and refuse publication", async () => {
+  for (const mutation of ["edit", "delete"]) {
+    const f = weeklyFixture();
+    await publish(f);
+    const comment = f.comments.get(100);
+    assert.ok(comment);
+    if (mutation === "edit") comment.body += "Owner change";
+    else f.comments.delete(100);
+    await assert.rejects(
+      () =>
+        beginWeeklyObservation({
+          ...scope,
+          issue: f.issue,
+          stateRoot: f.stateRoot,
+        }),
+      /integrity unknown|disappeared/u,
+    );
+    const journal = await readFile(
+      join(f.stateRoot, "weekly-publication/publication.jsonl"),
+      "utf8",
+    );
+    assert.ok(journal.includes("academic-os-weekly-observation:v2"));
+    assert.equal(f.appended.length, 1);
+  }
+});
+it("closed title-edited private-bound anchors stay closed when quiet and reopen when actionable", async () => {
+  const f = weeklyFixture();
+  await publish(f);
+  const issue = f.issues.get(900);
+  assert.ok(issue);
+  issue.title = "Owner title";
+  issue.body = "Owner body";
+  issue.state = "CLOSED";
+  assert.equal((await publish(f)).outcome, "not-needed");
+  assert.equal(issue.state, "CLOSED");
+  assert.equal((await publish(f, { needsOwner: true })).outcome, "reopened");
+  assert.equal(issue.state, "OPEN");
+  assert.equal(issue.body, "Owner body");
+});
+it("rollover snapshots complete bodies/comments, links notes and uses state-only retirement", async () => {
+  const f = weeklyFixture();
+  await publish(f, { needsOwner: true });
+  const old = f.issues.get(900);
+  assert.ok(old);
+  old.body += "\nPRIVATE OWNER NOTES\t";
+  const bytes = old.body;
+  const result = await publish(f, { date: "2026-10-26" });
+  assert.equal(result.outcome, "created");
+  assert.equal(old.state, "CLOSED");
+  assert.equal(old.body, bytes);
+  assert.doesNotMatch(last(f), /PRIVATE OWNER NOTES/u);
+  const snapshots = await readdir(join(f.stateRoot, "weekly-evidence"));
+  const snapshot = JSON.parse(
+    await readFile(
+      join(f.stateRoot, "weekly-evidence", snapshots[0] ?? ""),
+      "utf8",
+    ),
+  );
+  assert.equal(snapshot.body, bytes);
+  assert.equal(snapshot.comments[0].body, f.comments.get(100)?.body);
+  assert.match(
+    f.appended.at(-1)?.body ?? "",
+    /Closure records transfer, not resolution/u,
+  );
+});
+it("legacy markers without exact private receipts remain unknown and outsiders are never adopted", async () => {
+  const f = weeklyFixture();
+  f.issues.set(1, {
+    id: 1,
+    number: 1,
+    creatorId: 99,
+    title: "Weekly maintenance review 2026-10-19",
+    body: "<!-- academic-os-weekly-issue:v2 week=2026-10-19 -->\n",
+    state: "OPEN",
+    url: "https://github.com/fixture/repo/issues/1",
+  });
+  f.issues.set(2, {
+    id: 2,
+    number: 2,
+    creatorId: 7,
+    title: "Weekly maintenance review 2026-10-12",
+    body: "<!-- academic-os-weekly-issue:v1 week=2026-10-12 -->\nUNPROVEN POSITIVE 9000",
+    state: "OPEN",
+    url: "https://github.com/fixture/repo/issues/2",
+  });
+  const result = await publish(f);
+  assert.equal(result.actionable, true);
+  assert.equal(f.issues.get(1)?.state, "OPEN");
+  const review = f.appended.find((a) => a.number !== 2)?.body ?? "";
+  assert.match(review, /Evidence-unknown predecessor or publication: #2/u);
+  assert.doesNotMatch(review, /UNPROVEN POSITIVE/u);
+});
+it("identity changes and malformed current counters refuse before remote mutations", async () => {
+  const f = weeklyFixture();
+  await publish(f);
+  f.issue.identify = async () => ({ repositoryId: 9, publisherId: 88 });
+  await assert.rejects(
+    () =>
+      beginWeeklyObservation({
+        ...scope,
+        issue: f.issue,
+        stateRoot: f.stateRoot,
+      }),
+    /identity changed/u,
+  );
+  assert.equal(f.appended.length, 1);
+  const g = weeklyFixture();
+  const result = await publish(g, { summary: { ...summary, parked: -1 } });
+  assert.equal(result.outcome, "failed");
+  assert.equal(g.raised.length, 0);
+});
+it("projects exact repair outcomes without treating merge alone as verification", () => {
+  const result = weeklyRepairSummary({
+    schemaVersion: 1,
+    outcome: "merged",
+    pullRequest: 12,
+    issue: 10,
+    mergeCommit: "b".repeat(40),
+    postmergeVerification: "passed",
+    rolloutVerification: "blocked",
+    modelAttestation: "unverified",
+  });
+  assert.equal(result.merged[0]?.verification, "verified");
+  assert.equal(result.merged[0]?.rollout, "failed");
+  assert.deepEqual(result.pendingIssueNumbers, [10]);
+});
+it("500-observation bound and dangling bases refuse before any remote mutation", async () => {
+  const { observationMarker } = await import(
+    "../../src/routine/weekly-review-state.js"
+  );
+  const f = weeklyFixture();
+  f.issues.set(1, {
+    id: 1,
+    number: 1,
+    creatorId: 7,
+    title: "closed history",
+    body: "<!-- academic-os-weekly-issue:v2 week=2026-10-19 -->\n",
+    state: "CLOSED",
+    url: "https://github.com/fixture/repo/issues/1",
+  });
+  for (let n = 1; n <= 501; n++)
+    f.comments.set(n, {
+      id: n,
+      issueNumber: 1,
+      creatorId: 7,
+      body: `${observationMarker({
+        scope: n.toString(16).padStart(64, "0"),
+        date: scope.date,
+        parents: [],
+        repositoryParents: [],
+        summary,
+        needsOwner: false,
+      })}\nfixture`,
+      createdAt: "2026-10-01T00:00:00Z",
+      updatedAt: "2026-10-01T00:00:00Z",
+      url: `https://github.com/fixture/repo/issues/1#issuecomment-${n}`,
+    });
+  await assert.rejects(
+    () =>
+      beginWeeklyObservation({
+        ...scope,
+        issue: f.issue,
+        stateRoot: f.stateRoot,
+      }),
+    /exceeds 500/u,
+  );
+  assert.equal(f.raised.length, 0);
+  assert.equal(f.appended.length, 0);
+  const g = weeklyFixture();
+  await publish(g);
+  const basis = await beginWeeklyObservation({
+    ...scope,
+    issue: g.issue,
+    stateRoot: g.stateRoot,
+  });
+  const result = await reconcileWeeklyIssue({
+    issue: g.issue,
+    stateRoot: g.stateRoot,
+    observation: { ...basis, parents: ["0".repeat(64)] },
+    summary,
+    needsOwner: false,
+  });
+  assert.equal(result.outcome, "failed");
+  assert.equal(g.appended.length, 1);
+});
+it("observed trusted facts arriving during transfer retain the open predecessor", async () => {
+  const f = weeklyFixture();
+  await publish(f);
+  const original = f.issue.listComments;
+  let injected = false;
+  f.issue.listComments = async (number) => {
+    const comments = await original(number);
+    if (number === 900 && !injected && f.issues.size === 2) {
+      injected = true;
+      const { observationMarker } = await import(
+        "../../src/routine/weekly-review-state.js"
+      );
+      const id = 999;
+      f.comments.set(id, {
+        id,
+        issueNumber: number,
+        creatorId: 7,
+        body: `${observationMarker({
+          scope: "c".repeat(64),
+          date: "2026-10-23",
+          parents: [],
+          repositoryParents: [],
+          summary,
+          needsOwner: true,
+        })}\nlate`,
+        createdAt: "2026-10-01T00:00:00Z",
+        updatedAt: "2026-10-01T00:00:00Z",
+        url: `https://github.com/fixture/repo/issues/${number}#issuecomment-${id}`,
+      });
+    }
+    return comments;
+  };
+  const result = await publish(f, { date: "2026-10-26" });
+  assert.equal(result.outcome, "failed");
+  assert.equal(f.issues.get(900)?.state, "OPEN");
+});
+it("module-only tickets cannot publish repository resets and missing repository input preserves pending work", async () => {
+  const f = weeklyFixture();
+  await publish(f, { repository: { merged: [], unresolved: 2, awaiting: 1 } });
+  const observation = await beginWeeklyObservation({
+    ...scope,
+    scope: "modules-only",
+    issue: f.issue,
+    stateRoot: f.stateRoot,
+  });
+  const rejected = await reconcileWeeklyIssue({
+    issue: f.issue,
+    stateRoot: f.stateRoot,
+    observation,
+    summary,
+    needsOwner: false,
+    repository: { merged: [], unresolved: 0, awaiting: 0 },
+  });
+  assert.equal(rejected.outcome, "failed");
+  assert.equal(f.appended.length, 1);
+  const result = await reconcileWeeklyIssue({
+    issue: f.issue,
+    stateRoot: f.stateRoot,
+    observation,
+    summary,
+    needsOwner: false,
+  });
+  assert.equal(result.actionable, true);
+  assert.match(last(f), /repository work: 2/u);
+});
+it("a verified merge cannot discharge another unverified exact commit for the same pending reference", async () => {
+  const f = weeklyFixture();
+  await publish(f, {
     repository: {
+      pendingIssueNumbers: [17],
+      pendingPullRequestNumbers: [19],
       merged: [
         {
-          pullRequest: 11,
+          pullRequest: 19,
+          originIssue: 17,
           commit: "a".repeat(40),
           verification: "verified",
           rollout: "verified",
         },
         {
-          pullRequest: 12,
+          pullRequest: 19,
+          originIssue: 17,
           commit: "b".repeat(40),
-          verification: "verified",
+          verification: "failed",
           rollout: "awaiting",
         },
-        {
-          pullRequest: 13,
-          commit: "c".repeat(40),
-          verification: "failed",
-          rollout: "failed",
-        },
       ],
-      unresolved: 1,
-      awaiting: 1,
+      unresolved: 0,
+      awaiting: 0,
     },
   });
-  const original = body(f);
-  await run(f, { date: "2026-08-31" });
-  assert.doesNotMatch(body(f, 2), /PR #11 merged as/u);
-  assert.match(body(f, 2), /PR #12 merged as/u);
-  assert.match(body(f, 2), /PR #13 merged as/u);
-  assert.equal(body(f), original);
-});
-
-it("many weekly rollovers keep per-scope receipts bounded and leave predecessor bodies unchanged", async () => {
-  const f = fixture();
-  const date = new Date("2026-08-24T00:00:00Z");
-  for (let week = 0; week < 60; week++) {
-    const day = date.toISOString().slice(0, 10);
-    await run(f, { date: day });
-    const original = body(f, week + 1);
-    const state = queueState(original);
-    for (const scope of Object.values(state.scopes) as {
-      receipts: Record<string, unknown>;
-    }[]) {
-      assert.ok(Object.keys(scope.receipts).length <= 7);
-      assert.ok(
-        Object.keys(scope.receipts).every(
-          (d) => offeringWeekStart(d) === offeringWeekStart(day),
-        ),
-      );
-    }
-    date.setUTCDate(date.getUTCDate() + 7);
-    if (week > 0)
-      assert.equal(
-        body(f, week),
-        f.originals.find((x) => x.number === week)?.body,
-      );
-  }
-  assert.equal(f.issues.size, 60);
+  assert.match(last(f), /Repository issue awaiting reconciliation: #17/u);
+  assert.match(
+    last(f),
+    /Repository pull request awaiting reconciliation: #19/u,
+  );
 });

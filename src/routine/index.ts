@@ -62,9 +62,6 @@ export { planRetentionPurge } from "./plan-retention-purge.js";
 export { readModulePassOutcome } from "./read-module-pass-outcome.js";
 export { renderMorningReport } from "./render-morning-report.js";
 export {
-  MORNING_ISSUE_LABELS,
-  MORNING_ISSUE_MARKER_VERSION,
-  morningIssueMarker,
   runMorningRoutine,
   weeklyRepairSummary,
 } from "./run-morning-routine.js";
@@ -78,8 +75,10 @@ export type {
   ModulePassOutcome,
   ModulePassReport,
   ModuleSessionPort,
-  MorningIssue,
-  MorningIssuePort,
+  WeeklyIssue,
+  WeeklyComment,
+  WeeklyDiscussionPort,
+  WeeklyDiscussionIdentity,
   MorningIssueReport,
   MorningPreludePort,
   MorningRoutineReport,
@@ -99,6 +98,7 @@ export type {
 } from "./types.js";
 
 export {
+  beginWeeklyObservation,
   offeringWeekStart,
   reconcileWeeklyIssue,
   WEEKLY_ISSUE_LABELS,

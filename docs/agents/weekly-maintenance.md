@@ -1,42 +1,62 @@
 # Weekly maintenance review
 
 Daily execution, weekly attention. The existing morning launcher maintains the configured
-Modules, runs bounded repository repair, records private daily evidence and updates one public
+Modules, runs bounded repository repair, records private daily evidence and appends reviews to one public
 review for the Monday-start week in `Asia/Singapore`. Its first successful publication creates
 the issue even on a quiet week. A missed Monday creates it on the next run.
 
 The CLI capability index owns executable prerequisites, effects, options and verification.
 Discover `routine morning`, `routine repository-repair` and `routine repository-status` there.
-Module-only recovery excludes repository repair and shared-shelf writes. It updates its exact
+Module-only recovery excludes repository repair and shared-shelf writes. It contributes its exact
 coverage scope within the same weekly issue; it cannot resolve a broader observation.
 
 ## Fixed public format
 
-`Weekly maintenance review <Monday date>` has these managed sections:
+`Weekly maintenance review <Monday date>` has a static introduction and Owner notes. Each immutable
+review comment has these fixed sections:
 
 | Section | Evidence it carries |
 | --- | --- |
-| Overview/Coverage | Observed exact scopes, pending scopes and stale observations |
-| Merged repository fixes | PR number, merge commit, combined-main verification and rollout verification |
-| Verified maintenance | Evidenced maintenance, checks and control writes; details remain private |
-| Unresolved work | Pending work and transferred incident references; transfer is not resolution |
-| Awaiting verification | Missing or incomplete observations and unverified repair/rollout work |
-| Verification limits | What the available evidence cannot establish |
-| Owner notes | Owner-maintained text outside the generated block |
+| Overview/Coverage | Observed exact scopes, pending scopes, and stale observations |
+| Merged repository fixes | PR number, merge commit, combined-main verification, and rollout verification |
+| Verified maintenance | Evidenced maintenance, checks, and control writes. Details remain private |
+| Unresolved work | Pending work and evidence-unknown predecessor references |
+| Awaiting verification | Missing observations and conflicting or unverified work |
+| Verification limits | Bounds of the observed evidence |
+| Included publications | Exact observation identities and source comment permalinks |
+| Prior Owner notes | Links to predecessor discussions with original Owner text |
+
+Read the as-of date and included publications when interpreting a review. Later comments can add
+facts. A quiet unchanged status within the same week keeps its earlier public as-of date. Daily
+private evidence still updates. New positive maintenance or control-write receipts, changed status,
+fresh reconciliation, and a new week produce a review comment.
 
 Keep merge facts throughout the week, including fixes discovered after interrupted publication.
-Read-only GitHub discovery supplies PR/commit facts; absent verification receipts remain awaiting.
-Unfixed work covers observed Module maintenance, the repository repair checkpoint and transferred
-incidents. An unrelated open GitHub issue is not inferred fixed or automatically adopted by this
-controller. Week-wide maintenance totals conservatively deduplicate same-day reruns; they count
-evidenced entries and writes, not distinct defects.
-Rollover retains completed fixes in their original week, carries unresolved verification forward
-and bounds maintenance receipts to the current week.
-Preserve Owner text and other scopes. Before retiring a predecessor, privately snapshot its original
-body, publish the successor, verify readback, close with a fixed safe transfer comment and verify
-the closed state with the original body unchanged. Historical
-unknowns stay unknown until evidence resolves them. Legacy bodies are never copied into new public
-prose. Malformed ownership, changed bodies or interrupted mutations require reconciliation.
+Read-only GitHub discovery supplies exact PR and commit facts. Missing verification remains awaiting
+and cannot erase a prior positive receipt. Same-day reruns use maxima per exact scope. Their totals
+count evidenced entries and writes, not distinct defects. Concurrent different scopes combine.
+Contradictory observations remain awaiting until fresh work observes both predecessor heads.
+Module-only recovery cannot clear repository observations or broader coverage.
+
+Owner body text and comments stay untouched. Rollover links prior notes in their source issue.
+Before retiring a predecessor, retain complete observed body and comment snapshots privately,
+verify successor publication, append and verify the fixed transfer comment, then close with a
+state-only request and verify the closed state. Closure records transfer, not resolution.
+Legacy state without an exact private publication receipt remains evidence-unknown.
+
+The private publication journal belongs to the configured state root, including retained runs.
+Keep its intents, receipts, and original comment bytes outside ordinary report retention. A failed
+or timed-out POST can commit later. Preserve its unknown intent. An empty later list does not
+permit another POST. A later exact trusted match permits reuse. Do not delete the journal to retry.
+A changed publisher or repository identity, edited or missing known publication, incomplete page,
+or exceeded bound requires reconciliation before publication.
+
+The complete historical scan is bounded to 500 observations, 10,000 comments, and 100 pages per
+provider listing. Discussion text and the private journal each have a 32 MiB bound.
+Closed anchors remain observed, including private-bound anchors with edited
+titles. Numeric provider creator IDs authenticate publisher records. Copied outsider markers confer
+no ownership. These checks do not distinguish privileged edits by another user of the same account.
+A successful enumeration is an as-of observation, not an atomic provider snapshot or a sealed log.
 
 ## Daily repository repair
 
@@ -92,7 +112,7 @@ authoring and external Task/Calendar writes retain their separate target-specifi
 Use the mapped synthetic lifecycle, controller and CLI tests, full repository checks and independent
 review against the exact head. `rule-coverage:check` runs every compiled test, including privacy,
 before checking normative rule evidence; `capabilities check --profile full` includes it.
-Inspect the rendered weekly issue and retain migration snapshots outside ordinary report/session
+Inspect the rendered weekly review comments and retain complete transfer snapshots outside ordinary report/session
 purge. Post-merge check-only repository execution verifies the deployed entrypoint without a model
 worker or a live Module maintenance replay. Future scheduled execution remains unobserved until it
 actually fires.

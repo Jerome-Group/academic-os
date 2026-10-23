@@ -89,7 +89,11 @@ export async function appendProvedRegisterLines(input: {
       from: pending.observedSha256,
       to,
     });
-    const evidence = await writeRegister(pending, target, contents, to);
+    const changedInputs = await unprovedInputs(pending, input.roots);
+    const evidence =
+      changedInputs.length > 0
+        ? changedInputs.join("\n")
+        : await writeRegister(pending, target, contents, to);
     if (evidence !== undefined) {
       await journal.append({ ...subject, type: "refused", evidence });
       return {
@@ -106,8 +110,6 @@ export async function appendProvedRegisterLines(input: {
   return { appended, written, refusals: [] };
 }
 
-// Rule 4 of a mounted write: what the plan was built against is read again immediately before the
-// write. Source identity and copy-versus-derivation both depend on these bytes.
 async function unprovedInputs(
   pending: PendingRegisterAppend,
   roots: RegisterAppendRoots,

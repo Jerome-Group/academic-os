@@ -208,12 +208,18 @@ it("surfaces local write effects on diagnostic and cloud-read operations", () =>
   );
   const actions = (capabilityIndex() as { actions: typeof cliCapabilities })
     .actions;
-  for (const id of ["cheatsheet verify", "cheatsheet package-review"])
+  for (const id of ["cheatsheet verify", "cheatsheet package-review"]) {
     assert.ok(
       actions
         .find((action) => action.id === id)
         ?.prerequisites.includes("latexmk and Poppler executables"),
     );
+    assert.ok(
+      actions
+        .find((action) => action.id === id)
+        ?.prerequisites.some((item) => item.includes("kpsewhich")),
+    );
+  }
   for (const id of ["tasks_read_register", "research_tasks_read_register"]) {
     const action = actions.find((item) => item.id === id);
     assert.ok(action?.reads.includes("Google Tasks provider"));

@@ -12,6 +12,7 @@ import { basename, join } from "node:path";
 import { promisify } from "node:util";
 
 import { sha256Bytes } from "../checksum.js";
+import { compilePortableSource } from "./portable-build.js";
 import type {
   CheatsheetConstraints,
   CheatsheetReleaseVerification,
@@ -160,17 +161,7 @@ export async function verifyPortableCheatsheetRelease(input: {
       writeFile(join(buildRoot, texName), input.source, "utf8"),
       writeFile(referencePdf, input.releasedPdf),
     ]);
-    await command(
-      "latexmk",
-      [
-        "-pdf",
-        "-interaction=nonstopmode",
-        "-halt-on-error",
-        "-auxdir=aux",
-        texName,
-      ],
-      buildRoot,
-    );
+    const recordedInputs = await compilePortableSource(buildRoot, texName);
     const latexLog = await readFile(
       join(buildRoot, "aux", texName.replace(/\.tex$/u, ".log")),
       "utf8",
@@ -271,6 +262,7 @@ export async function verifyPortableCheatsheetRelease(input: {
       isolatedBuild: true,
       evidence: [
         `isolated ${texName} compiled`,
+        `${recordedInputs} recorded inputs confined to the release workspace and installed TeX distribution`,
         `${pageCount} portrait A4 page${pageCount === 1 ? "" : "s"}`,
         "all fonts embedded",
         `${input.requiredLabels?.length ?? 0} declared included labels checked against compiled auxiliary evidence`,

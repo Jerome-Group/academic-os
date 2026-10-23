@@ -4,7 +4,7 @@ import {
   type InventoryEntry,
   validateSourceMap,
 } from "../conformance/index.js";
-import { parseDocument } from "yaml";
+import { sourceMapUnitOrder } from "../conformance/source-map-unit-order.js";
 import type {
   DeclaredTutorialGap,
   LearningMaterialsAssessment,
@@ -109,15 +109,6 @@ export function assessLearningMaterials(
       emptyUnits: emptyUnits.length,
     },
   };
-}
-
-function sourceMapUnitOrder(sourceMap: string): string[] {
-  const root = parseDocument(sourceMap, { uniqueKeys: true }).toJS({
-    mapAsMap: true,
-  });
-  if (!(root instanceof Map)) return [];
-  const units = root.get("units");
-  return units instanceof Map ? [...units.keys()].map(String) : [];
 }
 
 function assessUnit(

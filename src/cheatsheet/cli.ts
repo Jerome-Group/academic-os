@@ -25,6 +25,7 @@ const inputSchema = {
   runtime: {
     requiredExecutables: [
       "latexmk",
+      "kpsewhich",
       "pdfinfo",
       "pdffonts",
       "pdftotext",

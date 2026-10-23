@@ -129,6 +129,7 @@ export async function runCapabilitiesCommand(
         "codex",
         "gh",
         "latexmk",
+        "kpsewhich",
         "pdfinfo",
         "pdffonts",
         "pdftotext",

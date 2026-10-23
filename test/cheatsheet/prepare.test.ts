@@ -12,6 +12,65 @@ import {
 } from "../../src/cheatsheet/evidence.js";
 import type { CheatsheetManifest } from "../../src/cheatsheet/types.js";
 
+for (const mode of ["API", "shipped helper"] as const) {
+  it(`preserves mixed numeric and named Source Map declaration order through ${mode}`, async () => {
+    const root = await mkdtemp(join(tmpdir(), "cheatsheet-unit-order-"));
+    try {
+      const admin = join(root, "00 Module Admin");
+      await mkdir(admin);
+      const controls = validModuleControls();
+      await writeFile(
+        join(admin, "00 Module Profile.md"),
+        controls.profile ?? "",
+      );
+      await writeFile(
+        join(admin, "10 Module Definition.yaml"),
+        controls.definition ?? "",
+      );
+      await writeFile(
+        join(admin, "40 Source Map.yaml"),
+        'units:\n  Week 02:\n    topics: [First]\n    lectures: [first.md]\n    textbook: []\n    tutorials: []\n  "1":\n    topics: [Second]\n    lectures: [second.md]\n    textbook: []\n    tutorials: []\n',
+      );
+      await writeFile(join(root, "first.md"), "first declared source");
+      await writeFile(join(root, "second.md"), "second declared source");
+      const input = {
+        moduleRoot: root,
+        moduleCode: "MH2100",
+        assessment: "midterm",
+      };
+      let result: Awaited<ReturnType<typeof prepareCheatsheet>>;
+      if (mode === "API") result = await prepareCheatsheet(input);
+      else {
+        const child = spawnSync(
+          process.execPath,
+          [
+            resolve("skills/cheatsheet/scripts/cheatsheet-tool.mjs"),
+            "prepare",
+            "--module-root",
+            root,
+            "--module-code",
+            "MH2100",
+            "--assessment",
+            "midterm",
+          ],
+          { encoding: "utf8" },
+        );
+        assert.equal(child.status, 0, child.stdout + child.stderr);
+        result = JSON.parse(child.stdout);
+      }
+      assert.deepEqual(
+        result.candidates.map(({ unit, path }) => [unit, path]),
+        [
+          ["Week 02", "first.md"],
+          ["1", "second.md"],
+        ],
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+}
+
 it("discovers synthetic MH2100 midterm with ordered provenance and detects changed/missing sources on repeated runs", async () => {
   const root = await mkdtemp(join(tmpdir(), "cheatsheet-context-"));
   try {

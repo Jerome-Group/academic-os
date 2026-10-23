@@ -350,7 +350,10 @@ export function capabilityIndex(): object {
         "npm ci && npm run build",
         "synthetic fixture or explicitly authorized Module",
         ...(["verify", "package-review"].includes(operation)
-          ? ["latexmk and Poppler executables"]
+          ? [
+              "latexmk and Poppler executables",
+              "kpsewhich distribution resource discovery",
+            ]
           : []),
       ],
       reads:

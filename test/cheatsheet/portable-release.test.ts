@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import { promisify } from "node:util";
+import { pathToFileURL } from "node:url";
 import { it } from "node:test";
 
 import { verifyPortableCheatsheetRelease } from "../../src/cheatsheet/index.js";
@@ -35,6 +36,133 @@ const source = String.raw`\documentclass[a4paper]{article}
 \fontsize{10}{12}\selectfont Portable mathematical source: $a^2+b^2=c^2$.
 \end{document}
 `;
+
+it("refuses an absolute host input even while that dependency remains available", {
+  skip: !latexAvailable,
+}, async () => {
+  const root = await mkdtemp(join(tmpdir(), "portable-host-dependency-"));
+  try {
+    const dependency = join(root, "host.tex");
+    await writeFile(dependency, "This text exists only on the author host.");
+    const dependent = source.replace(
+      "\\end{document}",
+      `\\input{${dependency}}\n\\end{document}`,
+    );
+    await writeFile(join(root, "sheet.tex"), dependent);
+    await run(
+      "latexmk",
+      [
+        "-norc",
+        "-pdf",
+        "-interaction=nonstopmode",
+        "-halt-on-error",
+        "sheet.tex",
+      ],
+      { cwd: root },
+    );
+    await assert.rejects(
+      verifyPortableCheatsheetRelease({
+        source: dependent,
+        releasedPdf: await readFile(join(root, "sheet.pdf")),
+        filename: "sheet.tex",
+        constraints,
+      }),
+    );
+    assert.equal(
+      await readFile(dependency, "utf8"),
+      "This text exists only on the author host.",
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+it("verifies a self-contained release without executing the user's latexmk configuration", {
+  skip: !latexAvailable,
+}, async () => {
+  const root = await mkdtemp(join(tmpdir(), "portable-user-configuration-"));
+  try {
+    await writeFile(join(root, "sheet.tex"), source);
+    await run(
+      "latexmk",
+      [
+        "-norc",
+        "-pdf",
+        "-interaction=nonstopmode",
+        "-halt-on-error",
+        "sheet.tex",
+      ],
+      { cwd: root },
+    );
+    await writeFile(
+      join(root, ".latexmkrc"),
+      'die "unexpected user rc fixture";\n',
+    );
+    const verifier = pathToFileURL(
+      join(process.cwd(), "dist/src/cheatsheet/index.js"),
+    ).href;
+    const child = await run(
+      process.execPath,
+      [
+        "--input-type=module",
+        "-e",
+        `import { readFile } from "node:fs/promises"; import { verifyPortableCheatsheetRelease } from ${JSON.stringify(verifier)}; console.log(JSON.stringify(await verifyPortableCheatsheetRelease({source: await readFile("sheet.tex", "utf8"), releasedPdf: await readFile("sheet.pdf"), filename: "sheet.tex", constraints: ${JSON.stringify(constraints)}})));`,
+      ],
+      { cwd: root, env: { ...process.env, HOME: root } },
+    );
+    assert.equal(JSON.parse(child.stdout).isolatedBuild, true);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+it("refuses a release that relies on the caller's TEXINPUTS search path", {
+  skip: !latexAvailable,
+}, async () => {
+  const root = await mkdtemp(join(tmpdir(), "portable-input-environment-"));
+  try {
+    const dependent = source.replace(
+      "\\end{document}",
+      "\\input{private-portable-input}\n\\end{document}",
+    );
+    await writeFile(
+      join(root, "private-portable-input.tex"),
+      "Input found only through the caller's search path.",
+    );
+    await writeFile(join(root, "sheet.tex"), dependent);
+    const env = { ...process.env, TEXINPUTS: `${root}${delimiter}` };
+    await run(
+      "latexmk",
+      [
+        "-norc",
+        "-pdf",
+        "-interaction=nonstopmode",
+        "-halt-on-error",
+        "sheet.tex",
+      ],
+      { cwd: root, env },
+    );
+    const verifier = pathToFileURL(
+      join(process.cwd(), "dist/src/cheatsheet/index.js"),
+    ).href;
+    const child = await run(
+      process.execPath,
+      [
+        "--input-type=module",
+        "-e",
+        `import { readFile } from "node:fs/promises"; import { verifyPortableCheatsheetRelease } from ${JSON.stringify(verifier)}; let refused = false; try { await verifyPortableCheatsheetRelease({ source: await readFile("sheet.tex", "utf8"), releasedPdf: await readFile("sheet.pdf"), filename: "sheet.tex", constraints: ${JSON.stringify(constraints)} }); } catch { refused = true; } console.log(JSON.stringify({ refused }));`,
+      ],
+      { cwd: root, env },
+    );
+    assert.equal(JSON.parse(child.stdout).refused, true);
+    assert.equal(
+      await readFile(join(root, "private-portable-input.tex"), "utf8"),
+      "Input found only through the caller's search path.",
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 it("rebuilds a self-contained release and matches its extracted text and renders", {
   skip: !latexAvailable,

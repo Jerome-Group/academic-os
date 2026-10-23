@@ -1127,100 +1127,117 @@ describe("academic-os calendar promote", () => {
     );
   });
 
-  it("restores writable metadata with a new identity and idempotency marker", async () => {
-    const fixture = await setupReadbackFixture("restore");
-    const mirrorPath = join(fixture.calendarRoot, "mirrors", "academic.json");
-    const mirror = JSON.parse(await readFile(mirrorPath, "utf8"));
-    const providerFields = {
-      etag: "old-etag",
-      created: "2026-08-01T00:00:00Z",
-      updated: "2026-08-19T00:00:00Z",
-      creator: { self: true },
-      htmlLink: "https://calendar.google.com/old-event",
-      iCalUID: "old-event@example.invalid",
-      kind: "calendar#event",
-      hangoutLink: "https://meet.google.com/old-event",
-      locked: false,
-    };
-    const writable = {
-      source: {
-        url: "https://example.invalid/source",
-        title: "Approved source",
-      },
-      conferenceData: {
-        entryPoints: [
-          {
-            entryPointType: "video",
-            uri: "https://example.invalid/conference",
+  for (const legacy of [false, true]) {
+    it(`restores ${legacy ? "legacy" : "new"} writable metadata with a new identity and idempotency marker`, async () => {
+      const fixture = await setupReadbackFixture("restore");
+      const mirrorPath = join(fixture.calendarRoot, "mirrors", "academic.json");
+      const mirror = JSON.parse(await readFile(mirrorPath, "utf8"));
+      const providerFields = {
+        etag: "old-etag",
+        created: "2026-08-01T00:00:00Z",
+        updated: "2026-08-19T00:00:00Z",
+        creator: { self: true },
+        htmlLink: "https://calendar.google.com/old-event",
+        iCalUID: "old-event@example.invalid",
+        kind: "calendar#event",
+        hangoutLink: "https://meet.google.com/old-event",
+        locked: false,
+      };
+      const writable = {
+        source: {
+          url: "https://example.invalid/source",
+          title: "Approved source",
+        },
+        conferenceData: {
+          entryPoints: [
+            {
+              entryPointType: "video",
+              uri: "https://example.invalid/conference",
+            },
+          ],
+        },
+        extendedProperties: {
+          private: {
+            academicOsIdempotencyKey: "old-create",
+            custom: "retained",
           },
-        ],
-      },
-      extendedProperties: {
-        private: { academicOsIdempotencyKey: "old-create", custom: "retained" },
-        shared: { reference: "retained-shared" },
-      },
-    };
-    mirror.tombstones[0].event = {
-      ...mirror.tombstones[0].event,
-      ...providerFields,
-      ...writable,
-    };
-    await writeFile(mirrorPath, `${JSON.stringify(mirror)}\n`);
-    const inputPath = join(fixture.inputRoot, "restore.json");
-    await writeFile(
-      inputPath,
-      `${JSON.stringify({
-        schemaVersion: 1,
-        source: { kind: "instruction", reference: "restore-metadata" },
-        item: {
-          operation: "restore",
-          calendarRole: "Academic",
-          eventId: "deleted-event",
+          shared: { reference: "retained-shared" },
         },
-      })}\n`,
-    );
-    const proposed = await runCalendarPropose(fixture, inputPath, "--json");
-    assert.equal(proposed.exitCode, 0, JSON.stringify(proposed));
-    const proposal = JSON.parse(proposed.stdout).proposal;
+      };
+      mirror.tombstones[0].event = {
+        ...mirror.tombstones[0].event,
+        ...providerFields,
+        ...writable,
+      };
+      await writeFile(mirrorPath, `${JSON.stringify(mirror)}\n`);
+      const inputPath = join(fixture.inputRoot, "restore.json");
+      await writeFile(
+        inputPath,
+        `${JSON.stringify({
+          schemaVersion: 1,
+          source: { kind: "instruction", reference: "restore-metadata" },
+          item: {
+            operation: "restore",
+            calendarRole: "Academic",
+            eventId: "deleted-event",
+          },
+        })}\n`,
+      );
+      const proposed = await runCalendarPropose(fixture, inputPath, "--json");
+      assert.equal(proposed.exitCode, 0, JSON.stringify(proposed));
+      const proposal = JSON.parse(proposed.stdout).proposal;
+      if (legacy) {
+        proposal.intendedEvent = {
+          ...proposal.intendedEvent,
+          ...providerFields,
+          ...writable,
+        };
+        await writeFile(
+          join(fixture.calendarRoot, "pending-proposals.json"),
+          `${JSON.stringify({ schemaVersion: 1, proposals: [proposal] })}\n`,
+        );
+      }
 
-    const result = await runPromote(fixture, proposal.id, "--json");
+      const result = await runPromote(fixture, proposal.id, "--json");
 
-    const provider = await readProvider(fixture);
-    const expected = {
-      ...writable,
-      extendedProperties: {
-        ...writable.extendedProperties,
-        private: {
-          ...writable.extendedProperties.private,
-          academicOsIdempotencyKey: proposal.idempotencyKey,
+      const provider = await readProvider(fixture);
+      const expected = {
+        ...writable,
+        extendedProperties: {
+          ...writable.extendedProperties,
+          private: {
+            ...writable.extendedProperties.private,
+            academicOsIdempotencyKey: proposal.idempotencyKey,
+          },
         },
-      },
-    };
-    assert.partialDeepStrictEqual(
-      provider.events["academic-id"]?.[0],
-      expected,
-    );
-    assert.equal(result.exitCode, 0, JSON.stringify(result));
-    assert.equal(JSON.parse(result.stdout).outcome, "promoted");
-    const created = provider.requests.find(({ method }) => method === "POST");
-    assert.ok(created?.body !== null && typeof created?.body === "object");
-    for (const key of ["id", ...Object.keys(providerFields)]) {
-      assert.equal(Reflect.has(proposal.intendedEvent, key), false, key);
-      if (key !== "id")
-        assert.equal(Reflect.has(created.body, key), false, key);
-    }
-    assert.deepEqual(created.params, {
-      supportsAttachments: true,
-      conferenceDataVersion: 1,
+      };
+      assert.partialDeepStrictEqual(
+        provider.events["academic-id"]?.[0],
+        expected,
+      );
+      assert.equal(result.exitCode, 0, JSON.stringify(result));
+      assert.equal(JSON.parse(result.stdout).outcome, "promoted");
+      const created = provider.requests.find(({ method }) => method === "POST");
+      assert.ok(created?.body !== null && typeof created?.body === "object");
+      for (const key of ["id", ...Object.keys(providerFields)]) {
+        if (!legacy)
+          assert.equal(Reflect.has(proposal.intendedEvent, key), false, key);
+        if (key !== "id")
+          assert.equal(Reflect.has(created.body, key), false, key);
+      }
+      assert.deepEqual(created.params, {
+        supportsAttachments: true,
+        conferenceDataVersion: 1,
+      });
+      const retry = await runPromote(fixture, proposal.id, "--json");
+      assert.equal(retry.exitCode, 0, JSON.stringify(retry));
+      assert.equal(JSON.parse(retry.stdout).outcome, "retry");
+      assert.equal(
+        (await readProvider(fixture)).events["academic-id"]?.length,
+        1,
+      );
     });
-    const retry = await runPromote(fixture, proposal.id, "--json");
-    assert.equal(retry.exitCode, 0, JSON.stringify(retry));
-    assert.equal(JSON.parse(retry.stdout).outcome, "retry");
-    assert.equal(
-      (await readProvider(fixture)).events["academic-id"]?.length,
-      1,
-    );
-  });
+  }
 
   it("promotes each explicit recurring cancellation scope", async () => {
     for (const scope of [

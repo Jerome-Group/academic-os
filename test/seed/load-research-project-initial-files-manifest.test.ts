@@ -16,6 +16,33 @@ afterEach(async () => {
 });
 
 describe("research-project initial-files manifest", () => {
+  it("refuses non-scalar encodings before treating invalid UTF-8 as binary", async () => {
+    const root = await temporaryRoot();
+    const bytes = Buffer.from([0xc3, 0x28]);
+    await writeFile(join(root, "source.txt"), bytes);
+    const manifest = join(root, "initial-files.json");
+    for (const encoding of [["utf8"], ["binary"], null, false, {}]) {
+      await writeFile(
+        manifest,
+        JSON.stringify({
+          schemaVersion: 1,
+          files: [
+            {
+              destination: "10 Source Materials/20 Core Sources/source.txt",
+              source: "source.txt",
+              sha256: digest(bytes),
+              encoding,
+            },
+          ],
+        }),
+      );
+      await assert.rejects(
+        loadResearchProjectInitialFilesManifest(manifest),
+        /closed schema v1/u,
+      );
+    }
+  });
+
   it("loads verified UTF-8 and binary bytes relative to the manifest", async () => {
     const root = await temporaryRoot();
     const text = Buffer.from("sources: []\n", "utf8");

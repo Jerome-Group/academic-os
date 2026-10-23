@@ -462,7 +462,10 @@ function hasValidJournalLifecycle(events: SeedJournalEvent[]): boolean {
         if (
           event.generation !== 0 ||
           (started.preconditions.targetState === "absent" && !claimed) ||
-          publicationEntries.has(event.operation.path)
+          publicationEntries.has(event.operation.path) ||
+          started.ownership?.publicationDirectories.some(
+            (claim) => claim.path === event.operation.path,
+          )
         )
           return false;
         publicationEntries.add(event.operation.path);
@@ -506,9 +509,12 @@ function hasValidJournalLifecycle(events: SeedJournalEvent[]): boolean {
         event.phase === "staging" &&
         (!ownership.claimed ||
           ownership.cleaned ||
+          ownership.removing.size > 0 ||
           event.generation !== ownership.generation ||
           !ownership.entries.has(event.operation.path))
       )
+        return false;
+      if (event.phase === "publication" && event.generation !== undefined)
         return false;
       if (
         event.phase === "publication" &&

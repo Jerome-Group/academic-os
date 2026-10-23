@@ -292,6 +292,25 @@ describe("seedMountedModule", () => {
     assert.ok(last !== undefined);
     const invalidSources = [
       source.replace('"phase":"staging"', '"phase":["staging"]'),
+      [
+        ...events,
+        { ...last, type: "root-claimed", device: "1", inode: "1" },
+        {
+          ...last,
+          type: "operation-completed",
+          phase: "publication",
+          generation: 4,
+        },
+      ]
+        .map((event, sequence) => JSON.stringify({ ...event, sequence }))
+        .join("\n") + "\n",
+      [
+        ...events.slice(0, -1),
+        { ...receipt, type: "stage-entry-removing", path: "00 Module Admin" },
+        last,
+      ]
+        .map((event, sequence) => JSON.stringify({ ...event, sequence }))
+        .join("\n") + "\n",
       source.replace('"targetState":"absent"', '"targetState":["absent"]'),
       source.replace('"kind":"directory"', '"kind":["directory"]'),
       source +

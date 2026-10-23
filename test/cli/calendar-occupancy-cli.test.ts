@@ -916,7 +916,6 @@ it("keeps all-excluded finite sets and supported UTC recurrence exact, with expl
     change("series", timePatch, "entire-series"),
   );
   assert.equal(preview.report.outcome, "ready", JSON.stringify(preview));
-  // Exclusions are immutable original starts: changing the time does not silently move EXDATE.
   assert.equal(preview.report.proposal.review.coverage.occurrences.length, 2);
   const noOccupancy = await propose(
     await setup({
@@ -1039,7 +1038,6 @@ it("checks complete paginated sparse exceptions and rejects new exception member
       "this-and-future",
     ),
   );
-  // An exact cancellation still needs remapping when its original no longer exists in the new anchor.
   assert.equal(preview.exitCode, 2, JSON.stringify(preview));
   assert.equal(writes(await provider(fixture)), 0);
   const changed = await setup({ academic: [master(), second()] });

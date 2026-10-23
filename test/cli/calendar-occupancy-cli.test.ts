@@ -1175,6 +1175,135 @@ it("converts recurring offset instants into their declared zone and rejects inco
   assert.match(refused.report.error.message, /zones must agree/u);
 });
 
+it("refuses ownership drift in an original override retained after source trimming", async () => {
+  const fixture = await setup({ academic: [master(), second()] });
+  const preview = await propose(
+    fixture,
+    change(
+      "selected",
+      {
+        start: point("2026-10-12T11:00:00+08:00"),
+        end: point("2026-10-12T12:00:00+08:00"),
+      },
+      "this-and-future",
+    ),
+  );
+  assert.equal(preview.report.outcome, "ready", JSON.stringify(preview));
+  await mutate(fixture, (state) => {
+    state.deleteFailures = ["selected"];
+  });
+  const partial = await promote(fixture, preview.report.proposal.id);
+  assert.equal(partial.exitCode, 2, JSON.stringify(partial));
+  const count = writes(await provider(fixture));
+  await mutate(fixture, (state) => {
+    const selected = state.events.academic.find(({ id }) => id === "selected");
+    assert.ok(selected);
+    selected.organizer = { self: false, email: "other@example.invalid" };
+  });
+  const retry = await promote(fixture, preview.report.proposal.id);
+  assert.equal(retry.report.outcome, "stale", JSON.stringify(retry));
+  assert.equal(writes(await provider(fixture)), count);
+});
+
+it("refuses ambiguous duplicate original anchors in the complete source inventory", async () => {
+  const first = {
+    ...event(
+      "first-override",
+      "2026-10-19T15:00:00+08:00",
+      "2026-10-19T16:00:00+08:00",
+    ),
+    recurringEventId: "series",
+    originalStartTime: point("2026-10-19T10:00:00+08:00"),
+  };
+  const other = {
+    ...first,
+    id: "other-override",
+    start: point("2026-10-19T17:00:00+08:00"),
+    end: point("2026-10-19T18:00:00+08:00"),
+  };
+  const fixture = await setup({ routine: [master(), second(), first, other] });
+  const result = await propose(fixture, {
+    ...change("selected", { summary: "future" }, "this-and-future"),
+    calendarRole: "Routine",
+    targetCalendarRole: "Academic",
+  });
+  assert.equal(result.exitCode, 2, JSON.stringify(result));
+  assert.match(result.report.error.message, /original occurrence identity/u);
+  assert.equal(writes(await provider(fixture)), 0);
+});
+
+it("requires EXDATE value kind to agree with DTSTART and retains explicit all-day DATE exclusion", async () => {
+  const fixture = await setup({
+    academic: [
+      {
+        ...master(),
+        recurrence: [
+          "RRULE:FREQ=WEEKLY;COUNT=2",
+          "EXDATE;VALUE=DATE:20261005T020000Z",
+        ],
+      },
+    ],
+  });
+  const result = await propose(
+    fixture,
+    change(
+      "series",
+      { end: point("2026-10-05T12:00:00+08:00") },
+      "entire-series",
+    ),
+  );
+  assert.equal(result.exitCode, 2, JSON.stringify(result));
+  assert.match(result.report.error.message, /value kind/u);
+  assert.equal(writes(await provider(fixture)), 0);
+  const allDay = await setup({
+    tombstones: [
+      {
+        access: "owned",
+        deletedAt: "2026-10-01T00:00:00Z",
+        event: {
+          id: "all-day",
+          start: { date: "2026-10-05" },
+          end: { date: "2026-10-06" },
+          recurrence: [
+            "RRULE:FREQ=DAILY;COUNT=2",
+            "EXDATE;VALUE=DATE:20261006",
+          ],
+        },
+      },
+    ],
+  });
+  const valid = await propose(allDay, {
+    operation: "restore",
+    calendarRole: "Academic",
+    eventId: "all-day",
+  });
+  assert.equal(valid.report.outcome, "ready", JSON.stringify(valid));
+  assert.deepEqual(
+    valid.report.proposal.review.coverage.occurrences.map(
+      (item: { interval: CalendarInterval }) => item.interval,
+    ),
+    [{ start: "2026-10-04T16:00:00.000Z", end: "2026-10-05T16:00:00.000Z" }],
+  );
+  const rdate = await setup({
+    academic: [
+      {
+        ...master(),
+        recurrence: ["RRULE:FREQ=WEEKLY", "RDATE:20261020T020000Z"],
+      },
+      second(),
+    ],
+  });
+  const cancellation = await propose(rdate, {
+    operation: "cancel",
+    calendarRole: "Academic",
+    eventId: "selected",
+    recurrenceScope: "this-and-future",
+  });
+  assert.equal(cancellation.exitCode, 2, JSON.stringify(cancellation));
+  assert.match(cancellation.report.error.message, /cannot trim RDATE/u);
+  assert.equal(writes(await provider(rdate)), 0);
+});
+
 interface ProviderState {
   calendars: CalendarListEntry[];
   events: {
@@ -1196,6 +1325,7 @@ interface ProviderState {
   >;
   eventCreateFailures?: string[];
   patchFailures?: string[];
+  deleteFailures?: string[];
   instanceEvents?: Record<string, CalendarEvent[]>;
 }
 

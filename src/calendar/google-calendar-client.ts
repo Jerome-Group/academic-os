@@ -89,13 +89,8 @@ export function createGoogleCalendarPromotionWriter(
           : {}),
       });
     },
-    readEvent: async ({ calendarId, eventId }) => {
-      const response: { data: CalendarEvent } = await requester.request({
-        url: `${eventCollectionUrl(calendarId)}/${encodeURIComponent(eventId)}`,
-        method: "GET",
-      });
-      return requireCalendarEvent(response.data);
-    },
+    readEvent: async ({ calendarId, eventId }) =>
+      await readExactEvent(requester, calendarId, eventId),
     patchEvent: async ({ calendarId, eventId, patch }) => {
       const params = patchRequestParameters(patch);
       await requester.request({
@@ -129,6 +124,24 @@ export function createGoogleCalendarPromotionWriter(
 
 function eventCollectionUrl(calendarId: string): string {
   return `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`;
+}
+
+async function readExactEvent(
+  requester: CalendarRequester,
+  calendarId: string,
+  eventId: string,
+): Promise<CalendarEvent> {
+  const response = await requester.request<unknown>({
+    url: `${eventCollectionUrl(calendarId)}/${encodeURIComponent(eventId)}`,
+    method: "GET",
+  });
+  const event = requireCalendarEvent(response.data);
+  if (event.id !== eventId)
+    throw new OperationalError(
+      "operational-failure",
+      "Calendar provider returned a different resource identity for an exact read.",
+    );
+  return event;
 }
 
 function patchRequestParameters(patch: CalendarEventPatch | CalendarEvent): {
@@ -174,14 +187,7 @@ export function createGoogleCalendarProposalReader(
   return {
     listCalendars: async () => await listCalendars(requester),
     readEvent: async ({ calendarId, eventId }) =>
-      requireCalendarEvent(
-        (
-          await requester.request<CalendarEvent>({
-            url: `${eventCollectionUrl(calendarId)}/${encodeURIComponent(eventId)}`,
-            method: "GET",
-          })
-        ).data,
-      ),
+      await readExactEvent(requester, calendarId, eventId),
     listStoredEvents: async ({ calendarId }) =>
       (
         await listEventPages(

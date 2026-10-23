@@ -142,6 +142,11 @@ export async function observeInventories(
       .sort((a, b) => a.id.localeCompare(b.id));
     if (!events.some(({ id }) => id === masterId))
       unsupported("complete source inventory is missing its recurring master");
+    const anchors = events
+      .filter(({ id }) => id !== masterId)
+      .map(originalCalendarStart);
+    if (new Set(anchors).size !== anchors.length)
+      unsupported("source inventory repeats an original occurrence identity");
     inventories.push({ ref, events });
     for (const event of events)
       if (
@@ -322,21 +327,48 @@ async function readRef(
 }
 
 function stateMatches(actual: CalendarEvent | null, state: State): boolean {
+  if (
+    actual !== null &&
+    "eventId" in state.ref &&
+    actual.id !== state.ref.eventId
+  )
+    return false;
   if (state.event === null)
     return (
       actual === null ||
       actual.status === "cancelled" ||
       (state.allowOriginal !== undefined &&
+        (actual.organizer === undefined || actual.organizer.self === true) &&
+        sameInstanceIdentity(actual, state.allowOriginal, state) &&
         calendarContentMatches(actual, state.allowOriginal))
     );
   if (
     actual === null ||
     (actual.organizer !== undefined && actual.organizer.self !== true) ||
+    !sameInstanceIdentity(actual, state.event, state) ||
     !calendarContentMatches(actual, state.event)
   )
     return false;
   return (
     state.version === undefined || calendarStateDigest(actual) === state.version
+  );
+}
+
+function sameInstanceIdentity(
+  actual: CalendarEvent,
+  expected: CalendarEvent,
+  state: State,
+): boolean {
+  if (!("eventId" in state.ref)) return true;
+  return (
+    actual.recurringEventId === expected.recurringEventId &&
+    (expected.originalStartTime === undefined
+      ? actual.originalStartTime === undefined
+      : actual.originalStartTime !== undefined &&
+        sameOriginal(
+          originalCalendarStart(actual),
+          originalCalendarStart(expected),
+        ))
   );
 }
 

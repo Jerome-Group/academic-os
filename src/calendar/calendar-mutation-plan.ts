@@ -289,6 +289,15 @@ function compileChange(
       const boundary = originalCalendarStart(selected);
       if (event.recurrence === undefined)
         unsupported("future cancellation requires a recurring master");
+      if (
+        event.recurrence.some(
+          (line) =>
+            !line.startsWith("RRULE:") && !/^EXDATE(?:;[^:]*)?:/u.test(line),
+        )
+      )
+        unsupported(
+          "future cancellation cannot trim RDATE or unknown positive recurrence lines exactly",
+        );
       const selectedRef = { calendarId: ref.calendarId, eventId: selected.id };
       addOriginal(plan, selectedRef, selected);
       const futureMembers = [

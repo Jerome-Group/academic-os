@@ -277,11 +277,13 @@ export interface CalendarProposalLiveVersion {
   lastSuccessfulRefresh: string;
 }
 
+export type CalendarProposalStatus = "ready" | "stale" | "promoted";
+
 export interface CalendarCreateProposalCandidate {
   review?: CalendarAssessmentReview;
   travelBuffer?: { beforeMinutes: number; afterMinutes: number };
   id: string;
-  status?: "ready";
+  status?: CalendarProposalStatus;
   operation: "create";
   source: CalendarProposalSource;
   itemKind: CalendarProposalItemKind;
@@ -325,7 +327,7 @@ export interface CalendarBulkCreateProposalCandidate {
   timetableRecipe?: unknown;
   timetableMapVersion?: string;
   id: string;
-  status?: "ready";
+  status?: CalendarProposalStatus;
   operation: "bulk-create";
   source: CalendarProposalSource;
   itemKind: "fixed-event";
@@ -352,7 +354,7 @@ export interface CalendarBulkCreateProposalCandidate {
 export interface CalendarChangeProposalCandidate {
   review?: CalendarAssessmentReview;
   id: string;
-  status?: "ready";
+  status?: CalendarProposalStatus;
   operation: "update" | "move";
   source: CalendarProposalSource;
   itemKind: CalendarProposalItemKind;
@@ -390,7 +392,7 @@ export interface CalendarChangeProposalCandidate {
 export interface CalendarCancelProposalCandidate {
   review?: CalendarAssessmentReview;
   id: string;
-  status?: "ready";
+  status?: CalendarProposalStatus;
   operation: "cancel";
   source: CalendarProposalSource;
   itemKind: CalendarProposalItemKind;
@@ -413,7 +415,7 @@ export interface CalendarCancelProposalCandidate {
 export interface CalendarRestoreProposalCandidate {
   review?: CalendarAssessmentReview;
   id: string;
-  status?: "ready";
+  status?: CalendarProposalStatus;
   operation: "restore";
   source: CalendarProposalSource;
   itemKind: CalendarProposalItemKind;
@@ -481,7 +483,7 @@ export interface CalendarRoutineMigrationCompletion {
 export interface CalendarRoutineMigrationProposalCandidate {
   review?: CalendarAssessmentReview;
   id: string;
-  status?: "ready";
+  status?: CalendarProposalStatus;
   operation: "routine-migration";
   source: CalendarProposalSource;
   itemKind: "routine-event";
@@ -512,7 +514,7 @@ export type CalendarProposalCandidate =
 
 export type CalendarProposal = CalendarProposalCandidate & { status: "ready" };
 export type CalendarStoredProposal = CalendarProposalCandidate & {
-  status: "ready" | "stale" | "promoted";
+  status: CalendarProposalStatus;
 };
 
 export interface CalendarOverlap {

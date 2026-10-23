@@ -31,6 +31,7 @@ interface FakeCalendarState {
   nextId?: number;
   omitCreatedFromIncremental?: boolean;
   patchFailures?: string[];
+  deleteFailures?: string[];
   reverseRecurrenceOnPatch?: string[];
   requests?: Array<{
     body?: unknown;
@@ -122,6 +123,13 @@ prototype.request = async function (options) {
   ) {
     const calendarId = decodeURIComponent(eventMatch[1] ?? "");
     const eventId = decodeURIComponent(eventMatch[2] ?? "");
+    if (state.deleteFailures?.includes(eventId) === true) {
+      state.deleteFailures = state.deleteFailures.filter(
+        (id) => id !== eventId,
+      );
+      await writeFile(statePath, `${JSON.stringify(state)}\n`);
+      throw new Error("Synthetic Calendar delete failed before acceptance.");
+    }
     const events = state.events?.[calendarId] ?? [];
     const index = events.findIndex(
       (candidate) =>

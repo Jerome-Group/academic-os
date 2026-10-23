@@ -141,6 +141,10 @@ require finite busy expansion. Unbounded metadata edits remain supported when ge
 blocking policy and calendar conversion stay unchanged. Routine keeps its role-based warning
 policy; recurring Routine warnings cover the anchor only and do not claim complete enumeration.
 Malformed geometry still refuses before an exemption is applied.
+Future cancellation uses the exact live provider instance's master and original-start identity
+as its boundary; it does not enumerate an unbounded prefix. It trims RRULEs and removes known
+future overrides. RDATE or unknown positive recurrence lines refuse before trimming because the
+current cancellation plan cannot remove their future positions exactly.
 
 Every unjournaled legacy Proposal requires re-preview. Version 2 review evidence binds intent,
 originals, complete inventories where needed, the exact plan, coverage, calendars and relevant live

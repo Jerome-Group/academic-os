@@ -188,6 +188,8 @@ export function expandCalendarEvent(
     );
     if (match === null)
       refuse(`unsupported recurrence line ${line.split(":")[0] ?? "unknown"}`);
+    if (line.startsWith("EXDATE;VALUE=DATE:") !== allDay)
+      refuse("EXDATE value kind must agree with DTSTART");
     const exclusionZone = match[1];
     for (const value of (match[2] ?? "").split(",")) {
       if (allDay) {

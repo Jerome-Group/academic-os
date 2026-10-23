@@ -218,6 +218,19 @@ describe("Google Calendar Refresh adapter", () => {
 });
 
 describe("Google Calendar source observation", () => {
+  it("rejects exact reads whose resource identity differs from the request", async () => {
+    const requester: CalendarRequester = {
+      request: async <T>() => ({ data: { id: "different" } as T }),
+    };
+    const reader = createGoogleCalendarProposalReader("unused", requester);
+    const writer = createGoogleCalendarPromotionWriter("unused", requester);
+    assert.ok(reader.readEvent);
+    for (const read of [reader.readEvent, writer.readEvent])
+      await assert.rejects(
+        read({ calendarId: "owned", eventId: "expected" }),
+        /identity/u,
+      );
+  });
   it("refuses malformed calendar visibility metadata rather than silently dropping a participant", async () => {
     for (const field of ["selected", "hidden", "primary"]) {
       const reader = createGoogleCalendarProposalReader("unused", {

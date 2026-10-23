@@ -166,9 +166,18 @@ export const cliCapabilities: Capability[] = [
   ),
   cli(
     "calendar promote",
-    ["Google Calendar events", "private proposal state/mirror"],
+    [
+      "Google Calendar events",
+      "private proposal state/mirror and journal ownership storage",
+    ],
     [
       "proposal ID; fresh conflict checks; Google Calendar read and write credentials",
+      "local same-host private state with reliable SQLite filesystem locking for receipt append",
+    ],
+    undefined,
+    [
+      "test/cli/calendar-promote-cli.test.ts",
+      "test/calendar/promotion-journal-ownership.test.ts",
     ],
     null,
     [

@@ -477,7 +477,7 @@ describe("academic-os calendar promote", () => {
     }
   });
 
-  it("reconciles an interrupted dead-owner journal lock", async () => {
+  it("preserves an obsolete PID marker while recording a promotion receipt", async () => {
     const fixture = await setupFixture();
     await writeFile(
       join(fixture.calendarRoot, "promotions.jsonl.lock"),
@@ -488,6 +488,13 @@ describe("academic-os calendar promote", () => {
 
     assert.equal(result.exitCode, 0, JSON.stringify(result));
     assert.equal(JSON.parse(result.stdout).outcome, "promoted");
+    assert.equal(
+      await readFile(
+        join(fixture.calendarRoot, "promotions.jsonl.lock"),
+        "utf8",
+      ),
+      "2147483647\n",
+    );
   });
 
   it("does not report success when post-Refresh omits the verified event", async () => {

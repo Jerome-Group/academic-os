@@ -5,7 +5,8 @@ The CLI and Operations server read and update target-specific Tasks and Calendar
 ## Sub-features
 
 - Task list provisioning, refresh and operations preserve exact Module or Research-project identity.
-- Calendar setup and refresh preserve ownership, while proposals and promotion check conflicts.
+- Synthetic Calendar setup checks exact owner access, preview and idempotent role binding. Refresh retains per-calendar stale data and tombstones.
+- Proposal and promotion reassess one exact mutation plan, ownership and relevant availability; recovery authorizes only an exact accepted prefix.
 - Calendar proposals cover academic timetables, Routine migration, recurring edits, cancellation and restoration.
 - Research-project milestone proposals require explicit evidence status and a verification Task for provisional claims.
 - Operations serves structured task tools through HTTP and enforces its listening-address boundary.
@@ -27,16 +28,23 @@ node dist/src/cli.js capabilities verify --workflow services --json --log "$aos_
 
 Require a passed outcome. CLI journeys preload fake Google providers at the production adapter boundary and assert stored provider state and refreshed files.
 They cover task mutations, Calendar proposal/promotion and failure handling.
-Calendar journeys also assert nonmutating timetable and Routine previews, recurring scopes, deleted-event restoration and Research-project milestone evidence refusals.
+Calendar journeys also assert nonmutating timetable/Routine previews, later recurrence conflicts, new blockers after preview, owner revalidation and Research-project milestone evidence refusals.
+Accepted writes require exact normalized content and identity; omitted/regular default event types are equivalent, while mismatches still refuse.
+Receipt process fixtures cover competing and killed owners across duplicate-read, append and sync boundaries without PID takeover. This coordinates receipts, not all provider mutations.
 Operations journeys open an owned temporary HTTP listener, call it and close it.
-Scheduler journeys use a recording launchctl adapter and inspect the produced plist and replacement order.
+Scheduler journeys use a recording launchctl adapter and inspect the plist, replacement order, rollback and retained recovery bytes.
+The installer-to-morning-runner PATH journey belongs to maintenance.
 
 ## Gotchas
 
+Busy recurrence checks require complete finite supported DAILY/WEEKLY expansion in UTC or Singapore; unsupported rules, zones or exhausted bounds refuse.
+Cancellation, transparent milestones and occupancy-preserving edits are exempt from busy expansion. Routine recurrence warnings cover the anchor only.
+Restore covers the retained writable resource, without unavailable exception replay. Google observation/write races remain possible.
 Synthetic Google state does not establish real authorization, account data or live service availability.
 The temporary HTTP service uses an injected echo tool. Task tools have separate domain tests.
 This does not prove the production resident server against Google.
 In the known TCP-denying repository sandbox, `ACADEMIC_OS_REPOSITORY_FIXTURE_TRANSPORT=unix` selects Unix sockets and asserts default TCP fails with `EPERM`.
 Record that narrower transport evidence. Do not use the override on a normal host to bypass a failure.
 Real launchd installation, Tailnet reachability and scheduled host PATH require an authorized macOS-host pass.
-Interactive credential and Calendar-local setup commands have no synthetic journey.
+Interactive `credentials authorize` and `calendar local setup` have no synthetic journey. `calendar setup` does.
+Live Tasks, disposable Calendar, resident Operations and native scheduler journeys require their own scoped targets, readback and cleanup evidence. Retain dated live observations separately from general fixture coverage.

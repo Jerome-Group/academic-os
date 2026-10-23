@@ -5,7 +5,7 @@ Capture a fresh index after building. Inspect the selected action's prerequisite
 
 Use the parent skill's launch and doctor instructions, including its owned fixture directory and temporary-directory environment.
 Run a fresh doctor before each feature, with a unique log name. Drive features serially.
-Keep proof after fixture cleanup. Record each feature as passed, failed or verified-unreachable with its attempted route and missing prerequisite.
+Keep raw fixture proof after process teardown. Record each feature as passed, failed or verified-unreachable with its attempted route and missing prerequisite.
 
 | Feature | Existing workflows |
 | --- | --- |
@@ -17,4 +17,5 @@ Keep proof after fixture cleanup. Record each feature as passed, failed or verif
 
 Full maintenance runs every listed workflow and `capabilities check --profile full`.
 Full checks cover repository checks and synthetic fixtures. They do not turn untested or live-only actions into observed behavior.
-Interactive credential authorization and local Calendar setup require the Owner's interactive session and are not invoked by verification.
+Interactive `credentials authorize` and `calendar local setup` require the Owner's session and are not invoked by verification.
+Synthetic `calendar setup` is covered by services. Full includes the separate bounded formal skill; follow the parent doctor and retention instructions.

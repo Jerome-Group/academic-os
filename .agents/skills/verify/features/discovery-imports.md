@@ -29,7 +29,8 @@ node dist/src/cli.js capabilities check --profile full --json --log "$aos_proof/
 
 Require passed outcomes for verification and profile results. Help returns `indexed`; health returns `observed`.
 The mapped CLI journeys assert help parity, unsafe-log refusals, human/JSON import parity and receipt freshness.
-The duplicate-target refusal journey compares file bytes. Successful import journeys assert output and classifications.
+The duplicate cohort-mapping importer fixture compares mounted fixture UTF-8 contents before and after.
+The duplicate-flag fixture checks argument refusal without a file comparison. Successful import journeys assert output and classifications.
 The process-observer journey injects a failing process and a timeout, then proves a successful retry.
 Readiness CLI fixtures check ready, attention and unobserved outcomes, simultaneous findings, sibling retention and unchanged mounted/private-state bytes.
 Preflight CLI fixtures check exact roots, declaration ambiguity, aliases, collisions, excluded routes and partial evidence against disposable configurations, with unchanged fixture bytes.

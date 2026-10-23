@@ -38,10 +38,13 @@ Require the `node` and `npm` entries to have outcome `passed`.
 Choose a new log filename for every observation. Logs refuse replacement.
 Read only the relevant actions and health entries from the saved logs. Keep full payloads out of chat.
 Teaching release verification and the full profile also require the installed TeX and Poppler tools.
-Require passed health for `latexmk`, `pdfinfo`, `pdffonts`, `pdftotext`, `pdftoppm` and `pdftohtml` before claiming release verification.
+Require passed health for `latexmk`, `kpsewhich`, `pdfinfo`, `pdffonts`, `pdftotext`, `pdftoppm` and `pdftohtml` before claiming release verification.
 Missing tools are prerequisites to resolve or report, not successful verification.
+Before full or formal verification, follow [the formal skill](../seed-ownership/SKILL.md).
+Confirm Java 21 through `JAVA` or `PATH`, pinned TLC availability, a clean committed checkout and matching covered-source hashes.
+Java invocation success alone does not establish its major version. The runner checks the version and TLC checksum.
 Health does not validate credentials, live providers, launchd, maintenance recovery or document quality.
-After a failure, doctor again and reset the disposable fixture before retrying.
+After a failure, doctor again and use a fresh disposable fixture for retry; retain the failed evidence.
 
 ## Drive
 
@@ -66,6 +69,8 @@ Record each command, exit code and its result file in private run notes.
 Require `outcome: passed` and passed child checks. Exit zero alone is insufficient.
 Result logs include output digests and bounded private diagnostics. Preserve additional raw output when diagnosing a failure.
 Pair mutation claims with the mapped journey's assertions over resulting files, journals or provider state.
+For full or formal runs, read the runner-reported nested evidence at its original path: actual model logs, source bindings, compiled schedules, deliberate failures and restored passes.
+The outer result is not the retained formal proof.
 Preview claims require assertions that the target files and external state stayed unchanged.
 
 Catalogued actions and mapped tests are discovery evidence. Executed fixture journeys prove their assertions only.
@@ -77,25 +82,18 @@ Mathematical and rendered-page review remain separate from compilation and struc
 
 ## Cleanup
 
-Some repair fixtures leave temporary trees. The run's temporary-directory environment contains that residue.
-Completed listener fixtures close their owned listeners.
-The process observer kills its own process group on timeout. Never kill by process name.
-After an interrupted run, reconcile only roots and PIDs proven to have been created by that run.
-Preserve uncertain residue and report cleanup as blocked rather than removing a prefix-matched directory.
-Remove only the fixture directory created exclusively by Launch. Do not remove `$aos_proof`.
-Repair protection fixtures can leave read-only directories and macOS user-immutable flags.
-Clear those protections only inside this run's owned fixture directory, without following symlinks.
+Close every owned listener and child process after its drive. The process observer kills its own process group on timeout.
+After interruption, reconcile only roots and PIDs proven to belong to this run. Preserve uncertain residue and report the unresolved ownership.
+
+Keep `$aos_proof/fixtures` at its original path as raw evidence. Full verification stores detailed formal proof there; teaching and repair fixtures also contain evidence referenced by results.
+Retain useful failed-iteration artifacts with their observed outcome. Leave fixture links, FIFO metadata and protections intact; inspect ordinary files without following outward links or opening FIFOs.
 
 ```sh
-if [ "$(uname -s)" = Darwin ]; then
-  /usr/bin/chflags -R -P nouchg "$aos_proof/fixtures"
-fi
-find -P "$aos_proof/fixtures" -type d -exec chmod u+rwx {} +
-rm -r -- "$aos_proof/fixtures"
-test ! -e "$aos_proof/fixtures"
+test -d "$aos_proof/fixtures"
 test -s "$aos_proof/index.json"
 ```
 
-Confirm the driven feature's evidence files still exist after cleanup.
+Before handoff, read each driven feature's retained artifacts. After full/formal, re-read nested results, logs and source bindings at their original paths.
+Record the exact evidence paths and owned-process teardown. Later export or storage cleanup needs its own verified retention and exact-owned removal.
 Close the verification shell to discard its temporary-directory environment.
 Use `pstack:maintain-verification-skill` when behavior or command selection changes.

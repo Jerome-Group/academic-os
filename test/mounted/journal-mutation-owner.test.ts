@@ -281,15 +281,11 @@ test("an observed constructor crash before chmod leaves an empty bootstrap that 
   assert.equal((await lstat(sidecar)).mode & 0o777, 0o600);
 });
 
-test("an existing case-insensitive journal alias refuses before a second callback", async (t) => {
+test("case-folded journal names refuse before a second callback", async (t) => {
   const root = await journalFixture(t, "case-alias");
   const journalPath = join(root, "journal.jsonl");
   const alias = join(root, "JOURNAL.jsonl");
   await writeFile(journalPath, "preserved");
-  if (!(await lstat(alias).catch(() => undefined))) {
-    t.skip("fixture filesystem is case-sensitive");
-    return;
-  }
   const result = await withJournalMutationOwner(
     { stateRoot: root, journalPath },
     async () =>

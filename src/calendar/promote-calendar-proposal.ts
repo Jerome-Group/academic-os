@@ -2,6 +2,7 @@ import { OperationalError } from "../operational-error.js";
 import {
   eventContainsPatch,
   recurrenceMatches,
+  restorableEvent,
 } from "./calendar-event-helpers.js";
 import {
   collectCalendarAvailability,
@@ -57,13 +58,23 @@ type CalendarMoveProposal = CalendarChangeProposalCandidate & {
 export async function promoteCalendarProposal(
   input: PromotionInput,
 ): Promise<CalendarPromotionReport> {
-  const proposal = await input.proposalStore.read(input.proposalId);
-  if (proposal === undefined) {
+  const storedProposal = await input.proposalStore.read(input.proposalId);
+  if (storedProposal === undefined) {
     throw new OperationalError(
       "invalid-target",
       "Calendar Promote requires an existing ready Proposal ID.",
     );
   }
+  const proposal =
+    storedProposal.operation === "restore"
+      ? {
+          ...storedProposal,
+          intendedEvent: restorableEvent(
+            storedProposal.intendedEvent,
+            storedProposal.idempotencyKey,
+          ),
+        }
+      : storedProposal;
   if (proposal.operation === "routine-migration") {
     return await promoteRoutineMigration(input, proposal);
   }

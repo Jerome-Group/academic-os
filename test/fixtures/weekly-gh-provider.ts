@@ -24,7 +24,7 @@ while(true) { try { fs.mkdirSync(lock); break; } catch(e) { if(e.code!=='EEXIST'
 let state;
 try {
 state=JSON.parse(fs.readFileSync(p,'utf8'));
-const args=process.argv.slice(2), endpoint=args[1], method=args[args.indexOf('--method')+1];
+const args=process.argv.slice(2), endpoint=args[1].replace(/^https:\/\/api.github.com\//,''), method=args[args.indexOf('--method')+1];
 const data=args.includes('--input')?JSON.parse(fs.readFileSync(0,'utf8')):undefined;
 state.requests.push({args,data});
 const save=()=>fs.writeFileSync(p,JSON.stringify(state));

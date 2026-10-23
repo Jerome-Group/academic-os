@@ -297,6 +297,7 @@ export const cliCapabilities: Capability[] = [
         "test/routine/run-morning-routine.test.ts",
         "test/routine/weekly-review.test.ts",
         "test/routine/weekly-publication-subprocess.test.ts",
+        "test/routine/weekly-publication-admission.test.ts",
         "test/routine/gh-morning-issue.test.ts",
         "test/routine/repository-repair.test.ts",
         "test/routine/file-weekly-evidence.test.ts",

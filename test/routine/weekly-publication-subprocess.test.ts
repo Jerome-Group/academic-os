@@ -340,7 +340,7 @@ it("provider spoof and pagination failures cannot trigger adoption or mutation",
   state.issues.push(outsider);
   state.issuePages = [[{ ...outsider, pull_request: {} }], [outsider]];
   await f.patch(state);
-  assert.equal((await f.issue.listIssues()).length, 1);
+  assert.equal((await f.issue.listIssues()).issues.length, 1);
   await f.patch({ issuePages: undefined });
   const result = await f.publish();
   assert.equal(result.number, 2);

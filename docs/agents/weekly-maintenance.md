@@ -51,8 +51,19 @@ permit another POST. A later exact trusted match permits reuse. Do not delete th
 A changed publisher or repository identity, edited or missing known publication, incomplete page,
 or exceeded bound requires reconciliation before publication.
 
-The complete historical scan is bounded to 500 observations, 10,000 comments, and 100 pages per
-provider listing. Discussion text and the private journal each have a 32 MiB bound.
+The complete historical scan is bounded to 500 observations, 10,000 raw issue records or comments,
+and 100 pages per provider listing. Raw issue records include pull requests. Discussion text and the
+private journal each have a 32 MiB bound. Before the first remote mutation, admit the observed
+history plus every known planned anchor, review, transfer and state change. Reserve encoded journal
+intent, readback and receipt bytes, and a possible additional provider page per new record. Quiet
+reuse requires no new-record page headroom.
+
+Provider pagination follows only the authenticated repository's owner/name or numeric repository
+path, preserving service cursors and fixed listing parameters. Later concurrent growth, changed page
+layout or unused response metadata can exceed a read budget after an effect. Stop further writes,
+preserve exact evidence and unresolved intents, and reconcile. A read refusal never permits an
+automatic repost.
+
 Closed anchors remain observed, including private-bound anchors with edited
 titles. Numeric provider creator IDs authenticate publisher records. Copied outsider markers confer
 no ownership. These checks do not distinguish privileged edits by another user of the same account.

@@ -15,6 +15,8 @@ import {
   receipt,
   rememberComment,
   requireBasis,
+  publicationJournalBytes,
+  admitReceipt,
   type PublicationJournal,
   type PublicationOperation,
   type WeeklyBasis,
@@ -62,6 +64,99 @@ interface Discovery {
   comments: WeeklyComment[];
   observations: PublishedObservation[];
   unknown: number[];
+  issueCount: number;
+  discussionBytes: number;
+  issuePages: number;
+  commentPages: Map<number, number>;
+}
+interface WeeklyBatch {
+  anchor: Extract<PublicationOperation, { kind: "anchor" }> | undefined;
+  publication: string | undefined;
+  reopen: boolean;
+  predecessors: { number: number; transfer: string | undefined }[];
+}
+function transferBody(successor: number, predecessor: number): string {
+  return `<!-- academic-os-weekly-transfer:v2 successor=${successor} -->\nTransferred observed facts to weekly review #${successor}. Owner notes remain in #${predecessor}. Closure records transfer, not resolution.`;
+}
+function admitBatch(
+  found: Discovery,
+  batch: WeeklyBatch,
+  journal: PublicationJournal,
+  number: number,
+): void {
+  const operations: PublicationOperation[] = [];
+  let issueCount = found.issueCount;
+  let commentCount = found.comments.length;
+  let discussionBytes = found.discussionBytes;
+  if (batch.anchor !== undefined) {
+    operations.push(batch.anchor);
+    issueCount += 1;
+    discussionBytes += Buffer.byteLength(batch.anchor.body);
+  }
+  if (batch.publication !== undefined)
+    operations.push({ kind: "comment", number, body: batch.publication });
+  if (batch.reopen) operations.push({ kind: "state", number, state: "OPEN" });
+  for (const previous of batch.predecessors) {
+    if (previous.transfer !== undefined)
+      operations.push({
+        kind: "comment",
+        number: previous.number,
+        body: previous.transfer,
+      });
+    operations.push({
+      kind: "state",
+      number: previous.number,
+      state: "CLOSED",
+    });
+  }
+  for (const operation of operations) {
+    if (operation.kind !== "comment") continue;
+    commentCount += 1;
+    discussionBytes += Buffer.byteLength(operation.body);
+    if (
+      found.comments.filter(
+        (comment) => comment.issueNumber === operation.number,
+      ).length +
+        operations.filter(
+          (planned) =>
+            planned.kind === "comment" && planned.number === operation.number,
+        ).length >
+      10_000
+    )
+      throw new Error(
+        "Weekly publication would exceed 10000 comments per issue.",
+      );
+  }
+  if (issueCount > 10_000 || commentCount > 10_000)
+    throw new Error(
+      "Weekly publication would exceed 10000 issues or comments.",
+    );
+  if (
+    found.issuePages + (batch.anchor === undefined ? 0 : 1) > 100 ||
+    [
+      ...new Set(
+        operations.flatMap((op) => (op.kind === "comment" ? [op.number] : [])),
+      ),
+    ].some(
+      (number) =>
+        (found.commentPages.get(number) ?? 0) +
+          operations.filter(
+            (op) => op.kind === "comment" && op.number === number,
+          ).length >
+        100,
+    )
+  )
+    throw new Error(
+      "Weekly publication requires headroom within 100 provider pages.",
+    );
+  if (discussionBytes > 32 * 1024 * 1024)
+    throw new Error("Weekly publication would exceed 32 MiB discussion text.");
+  journal.requireCapacity(
+    operations.reduce(
+      (bytes, operation) => bytes + publicationJournalBytes(operation),
+      0,
+    ),
+  );
 }
 function anchorWeek(issue: WeeklyIssue): string | undefined {
   const week =
@@ -106,10 +201,12 @@ async function discover(
   journal: PublicationJournal,
   identity: WeeklyDiscussionIdentity,
   date: string,
+  retention: "retain" | "defer" = "retain",
 ): Promise<Discovery> {
-  const all = await port.listIssues();
+  const listing = await port.listIssues(),
+    all = listing.issues;
   if (
-    all.length > 10_000 ||
+    listing.totalCount > 10_000 ||
     new Set(all.map((i) => i.number)).size !== all.length
   )
     throw new Error("Incomplete or oversized weekly issue enumeration.");
@@ -144,6 +241,7 @@ async function discover(
     const week = anchorWeek(issue);
     if (
       week !== undefined &&
+      retention === "retain" &&
       issue.body.startsWith("<!-- academic-os-weekly-issue:v2 ")
     )
       await rememberAnchor(journal, {
@@ -152,17 +250,17 @@ async function discover(
         week,
       });
   }
-  let observedBytes = all.reduce(
-    (size, i) => size + Buffer.byteLength(i.body),
-    0,
-  );
+  let observedBytes = listing.bodyBytes;
   if (observedBytes > 32 * 1024 * 1024)
     throw new Error("Weekly discussion text exceeds 32 MiB.");
   const comments: WeeklyComment[] = [],
+    commentPages = new Map<number, number>(),
     observations = new Map<string, PublishedObservation>(),
     unknown: number[] = [];
   for (const issue of issues) {
-    const listed = await port.listComments(issue.number);
+    const listing = await port.listComments(issue.number),
+      listed = listing.comments;
+    commentPages.set(issue.number, listing.pages);
     if (
       new Set(listed.map((c) => c.id)).size !== listed.length ||
       listed.some((c) => c.issueNumber !== issue.number)
@@ -200,7 +298,7 @@ async function discover(
         throw new Error(
           "Edited weekly publication requires private reconciliation.",
         );
-      await rememberComment(journal, comment);
+      if (retention === "retain") await rememberComment(journal, comment);
       const id = digest(observation);
       if (!observations.has(id))
         observations.set(id, {
@@ -225,7 +323,16 @@ async function discover(
     a.id.localeCompare(b.id),
   );
   validateHistory(records, date);
-  return { issues, comments, observations: records, unknown };
+  return {
+    issues,
+    comments,
+    observations: records,
+    unknown,
+    issueCount: listing.totalCount,
+    discussionBytes: observedBytes,
+    issuePages: listing.pages,
+    commentPages,
+  };
 }
 async function recover(
   port: WeeklyDiscussionPort,
@@ -240,6 +347,7 @@ async function recover(
         (i) => i.creatorId === identity.publisherId && i.body === op.body,
       );
       if (matches.length > 0) {
+        const anchors: { number: number; id: number; week: string }[] = [];
         for (const match of matches) {
           const exact = await port.readIssue(match.number);
           if (
@@ -250,12 +358,20 @@ async function recover(
             throw new Error(
               "Unknown anchor readback changed; intent retained.",
             );
-          await rememberAnchor(journal, {
+          anchors.push({
             number: exact.number,
             id: exact.id,
             week: op.week,
           });
         }
+        admitReceipt(
+          journal,
+          pending.id,
+          matches.map((i) => i.number),
+          [],
+          anchors,
+        );
+        for (const anchor of anchors) await rememberAnchor(journal, anchor);
         await receipt(
           journal,
           pending.id,
@@ -272,6 +388,7 @@ async function recover(
           c.createdAt === c.updatedAt,
       );
       if (matches.length > 0) {
+        const exactComments: WeeklyComment[] = [];
         for (const comment of matches) {
           const exact = await port.readComment(comment.id);
           if (
@@ -283,8 +400,17 @@ async function recover(
             throw new Error(
               "Unknown comment readback changed; intent retained.",
             );
-          await rememberComment(journal, exact);
+          exactComments.push(exact);
         }
+        admitReceipt(
+          journal,
+          pending.id,
+          matches.map((c) => c.id),
+          exactComments,
+          [],
+        );
+        for (const comment of exactComments)
+          await rememberComment(journal, comment);
         await receipt(
           journal,
           pending.id,
@@ -298,6 +424,7 @@ async function recover(
         issue.creatorId === identity.publisherId &&
         issue.state === op.state
       ) {
+        admitReceipt(journal, pending.id, [issue.number], [], []);
         await receipt(journal, pending.id, [issue.number]);
         continue;
       }
@@ -314,8 +441,15 @@ async function context(
 ): Promise<{ identity: WeeklyDiscussionIdentity; found: Discovery }> {
   const identity = await port.identify();
   await bindPublisher(journal, identity);
-  let found = await discover(port, journal, identity, date);
-  if (intents(journal).length > 0) {
+  const pending = intents(journal).length > 0;
+  let found = await discover(
+    port,
+    journal,
+    identity,
+    date,
+    pending ? "defer" : "retain",
+  );
+  if (pending) {
     await recover(port, journal, identity, found);
     found = await discover(port, journal, identity, date);
   }
@@ -350,6 +484,7 @@ async function dispatch(
   identity: WeeklyDiscussionIdentity,
   operation: PublicationOperation,
 ): Promise<WeeklyIssue | WeeklyComment> {
+  journal.requireCapacity(publicationJournalBytes(operation));
   const id = await intent(journal, operation);
   try {
     if (operation.kind === "comment") {
@@ -478,14 +613,57 @@ export async function reconcileWeeklyIssue(input: {
           .filter((i) => i.number !== current?.number)
           .map((i) => i.number),
       );
+      const batch: WeeklyBatch = {
+        anchor:
+          current === undefined
+            ? {
+                kind: "anchor",
+                week: weekStart,
+                title: `Weekly maintenance review ${weekStart}`,
+                body: `${weeklyIssueMarker(weekStart)}\nImmutable as-of reviews are appended below. Owner notes and comments stay here. Prior notes remain linked at their source. Closure records transfer, not resolution.\n\n## Owner notes\n\n`,
+              }
+            : undefined,
+        publication: publish ? body : undefined,
+        reopen: current?.state === "CLOSED" && view.actionable,
+        predecessors: found.issues
+          .filter(
+            (issue) =>
+              issue.number !== current?.number && issue.state === "OPEN",
+          )
+          .map((issue) => {
+            const transfer = transferBody(
+              current?.number ?? Number.MAX_SAFE_INTEGER,
+              issue.number,
+            );
+            return {
+              number: issue.number,
+              transfer: found.comments.some(
+                (comment) =>
+                  comment.issueNumber === issue.number &&
+                  comment.creatorId === identity.publisherId &&
+                  comment.body === transfer &&
+                  comment.createdAt === comment.updatedAt,
+              )
+                ? undefined
+                : transfer,
+            };
+          }),
+      };
+      admitBatch(
+        found,
+        batch,
+        journal,
+        current?.number ?? Number.MAX_SAFE_INTEGER,
+      );
+      const plannedAnchors = new Set(found.issues.map((issue) => issue.number));
       let outcome: MorningIssueReport["outcome"] = "not-needed";
-      if (current === undefined) {
-        const created = await dispatch(input.issue, journal, identity, {
-          kind: "anchor",
-          week: weekStart,
-          title: `Weekly maintenance review ${weekStart}`,
-          body: `${weeklyIssueMarker(weekStart)}\nImmutable as-of reviews are appended below. Owner notes and comments stay here. Prior notes remain linked at their source. Closure records transfer, not resolution.\n\n## Owner notes\n\n`,
-        });
+      if (batch.anchor !== undefined) {
+        const created = await dispatch(
+          input.issue,
+          journal,
+          identity,
+          batch.anchor,
+        );
         if (!("number" in created))
           throw new Error("Invalid weekly anchor response.");
         const refreshed = await discover(
@@ -494,6 +672,11 @@ export async function reconcileWeeklyIssue(input: {
           identity,
           basis.date,
         );
+        plannedAnchors.add(created.number);
+        if (refreshed.issues.some((issue) => !plannedAnchors.has(issue.number)))
+          throw new Error(
+            "Weekly anchors changed after admission; fresh reconciliation required.",
+          );
         current = refreshed.issues
           .filter(
             (i) =>
@@ -504,15 +687,25 @@ export async function reconcileWeeklyIssue(input: {
           .sort((a, b) => a.number - b.number)[0];
         if (current === undefined)
           throw new Error("Created weekly anchor enumeration incomplete.");
+        if (current.number !== created.number)
+          throw new Error("Weekly anchor selection changed after admission.");
+        admitBatch(
+          refreshed,
+          { ...batch, anchor: undefined },
+          journal,
+          current.number,
+        );
         outcome = "created";
       }
+      if (current === undefined)
+        throw new Error("Missing admitted weekly anchor.");
       number = current.number;
       let publication: WeeklyComment | undefined;
-      if (publish) {
+      if (batch.publication !== undefined) {
         const result = await dispatch(input.issue, journal, identity, {
           kind: "comment",
           number,
-          body,
+          body: batch.publication,
         });
         if (!("issueNumber" in result))
           throw new Error("Invalid weekly publication response.");
@@ -520,17 +713,19 @@ export async function reconcileWeeklyIssue(input: {
         if (outcome !== "created") outcome = "updated";
       }
       const after = await discover(input.issue, journal, identity, basis.date);
-      const expectedIds = publish
-        ? records.map((r) => r.id)
-        : found.observations.map((r) => r.id);
+      const expectedIds =
+        batch.publication !== undefined
+          ? records.map((r) => r.id)
+          : found.observations.map((r) => r.id);
       if (
+        after.issues.some((issue) => !plannedAnchors.has(issue.number)) ||
         JSON.stringify(after.observations.map((r) => r.id)) !==
-        JSON.stringify(expectedIds)
+          JSON.stringify(expectedIds)
       )
         throw new Error(
           "Weekly facts changed during publication; fresh reconciliation required before transfer.",
         );
-      if (current.state === "CLOSED" && view.actionable) {
+      if (batch.reopen) {
         await dispatch(input.issue, journal, identity, {
           kind: "state",
           number,
@@ -539,11 +734,30 @@ export async function reconcileWeeklyIssue(input: {
         outcome = "reopened";
       }
       const retired: number[] = [];
-      for (const previous of after.issues.filter(
-        (i) => i.number !== number && i.state === "OPEN",
-      )) {
+      for (const [index, previous] of batch.predecessors.entries()) {
+        const remaining = await discover(
+          input.issue,
+          journal,
+          identity,
+          basis.date,
+        );
+        if (remaining.issues.some((issue) => !plannedAnchors.has(issue.number)))
+          throw new Error(
+            "Weekly anchors changed after admission; predecessor retained.",
+          );
+        admitBatch(
+          remaining,
+          {
+            anchor: undefined,
+            publication: undefined,
+            reopen: false,
+            predecessors: batch.predecessors.slice(index),
+          },
+          journal,
+          number,
+        );
         const fresh = await input.issue.readIssue(previous.number),
-          comments = await input.issue.listComments(previous.number);
+          comments = (await input.issue.listComments(previous.number)).comments;
         await createFileWeeklyEvidenceStore(input.stateRoot).archiveIssue({
           number: fresh.number,
           title: fresh.title,
@@ -551,22 +765,37 @@ export async function reconcileWeeklyIssue(input: {
           comments,
           reason: "weekly-transfer",
         });
-        const transfer = `<!-- academic-os-weekly-transfer:v2 successor=${number} -->\nTransferred observed facts to weekly review #${number}. Owner notes remain in #${previous.number}. Closure records transfer, not resolution.`;
-        if (
-          !comments.some(
-            (c) =>
-              c.creatorId === identity.publisherId &&
-              c.body === transfer &&
-              c.createdAt === c.updatedAt,
-          )
-        )
+        const transfer = transferBody(number, previous.number);
+        const transferred = comments.some(
+          (c) =>
+            c.creatorId === identity.publisherId &&
+            c.body === transfer &&
+            c.createdAt === c.updatedAt,
+        );
+        if (previous.transfer === undefined && !transferred)
+          throw new Error(
+            "Admitted transfer disappeared; predecessor retained.",
+          );
+        if (previous.transfer !== undefined && !transferred)
           await dispatch(input.issue, journal, identity, {
             kind: "comment",
             number: previous.number,
             body: transfer,
           });
         const beforeClose = await input.issue.readIssue(previous.number),
-          beforeComments = await input.issue.listComments(previous.number);
+          beforeComments = (await input.issue.listComments(previous.number))
+            .comments;
+        if (
+          !beforeComments.some(
+            (c) =>
+              c.creatorId === identity.publisherId &&
+              c.body === transfer &&
+              c.createdAt === c.updatedAt,
+          )
+        )
+          throw new Error(
+            "Verified transfer disappeared; predecessor retained.",
+          );
         const latest = await discover(
           input.issue,
           journal,
@@ -574,6 +803,7 @@ export async function reconcileWeeklyIssue(input: {
           basis.date,
         );
         if (
+          latest.issues.some((issue) => !plannedAnchors.has(issue.number)) ||
           JSON.stringify(latest.observations.map((r) => r.id)) !==
             JSON.stringify(expectedIds) ||
           JSON.stringify(latest.unknown) !== JSON.stringify(after.unknown)

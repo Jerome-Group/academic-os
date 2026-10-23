@@ -19,16 +19,29 @@ export function weeklyFixture(overrides: Partial<WeeklyDiscussionPort> = {}) {
   const states: { number: number; state: WeeklyIssue["state"] }[] = [];
   const issue: WeeklyDiscussionPort = {
     identify: async () => ({ publisherId: 7, repositoryId: 9 }),
-    listIssues: async () => structuredClone([...issues.values()]),
+    listIssues: async () => ({
+      issues: structuredClone([...issues.values()]),
+      totalCount: issues.size,
+      bodyBytes: [...issues.values()].reduce(
+        (n, issue) => n + Buffer.byteLength(issue.body),
+        0,
+      ),
+      pages: Math.max(1, Math.ceil(issues.size / 100)),
+    }),
     readIssue: async (number) => {
       const found = issues.get(number);
       if (found === undefined) throw new Error("missing issue");
       return structuredClone(found);
     },
-    listComments: async (number) =>
-      structuredClone(
+    listComments: async (number) => {
+      const listed = structuredClone(
         [...comments.values()].filter((c) => c.issueNumber === number),
-      ),
+      );
+      return {
+        comments: listed,
+        pages: Math.max(1, Math.ceil(listed.length / 100)),
+      };
+    },
     readComment: async (id) => {
       const found = comments.get(id);
       if (found === undefined) throw new Error("missing comment");

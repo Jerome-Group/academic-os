@@ -42,8 +42,8 @@ export function createGhMorningIssue(
   function repositoryIdentity() {
     if (repository !== undefined) return repository;
     const repo = object(get("repos/{owner}/{repo}"));
-    const api = new URL(url(repo.url)),
-      html = new URL(url(repo.html_url));
+    const api = new URL(urlText(repo.url)),
+      html = new URL(urlText(repo.html_url));
     if (
       !/^\/repos\/[^/]+\/[^/]+$/u.test(api.pathname) ||
       !/^\/[^/]+\/[^/]+$/u.test(html.pathname) ||
@@ -73,12 +73,17 @@ export function createGhMorningIssue(
       throw new Error("Comment belongs to another repository.");
     return comment;
   }
-  function pages(endpoint: string): unknown[] {
+  function pages(endpoint: string): { records: unknown[]; pages: number } {
     const records: unknown[] = [];
     const seen = new Set<string>();
     let bytes = 0;
+    let path = `${endpoint}${endpoint.includes("?") ? "&" : "?"}per_page=100&page=1`;
+    const visited = new Set<string>();
+    const fixed = new URLSearchParams(endpoint.split("?")[1]);
     for (let page = 1; page <= 100; page += 1) {
-      const path = `${endpoint}${endpoint.includes("?") ? "&" : "?"}per_page=100&page=${page}`;
+      if (visited.has(path))
+        throw new Error("Repeated GitHub pagination endpoint.");
+      visited.add(path);
       const response = gh(["api", path, "--include"]);
       bytes += Buffer.byteLength(response);
       if (bytes > 32 * 1024 * 1024)
@@ -97,7 +102,7 @@ export function createGhMorningIssue(
           values.length === 0 &&
           !/rel="next"/u.test(headers)
         )
-          return records;
+          return { records, pages: page };
         throw new Error("Invalid or repeated GitHub page.");
       }
       seen.add(body);
@@ -106,7 +111,7 @@ export function createGhMorningIssue(
         .split(/\r?\n/u)
         .filter((line) => /^link:/iu.test(line));
       if (links.length > 1) throw new Error("Ambiguous GitHub pagination.");
-      if (links[0] === undefined) return records;
+      if (links[0] === undefined) return { records, pages: page };
       const relations = new Map<string, URL>();
       for (const part of links[0]
         .slice(links[0].indexOf(":") + 1)
@@ -119,15 +124,30 @@ export function createGhMorningIssue(
           relations.has(match[2])
         )
           throw new Error("Malformed GitHub pagination links.");
-        const url = new URL(match[1]),
+        const url = new URL(urlText(match[1])),
           repo = repositoryIdentity(),
-          expected = endpoint.split("?")[0];
+          expected = endpoint
+            .split("?")[0]
+            ?.replace("repos/{owner}/{repo}", repo.api.pathname.slice(1));
         const pageNumber = url.searchParams.get("page");
         if (
           url.origin !== repo.api.origin ||
           expected === undefined ||
-          url.pathname !==
-            `/${expected.replace("repos/{owner}/{repo}", repo.api.pathname.slice(1))}` ||
+          (url.pathname !== `/${expected}` &&
+            url.pathname !==
+              `/repositories/${repo.id}${expected.slice(repo.api.pathname.length - 1)}`) ||
+          url.hash !== "" ||
+          [...url.searchParams.keys()].some(
+            (key) =>
+              url.searchParams.getAll(key).length !== 1 ||
+              (!fixed.has(key) &&
+                !["per_page", "page", "after", "before", "since"].includes(
+                  key,
+                )),
+          ) ||
+          [...fixed].some(
+            ([key, value]) => url.searchParams.get(key) !== value,
+          ) ||
           pageNumber === null ||
           !/^[1-9]\d*$/u.test(pageNumber) ||
           url.searchParams.get("per_page") !== "100"
@@ -136,9 +156,10 @@ export function createGhMorningIssue(
         relations.set(match[2], url);
       }
       const next = relations.get("next");
-      if (next === undefined) return records;
+      if (next === undefined) return { records, pages: page };
       if (next.searchParams.get("page") !== String(page + 1))
         throw new Error("Invalid GitHub next page identity.");
+      path = next.href;
     }
     throw new Error("GitHub listing exceeds 100 complete pages.");
   }
@@ -149,10 +170,23 @@ export function createGhMorningIssue(
         repo = repositoryIdentity();
       return { publisherId: positive(user.id), repositoryId: repo.id };
     },
-    listIssues: async () =>
-      pages("repos/{owner}/{repo}/issues?state=all&sort=created&direction=asc")
-        .filter((value) => !("pull_request" in object(value)))
-        .map(parseIssue),
+    listIssues: async () => {
+      const listing = pages(
+          "repos/{owner}/{repo}/issues?state=all&sort=created&direction=asc",
+        ),
+        values = listing.records;
+      return {
+        issues: values
+          .filter((value) => !("pull_request" in object(value)))
+          .map(parseIssue),
+        totalCount: values.length,
+        pages: listing.pages,
+        bodyBytes: values.reduce<number>((size, value) => {
+          const body = object(value).body;
+          return size + Buffer.byteLength(body === null ? "" : string(body));
+        }, 0),
+      };
+    },
     readIssue: async (number) => {
       const result = parseIssue(
         get(`repos/{owner}/{repo}/issues/${positive(number)}`),
@@ -161,10 +195,15 @@ export function createGhMorningIssue(
         throw new Error("Mismatched issue readback.");
       return result;
     },
-    listComments: async (number) =>
-      pages(`repos/{owner}/{repo}/issues/${positive(number)}/comments`).map(
-        (value) => parseComment(value, number),
-      ),
+    listComments: async (number) => {
+      const listing = pages(
+        `repos/{owner}/{repo}/issues/${positive(number)}/comments`,
+      );
+      return {
+        comments: listing.records.map((value) => parseComment(value, number)),
+        pages: listing.pages,
+      };
+    },
     readComment: async (id) => {
       const result = parseComment(
         get(`repos/{owner}/{repo}/issues/comments/${positive(id)}`),
@@ -209,13 +248,15 @@ function string(value: unknown): string {
   if (typeof value !== "string") throw new Error("Invalid GitHub text.");
   return value;
 }
-function url(value: unknown): string {
+function urlText(value: unknown): string {
   const text = string(value),
     parsed = new URL(text);
   if (
     parsed.protocol !== "https:" ||
     parsed.username !== "" ||
-    parsed.password !== ""
+    parsed.password !== "" ||
+    parsed.href !== text ||
+    Buffer.byteLength(text) > 2048
   )
     throw new Error("Invalid GitHub URL.");
   return text;
@@ -234,7 +275,7 @@ function readIssue(value: unknown): WeeklyIssue {
     title: string(issue.title),
     body: issue.body === null ? "" : string(issue.body),
     state: issue.state === "open" ? "OPEN" : "CLOSED",
-    url: url(issue.html_url),
+    url: urlText(issue.html_url),
   };
 }
 function readComment(value: unknown, expectedIssue?: number): WeeklyComment {
@@ -248,6 +289,8 @@ function readComment(value: unknown, expectedIssue?: number): WeeklyComment {
   const createdAt = string(comment.created_at),
     updatedAt = string(comment.updated_at);
   if (
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u.test(createdAt) ||
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u.test(updatedAt) ||
     !Number.isFinite(Date.parse(createdAt)) ||
     !Number.isFinite(Date.parse(updatedAt))
   )
@@ -259,7 +302,7 @@ function readComment(value: unknown, expectedIssue?: number): WeeklyComment {
     body: comment.body === null ? "" : string(comment.body),
     createdAt,
     updatedAt,
-    url: url(comment.html_url),
+    url: urlText(comment.html_url),
   };
 }
 function runGh(input: GhMorningIssueRunnerInput): string {

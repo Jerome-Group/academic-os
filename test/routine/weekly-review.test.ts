@@ -542,3 +542,49 @@ it("a verified merge cannot discharge another unverified exact commit for the sa
     /Repository pull request awaiting reconciliation: #19/u,
   );
 });
+it("100 observed provider pages permit quiet reuse but require spare pages before adding records", async () => {
+  const f = weeklyFixture();
+  await publish(f);
+  const issues = f.issue.listIssues,
+    comments = f.issue.listComments;
+  f.issue.listIssues = async () => ({ ...(await issues()), pages: 100 });
+  assert.equal((await publish(f)).outcome, "not-needed");
+  const rollover = await publish(f, { date: "2026-10-26" });
+  assert.equal(rollover.outcome, "failed");
+  assert.equal(f.raised.length, 1);
+  f.issue.listIssues = issues;
+  f.issue.listComments = async (number) => ({
+    ...(await comments(number)),
+    pages: 100,
+  });
+  const changed = await publish(f, { needsOwner: true });
+  assert.equal(changed.outcome, "failed");
+  assert.equal(f.appended.length, 1);
+  f.issue.listComments = async (number) => ({
+    ...(await comments(number)),
+    pages: 99,
+  });
+  assert.equal((await publish(f, { needsOwner: true })).outcome, "updated");
+  assert.equal(f.appended.length, 2);
+});
+it("a new anchor observed after admission waits for a fresh batch", async () => {
+  const f = weeklyFixture(),
+    create = f.issue.createIssue;
+  f.issue.createIssue = async (input) => {
+    const result = await create(input);
+    f.issues.set(901, {
+      ...result,
+      id: 1901,
+      number: 901,
+      url: "https://github.com/fixture/repo/issues/901",
+    });
+    return result;
+  };
+  const interrupted = await publish(f);
+  assert.equal(interrupted.outcome, "failed");
+  assert.equal(f.appended.length, 0);
+  assert.equal(f.states.length, 0);
+  const recovered = await publish(f);
+  assert.equal(recovered.outcome, "updated");
+  assert.equal(f.issues.get(901)?.state, "CLOSED");
+});

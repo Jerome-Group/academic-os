@@ -79,6 +79,8 @@ export type {
   WeeklyComment,
   WeeklyDiscussionPort,
   WeeklyDiscussionIdentity,
+  WeeklyIssueListing,
+  WeeklyCommentListing,
   MorningIssueReport,
   MorningPreludePort,
   MorningRoutineReport,

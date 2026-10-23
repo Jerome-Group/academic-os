@@ -43,7 +43,51 @@ type JournalEntry =
   | { kind: "seen"; comment: WeeklyComment };
 export interface PublicationJournal {
   entries: JournalEntry[];
+  requireCapacity(additionalBytes: number): void;
   append(entry: JournalEntry): Promise<void>;
+}
+function encodedBytes(entry: JournalEntry): number {
+  return Buffer.byteLength(`${JSON.stringify(entry)}\n`);
+}
+export function publicationJournalBytes(
+  operation: PublicationOperation,
+): number {
+  const maximumId = Number.MAX_SAFE_INTEGER;
+  let bytes =
+    encodedBytes({
+      kind: "intent",
+      id: "f".repeat(64),
+      semanticDigest: "f".repeat(64),
+      operation,
+    }) +
+    encodedBytes({
+      kind: "receipt",
+      id: "f".repeat(64),
+      remoteIds: [maximumId],
+    });
+  if (operation.kind === "comment") {
+    if (Buffer.byteLength(operation.body) > 60_000)
+      throw new Error("Weekly comment exceeds bounded publication size.");
+    bytes += encodedBytes({
+      kind: "seen",
+      comment: {
+        id: maximumId,
+        issueNumber: maximumId,
+        creatorId: maximumId,
+        body: operation.body,
+        createdAt: "\u0000".repeat(24),
+        updatedAt: "\u0000".repeat(24),
+        url: "\u0000".repeat(2048),
+      },
+    });
+  } else if (operation.kind === "anchor")
+    bytes += encodedBytes({
+      kind: "anchor",
+      number: maximumId,
+      id: maximumId,
+      week: operation.week,
+    });
+  return bytes;
 }
 export async function ownWeeklyJournal<T>(
   stateRoot: string,
@@ -95,15 +139,23 @@ export async function ownWeeklyJournal<T>(
       let bytesUsed = metadata.size;
       const journal: PublicationJournal = {
         entries,
-        async append(entry) {
-          const line = `${JSON.stringify(entry)}\n`;
-          const size = Buffer.byteLength(line);
-          if (bytesUsed + size > 32 * 1024 * 1024)
+        requireCapacity(additionalBytes) {
+          if (
+            !Number.isSafeInteger(additionalBytes) ||
+            additionalBytes < 0 ||
+            bytesUsed + additionalBytes > 32 * 1024 * 1024
+          )
             throw new Error("Weekly publication journal exceeds 32 MiB.");
+        },
+        async append(entry) {
+          const checked = parseEntry(entry);
+          const line = `${JSON.stringify(checked)}\n`;
+          const size = Buffer.byteLength(line);
+          journal.requireCapacity(size);
           await file.writeFile(line);
           await file.sync();
           bytesUsed += size;
-          entries.push(entry);
+          entries.push(checked);
         },
       };
       const parent = await open(dirname(path), constants.O_RDONLY);
@@ -238,10 +290,43 @@ export async function receipt(
   if (!journal.entries.some((e) => e.kind === "receipt" && e.id === id))
     await journal.append({ kind: "receipt", id, remoteIds });
 }
+export function admitReceipt(
+  journal: PublicationJournal,
+  id: string,
+  remoteIds: number[],
+  comments: WeeklyComment[],
+  anchors: { number: number; id: number; week: string }[],
+): void {
+  const entries: JournalEntry[] = [];
+  for (const comment of comments)
+    if (!knownComments(journal).some((known) => known.id === comment.id))
+      entries.push({ kind: "seen", comment });
+  for (const anchor of anchors)
+    if (!knownAnchors(journal).includes(anchor.number))
+      entries.push({ kind: "anchor", ...anchor });
+  if (
+    !journal.entries.some(
+      (entry) => entry.kind === "receipt" && entry.id === id,
+    )
+  )
+    entries.push({ kind: "receipt", id, remoteIds });
+  journal.requireCapacity(
+    entries.reduce(
+      (bytes, entry) => bytes + encodedBytes(parseEntry(entry)),
+      0,
+    ),
+  );
+}
 function text(value: unknown): string {
   if (typeof value !== "string")
     throw new Error("Invalid weekly journal text.");
   return value;
+}
+function boundedText(value: unknown, maximumBytes: number): string {
+  const result = text(value);
+  if (Buffer.byteLength(result) > maximumBytes)
+    throw new Error("Oversized weekly publication metadata.");
+  return result;
 }
 function parseEntry(value: unknown): JournalEntry {
   const entry = record(value);
@@ -322,9 +407,9 @@ function parseEntry(value: unknown): JournalEntry {
           issueNumber: positive(comment.issueNumber),
           creatorId: positive(comment.creatorId),
           body: text(comment.body),
-          createdAt: text(comment.createdAt),
-          updatedAt: text(comment.updatedAt),
-          url: text(comment.url),
+          createdAt: boundedText(comment.createdAt, 24),
+          updatedAt: boundedText(comment.updatedAt, 24),
+          url: boundedText(comment.url, 2048),
         },
       };
     }

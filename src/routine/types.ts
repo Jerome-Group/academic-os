@@ -220,11 +220,21 @@ export interface WeeklyComment {
   updatedAt: string;
   url: string;
 }
+export interface WeeklyIssueListing {
+  issues: WeeklyIssue[];
+  totalCount: number;
+  bodyBytes: number;
+  pages: number;
+}
+export interface WeeklyCommentListing {
+  comments: WeeklyComment[];
+  pages: number;
+}
 export interface WeeklyDiscussionPort {
   identify(): Promise<WeeklyDiscussionIdentity>;
-  listIssues(): Promise<WeeklyIssue[]>;
+  listIssues(): Promise<WeeklyIssueListing>;
   readIssue(number: number): Promise<WeeklyIssue>;
-  listComments(number: number): Promise<WeeklyComment[]>;
+  listComments(number: number): Promise<WeeklyCommentListing>;
   readComment(id: number): Promise<WeeklyComment>;
   createIssue(input: {
     title: string;

@@ -96,6 +96,7 @@ export const cliCapabilities: Capability[] = [
       "approved ID-bound plan; complete inventory; independent byte and Drive recoveries",
     ],
     "omit --apply",
+    ["test/cli/repair-cli.test.ts", "test/repair/resume-repair.test.ts"],
   ),
   cli(
     "pinned refresh",

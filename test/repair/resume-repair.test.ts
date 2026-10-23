@@ -165,13 +165,16 @@ test("requires explicit resume to finish interrupted recovery", async () => {
     },
   };
   let recoverCalls = 0;
+  let recoveryVerifications = 0;
   const recovery: RepairExecutionRecovery = {
     recover: async () => {
       recoverCalls += 1;
       if (recoverCalls === 1) throw new Error("snapshot interrupted");
       return recoveryResult;
     },
-    verify: async () => undefined,
+    verify: async () => {
+      recoveryVerifications += 1;
+    },
   };
   const drive: RepairExecutionDrive = {
     inventory: async () => plan.inventory,
@@ -207,6 +210,7 @@ test("requires explicit resume to finish interrupted recovery", async () => {
   });
   assert.equal(interrupted.outcome, "blocked");
 
+  const beforeInspection = JSON.stringify(events);
   const inspected = await executeRepairPlan({
     plan,
     mode: "apply",
@@ -217,6 +221,9 @@ test("requires explicit resume to finish interrupted recovery", async () => {
   });
   assert.equal(inspected.outcome, "safely-resumable");
   assert.equal(recoverCalls, 1);
+  assert.equal(recoveryVerifications, 0);
+  assert.match(inspected.evidence.join(" "), /recovery is incomplete/u);
+  assert.equal(JSON.stringify(events), beforeInspection);
 
   const resumed = await executeRepairPlan({
     plan,
@@ -309,6 +316,44 @@ for (const phase of ["final-recovery", "postcondition"] as const) {
     });
     assert.equal(interrupted.outcome, "partially-completed");
 
+    const beforeInspection = JSON.stringify(events);
+    for (const mode of ["preview", "apply"] as const) {
+      for (const reason of [
+        "missing retained recovery",
+        "corrupt retained recovery",
+      ]) {
+        let verificationCalls = 0;
+        let writes = 0;
+        const unexpectedWrite = async () => {
+          writes += 1;
+          throw new Error("inspection must not write");
+        };
+        const refused = await executeRepairPlan({
+          plan,
+          mode,
+          resume: false,
+          drive: {
+            ...drive,
+            createFolder: unexpectedWrite,
+            createFile: unexpectedWrite,
+            relocateItem: unexpectedWrite,
+          },
+          recovery: {
+            recover: unexpectedWrite,
+            verify: async () => {
+              verificationCalls += 1;
+              throw new Error(reason);
+            },
+          },
+          journal: { read: journal.read, append: unexpectedWrite },
+        });
+        assert.equal(refused.outcome, "blocked");
+        assert.ok(refused.evidence.includes(reason));
+        assert.equal(verificationCalls, 1);
+        assert.equal(writes, 0);
+        assert.equal(JSON.stringify(events), beforeInspection);
+      }
+    }
     const inspected = await executeRepairPlan({
       plan,
       mode: "apply",
@@ -318,6 +363,7 @@ for (const phase of ["final-recovery", "postcondition"] as const) {
       journal,
     });
     assert.equal(inspected.outcome, "safely-resumable");
+    assert.equal(JSON.stringify(events), beforeInspection);
 
     const resumed = await executeRepairPlan({
       plan,

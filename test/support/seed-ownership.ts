@@ -28,6 +28,34 @@ interface Fixture {
 export function seedOwnershipTests(
   createFixture: () => Promise<Fixture>,
 ): void {
+  it("refuses a concurrent resume before journal or mounted effects", async () => {
+    const fixture = await createFixture();
+    const entered = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    const owner = fixture.run({
+      checkpoint: async ({ checkpoint }) => {
+        if (checkpoint !== "before-staging") return;
+        entered.resolve();
+        await release.promise;
+      },
+    });
+    await entered.promise;
+    try {
+      const directory = join(fixture.stateRoot, "journals", "seeds");
+      const path = join(directory, (await readdir(directory))[0] ?? "missing");
+      const before = await readFile(path);
+      const mountedBefore = await readdir(fixture.parentRoot);
+      const loser = await fixture.run({ resume: true });
+      assert.equal(loser.outcome, "blocked");
+      assert.match(loser.evidence.join(" "), /another invocation owns/iu);
+      assert.deepEqual(await readFile(path), before);
+      assert.deepEqual(await readdir(fixture.parentRoot), mountedBefore);
+    } finally {
+      release.resolve();
+      await owner;
+    }
+    assert.equal((await fixture.run({ resume: true })).outcome, "completed");
+  });
   for (const substitution of [
     "symlink",
     "unclaimed",

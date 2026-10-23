@@ -7,7 +7,7 @@
     "academic-os": "dist/src/cli.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "node scripts/clean-build-output.mjs && tsc",
     "cheatsheet-runtime:build": "node scripts/build-cheatsheet-skill-runtime.mjs",
     "cheatsheet-runtime:check": "node scripts/build-cheatsheet-skill-runtime.mjs --check",
     "format": "biome format --write .",

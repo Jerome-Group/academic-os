@@ -553,7 +553,10 @@ export function capabilityIndex(): object {
       riskFlags: ["synthetic-only"],
       preview: null,
       implementation: "src/capabilities/checks.ts",
-      tests: ["test/capabilities/capabilities.test.ts"],
+      tests: [
+        "test/capabilities/capabilities.test.ts",
+        "test/capabilities/build-provenance.test.ts",
+      ],
       status: "supported",
       health: "not-observed",
       result:

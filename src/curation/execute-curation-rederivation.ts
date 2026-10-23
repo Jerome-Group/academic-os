@@ -85,6 +85,9 @@ function pendingAppend(
       location: sourceLocation,
       sha256,
     })),
+    artifacts: module.rederivations.flatMap(
+      ({ observedArtifacts }) => observedArtifacts,
+    ),
     lines: module.rederivations.map(({ line }) => line),
   };
 }
@@ -98,7 +101,8 @@ function publicModule(
     ...rest,
     counts: corrected ? correctedModuleCounts(module) : module.counts,
     rederivations: rederivations.map(
-      ({ line: _line, ...correction }) => correction,
+      ({ line: _line, observedArtifacts: _artifacts, ...correction }) =>
+        correction,
     ),
   };
 }

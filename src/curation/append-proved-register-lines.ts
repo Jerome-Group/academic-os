@@ -23,6 +23,7 @@ export interface PendingRegisterAppend {
   observedSha256: string;
   // Module-relative, and re-hashed immediately before the write against the digest the plan built.
   sources: ReadonlyArray<{ location: string; sha256: string }>;
+  artifacts: ReadonlyArray<{ location: string; sha256: string | undefined }>;
   lines: readonly string[];
 }
 
@@ -60,7 +61,7 @@ export async function appendProvedRegisterLines(input: {
       refusals.push(provedRegister.refusal);
       continue;
     }
-    refusals.push(...(await unprovedSources(pending, input.roots)));
+    refusals.push(...(await unprovedInputs(pending, input.roots)));
     proven.push({
       pending,
       target: provedRegister.target,
@@ -88,7 +89,11 @@ export async function appendProvedRegisterLines(input: {
       from: pending.observedSha256,
       to,
     });
-    const evidence = await writeRegister(pending, target, contents, to);
+    const changedInputs = await unprovedInputs(pending, input.roots);
+    const evidence =
+      changedInputs.length > 0
+        ? changedInputs.join("\n")
+        : await writeRegister(pending, target, contents, to);
     if (evidence !== undefined) {
       await journal.append({ ...subject, type: "refused", evidence });
       return {
@@ -105,11 +110,7 @@ export async function appendProvedRegisterLines(input: {
   return { appended, written, refusals: [] };
 }
 
-// Rule 4 of a mounted write: what the plan was built against is read again immediately before the
-// write. The digest an appended line asserts is the item's identity from then on, so a source that
-// has taken new bytes since the preview would be recorded under a checksum already wrong — and the
-// next arrival walk would re-decide it, which is the loop these passes exist to close.
-async function unprovedSources(
+async function unprovedInputs(
   pending: PendingRegisterAppend,
   roots: RegisterAppendRoots,
 ): Promise<string[]> {
@@ -123,6 +124,24 @@ async function unprovedSources(
     if (digests?.sha256 !== source.sha256) {
       refusals.push(
         `${pending.module} ${source.location}: the source changed after it was read for this run.`,
+      );
+    }
+  }
+  for (const artifact of pending.artifacts) {
+    const target = join(moduleRoot, artifact.location);
+    const unchanged =
+      artifact.sha256 === undefined
+        ? await lstat(target).then(
+            () => false,
+            (error: unknown) =>
+              error instanceof Error &&
+              "code" in error &&
+              error.code === "ENOENT",
+          )
+        : (await hashSource(target))?.sha256 === artifact.sha256;
+    if (!unchanged) {
+      refusals.push(
+        `${pending.module} ${artifact.location}: the destination changed after it was read for this run.`,
       );
     }
   }

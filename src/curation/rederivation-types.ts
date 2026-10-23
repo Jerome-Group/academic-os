@@ -83,6 +83,10 @@ export interface PlannedCurationRederivation {
   // discovering later that `derived` is shorter than the batch was.
   unreadable: string[];
   missing: string[];
+  observedArtifacts: ReadonlyArray<{
+    location: string;
+    sha256: string | undefined;
+  }>;
   // The exact JSON the register gains, so preview and apply are the same bytes.
   line: string;
 }
@@ -127,7 +131,9 @@ export interface CurationRederivationReport {
   counts: CurationSplitCounts;
   modules: Array<
     Omit<ModuleCurationRederivationPlan, "rederivations" | "observedSha256"> & {
-      rederivations: Array<Omit<PlannedCurationRederivation, "line">>;
+      rederivations: Array<
+        Omit<PlannedCurationRederivation, "line" | "observedArtifacts">
+      >;
     }
   >;
   unresolved: CohortCurationRederivations["unresolved"];

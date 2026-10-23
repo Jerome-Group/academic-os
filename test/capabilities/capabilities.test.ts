@@ -200,6 +200,17 @@ it("surfaces local write effects on diagnostic and cloud-read operations", () =>
   assert.ok(morning?.tests.includes("test/routine/cohort-prelude.test.ts"));
 });
 
+it("declares both curation register writes and private apply journals", async () => {
+  const result = await runCli("capabilities", "index", "--json");
+  assert.equal(result.exitCode, 0, result.stdout);
+  const index: { actions: typeof cliCapabilities } = JSON.parse(result.stdout);
+  for (const id of ["curation migrate", "curation rederive"])
+    assert.deepEqual(index.actions.find((action) => action.id === id)?.writes, [
+      "private curation journal with --apply",
+      "mounted register content with --apply",
+    ]);
+});
+
 it("distinguishes configured executable readiness from PATH presence and maintenance recovery", async () => {
   const root = await mkdtemp(join(tmpdir(), "academic-health-"));
   try {

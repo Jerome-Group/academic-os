@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import {
+import filesystem, {
   mkdir,
   mkdtemp,
   readFile,
@@ -7,6 +7,7 @@ import {
   rm,
   writeFile,
 } from "node:fs/promises";
+import { syncBuiltinESMExports } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, it } from "node:test";
@@ -60,9 +61,12 @@ function curatedLine(destination: string): string {
 
 const splitRegister = `${[chapterOne, chapterTwo, wholeCopy].map(curatedLine).join("\n")}\n`;
 
-function observation(register: string): ObservedModuleRederivation {
+function observation(
+  register: string,
+  module: string,
+): ObservedModuleRederivation {
   return {
-    module: "AB1234",
+    module,
     semester: "Y2S1",
     register,
     integrations: ["ntulearn"],
@@ -86,36 +90,77 @@ function observation(register: string): ObservedModuleRederivation {
 
 async function mountedModule(
   register: string,
+  modules = ["AB1234"],
 ): Promise<CohortCurationRederivations> {
   const root = await realpath(
     await mkdtemp(join(tmpdir(), "academic-os-rederive-")),
   );
   temporaryRoots.push(root);
-  const moduleRoot = join(root, "Modules", "Y2S1", "AB1234");
   const stateRoot = join(root, "state");
-  for (const [path, bytes] of [
-    [registerPath, Buffer.from(register, "utf8")],
-    [sourceLocation, sourceBytes],
-    [chapterOne, chapterOneBytes],
-    [chapterTwo, chapterTwoBytes],
-    [wholeCopy, sourceBytes],
-  ] as const) {
-    const target = join(moduleRoot, path);
-    await mkdir(dirname(target), { recursive: true });
-    await writeFile(target, bytes);
+  const moduleRoots = new Map<string, string>();
+  for (const module of modules) {
+    const moduleRoot = join(root, "Modules", "Y2S1", module);
+    moduleRoots.set(module, moduleRoot);
+    for (const [path, bytes] of [
+      [registerPath, Buffer.from(register, "utf8")],
+      [sourceLocation, sourceBytes],
+      [chapterOne, chapterOneBytes],
+      [chapterTwo, chapterTwoBytes],
+      [wholeCopy, sourceBytes],
+    ] as const) {
+      const target = join(moduleRoot, path);
+      await mkdir(dirname(target), { recursive: true });
+      await writeFile(target, bytes);
+    }
   }
   await mkdir(stateRoot, { recursive: true });
   return {
     driveMount: root,
     stateRoot,
-    modules: [observation(register)],
-    moduleRoots: new Map([["AB1234", moduleRoot]]),
+    modules: modules.map((module) => observation(register, module)),
+    moduleRoots,
     unresolved: [],
   };
 }
 
 function planFor(cohort: CohortCurationRederivations) {
   return planCurationRederivation({ modules: cohort.modules, now });
+}
+
+async function duringJournalIntent<T>(input: {
+  cohort: CohortCurationRederivations;
+  moduleIndex: number;
+  change(): Promise<void>;
+  execute(): Promise<T>;
+}): Promise<T> {
+  const originalOpen = filesystem.open;
+  const originalReadFile = filesystem.readFile;
+  let openings = 0;
+  let changed = false;
+  filesystem.open = async (...args) => {
+    if (String(args[0]).startsWith(join(input.cohort.stateRoot, "journals"))) {
+      openings += 1;
+      if (openings === input.moduleIndex * 2 + 1) {
+        await input.change();
+        changed = true;
+      }
+    }
+    return await originalOpen(...args);
+  };
+  syncBuiltinESMExports();
+  try {
+    const result = await input.execute();
+    assert.equal(
+      changed,
+      true,
+      "the real journal intent yielded to the change",
+    );
+    return result;
+  } finally {
+    filesystem.open = originalOpen;
+    filesystem.readFile = originalReadFile;
+    syncBuiltinESMExports();
+  }
 }
 
 describe("correcting a split source on the mount", () => {
@@ -240,6 +285,255 @@ describe("correcting a split source on the mount", () => {
       /the source changed after it was read/u,
     );
   });
+
+  for (const [change, destination, bytes] of [
+    ["disappeared", chapterOne, undefined],
+    ["became a copy", chapterOne, sourceBytes],
+    [
+      "gained different derived bytes",
+      chapterOne,
+      Buffer.from("Reworked cut.\n"),
+    ],
+    ["lost its whole copy", wholeCopy, chapterOneBytes],
+  ] as const) {
+    it(`refuses before appending when a destination ${change}`, async () => {
+      const cohort = await mountedModule(splitRegister);
+      const moduleRoot = cohort.moduleRoots.get("AB1234") ?? "";
+      const plan = planFor(cohort);
+      const before = await readFile(join(moduleRoot, registerPath));
+      const target = join(moduleRoot, destination);
+      if (bytes === undefined) await rm(target);
+      else await writeFile(target, bytes);
+
+      const report = await executeCurationRederivation({
+        plan,
+        cohort,
+        mode: "apply",
+      });
+
+      assert.equal(report.outcome, "refused");
+      assert.equal(report.appended, 0);
+      assert.equal(report.counts.rederiving, 1);
+      assert.equal(report.counts.settled, 0);
+      assert.equal(report.journal, undefined);
+      assert.ok(
+        report.refusals.some((refusal) => refusal.includes(destination)),
+      );
+      assert.deepEqual(await readFile(join(moduleRoot, registerPath)), before);
+    });
+  }
+
+  it("proves every module's destinations before the first cohort append", async () => {
+    const cohort = await mountedModule(splitRegister, ["AB1234", "ZZ1234"]);
+    const plan = planFor(cohort);
+    const before = await Promise.all(
+      [...cohort.moduleRoots.values()].map((root) =>
+        readFile(join(root, registerPath)),
+      ),
+    );
+    await rm(join(cohort.moduleRoots.get("ZZ1234") ?? "", chapterTwo));
+
+    const report = await executeCurationRederivation({
+      plan,
+      cohort,
+      mode: "apply",
+    });
+
+    assert.equal(report.outcome, "refused");
+    assert.equal(report.appended, 0);
+    assert.equal(report.counts.rederiving, 2);
+    assert.equal(report.counts.settled, 0);
+    assert.equal(report.journal, undefined);
+    assert.deepEqual(
+      await Promise.all(
+        [...cohort.moduleRoots.values()].map((root) =>
+          readFile(join(root, registerPath)),
+        ),
+      ),
+      before,
+    );
+  });
+
+  for (const location of [sourceLocation, chapterOne]) {
+    for (const change of ["removed", "rewritten", "unreadable"]) {
+      it(`refuses when ${location} is ${change} during journal intent`, async () => {
+        const cohort = await mountedModule(splitRegister);
+        const plan = planFor(cohort);
+        const moduleRoot = cohort.moduleRoots.get("AB1234") ?? "";
+        const target = join(moduleRoot, location);
+        const before = await readFile(join(moduleRoot, registerPath));
+        const report = await duringJournalIntent({
+          cohort,
+          moduleIndex: 0,
+          change: async () => {
+            if (change === "removed") await rm(target);
+            else if (change === "rewritten")
+              await writeFile(target, "Changed while the journal opened.\n");
+            else {
+              filesystem.readFile = new Proxy(filesystem.readFile, {
+                apply(read, receiver, args) {
+                  if (String(args[0]) === target)
+                    return Promise.reject(new Error("synthetic read failure"));
+                  return Reflect.apply(read, receiver, args);
+                },
+              });
+              syncBuiltinESMExports();
+            }
+          },
+          execute: () =>
+            executeCurationRederivation({ plan, cohort, mode: "apply" }),
+        });
+
+        assert.equal(report.outcome, "refused");
+        assert.equal(report.appended, 0);
+        assert.equal(report.counts.rederiving, 1);
+        assert.equal(report.counts.settled, 0);
+        assert.ok(
+          report.refusals.some((refusal) => refusal.includes(location)),
+        );
+        assert.deepEqual(
+          await readFile(join(moduleRoot, registerPath)),
+          before,
+        );
+        assert.ok(report.journal);
+        const entries = (await readFile(report.journal, "utf8"))
+          .trimEnd()
+          .split("\n")
+          .map((line) => JSON.parse(line));
+        assert.deepEqual(
+          entries.map((entry) => entry.type),
+          ["intent", "refused"],
+        );
+        assert.match(entries[1]?.evidence ?? "", /changed after it was read/u);
+      });
+    }
+  }
+
+  it("refuses when a missing destination reappears during journal intent", async () => {
+    const cohort = await mountedModule(splitRegister);
+    const module = cohort.modules[0];
+    assert.ok(module);
+    const moduleRoot = cohort.moduleRoots.get("AB1234") ?? "";
+    const target = join(moduleRoot, chapterTwo);
+    await rm(target);
+    module.artifacts = new Map(
+      [...module.artifacts].filter(([location]) => location !== chapterTwo),
+    );
+    const plan = planFor(cohort);
+    const report = await duringJournalIntent({
+      cohort,
+      moduleIndex: 0,
+      change: () => writeFile(target, chapterTwoBytes),
+      execute: () =>
+        executeCurationRederivation({ plan, cohort, mode: "apply" }),
+    });
+
+    assert.equal(report.outcome, "refused");
+    assert.equal(report.appended, 0);
+    assert.equal(report.counts.rederiving, 1);
+    assert.equal(report.counts.settled, 0);
+    assert.ok(report.refusals.some((refusal) => refusal.includes(chapterTwo)));
+    assert.equal(
+      await readFile(join(moduleRoot, registerPath), "utf8"),
+      splitRegister,
+    );
+    assert.ok(report.journal);
+    const entries = (await readFile(report.journal, "utf8"))
+      .trimEnd()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    assert.deepEqual(
+      entries.map((entry) => entry.type),
+      ["intent", "refused"],
+    );
+  });
+
+  for (const location of [sourceLocation, chapterOne]) {
+    it(`preserves an earlier append when later ${location} changes at journal intent`, async () => {
+      const cohort = await mountedModule(splitRegister, ["AB1234", "ZZ1234"]);
+      const plan = planFor(cohort);
+      const first = cohort.moduleRoots.get("AB1234") ?? "";
+      const second = cohort.moduleRoots.get("ZZ1234") ?? "";
+      const report = await duringJournalIntent({
+        cohort,
+        moduleIndex: 1,
+        change: () => rm(join(second, location)),
+        execute: () =>
+          executeCurationRederivation({ plan, cohort, mode: "apply" }),
+      });
+
+      assert.equal(report.outcome, "partially-corrected");
+      assert.equal(report.appended, 1);
+      assert.equal(report.counts.rederiving, 1);
+      assert.equal(report.counts.settled, 1);
+      assert.equal(report.modules[0]?.counts.rederiving, 0);
+      assert.equal(report.modules[0]?.counts.settled, 1);
+      assert.equal(report.modules[1]?.counts.rederiving, 1);
+      assert.equal(report.modules[1]?.counts.settled, 0);
+      assert.ok(report.refusals.some((refusal) => refusal.includes(location)));
+      const firstRegister = await readFile(join(first, registerPath), "utf8");
+      assert.ok(firstRegister.startsWith(splitRegister));
+      assert.equal(firstRegister.trimEnd().split("\n").length, 4);
+      assert.equal(
+        JSON.parse(firstRegister.trimEnd().split("\n")[3] ?? "").decision,
+        "rederived",
+      );
+      assert.equal(
+        await readFile(join(second, registerPath), "utf8"),
+        splitRegister,
+      );
+      assert.ok(report.journal);
+      const entries = (await readFile(report.journal, "utf8"))
+        .trimEnd()
+        .split("\n")
+        .map((line) => JSON.parse(line));
+      assert.deepEqual(
+        entries.map((entry) => [entry.module, entry.type]),
+        [
+          ["AB1234", "intent"],
+          ["AB1234", "result"],
+          ["ZZ1234", "intent"],
+          ["ZZ1234", "refused"],
+        ],
+      );
+    });
+  }
+
+  for (const appeared of [false, true]) {
+    it(`checks a destination absent during planning when it ${appeared ? "reappears" : "stays absent"}`, async () => {
+      const cohort = await mountedModule(splitRegister);
+      const module = cohort.modules[0];
+      assert.ok(module);
+      const moduleRoot = cohort.moduleRoots.get("AB1234") ?? "";
+      const target = join(moduleRoot, chapterTwo);
+      await rm(target);
+      module.artifacts = new Map(
+        [...module.artifacts].filter(([location]) => location !== chapterTwo),
+      );
+      const plan = planFor(cohort);
+      if (appeared) await writeFile(target, chapterTwoBytes);
+
+      const report = await executeCurationRederivation({
+        plan,
+        cohort,
+        mode: "apply",
+      });
+
+      assert.equal(report.outcome, appeared ? "refused" : "settled");
+      assert.equal(report.appended, appeared ? 0 : 1);
+      assert.deepEqual(report.modules[0]?.rederivations[0]?.derived, [
+        chapterOne,
+      ]);
+      assert.deepEqual(report.modules[0]?.rederivations[0]?.missing, [
+        chapterTwo,
+      ]);
+      if (appeared)
+        assert.equal(
+          await readFile(join(moduleRoot, registerPath), "utf8"),
+          splitRegister,
+        );
+    });
+  }
 
   it("applies nothing and writes no journal when the cohort holds no split", async () => {
     const single = `${curatedLine(chapterOne)}\n`;

@@ -87,6 +87,7 @@ function pendingAppend(
       location: sourceLocation,
       sha256,
     })),
+    artifacts: [],
     lines: module.migrations.map(({ line }) => line),
   };
 }

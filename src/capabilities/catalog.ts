@@ -283,6 +283,7 @@ export const cliCapabilities: Capability[] = [
   {
     ...cli("routine repository-status", [], [], null, [
       "test/cli/routine-repository-status-cli.test.ts",
+      "test/routine/repository-repair-state.test.ts",
     ]),
     reads: ["private repository repair checkpoint and verification receipts"],
     result:

@@ -81,6 +81,7 @@ function isRepairJournalEvent(value: unknown): value is RepairJournalEvent {
     typeof event.recordedAt === "string" &&
     typeof event.changeSetId === "string" &&
     typeof event.planDigest === "string" &&
+    typeof event.type === "string" &&
     [
       "started",
       "recovery-completed",
@@ -89,7 +90,7 @@ function isRepairJournalEvent(value: unknown): value is RepairJournalEvent {
       "verification-completed",
       "failure",
       "outcome",
-    ].includes(String(event.type))
+    ].includes(event.type)
   );
 }
 

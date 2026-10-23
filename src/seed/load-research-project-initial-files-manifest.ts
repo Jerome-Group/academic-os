@@ -92,7 +92,7 @@ function parseManifestEntry(value: unknown, index: number): ManifestEntry {
     value.source.includes("\0") ||
     typeof value.sha256 !== "string" ||
     !sha256Pattern.test(value.sha256) ||
-    !["utf8", "binary"].includes(String(value.encoding))
+    (value.encoding !== "utf8" && value.encoding !== "binary")
   ) {
     throw invalidManifest(
       `Initial-files manifest entry ${index + 1} does not match the closed schema v1.`,
@@ -102,7 +102,7 @@ function parseManifestEntry(value: unknown, index: number): ManifestEntry {
     destination: value.destination,
     source: value.source,
     sha256: value.sha256,
-    encoding: value.encoding as "utf8" | "binary",
+    encoding: value.encoding,
   };
 }
 

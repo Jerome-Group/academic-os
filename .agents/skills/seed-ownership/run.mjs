@@ -300,6 +300,7 @@ try {
     for (const name of [
       "src",
       "test",
+      "scripts",
       "seed-templates",
       "skills",
       "package.json",

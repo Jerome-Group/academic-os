@@ -11,6 +11,7 @@ interface FakeCalendar {
 interface FakeCalendarState {
   ambiguousCreateFailures?: string[];
   calendars: FakeCalendar[];
+  createdEventOverrides?: Record<string, Record<string, unknown>>;
   eventReadFailures?: string[];
   eventCreateFailures?: string[];
   eventPageSizes?: Record<string, number>;
@@ -18,6 +19,7 @@ interface FakeCalendarState {
   events?: Record<string, unknown[]>;
   expiredSyncTokens?: string[];
   incrementalEvents?: Record<string, Record<string, unknown[]>>;
+  ignoredPatches?: string[];
   nextSyncTokens?: Record<string, string>;
   nextId?: number;
   omitCreatedFromIncremental?: boolean;
@@ -220,6 +222,10 @@ prototype.request = async function (options) {
         candidate.id === eventId,
     );
     if (index < 0) throw new Error(`Synthetic event ${eventId} not found.`);
+    if (state.ignoredPatches?.includes(eventId) === true) {
+      await writeFile(statePath, `${JSON.stringify(state)}\n`);
+      return { data: events[index] };
+    }
     const event = {
       ...(events[index] as Record<string, unknown>),
       ...(options.data as Record<string, unknown>),
@@ -339,7 +345,11 @@ prototype.request = async function (options) {
     eventsMatch !== undefined
   ) {
     const calendarId = decodeURIComponent(eventsMatch[1] ?? "");
-    const event = options.data as { id?: string };
+    const requested = options.data as { id?: string };
+    const event = {
+      ...requested,
+      ...state.createdEventOverrides?.[requested.id ?? ""],
+    };
     const existing = state.events?.[calendarId]?.some(
       (candidate) =>
         typeof candidate === "object" &&

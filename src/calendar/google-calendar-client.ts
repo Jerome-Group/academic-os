@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 import { OperationalError } from "../operational-error.js";
 
 import { CalendarSyncTokenExpiredError } from "./calendar-refresh-error.js";
+import { idempotentExtendedProperties } from "./calendar-event-helpers.js";
 import {
   futureCalendarRecurrence,
   trimCalendarRecurrence,
@@ -80,10 +81,14 @@ export function createGoogleCalendarPromotionWriter(
         data: {
           id: eventId,
           ...event,
-          extendedProperties: {
-            private: { academicOsIdempotencyKey: idempotencyKey },
-          },
+          extendedProperties: idempotentExtendedProperties(
+            event,
+            idempotencyKey,
+          ),
         },
+        ...("attachments" in event || "conferenceData" in event
+          ? { params: richEventRequestParameters({ ...event }) }
+          : {}),
       });
     },
     readEvent: async ({ calendarId, eventId }) => {
@@ -364,22 +369,6 @@ async function eventExists(
   }
 }
 
-function idempotentExtendedProperties(
-  master: CalendarEvent,
-  idempotencyKey: string,
-): Record<string, unknown> {
-  return {
-    ...(isRecord(master.extendedProperties) ? master.extendedProperties : {}),
-    private: {
-      ...(isRecord(master.extendedProperties) &&
-      isRecord(master.extendedProperties.private)
-        ? master.extendedProperties.private
-        : {}),
-      academicOsIdempotencyKey: idempotencyKey,
-    },
-  };
-}
-
 function writableEvent(event: CalendarEvent): Record<string, unknown> {
   const value = { ...event };
   for (const key of [
@@ -404,10 +393,6 @@ function writableException(event: CalendarEvent): Record<string, unknown> {
     ...writableEvent(event),
     ...(typeof event.status === "string" ? { status: event.status } : {}),
   };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function eventCollectionUrl(calendarId: string): string {

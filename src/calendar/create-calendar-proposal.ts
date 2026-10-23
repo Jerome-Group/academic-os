@@ -1,4 +1,5 @@
 import { OperationalError } from "../operational-error.js";
+import { restorableEvent } from "./calendar-event-helpers.js";
 import {
   addTravelBuffer,
   collectCalendarAvailability,
@@ -354,8 +355,9 @@ async function createRestoreProposal(input: {
       "Invited events cannot be restored through academic-os.",
     );
   }
-  const intendedEvent = restorableEvent(tombstone.event);
   const digest = calendarStateDigest({ operation: "restore", tombstone });
+  const idempotencyKey = `restore-${digest}`;
+  const intendedEvent = restorableEvent(tombstone.event, idempotencyKey);
   const proposal: CalendarProposal = {
     id: `proposal-${digest.slice(0, 24)}`,
     status: "ready",
@@ -372,7 +374,7 @@ async function createRestoreProposal(input: {
       eventId: tombstone.event.id,
       deletedAt: tombstone.deletedAt,
     },
-    idempotencyKey: `restore-${digest}`,
+    idempotencyKey,
     liveVersions: liveVersions(mirrors),
     relevantAvailabilityVersion: {
       digest: calendarStateDigest([]),
@@ -422,18 +424,6 @@ function validateCancellationRecurrenceScope(
         : "A non-recurring cancellation cannot select recurrenceScope.",
     );
   }
-}
-
-function restorableEvent(event: CalendarEvent): CalendarEvent {
-  const {
-    id: _id,
-    status: _status,
-    recurringEventId: _recurringEventId,
-    originalStartTime: _originalStartTime,
-    organizer: _organizer,
-    ...rest
-  } = event;
-  return rest as CalendarEvent;
 }
 
 function liveVersions(mirrors: OwnedCalendarMirror[]) {

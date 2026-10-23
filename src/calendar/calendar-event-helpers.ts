@@ -1,5 +1,51 @@
 import { isDeepStrictEqual } from "node:util";
-import type { CalendarEvent, CalendarEventPatch } from "./types.js";
+import type {
+  CalendarEvent,
+  CalendarEventPatch,
+  CalendarIntendedEvent,
+} from "./types.js";
+
+export function idempotentExtendedProperties(
+  event: CalendarEvent | CalendarIntendedEvent,
+  idempotencyKey: string,
+): Record<string, unknown> {
+  const properties =
+    "extendedProperties" in event && isRecord(event.extendedProperties)
+      ? event.extendedProperties
+      : {};
+  return {
+    ...properties,
+    private: {
+      ...(isRecord(properties.private) ? properties.private : {}),
+      academicOsIdempotencyKey: idempotencyKey,
+    },
+  };
+}
+
+export function restorableEvent(
+  event: CalendarEvent,
+  idempotencyKey: string,
+): CalendarEvent {
+  const {
+    id: _id,
+    status: _status,
+    recurringEventId: _recurringEventId,
+    originalStartTime: _originalStartTime,
+    organizer: _organizer,
+    etag: _etag,
+    created: _created,
+    updated: _updated,
+    creator: _creator,
+    htmlLink: _htmlLink,
+    iCalUID: _iCalUID,
+    kind: _kind,
+    hangoutLink: _hangoutLink,
+    locked: _locked,
+    ...rest
+  } = event;
+  rest.extendedProperties = idempotentExtendedProperties(event, idempotencyKey);
+  return rest as CalendarEvent;
+}
 
 export function eventContainsPatch(
   event: CalendarEvent,

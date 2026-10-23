@@ -328,6 +328,97 @@ describe("academic-os calendar promote", () => {
     assert.equal(provider.events["academic-id"]?.length, 1);
   });
 
+  for (const operation of ["create", "restore"] as const) {
+    for (const ambiguous of [false, true]) {
+      it(`refuses mismatched ${operation} readback after ${ambiguous ? "a lost" : "a successful"} response`, async () => {
+        const mismatches = [
+          { summary: "Unapproved title" },
+          { visibility: "public" },
+          { transparency: "transparent" },
+          { description: "Unapproved description" },
+          { location: "Unapproved location" },
+          { recurrence: ["RRULE:FREQ=DAILY;COUNT=2"] },
+          { start: { dateTime: "2026-08-21T10:00:00+08:00" } },
+          { end: { dateTime: "2026-08-21T11:00:00+08:00" } },
+          ...(operation === "restore"
+            ? [
+                { reminders: { useDefault: true } },
+                { attachments: [] },
+                { source: { url: "https://example.invalid/unapproved" } },
+                { conferenceData: { entryPoints: [] } },
+                { extendedProperties: { private: { custom: "changed" } } },
+              ]
+            : []),
+        ];
+        for (const mismatch of mismatches) {
+          const fixture = await setupReadbackFixture(operation);
+          await mutateProvider(fixture, (provider) => {
+            provider.createdEventOverrides = { [fixture.eventId]: mismatch };
+            if (ambiguous) provider.ambiguousCreateFailures = [fixture.eventId];
+          });
+
+          const result = await runPromote(fixture, "proposal-ready", "--json");
+
+          assert.equal(
+            result.exitCode,
+            ambiguous ? 2 : 3,
+            `${JSON.stringify(mismatch)}: ${JSON.stringify(result)}`,
+          );
+          if (!ambiguous)
+            assert.equal(JSON.parse(result.stdout).outcome, "blocked");
+          assert.equal((await readProposal(fixture)).status, "ready");
+          await assert.rejects(
+            readFile(join(fixture.calendarRoot, "promotions.jsonl")),
+            { code: "ENOENT" },
+          );
+          const provider = await readProvider(fixture);
+          assert.equal(provider.events["academic-id"]?.length, 1);
+          assert.partialDeepStrictEqual(
+            provider.events["academic-id"]?.[0],
+            mismatch,
+          );
+        }
+      });
+    }
+
+    it(`accepts normalized ${operation} readback and retries without duplicates`, async () => {
+      const fixture = await setupReadbackFixture(operation);
+      await mutateProvider(fixture, (provider) => {
+        provider.createdEventOverrides = {
+          [fixture.eventId]: {
+            transparency: null,
+            start: { dateTime: "2026-08-20T02:00:00Z" },
+            end: { dateTime: "2026-08-20T03:00:00Z" },
+            recurrence: [
+              "EXDATE;TZID=Asia/Singapore:20260827T100000",
+              "RRULE:FREQ=WEEKLY;COUNT=2",
+            ],
+          },
+        };
+        provider.ambiguousCreateFailures = [fixture.eventId];
+      });
+
+      const result = await runPromote(fixture, "proposal-ready", "--json");
+      const retry = await runPromote(fixture, "proposal-ready", "--json");
+
+      assert.equal(result.exitCode, 0, JSON.stringify(result));
+      assert.equal(JSON.parse(result.stdout).outcome, "promoted");
+      assert.equal(retry.exitCode, 0, JSON.stringify(retry));
+      assert.equal(JSON.parse(retry.stdout).outcome, "retry");
+      const provider = await readProvider(fixture);
+      assert.equal(provider.events["academic-id"]?.length, 1);
+      assert.equal(
+        provider.requests.filter(({ method }) => method === "POST").length,
+        1,
+      );
+      const journal = await readFile(
+        join(fixture.calendarRoot, "promotions.jsonl"),
+        "utf8",
+      );
+      assert.equal(journal.trim().split("\n").length, 1);
+    });
+  }
+
   it("reports equivalent human and JSON retry outcomes", async () => {
     const fixture = await setupFixture();
     await runPromote(fixture, "proposal-ready", "--json");
@@ -1036,6 +1127,118 @@ describe("academic-os calendar promote", () => {
     );
   });
 
+  for (const legacy of [false, true]) {
+    it(`restores ${legacy ? "legacy" : "new"} writable metadata with a new identity and idempotency marker`, async () => {
+      const fixture = await setupReadbackFixture("restore");
+      const mirrorPath = join(fixture.calendarRoot, "mirrors", "academic.json");
+      const mirror = JSON.parse(await readFile(mirrorPath, "utf8"));
+      const providerFields = {
+        etag: "old-etag",
+        created: "2026-08-01T00:00:00Z",
+        updated: "2026-08-19T00:00:00Z",
+        creator: { self: true },
+        htmlLink: "https://calendar.google.com/old-event",
+        iCalUID: "old-event@example.invalid",
+        kind: "calendar#event",
+        hangoutLink: "https://meet.google.com/old-event",
+        locked: false,
+      };
+      const writable = {
+        source: {
+          url: "https://example.invalid/source",
+          title: "Approved source",
+        },
+        conferenceData: {
+          entryPoints: [
+            {
+              entryPointType: "video",
+              uri: "https://example.invalid/conference",
+            },
+          ],
+        },
+        extendedProperties: {
+          private: {
+            academicOsIdempotencyKey: "old-create",
+            custom: "retained",
+          },
+          shared: { reference: "retained-shared" },
+        },
+      };
+      mirror.tombstones[0].event = {
+        ...mirror.tombstones[0].event,
+        ...providerFields,
+        ...writable,
+      };
+      await writeFile(mirrorPath, `${JSON.stringify(mirror)}\n`);
+      const inputPath = join(fixture.inputRoot, "restore.json");
+      await writeFile(
+        inputPath,
+        `${JSON.stringify({
+          schemaVersion: 1,
+          source: { kind: "instruction", reference: "restore-metadata" },
+          item: {
+            operation: "restore",
+            calendarRole: "Academic",
+            eventId: "deleted-event",
+          },
+        })}\n`,
+      );
+      const proposed = await runCalendarPropose(fixture, inputPath, "--json");
+      assert.equal(proposed.exitCode, 0, JSON.stringify(proposed));
+      const proposal = JSON.parse(proposed.stdout).proposal;
+      if (legacy) {
+        proposal.intendedEvent = {
+          ...proposal.intendedEvent,
+          ...providerFields,
+          ...writable,
+        };
+        await writeFile(
+          join(fixture.calendarRoot, "pending-proposals.json"),
+          `${JSON.stringify({ schemaVersion: 1, proposals: [proposal] })}\n`,
+        );
+      }
+
+      const result = await runPromote(fixture, proposal.id, "--json");
+
+      const provider = await readProvider(fixture);
+      const expected = {
+        ...writable,
+        extendedProperties: {
+          ...writable.extendedProperties,
+          private: {
+            ...writable.extendedProperties.private,
+            academicOsIdempotencyKey: proposal.idempotencyKey,
+          },
+        },
+      };
+      assert.partialDeepStrictEqual(
+        provider.events["academic-id"]?.[0],
+        expected,
+      );
+      assert.equal(result.exitCode, 0, JSON.stringify(result));
+      assert.equal(JSON.parse(result.stdout).outcome, "promoted");
+      const created = provider.requests.find(({ method }) => method === "POST");
+      assert.ok(created?.body !== null && typeof created?.body === "object");
+      for (const key of ["id", ...Object.keys(providerFields)]) {
+        if (!legacy)
+          assert.equal(Reflect.has(proposal.intendedEvent, key), false, key);
+        if (key !== "id")
+          assert.equal(Reflect.has(created.body, key), false, key);
+      }
+      assert.deepEqual(created.params, {
+        supportsAttachments: true,
+        conferenceDataVersion: 1,
+      });
+      const retry = await runPromote(fixture, proposal.id, "--json");
+      assert.equal(retry.exitCode, 0, JSON.stringify(retry));
+      assert.equal(JSON.parse(retry.stdout).outcome, "retry");
+      assert.equal(
+        (await readProvider(fixture)).events["academic-id"]?.length,
+        1,
+      );
+    });
+  }
+
   it("promotes each explicit recurring cancellation scope", async () => {
     for (const scope of [
       "this-occurrence",
@@ -1076,7 +1279,79 @@ describe("academic-os calendar promote", () => {
         mutations[0]?.method,
         scope === "this-and-future" ? "PATCH" : "DELETE",
       );
+      if (scope === "this-and-future") {
+        assert.partialDeepStrictEqual(
+          (await readProvider(fixture)).events["academic-id"]?.[0],
+          { recurrence: ["RRULE:FREQ=WEEKLY;UNTIL=20260820T015959Z"] },
+        );
+        const retry = await runPromote(fixture, "proposal-recurring", "--json");
+        assert.equal(retry.exitCode, 0, JSON.stringify(retry));
+        assert.equal(JSON.parse(retry.stdout).outcome, "retry");
+        assert.equal(
+          (await readProvider(fixture)).requests.filter(
+            ({ method }) => method === "PATCH",
+          ).length,
+          1,
+        );
+        const journal = await readFile(
+          join(fixture.calendarRoot, "promotions.jsonl"),
+          "utf8",
+        );
+        assert.equal(journal.trim().split("\n").length, 1);
+      }
     }
+  });
+
+  it("refuses a future cancellation when the provider accepts but ignores the trim", async () => {
+    const fixture = await setupRecurringChangeFixture("this-and-future");
+    const statePath = join(fixture.calendarRoot, "pending-proposals.json");
+    const state = JSON.parse(await readFile(statePath, "utf8"));
+    const change = state.proposals[0];
+    const before = await readProvider(fixture);
+    const occurrence = before.events["academic-id"]?.[1];
+    const proposal = {
+      ...change,
+      operation: "cancel",
+      preview: { event: occurrence, recurrenceScope: "this-and-future" },
+    };
+    delete proposal.patch;
+    delete proposal.recurrenceExceptions;
+    await writeFile(
+      statePath,
+      `${JSON.stringify({ schemaVersion: 1, proposals: [proposal] })}\n`,
+    );
+    await mutateProvider(fixture, (provider) => {
+      provider.ignoredPatches = ["weekly-class"];
+    });
+
+    const result = await runPromote(fixture, "proposal-recurring", "--json");
+
+    assert.equal(result.exitCode, 3, JSON.stringify(result));
+    assert.equal(JSON.parse(result.stdout).outcome, "blocked");
+    assert.equal((await readProposal(fixture)).status, "ready");
+    const provider = await readProvider(fixture);
+    assert.deepEqual(provider.events, before.events);
+    assert.equal(
+      provider.requests.filter(({ method }) => method === "PATCH").length,
+      1,
+    );
+    await assert.rejects(
+      readFile(join(fixture.calendarRoot, "promotions.jsonl")),
+      { code: "ENOENT" },
+    );
+    const mirror = JSON.parse(
+      await readFile(
+        join(fixture.calendarRoot, "mirrors", "academic.json"),
+        "utf8",
+      ),
+    );
+    assert.deepEqual(mirror.tombstones, []);
+    assert.ok(
+      mirror.items.some(
+        ({ event }: { event: { id: string } }) =>
+          event.id === "weekly-class-instance",
+      ),
+    );
   });
 });
 
@@ -1251,6 +1526,74 @@ async function setupFixture(): Promise<Fixture> {
     providerPath,
     writeCredential,
   };
+}
+
+async function setupReadbackFixture(
+  operation: "create" | "restore",
+): Promise<Fixture> {
+  const fixture = await setupFixture();
+  const statePath = join(fixture.calendarRoot, "pending-proposals.json");
+  const state = JSON.parse(await readFile(statePath, "utf8"));
+  const proposal = state.proposals[0];
+  proposal.intendedEvent = {
+    ...proposal.intendedEvent,
+    description: "Approved description",
+    location: "Approved location",
+    recurrence: [
+      "RRULE:FREQ=WEEKLY;COUNT=2",
+      "EXDATE;TZID=Asia/Singapore:20260827T100000",
+    ],
+    ...(operation === "restore"
+      ? {
+          reminders: {
+            useDefault: false,
+            overrides: [{ method: "popup", minutes: 5 }],
+          },
+          attachments: [{ fileUrl: "https://example.invalid/approved" }],
+          source: {
+            url: "https://example.invalid/approved",
+            title: "Approved source",
+          },
+          conferenceData: {
+            entryPoints: [
+              {
+                entryPointType: "video",
+                uri: "https://example.invalid/conference",
+              },
+            ],
+          },
+          extendedProperties: {
+            private: {
+              custom: "retained",
+              academicOsIdempotencyKey: fixture.idempotencyKey,
+            },
+            shared: { reference: "retained-shared" },
+          },
+        }
+      : {}),
+  };
+  if (operation === "restore") {
+    proposal.operation = "restore";
+    delete proposal.inheritedDefaults;
+    delete proposal.targetCalendarVersion;
+    proposal.restoredFrom = {
+      calendarRole: "Academic",
+      eventId: "deleted-event",
+      deletedAt: "2026-08-19T20:00:00.000Z",
+    };
+    const mirrorPath = join(fixture.calendarRoot, "mirrors", "academic.json");
+    const mirror = JSON.parse(await readFile(mirrorPath, "utf8"));
+    mirror.tombstones = [
+      {
+        access: "owned",
+        deletedAt: proposal.restoredFrom.deletedAt,
+        event: { id: "deleted-event", ...proposal.intendedEvent },
+      },
+    ];
+    await writeFile(mirrorPath, `${JSON.stringify(mirror)}\n`);
+  }
+  await writeFile(statePath, `${JSON.stringify(state)}\n`);
+  return fixture;
 }
 
 async function setupChangeFixture(
@@ -1703,10 +2046,12 @@ async function runRoutineMigrationPropose(
 async function readProvider(fixture: Fixture): Promise<{
   ambiguousCreateFailures?: string[];
   calendars: Array<{ etag?: string }>;
+  createdEventOverrides?: Record<string, Record<string, unknown>>;
   eventReadFailures?: string[];
   eventCreateFailures?: string[];
   events: Record<string, unknown[]>;
   incrementalEvents: Record<string, Record<string, unknown[]>>;
+  ignoredPatches?: string[];
   omitCreatedFromIncremental?: boolean;
   reverseRecurrenceOnPatch?: string[];
   patchFailures?: string[];

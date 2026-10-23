@@ -154,9 +154,6 @@ jobs:
       # that this job has no use for, and one of them stalling stalls the update. Only Ubuntu's own
       # `ubuntu.sources` survives, and the acquire timeouts bound what a stall can cost, so a slow
       # mirror is retried rather than waited on.
-      #
-      # The archives are cached on top, because the install's own download is the other half that
-      # varies. The key names the Ubuntu release, package architecture and package set.
       - name: Identify the package platform
         id: tex-platform
         run: |

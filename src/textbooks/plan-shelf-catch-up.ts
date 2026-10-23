@@ -69,6 +69,7 @@ export async function planShelfCatchUp(input: {
   }
 
   return {
+    listing: books,
     counts: {
       books: books.length,
       indexed: books.length - appends.length - parked.length,

@@ -212,20 +212,63 @@ export const cliCapabilities: Capability[] = [
   ),
   cli(
     "textbooks catch-up",
-    ["mounted shelf index content with --apply"],
-    [],
+    [
+      "mounted shelf index content, permanent captured originals and exact owned probe metadata with --apply",
+      "private canonical per-Shelf journal and same-host mutation ownership",
+    ],
+    [
+      "configured canonical private state root outside Drive; reliable local SQLite locking",
+      "actual append requires cc and native exclusive rename, exchange and directory sync on Darwin/Linux; preview and no-op need no compiler",
+      "same-host coordination requires the same canonical state root; no distributed or cross-state-root locking",
+    ],
     "omit --apply",
+    [
+      "test/cli/textbooks-catch-up-cli.test.ts",
+      "test/cli/textbooks-preservation-cli.test.ts",
+      "test/textbooks/open-file-shelf.test.ts",
+      "test/textbooks/shelf-preservation-process.test.ts",
+    ],
   ),
   cli("textbooks sweep", ["private shelf review sheet"], [], null, [
     "test/textbooks/plan-shelf-sweep.test.ts",
   ]),
   cli(
     "textbooks migrate",
-    ["mounted shelf content with --apply"],
-    ["reviewed migration sheet"],
+    [
+      "mounted independent book renames, index proposals and permanent captured originals with --apply",
+      "private canonical per-Shelf intent/outcome journal and mutation ownership",
+    ],
+    [
+      "reviewed migration sheet",
+      "configured canonical private state root outside Drive; reliable local SQLite locking",
+      "actual append requires cc and native exclusive rename, exchange and directory sync on Darwin/Linux",
+      "no atomic checksum-conditional movement or protection against arbitrary source/capture/root substitution; partial runs remain fenced",
+    ],
     "omit --apply",
-    ["test/textbooks/execute-shelf-migration.test.ts"],
+    [
+      "test/textbooks/open-file-shelf.test.ts",
+      "test/textbooks/shelf-preservation-process.test.ts",
+      "test/cli/textbooks-preservation-cli.test.ts",
+    ],
   ),
+  {
+    ...cli(
+      "textbooks reconcile",
+      [],
+      [
+        "exact --run ID in the canonical private Shelf journal",
+        "observe-only exact-pair readback; no automatic rollback, exchange retry, late-edit merge or capture cleanup",
+        "configured-mount, power-loss and Drive-sync recovery require separate evidence",
+      ],
+      null,
+      [
+        "test/textbooks/shelf-preservation-process.test.ts",
+        "test/cli/textbooks-preservation-cli.test.ts",
+      ],
+    ),
+    invocation:
+      "node dist/src/cli.js textbooks reconcile --config <private-config> --run <run-id> --json",
+  },
   {
     ...cli(
       "routine morning",

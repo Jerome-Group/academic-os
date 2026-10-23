@@ -33,11 +33,8 @@ export interface ShelfReader {
   checksum(file: string): Promise<string>;
 }
 
-// Appending is the only write. The store has no operation that renames or removes an entry,
-// because neither is the tool's to make.
-export interface ShelfIndexStore {
+export interface ShelfIndexReader {
   read(): Promise<ShelfIndex>;
-  append(appends: readonly ShelfIndexAppend[]): Promise<void>;
 }
 
 export type ShelfParkReason =
@@ -52,6 +49,7 @@ export interface ParkedShelfBook {
 }
 
 export interface ShelfCatchUpPlan {
+  listing: string[];
   counts: { books: number; indexed: number };
   appends: ShelfIndexAppend[];
   parked: ParkedShelfBook[];
@@ -60,8 +58,14 @@ export interface ShelfCatchUpPlan {
 export interface ShelfCatchUpReport {
   schemaVersion: 1;
   command: "textbooks catch-up";
-  outcome: "caught-up" | "previewed" | "requires-decision";
-  index: "written" | "not-written";
+  outcome:
+    | "caught-up"
+    | "previewed"
+    | "requires-decision"
+    | "refused"
+    | "partial";
+  index: ShelfIndexOutcome;
+  mutation?: ShelfMutationEvidence;
   counts: {
     books: number;
     indexed: number;
@@ -114,33 +118,25 @@ export interface ShelfRename {
 // Blockers rather than throws: one preview names everything the Owner has left to settle, so the
 // review is one pass rather than one round trip per problem.
 export interface ShelfMigrationPlan {
+  listing: string[];
   counts: { books: number };
+  rows: ShelfApprovedRow[];
   renames: ShelfRename[];
   appends: ShelfIndexAppend[];
   blockers: string[];
 }
 
-// Renaming is the migration's only write to the shelf, and it refuses a target that already
-// exists: the Owner's books are never overwritten by a plan built against an earlier listing.
-export interface ShelfRenamer {
-  rename(rename: ShelfRename): Promise<void>;
-}
-
-export type ShelfMigrationEvent =
-  | { type: "started"; renames: ShelfRename[]; keys: string[] }
-  | { type: "renamed"; from: string; to: string }
-  | { type: "indexed"; keys: string[] }
-  | { type: "failed"; evidence: string };
-
-export interface ShelfMigrationJournal {
-  record(event: ShelfMigrationEvent): Promise<void>;
-}
-
 export interface ShelfMigrationReport {
   schemaVersion: 1;
   command: "textbooks migrate";
-  outcome: "migrated" | "previewed" | "requires-decision";
-  index: "written" | "not-written";
+  outcome:
+    | "migrated"
+    | "previewed"
+    | "requires-decision"
+    | "refused"
+    | "partial";
+  index: ShelfIndexOutcome;
+  mutation?: ShelfMutationEvidence;
   counts: {
     books: number;
     renames: number;
@@ -150,4 +146,46 @@ export interface ShelfMigrationReport {
   renames: ShelfRename[];
   appends: Array<{ key: string; file: string }>;
   blockers: string[];
+}
+
+export interface ShelfApprovedRow {
+  kind: "append" | "indexed";
+  source: string;
+  key: string;
+  entry: ShelfIndexEntry;
+}
+
+export type ShelfIndexOutcome =
+  | "written"
+  | "not-written"
+  | "published-unconfirmed"
+  | "unknown";
+
+export interface ShelfMutationEvidence {
+  runId?: string;
+  journal: string;
+  captures: string[];
+  renamed: ShelfRename[];
+  reasons: string[];
+  recovery?: ShelfRunObservation;
+}
+
+export interface ShelfRunObservation {
+  schemaVersion: 1;
+  command: "textbooks reconcile";
+  runId: string;
+  journal: string;
+  state: "applied" | "unapplied" | "partial";
+  index: ShelfIndexOutcome;
+  paths: string[];
+  evidence: string[];
+}
+
+export interface FileShelf {
+  migrate(input: {
+    review: ShelfReview;
+    mode: "preview" | "apply";
+  }): Promise<ShelfMigrationReport>;
+  catchUp(input: { mode: "preview" | "apply" }): Promise<ShelfCatchUpReport>;
+  reconcile(input: { runId: string }): Promise<ShelfRunObservation>;
 }

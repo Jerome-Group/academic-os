@@ -27,6 +27,7 @@ import { runTasksProvisionCommand } from "./commands/tasks-provision-command.js"
 import { runTasksRefreshCommand } from "./commands/tasks-refresh-command.js";
 import { runTextbooksCatchUpCommand } from "./commands/textbooks-catch-up-command.js";
 import { runTextbooksMigrateCommand } from "./commands/textbooks-migrate-command.js";
+import { runTextbooksReconcileCommand } from "./commands/textbooks-reconcile-command.js";
 import { runTextbooksSweepCommand } from "./commands/textbooks-sweep-command.js";
 import { OperationalError } from "./mounted/index.js";
 
@@ -72,6 +73,8 @@ try {
     await runTextbooksSweepCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "textbooks" && arguments_[1] === "migrate") {
     await runTextbooksMigrateCommand(arguments_.slice(1), json);
+  } else if (arguments_[0] === "textbooks" && arguments_[1] === "reconcile") {
+    await runTextbooksReconcileCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "routine" && arguments_[1] === "morning") {
     await runRoutineMorningCommand(arguments_.slice(1), json);
   } else if (

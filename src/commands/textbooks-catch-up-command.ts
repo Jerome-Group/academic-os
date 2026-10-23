@@ -1,11 +1,11 @@
-import { loadLocalConfig, resolveShelfRoot } from "../config/index.js";
-import { OperationalError } from "../mounted/index.js";
-import { exitCodeForOutcome } from "../report/index.js";
 import {
-  createFileShelfIndexStore,
-  createFileShelfReader,
-  executeShelfCatchUp,
-  planShelfCatchUp,
+  loadLocalConfig,
+  resolveShelfRoot,
+  resolveStateRoot,
+} from "../config/index.js";
+import { OperationalError } from "../mounted/index.js";
+import {
+  openFileShelf,
   type ParkedShelfBook,
   type ShelfCatchUpReport,
 } from "../textbooks/index.js";
@@ -20,25 +20,21 @@ export async function runTextbooksCatchUpCommand(
   json: boolean,
 ): Promise<void> {
   const parsed = parseCatchUpArguments(arguments_);
-  const shelfRoot = await resolveShelfRoot(
-    await loadLocalConfig(parsed.configPath),
-  );
-  const store = createFileShelfIndexStore(shelfRoot);
-  const plan = await planShelfCatchUp({
-    reader: createFileShelfReader(shelfRoot),
-    index: await store.read(),
-  });
-  const report = await executeShelfCatchUp({
-    plan,
-    store,
+  const config = await loadLocalConfig(parsed.configPath);
+  const [shelfRoot, stateRoot] = await Promise.all([
+    resolveShelfRoot(config),
+    resolveStateRoot(config),
+  ]);
+  const shelf = await openFileShelf({ shelfRoot, stateRoot });
+  const report = await shelf.catchUp({
     mode: parsed.apply ? "apply" : "preview",
   });
   process.stdout.write(
     json ? `${JSON.stringify(report, null, 2)}\n` : `${renderHuman(report)}\n`,
   );
-  if (report.outcome === "requires-decision") {
-    process.exitCode = exitCodeForOutcome(report.outcome);
-  }
+  if (report.outcome === "requires-decision") process.exitCode = 3;
+  else if (["refused", "partial"].includes(report.outcome))
+    process.exitCode = 2;
 }
 
 function parseCatchUpArguments(arguments_: string[]): {
@@ -67,6 +63,13 @@ function renderHuman(report: ShelfCatchUpReport): string {
     `Index: ${report.index}`,
     ...report.appends.map(({ key, file }) => `Append ${key}: ${file}`),
     ...report.parked.map(renderParked),
+    ...(report.mutation?.reasons.map((reason) => `Evidence: ${reason}`) ?? []),
+    ...(report.mutation?.captures.map(
+      (path) => `Retained index capture/proposal: ${path}`,
+    ) ?? []),
+    ...(report.mutation?.recovery === undefined
+      ? []
+      : [`Recovery: ${JSON.stringify(report.mutation.recovery)}`]),
   ].join("\n");
 }
 

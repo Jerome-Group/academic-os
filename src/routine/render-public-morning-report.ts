@@ -52,6 +52,8 @@ const outcomes = new Set([
   "requires-decision",
   "noncurrent",
   "caught-up",
+  "partial",
+  "refused",
   "parked",
   "refreshed",
   "partially-refreshed",

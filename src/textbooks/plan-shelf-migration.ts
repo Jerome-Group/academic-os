@@ -2,7 +2,7 @@ import { parseShelfFilename } from "./parse-shelf-filename.js";
 import { shelfIndexEntry } from "./shelf-index-entry.js";
 import type {
   ShelfIndex,
-  ShelfIndexAppend,
+  ShelfApprovedRow,
   ShelfMigrationPlan,
   ShelfReader,
   ShelfRename,
@@ -20,7 +20,16 @@ export async function planShelfMigration(input: {
   index: ShelfIndex;
   review: ShelfReview;
 }): Promise<ShelfMigrationPlan> {
-  const { books } = input.review;
+  const alreadyApplied = input.review.books.filter((book) => {
+    const entry =
+      book.key === undefined ? undefined : input.index.books[book.key];
+    return (
+      entry?.file === (book.rename ?? book.file) && entry.sha256 === book.sha256
+    );
+  });
+  const books = input.review.books.filter(
+    (book) => !alreadyApplied.includes(book),
+  );
   const shelved = await input.reader.listBooks();
   const indexedFiles = new Set(
     Object.values(input.index.books).map(({ file }) => file),
@@ -33,9 +42,23 @@ export async function planShelfMigration(input: {
       books.filter(({ file }) => shelved.includes(file)),
     )),
   );
+  blockers.push(
+    ...(await staleChecksums(
+      input.reader,
+      alreadyApplied.map((book) => ({
+        ...book,
+        file: book.rename ?? book.file,
+      })),
+    )),
+  );
 
-  const renames: ShelfRename[] = [];
-  const appends: ShelfIndexAppend[] = [];
+  const rows: ShelfApprovedRow[] = [];
+  for (const book of alreadyApplied) {
+    const entry =
+      book.key === undefined ? undefined : input.index.books[book.key];
+    if (book.key !== undefined && entry !== undefined)
+      rows.push({ kind: "indexed", source: entry.file, key: book.key, entry });
+  }
   const finalNames = new Map<string, string>();
   const keys = new Map<string, string>();
   const filesByChecksum = new Map(
@@ -84,17 +107,30 @@ export async function planShelfMigration(input: {
     }
     keys.set(book.key, to);
     filesByChecksum.set(book.sha256, to);
-    if (to !== book.file) renames.push({ from: book.file, to });
-    appends.push({
+    const append = {
       key: book.key,
       entry: {
         ...shelfIndexEntry({ file: to, book: parsed, sha256: book.sha256 }),
         ...(book.division === undefined ? {} : { division: book.division }),
       },
-    });
+    };
+    rows.push({ kind: "append", source: book.file, ...append });
   }
+  const appends = rows
+    .filter((row) => row.kind === "append")
+    .map(({ key, entry }) => ({ key, entry }));
+  const renames = rows
+    .filter((row) => row.kind === "append" && row.source !== row.entry.file)
+    .map(({ source, entry }) => ({ from: source, to: entry.file }));
   blockers.push(...chainedRenames(renames));
-  return { counts: { books: books.length }, renames, appends, blockers };
+  return {
+    listing: shelved,
+    counts: { books: input.review.books.length },
+    rows,
+    renames,
+    appends,
+    blockers,
+  };
 }
 
 // A rename whose target another rename is vacating only works in one order, and in a cycle in

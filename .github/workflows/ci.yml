@@ -67,6 +67,8 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run cheatsheet-runtime:check
+      - name: Verify Shelf native preservation
+        run: node --test --test-reporter=tap dist/test/textbooks/shelf-preservation-process.test.js
       - run: node dist/src/cli.js capabilities verify --workflow discovery --json
       - run: node dist/src/cli.js capabilities check --profile tests --json
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0

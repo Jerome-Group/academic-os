@@ -1,0 +1,15 @@
+{
+  "syncRevision": "64dfe99bcca15c13e9c49ab385da71656b857d1e",
+  "lastInspectedRevision": "64dfe99bcca15c13e9c49ab385da71656b857d1e",
+  "outcome": "updated",
+  "reason": "Reconciled the merged ownership protocol; all models, 34 compiled schedules, real cleanup mutations and restored passes succeeded.",
+  "files": [
+    "src/mounted/seed-mounted-module.ts",
+    "src/mounted/seed-mounted-research-project.ts",
+    "src/mounted/seed-mounted-target.ts",
+    "src/mounted/execute-seed-operations.ts",
+    "src/mounted/seed-operation-journal.ts",
+    "src/mounted/seed-target-state.ts",
+    "src/mounted/seed-ownership.ts"
+  ]
+}

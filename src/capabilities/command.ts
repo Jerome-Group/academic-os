@@ -18,7 +18,7 @@ import {
 } from "./checks.js";
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
-const usage = `Usage: academic-os capabilities index|health|check|verify [health: --config <private-config>] [--profile fast|tests|privacy|templates|coverage|full] [--workflow ${verificationWorkflows.join("|")}] [--log <private-new-file>] [--json]`;
+const usage = `Usage: academic-os capabilities index|health|check|verify [health: --config <private-config>] [--profile ${Object.keys(checkProfiles).join("|")}] [--workflow ${verificationWorkflows.join("|")}] [--log <private-new-file>] [--json]`;
 
 export async function runCapabilitiesCommand(
   arguments_: string[],
@@ -125,6 +125,7 @@ export async function runCapabilitiesCommand(
       [
         "node",
         "npm",
+        "java",
         "codex",
         "gh",
         "latexmk",
@@ -136,8 +137,15 @@ export async function runCapabilitiesCommand(
       ].map((executable) =>
         observeProcess({
           action: executable,
-          executable,
-          arguments: [executable.startsWith("pdf") ? "-v" : "--version"],
+          executable:
+            executable === "java" ? (process.env.JAVA ?? "java") : executable,
+          arguments: [
+            executable === "java"
+              ? "-version"
+              : executable.startsWith("pdf")
+                ? "-v"
+                : "--version",
+          ],
           timeoutMs: 3000,
         }),
       ),

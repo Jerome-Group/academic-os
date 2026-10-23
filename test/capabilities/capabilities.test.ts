@@ -6,15 +6,13 @@ import {
   mkdtemp,
   readFile,
   rm,
-  symlink,
   stat,
+  symlink,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { it } from "node:test";
-
-import { createMcpDispatcher } from "../../src/operations/index.js";
 import {
   capabilityIndex,
   cliCapabilities,
@@ -23,6 +21,7 @@ import {
   observeProcess,
   privateProcessDiagnostics,
 } from "../../src/capabilities/checks.js";
+import { createMcpDispatcher } from "../../src/operations/index.js";
 import { runCli, runCliWithEnvironment } from "../support/run-cli.js";
 
 it("discovers commands, prerequisites, effects and feature verification without config", async () => {
@@ -72,7 +71,7 @@ it("reports complete capability usage with executable workflow names", async () 
   assert.equal(actions.length, 4);
   for (const action of actions)
     assert.deepEqual(action.usage, [
-      "Usage: academic-os capabilities index|health|check|verify [health: --config <private-config>] [--profile fast|tests|privacy|templates|coverage|full] [--workflow discovery|imports|recovery|services|teaching|maintenance] [--log <private-new-file>] [--json]",
+      "Usage: academic-os capabilities index|health|check|verify [health: --config <private-config>] [--profile fast|tests|privacy|templates|coverage|formal|full] [--workflow discovery|imports|recovery|services|teaching|maintenance] [--log <private-new-file>] [--json]",
     ]);
 });
 
@@ -91,6 +90,46 @@ it("reports scheduler usage with the actual installer paths", async () => {
     assert.deepEqual(action.usage, [
       `Usage: node ${installer} --config <absolute-path> [--dry-run]\n       node ${installer} --remove`,
     ]);
+  }
+});
+
+it("discovers formal verification prerequisites and observes the selected Java executable", async () => {
+  const discovered = await runCli("capabilities", "index", "--json");
+  assert.equal(discovered.exitCode, 0, discovered.stdout);
+  const index: { actions: typeof cliCapabilities } = JSON.parse(
+    discovered.stdout,
+  );
+  const formal = index.actions.find(({ id }) => id === "quality formal");
+  assert.ok(formal);
+  assert.match(formal.invocation, /--profile formal --json/u);
+  assert.ok(formal.prerequisites.some((item) => item.includes("Java 21")));
+  assert.match(formal.result, /expected counterexamples are required/iu);
+  const root = await mkdtemp(join(tmpdir(), "academic-formal-health-"));
+  try {
+    const java = join(root, "selected-java");
+    await writeFile(
+      java,
+      "#!/bin/sh\nprintf 'version \"21.0.1\" private-java-marker\\n' >&2\n",
+    );
+    await chmod(java, 0o700);
+    const observed = await runCliWithEnvironment(
+      { JAVA: java },
+      "capabilities",
+      "health",
+      "--json",
+    );
+    assert.equal(observed.exitCode, 0, observed.stdout);
+    const health: { tools: { action: string; outcome: string }[] } = JSON.parse(
+      observed.stdout,
+    );
+    assert.equal(
+      health.tools.find(({ action }) => action === "java")?.outcome,
+      "passed",
+    );
+    assert.ok(!observed.stdout.includes("private-java-marker"));
+    assert.ok(!observed.stdout.includes(java));
+  } finally {
+    await rm(root, { recursive: true, force: true });
   }
 });
 
@@ -226,7 +265,7 @@ it("distinguishes configured executable readiness from PATH presence and mainten
       }),
     );
     const result = await runCliWithEnvironment(
-      { PATH: root },
+      { PATH: root, JAVA: join(root, "missing-java") },
       "capabilities",
       "health",
       "--config",

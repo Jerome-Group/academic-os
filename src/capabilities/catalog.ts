@@ -538,9 +538,17 @@ export function capabilityIndex(): object {
         profile === "coverage"
           ? ["TeX Live and Poppler for rendered artifact checks"]
           : []),
+        ...(["formal", "full"].includes(profile)
+          ? [
+              "Java 21 via JAVA or PATH; pinned TLC download or TLA2TOOLS_JAR",
+              "clean committed checkout; Git history containing the seed ownership sync revision",
+            ]
+          : []),
       ],
       reads: ["repository source/tests/templates"],
-      writes: ["dist; synthetic temporary fixtures"],
+      writes: [
+        "dist; synthetic temporary fixtures and private verification evidence",
+      ],
       riskFlags: ["synthetic-only"],
       preview: null,
       implementation: "src/capabilities/checks.ts",
@@ -548,7 +556,9 @@ export function capabilityIndex(): object {
       status: "supported",
       health: "not-observed",
       result:
-        "Per-check exit, duration, bounded output count/hash; full coverage run includes every test and privacy check once.",
+        profile === "formal"
+          ? "Bounded seed ownership models, compiled schedules and real cleanup mutation controls; expected counterexamples are required. No syscall atomicity or concurrent-writer guarantee."
+          : "Per-check exit, duration, bounded output count/hash; full includes all compiled tests, privacy checks and seed ownership verification.",
     });
   return {
     schemaVersion: 1,

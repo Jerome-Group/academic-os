@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { chmodSync, mkdirSync, readFileSync, renameSync } from "node:fs";
 import {
+  chmod,
   mkdir,
   mkdtemp,
   readFile,
@@ -92,6 +93,143 @@ describe("LaunchAgent installation", () => {
     assert.deepEqual(await leftoverTemporaryFiles(plan), []);
   });
 
+  it("restores the previous bytes and job after replacement bootstrap fails", async () => {
+    const plan = await planInTemporaryHome();
+    const previous = Buffer.from([0xef, 0xbb, 0xbf, 0x70, 0xff]);
+    await mkdir(dirname(plan.plistPath), { recursive: true });
+    await writeFile(plan.plistPath, previous);
+    const seen: Buffer[] = [];
+    const launchctl = recordingLaunchctl({
+      onBootstrap: () => {
+        seen.push(readFileSync(plan.plistPath));
+        return seen.length === 1 ? 1 : 0;
+      },
+    });
+
+    await assert.rejects(
+      installLaunchdJob(plan, launchctl.port),
+      /could not install/u,
+    );
+
+    assert.deepEqual(seen, [Buffer.from(plan.plist), previous]);
+    assert.deepEqual(await readFile(plan.plistPath), previous);
+    assert.deepEqual(await readdir(dirname(plan.plistPath)), [
+      plan.plistPath.split("/").at(-1),
+    ]);
+  });
+
+  it("reports a failed restoration bootstrap while retaining the old plist", async () => {
+    const plan = await planInTemporaryHome();
+    await seedInstalledPlist(plan, "previous plist bytes");
+    const launchctl = recordingLaunchctl({ bootstrapStatus: 1 });
+
+    await assert.rejects(
+      installLaunchdJob(plan, launchctl.port),
+      /previous plist restored.*bootstrap failed/u,
+    );
+
+    assert.equal(
+      await readFile(plan.plistPath, "utf8"),
+      "previous plist bytes",
+    );
+    assert.deepEqual(
+      launchctl.calls.map(([command]) => command),
+      ["bootout", "bootstrap", "bootstrap"],
+    );
+  });
+
+  for (const failure of ["null", "throw"]) {
+    it(`restores the previous job after bootstrap ${failure}`, async () => {
+      const plan = await planInTemporaryHome();
+      await seedInstalledPlist(plan, "previous plist bytes");
+      let attempts = 0;
+      const launchctl = recordingLaunchctl({
+        onBootstrap: () => {
+          attempts += 1;
+          if (attempts > 1) return 0;
+          if (failure === "null") return null;
+          throw new Error("bootstrap exploded");
+        },
+      });
+
+      await assert.rejects(
+        installLaunchdJob(plan, launchctl.port),
+        /Previous plist restored and bootstrap succeeded/u,
+      );
+
+      assert.equal(attempts, 2);
+      assert.equal(
+        await readFile(plan.plistPath, "utf8"),
+        "previous plist bytes",
+      );
+    });
+  }
+
+  it("refuses an unreadable previous plist before unloading the job", async () => {
+    const plan = await planInTemporaryHome();
+    await mkdir(plan.plistPath, { recursive: true });
+    const launchctl = recordingLaunchctl();
+
+    await assert.rejects(installLaunchdJob(plan, launchctl.port), /EISDIR/u);
+
+    assert.deepEqual(launchctl.calls, []);
+  });
+
+  it("restarts the previous job when replacement cannot be written", async () => {
+    const plan = await planInTemporaryHome();
+    await seedInstalledPlist(plan, "previous plist bytes");
+    const directory = dirname(plan.plistPath);
+    const seen: string[] = [];
+    const launchctl = recordingLaunchctl({
+      onBootout: () => chmodSync(directory, 0o500),
+      onBootstrap: () => {
+        seen.push(readFileSync(plan.plistPath, "utf8"));
+        return 0;
+      },
+    });
+    try {
+      await assert.rejects(installLaunchdJob(plan, launchctl.port), /EACCES/u);
+      assert.deepEqual(seen, ["previous plist bytes"]);
+      assert.equal(
+        await readFile(plan.plistPath, "utf8"),
+        "previous plist bytes",
+      );
+    } finally {
+      await chmod(directory, 0o700);
+    }
+  });
+
+  it("retains a recoverable snapshot when restoring the canonical path fails", async () => {
+    const plan = await planInTemporaryHome();
+    await seedInstalledPlist(plan, "previous plist bytes");
+    const launchctl = recordingLaunchctl({
+      onBootstrap: () => {
+        renameSync(plan.plistPath, `${plan.plistPath}.failed`);
+        mkdirSync(plan.plistPath);
+        return 1;
+      },
+    });
+    await assert.rejects(
+      installLaunchdJob(plan, launchctl.port),
+      /recoverable plist retained at/u,
+    );
+    const snapshots = (await readdir(dirname(plan.plistPath))).filter((name) =>
+      name.endsWith(".rollback"),
+    );
+    assert.equal(snapshots.length, 1);
+    assert.equal(
+      await readFile(
+        join(dirname(plan.plistPath), snapshots[0] ?? "missing"),
+        "utf8",
+      ),
+      "previous plist bytes",
+    );
+    assert.deepEqual(
+      launchctl.calls.map(([command]) => command),
+      ["bootout", "bootstrap"],
+    );
+  });
+
   it("unloads the job and deletes its plist on removal", async () => {
     const plan = await planInTemporaryHome();
     await seedInstalledPlist(plan, plan.plist);
@@ -148,6 +286,7 @@ function recordingLaunchctl(
     bootoutStatus?: number;
     bootstrapStatus?: number;
     onBootout?: () => void;
+    onBootstrap?: () => number | null;
   } = {},
 ): { calls: string[][]; port: LaunchctlPort } {
   const calls: string[][] = [];
@@ -161,6 +300,7 @@ function recordingLaunchctl(
       },
       bootstrap(domainTarget, plistPath) {
         calls.push(["bootstrap", domainTarget, plistPath]);
+        if (outcome.onBootstrap !== undefined) return outcome.onBootstrap();
         return outcome.bootstrapStatus ?? 0;
       },
     },

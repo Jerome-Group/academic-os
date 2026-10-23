@@ -1,5 +1,8 @@
 import { OperationalError } from "../operational-error.js";
-import { eventContainsPatch } from "./calendar-event-helpers.js";
+import {
+  eventContainsPatch,
+  recurrenceMatches,
+} from "./calendar-event-helpers.js";
 import {
   collectCalendarAvailability,
   findCalendarOverlaps,
@@ -149,9 +152,9 @@ export async function promoteCalendarProposal(
         eventId: verifiedEventId,
       });
       if (
-        proposal.operation !== "create" &&
-        proposal.operation !== "restore" &&
-        !eventContainsPatch(acceptedEvent, proposal.patch)
+        proposal.operation === "create" || proposal.operation === "restore"
+          ? !eventMatchesIntended(acceptedEvent, proposal.intendedEvent)
+          : !eventContainsPatch(acceptedEvent, proposal.patch)
       ) {
         throw error;
       }
@@ -410,71 +413,20 @@ async function mirrorContainsBulkEvents(
 
 function eventMatchesIntended(
   event: CalendarEvent,
-  intended: CalendarBulkCreateItem["intendedEvent"],
+  intended:
+    | CalendarBulkCreateItem["intendedEvent"]
+    | CalendarRestoreProposalCandidate["intendedEvent"],
 ): boolean {
-  const actual = event as Record<string, unknown>;
-  return (
-    actual.summary === intended.summary &&
-    actual.visibility === intended.visibility &&
-    transparencyMatches(actual.transparency, intended.transparency) &&
-    optionalStringMatches(actual.description, intended.description) &&
-    optionalStringMatches(actual.location, intended.location) &&
-    recurrenceMatches(actual.recurrence, intended.recurrence) &&
-    calendarPointMatches(actual.start, intended.start) &&
-    calendarPointMatches(actual.end, intended.end)
+  return Object.entries(intended).every(([key, value]) =>
+    key === "transparency"
+      ? transparencyMatches(event[key], value)
+      : eventContainsPatch(event, { [key]: value }),
   );
 }
 
-function optionalStringMatches(
-  actual: unknown,
-  expected: string | undefined,
-): boolean {
-  return expected === undefined || actual === expected;
-}
-
-function transparencyMatches(
-  actual: unknown,
-  expected: "opaque" | "transparent",
-): boolean {
+function transparencyMatches(actual: unknown, expected: unknown): boolean {
   return (
     (actual === undefined || actual === null ? "opaque" : actual) === expected
-  );
-}
-
-function recurrenceMatches(
-  actual: unknown,
-  expected: string[] | undefined,
-): boolean {
-  if (expected === undefined) return true;
-  if (!Array.isArray(actual) || actual.length !== expected.length) return false;
-  const actualLines = actual.filter(
-    (line): line is string => typeof line === "string",
-  );
-  if (actualLines.length !== expected.length) return false;
-  const expectedLines = [...expected].sort();
-  return [...actualLines]
-    .sort()
-    .every((line, index) => line === expectedLines[index]);
-}
-
-function calendarPointMatches(
-  actual: unknown,
-  expected: { date: string } | { dateTime: string; timeZone: string },
-): boolean {
-  if (typeof actual !== "object" || actual === null) return false;
-  const point = actual as {
-    date?: unknown;
-    dateTime?: unknown;
-    timeZone?: unknown;
-  };
-  if ("date" in expected) return point.date === expected.date;
-  if (typeof point.dateTime !== "string") return false;
-  const expectedInstant = Date.parse(expected.dateTime);
-  const actualInstant = Date.parse(point.dateTime);
-  return (
-    Number.isFinite(expectedInstant) &&
-    actualInstant === expectedInstant &&
-    (point.timeZone === undefined || point.timeZone === expected.timeZone)
   );
 }
 
@@ -550,9 +502,9 @@ async function finalizePromotion(
   if (proposal.operation === "cancel") return blockedReport(proposal.id);
   const verifiedEvent = await input.writer.readEvent({ calendarId, eventId });
   if (
-    proposal.operation !== "create" &&
-    proposal.operation !== "restore" &&
-    !eventContainsPatch(verifiedEvent, proposal.patch)
+    proposal.operation === "create" || proposal.operation === "restore"
+      ? !eventMatchesIntended(verifiedEvent, proposal.intendedEvent)
+      : !eventContainsPatch(verifiedEvent, proposal.patch)
   ) {
     return blockedReport(proposal.id);
   }
@@ -582,6 +534,19 @@ async function finalizeCancellation(
   eventId: string,
   appendJournal: boolean,
 ): Promise<CalendarPromotionReport> {
+  const recurrencePatch =
+    proposal.recurrenceScope === "this-and-future"
+      ? futureCancellationPatch(proposal)
+      : undefined;
+  if (recurrencePatch !== undefined) {
+    const verifiedMaster = await input.writer.readEvent({
+      calendarId: proposal.sourceItem.calendarId,
+      eventId,
+    });
+    if (!eventContainsPatch(verifiedMaster, recurrencePatch)) {
+      return blockedReport(proposal.id);
+    }
+  }
   const appended = appendJournal
     ? await input.journal.appendOnce({
         schemaVersion: 1,
@@ -594,8 +559,24 @@ async function finalizeCancellation(
   const refreshed = await input.refresh();
   let mirror = await input.mirrorStore.read(proposal.sourceItem.calendarRole);
   if (
+    refreshed.calendars.some(({ freshness }) => freshness === "stale") ||
+    mirror === undefined
+  ) {
+    return blockedReport(proposal.id);
+  }
+  if (recurrencePatch !== undefined) {
+    const mirroredMaster = mirror.items.find(
+      ({ event }) => event.id === eventId,
+    )?.event;
+    if (
+      mirroredMaster === undefined ||
+      !eventContainsPatch(mirroredMaster, recurrencePatch)
+    ) {
+      return blockedReport(proposal.id);
+    }
+  }
+  if (
     proposal.recurrenceScope === "this-and-future" &&
-    mirror !== undefined &&
     !mirror.tombstones.some(
       ({ event }) => event.id === proposal.preview.event.id,
     )
@@ -620,10 +601,7 @@ async function finalizeCancellation(
           ({ event }) => event.id === proposal.preview.event.id,
         )
       : mirror?.tombstones.some(({ event }) => event.id === eventId) === true;
-  if (
-    refreshed.calendars.some(({ freshness }) => freshness === "stale") ||
-    !deleted
-  ) {
+  if (!deleted) {
     return blockedReport(proposal.id);
   }
   await input.proposalStore.markPromoted(proposal.id);
@@ -939,24 +917,10 @@ async function applyCancellation(
   eventId: string,
 ): Promise<void> {
   if (proposal.recurrenceScope === "this-and-future") {
-    const master = proposal.recurringMaster;
-    const boundary =
-      proposal.preview.event.originalStartTime?.dateTime ??
-      proposal.preview.event.originalStartTime?.date ??
-      proposal.preview.event.start?.dateTime ??
-      proposal.preview.event.start?.date;
-    if (master?.recurrence === undefined || boundary === undefined) {
-      throw new OperationalError(
-        "invalid-target",
-        "This-and-future cancellation requires its recurring master.",
-      );
-    }
     await writer.patchEvent({
       calendarId: proposal.sourceItem.calendarId,
-      eventId: master.id,
-      patch: {
-        recurrence: trimCalendarRecurrence(master.recurrence, boundary),
-      } as CalendarEventPatch,
+      eventId,
+      patch: futureCancellationPatch(proposal),
     });
     return;
   }
@@ -964,4 +928,22 @@ async function applyCancellation(
     calendarId: proposal.sourceItem.calendarId,
     eventId,
   });
+}
+
+function futureCancellationPatch(
+  proposal: CalendarCancelProposalCandidate,
+): CalendarEventPatch {
+  const master = proposal.recurringMaster;
+  const boundary =
+    proposal.preview.event.originalStartTime?.dateTime ??
+    proposal.preview.event.originalStartTime?.date ??
+    proposal.preview.event.start?.dateTime ??
+    proposal.preview.event.start?.date;
+  if (master?.recurrence === undefined || boundary === undefined) {
+    throw new OperationalError(
+      "invalid-target",
+      "This-and-future cancellation requires its recurring master.",
+    );
+  }
+  return { recurrence: trimCalendarRecurrence(master.recurrence, boundary) };
 }

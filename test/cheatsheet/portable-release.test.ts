@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import { promisify } from "node:util";
 import { pathToFileURL } from "node:url";
 import { it } from "node:test";
@@ -111,6 +111,54 @@ it("verifies a self-contained release without executing the user's latexmk confi
       { cwd: root, env: { ...process.env, HOME: root } },
     );
     assert.equal(JSON.parse(child.stdout).isolatedBuild, true);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+it("refuses a release that relies on the caller's TEXINPUTS search path", {
+  skip: !latexAvailable,
+}, async () => {
+  const root = await mkdtemp(join(tmpdir(), "portable-input-environment-"));
+  try {
+    const dependent = source.replace(
+      "\\end{document}",
+      "\\input{private-portable-input}\n\\end{document}",
+    );
+    await writeFile(
+      join(root, "private-portable-input.tex"),
+      "Input found only through the caller's search path.",
+    );
+    await writeFile(join(root, "sheet.tex"), dependent);
+    const env = { ...process.env, TEXINPUTS: `${root}${delimiter}` };
+    await run(
+      "latexmk",
+      [
+        "-norc",
+        "-pdf",
+        "-interaction=nonstopmode",
+        "-halt-on-error",
+        "sheet.tex",
+      ],
+      { cwd: root, env },
+    );
+    const verifier = pathToFileURL(
+      join(process.cwd(), "dist/src/cheatsheet/index.js"),
+    ).href;
+    const child = await run(
+      process.execPath,
+      [
+        "--input-type=module",
+        "-e",
+        `import { readFile } from "node:fs/promises"; import { verifyPortableCheatsheetRelease } from ${JSON.stringify(verifier)}; let refused = false; try { await verifyPortableCheatsheetRelease({ source: await readFile("sheet.tex", "utf8"), releasedPdf: await readFile("sheet.pdf"), filename: "sheet.tex", constraints: ${JSON.stringify(constraints)} }); } catch { refused = true; } console.log(JSON.stringify({ refused }));`,
+      ],
+      { cwd: root, env },
+    );
+    assert.equal(JSON.parse(child.stdout).refused, true);
+    assert.equal(
+      await readFile(join(root, "private-portable-input.tex"), "utf8"),
+      "Input found only through the caller's search path.",
+    );
   } finally {
     await rm(root, { recursive: true, force: true });
   }

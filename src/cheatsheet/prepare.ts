@@ -11,6 +11,7 @@ import { validateSourceMap } from "../conformance/validate-source-map.js";
 import { validateDefinition } from "../conformance/validate-definition.js";
 import { validateProfile } from "../conformance/validate-profile.js";
 import { isRecord } from "../conformance/value-shape.js";
+import { sourceMapUnitOrder } from "../conformance/source-map-unit-order.js";
 import { resolveModuleFile } from "./module-path.js";
 
 export interface CheatsheetCandidate {
@@ -77,7 +78,8 @@ export async function prepareCheatsheet(input: {
   )
     throw new Error("Unreadable Source Map.");
   const candidates: CheatsheetCandidate[] = [];
-  for (const [unit, raw] of Object.entries(parsed.value.units)) {
+  for (const unit of sourceMapUnitOrder(sourceMap)) {
+    const raw = parsed.value.units[unit];
     if (!isRecord(raw)) continue;
     const topics = raw.topics as string[];
     for (const [role, entries] of Object.entries(raw)) {

@@ -1,4 +1,4 @@
-import { mkdir, realpath } from "node:fs/promises";
+import { lstat, mkdir, realpath } from "node:fs/promises";
 
 import type { SeedOperation } from "../seed/index.js";
 import { ensureMaterialized } from "./ensure-materialized.js";
@@ -8,11 +8,17 @@ import {
   type SeedRootClaim,
 } from "./seed-operation-journal.js";
 import {
-  createSeedOperation,
   inspectSeedOperation,
   optionalLstat,
   publicSeedOperation,
 } from "./seed-target-state.js";
+import {
+  claimSeedStage,
+  createOwnedSeedOperation,
+  proveSeedOperation,
+  proveSeedParent,
+  seedStage,
+} from "./seed-ownership.js";
 import type { SeedExecutionOptions } from "./types.js";
 
 export interface SeedExecutionFailure {
@@ -27,8 +33,16 @@ export async function stageSeedPlan(
   auditRoot: (root: string) => Promise<string[]>,
   options: SeedExecutionOptions,
 ): Promise<SeedExecutionFailure | undefined> {
-  const stagingRoot = journal.started.stagingRoot;
-  await mkdir(stagingRoot, { recursive: true });
+  try {
+    await claimSeedStage(journal);
+  } catch (error) {
+    return {
+      outcome: "blocked",
+      phase: "staging",
+      evidence: errorMessage(error, "Staging claim refused."),
+    };
+  }
+  const stagingRoot = seedStage(journal).root;
   const failure = await applyOperations({
     root: stagingRoot,
     operations,
@@ -64,6 +78,15 @@ export async function publishSeedPlan(
       if (targetMetadata !== undefined) return publicationBlocked(targetLabel);
       await options.checkpoint?.({ checkpoint: "during-publication" });
       try {
+        await proveSeedParent(journal);
+      } catch (error) {
+        return {
+          outcome: "blocked",
+          phase: "publication",
+          evidence: errorMessage(error, "Publication parent claim changed."),
+        };
+      }
+      try {
         // mkdir claims the name exclusively; rename would replace an empty target.
         await mkdir(targetRoot);
       } catch (error) {
@@ -85,9 +108,10 @@ export async function publishSeedPlan(
       targetMetadata = await optionalLstat(targetRoot);
       if (targetMetadata === undefined || !targetMetadata.isDirectory())
         return publicationBlocked(targetLabel);
+      const claimed = await lstat(targetRoot, { bigint: true });
       identity = {
-        device: String(targetMetadata.dev),
-        inode: String(targetMetadata.ino),
+        device: String(claimed.dev),
+        inode: String(claimed.ino),
       };
       await appendSeedJournalEvent(journal, {
         type: "root-claimed",
@@ -135,7 +159,14 @@ async function rootMatches(
   root: string,
   identity: Pick<SeedRootClaim, "device" | "inode">,
 ): Promise<boolean> {
-  const metadata = await optionalLstat(root);
+  let metadata: Awaited<ReturnType<typeof lstat>>;
+  try {
+    metadata = await lstat(root, { bigint: true });
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT")
+      return false;
+    throw error;
+  }
   return (
     metadata?.isDirectory() === true &&
     (await realpath(root)) === root &&
@@ -173,6 +204,20 @@ async function applyOperations(input: {
     if (input.verifyRoot !== undefined && !(await input.verifyRoot())) {
       return publicationBlocked(input.root);
     }
+    try {
+      await proveSeedOperation(
+        input.journal,
+        input.phase,
+        input.root,
+        operation,
+      );
+    } catch (error) {
+      return {
+        outcome: "blocked",
+        phase: input.phase,
+        evidence: errorMessage(error, "Seed ancestor proof refused."),
+      };
+    }
     const state = await inspectSeedOperation(input.root, operation);
     if (state === "conflict") {
       return {
@@ -186,7 +231,12 @@ async function applyOperations(input: {
       try {
         if (input.verifyRoot !== undefined && !(await input.verifyRoot()))
           return publicationBlocked(input.root);
-        await createSeedOperation(input.root, operation);
+        await createOwnedSeedOperation(
+          input.journal,
+          input.phase,
+          input.root,
+          operation,
+        );
       } catch (error) {
         return {
           outcome: "partially-completed",
@@ -206,6 +256,9 @@ async function applyOperations(input: {
       await appendSeedJournalEvent(input.journal, {
         type: "operation-completed",
         phase: input.phase,
+        ...(input.phase === "staging"
+          ? { generation: seedStage(input.journal).generation }
+          : {}),
         operation: publicSeedOperation(operation),
       });
     }
@@ -222,6 +275,8 @@ function journalHasOperation(
     (event) =>
       event.type === "operation-completed" &&
       event.phase === phase &&
+      (phase !== "staging" ||
+        (event.generation ?? 0) === seedStage(journal).generation) &&
       event.operation.path === path,
   );
 }

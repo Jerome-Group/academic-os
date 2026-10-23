@@ -37,6 +37,13 @@ describe("seedMountedResearchProject", () => {
       parentRoot: fixture.researchRoot,
       targetRoot: fixture.projectRoot,
       stateRoot: fixture.stateRoot,
+      directoryPath:
+        fixture.plan.operations.find(
+          (operation) => operation.kind === "directory",
+        )?.path ?? "missing",
+      filePath:
+        fixture.plan.operations.find((operation) => operation.kind === "file")
+          ?.path ?? "missing",
       run: (options) =>
         seedMountedResearchProject(
           fixture.config,

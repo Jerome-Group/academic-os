@@ -18,6 +18,8 @@ interface Fixture {
   parentRoot: string;
   targetRoot: string;
   stateRoot: string;
+  directoryPath: string;
+  filePath: string;
   run(
     options?: SeedExecutionOptions,
   ): Promise<{ outcome: string; evidence: string[] }>;
@@ -33,6 +35,7 @@ export function seedOwnershipTests(
     "foreign-child",
     "changed-file",
     "missing",
+    "missing-file",
   ] as const) {
     it(`preserves unsafe ${substitution} staging on inspection and resume`, async () => {
       const fixture = await createFixture();
@@ -80,6 +83,7 @@ export function seedOwnershipTests(
         preserved = join(stage, "AGENTS.md");
         await writeFile(preserved, sentinel);
       }
+      if (substitution === "missing-file") await rm(join(stage, "AGENTS.md"));
       if (substitution === "missing") await rm(stage, { recursive: true });
       for (const resume of [false, true]) {
         const report = await fixture.run({ resume });
@@ -92,6 +96,86 @@ export function seedOwnershipTests(
       }
     });
   }
+  it("refuses completion when published approved bytes change", async () => {
+    const fixture = await createFixture();
+    const path = join(fixture.targetRoot, fixture.filePath);
+    const report = await fixture.run({
+      checkpoint: async ({ checkpoint }) => {
+        if (checkpoint === "after-publication")
+          await writeFile(path, "changed after publication\n");
+      },
+    });
+    assert.equal(report.outcome, "blocked");
+    assert.equal(await readFile(path, "utf8"), "changed after publication\n");
+  });
+  it("refuses to recreate an approved existing directory removed after approval", async () => {
+    const fixture = await createFixture();
+    await mkdir(join(fixture.targetRoot, fixture.directoryPath), {
+      recursive: true,
+    });
+    const report = await fixture.run({
+      checkpoint: async ({ checkpoint }) => {
+        if (checkpoint === "before-staging")
+          await rm(join(fixture.targetRoot, fixture.directoryPath), {
+            recursive: true,
+          });
+      },
+    });
+    assert.equal(report.outcome, "blocked");
+    await assert.rejects(
+      access(join(fixture.targetRoot, fixture.directoryPath)),
+      /ENOENT/u,
+    );
+  });
+  it("refuses a changed configured parent before claiming the publication root", async () => {
+    const fixture = await createFixture();
+    const outside = join(fixture.stateRoot, "outside");
+    await mkdir(outside);
+    const parked = join(fixture.stateRoot, "parked-parent");
+    const report = await fixture.run({
+      checkpoint: async ({ checkpoint }) => {
+        if (checkpoint !== "before-publication") return;
+        await rename(fixture.parentRoot, parked);
+        await symlink(outside, fixture.parentRoot, "dir");
+      },
+    });
+    assert.equal(report.outcome, "blocked");
+    assert.deepEqual(await readdir(outside), []);
+    assert.ok(
+      (await readdir(parked)).some((name) =>
+        name.startsWith(".academic-os-stage-"),
+      ),
+    );
+  });
+  it("retains the complete stage when final cleanup finds unrelated bytes", async () => {
+    const fixture = await createFixture();
+    let sentinel: string | undefined;
+    const report = await fixture.run({
+      checkpoint: async ({ checkpoint }) => {
+        if (checkpoint !== "after-publication") return;
+        const root = join(fixture.stateRoot, "journals", "seeds");
+        const started = JSON.parse(
+          (
+            await readFile(
+              join(root, (await readdir(root))[0] ?? "missing"),
+              "utf8",
+            )
+          ).split("\n")[0] ?? "null",
+        ) as { stagingRoot: string };
+        sentinel = join(started.stagingRoot, "foreign.txt");
+        await writeFile(sentinel, "unrelated bytes\n");
+      },
+    });
+    assert.equal(report.outcome, "blocked");
+    assert.match(report.evidence.join("\n"), /preserved.*cleanup refused/iu);
+    assert.doesNotMatch(
+      report.evidence.join("\n"),
+      /staging.*were removed|failure removed temporary/iu,
+    );
+    assert.ok(sentinel !== undefined);
+    assert.equal(await readFile(sentinel, "utf8"), "unrelated bytes\n");
+    assert.ok((await readdir(join(sentinel, ".."))).length > 1);
+  });
   for (const substitution of ["symlink", "directory"] as const) {
     it(`refuses a nested publication ancestor replaced by a ${substitution}`, async () => {
       const fixture = await createFixture();

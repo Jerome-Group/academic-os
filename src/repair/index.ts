@@ -23,6 +23,7 @@ export {
   type RepairExecutionRecovery,
   type RepairExecutionReport,
   type RepairJournalEvent,
+  type RepairMutationJournal,
   type RepairOperationResult,
 } from "./execute-repair.js";
 export { createFileRepairJournalStore } from "./repair-journal.js";

@@ -32,7 +32,7 @@ test("refuses non-scalar repair journal event types", async (t) => {
         plan,
       })}\n`,
     );
-    await assert.rejects(store.read(plan.changeSetId), /invalid event/u);
+    await assert.rejects(store.inspect(plan.changeSetId), /invalid event/u);
   }
 });
 
@@ -50,9 +50,18 @@ test("persists a private append-only repair journal with strict sequencing", asy
     plan,
   };
 
-  await store.append(started);
-  assert.deepEqual(await store.read(plan.changeSetId), [started]);
-  await assert.rejects(store.append({ ...started, sequence: 2 }), /sequence/u);
+  await store.mutate(
+    plan.changeSetId,
+    async (journal) => await journal.append(started),
+  );
+  assert.deepEqual(await store.inspect(plan.changeSetId), [started]);
+  await assert.rejects(
+    store.mutate(
+      plan.changeSetId,
+      async (journal) => await journal.append({ ...started, sequence: 2 }),
+    ),
+    /sequence/u,
+  );
   const source = await readFile(
     join(stateRoot, "journals", "repairs", `${plan.changeSetId}.jsonl`),
     "utf8",

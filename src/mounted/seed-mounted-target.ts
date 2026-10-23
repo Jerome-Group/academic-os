@@ -13,6 +13,7 @@ import {
 } from "./execute-seed-operations.js";
 import { ensureMaterialized } from "./ensure-materialized.js";
 import { OperationalError } from "../operational-error.js";
+import { withJournalMutationOwner } from "../journal-mutation-owner.js";
 import {
   appendSeedJournalEvent,
   readSeedJournal,
@@ -67,6 +68,25 @@ export async function seedMountedTarget(
   mode: SeedMode,
   options: SeedExecutionOptions = {},
 ): Promise<MountedSeedResult> {
+  const journalPath = seedJournalPath(adapter.stateRoot, adapter.target);
+  if (mode === "preview")
+    return await inspectAndSeedTarget(adapter, mode, options, journalPath);
+  const result = await withJournalMutationOwner(
+    { stateRoot: adapter.stateRoot, journalPath },
+    async (canonicalJournalPath) =>
+      await inspectAndSeedTarget(adapter, mode, options, canonicalJournalPath),
+  );
+  return result.kind === "owned"
+    ? result.value
+    : blockedResult(emptyProgress(adapter.plan.operations), [result.evidence]);
+}
+
+async function inspectAndSeedTarget(
+  adapter: MountedSeedAdapter,
+  mode: SeedMode,
+  options: SeedExecutionOptions,
+  journalPath: string,
+): Promise<MountedSeedResult> {
   try {
     await ensureMaterialized(adapter.parentRoot);
   } catch (error) {
@@ -105,7 +125,6 @@ export async function seedMountedTarget(
     adapter.plan.operations,
   );
 
-  const journalPath = seedJournalPath(adapter.stateRoot, adapter.target);
   const journalRead = await readSeedJournal(journalPath);
   if (journalRead.diagnostic !== undefined) {
     return blockedResult(current, [journalRead.diagnostic]);

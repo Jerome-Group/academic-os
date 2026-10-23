@@ -24,6 +24,9 @@ import { createModuleSeedPlan } from "../../src/seed/index.js";
 import { validModuleControls } from "../fixtures/module-controls.js";
 import { testModuleContract } from "../fixtures/module-contract.js";
 
+import { seedOwnershipTests } from "../support/seed-ownership.js";
+import { assertSeedPartialRootIdentity } from "../support/seed-partial-root-identity.js";
+
 const temporaryRoots: string[] = [];
 
 afterEach(async () => {
@@ -41,6 +44,34 @@ const interruptionPoints: SeedExecutionCheckpoint[] = [
 ];
 
 describe("seedMountedModule", () => {
+  it("adds to a partial root whose inode exceeds numeric precision", async () => {
+    const fixture = await mountedSeedFixture();
+    await assertSeedPartialRootIdentity({
+      kind: "module",
+      config: fixture.config,
+      plan: fixture.plan,
+      targetRoot: join(fixture.semesterRoot, "MH2100"),
+    });
+  });
+
+  seedOwnershipTests(async () => {
+    const fixture = await mountedSeedFixture();
+    return {
+      parentRoot: fixture.semesterRoot,
+      targetRoot: join(fixture.semesterRoot, "MH2100"),
+      stateRoot: fixture.stateRoot,
+      directoryPath:
+        fixture.plan.operations.find(
+          (operation) => operation.kind === "directory",
+        )?.path ?? "missing",
+      filePath:
+        fixture.plan.operations.find((operation) => operation.kind === "file")
+          ?.path ?? "missing",
+      run: (options) =>
+        seedMountedModule(fixture.config, fixture.plan, "apply", options),
+    };
+  });
+
   for (const interruptionPoint of interruptionPoints) {
     it(`resumes safely after interruption ${interruptionPoint}`, async () => {
       const fixture = await mountedSeedFixture();
@@ -229,8 +260,12 @@ describe("seedMountedModule", () => {
     const path = await onlyJournalPath(fixture.stateRoot);
     const legacy =
       (await readOnlySeedJournal(fixture.stateRoot))
-        .filter(({ type }) => type !== "root-claimed")
-        .map((event, sequence) => JSON.stringify({ ...event, sequence }))
+        .filter(({ type }) =>
+          ["started", "operation-completed", "outcome"].includes(type),
+        )
+        .map((event, sequence) =>
+          JSON.stringify({ ...event, schemaVersion: 1, sequence }),
+        )
         .join("\n") + "\n";
     await writeFile(path, legacy);
     assert.equal(
@@ -242,6 +277,163 @@ describe("seedMountedModule", () => {
       "completed",
     );
     assert.equal(await readFile(path, "utf8"), legacy);
+  });
+
+  it("rejects coerced journal enums and impossible ownership events", async () => {
+    const fixture = await mountedSeedFixture();
+    await assert.rejects(
+      seedMountedModule(fixture.config, fixture.plan, "apply", {
+        checkpoint: async ({ checkpoint }) => {
+          if (checkpoint === "before-publication")
+            throw new Error("journal fixture interruption");
+        },
+      }),
+      /journal fixture interruption/u,
+    );
+    const path = await onlyJournalPath(fixture.stateRoot);
+    const source = await readFile(path, "utf8");
+    const events: Record<string, unknown>[] = source
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    const claim = events.find((event) => event.type === "stage-claimed");
+    const receipt = events.find((event) => event.type === "entry-created");
+    assert.ok(claim !== undefined && receipt !== undefined);
+    const last = events.at(-1);
+    assert.ok(last !== undefined);
+    const invalidSources = [
+      source.replace('"phase":"staging"', '"phase":["staging"]'),
+      [
+        ...events,
+        { ...last, type: "root-claimed", device: "1", inode: "1" },
+        {
+          ...last,
+          type: "operation-completed",
+          phase: "publication",
+          generation: 4,
+        },
+      ]
+        .map((event, sequence) => JSON.stringify({ ...event, sequence }))
+        .join("\n") + "\n",
+      [
+        ...events.slice(0, -1),
+        { ...receipt, type: "stage-entry-removing", path: "00 Module Admin" },
+        last,
+      ]
+        .map((event, sequence) => JSON.stringify({ ...event, sequence }))
+        .join("\n") + "\n",
+      source.replace('"targetState":"absent"', '"targetState":["absent"]'),
+      source.replace('"kind":"directory"', '"kind":["directory"]'),
+      source +
+        JSON.stringify({
+          ...last,
+          type: "outcome",
+          outcome: ["completed"],
+          sequence: events.length,
+        }) +
+        "\n",
+      ...[
+        claim,
+        receipt,
+        { ...claim, type: "stage-cleaned" },
+        {
+          ...claim,
+          type: "stage-planned",
+          generation: 1,
+          stagingRoot: "unsafe",
+        },
+      ].map(
+        (event) =>
+          source + JSON.stringify({ ...event, sequence: events.length }) + "\n",
+      ),
+    ];
+    for (const invalid of invalidSources) {
+      await writeFile(path, invalid);
+      const report = await seedMountedModule(
+        fixture.config,
+        fixture.plan,
+        "apply",
+        { resume: true },
+      );
+      assert.equal(report.outcome, "blocked");
+      assert.match(report.evidence.join("\n"), /ambiguous journal/u);
+    }
+    await writeFile(path, source);
+    assert.equal(
+      (
+        await seedMountedModule(fixture.config, fixture.plan, "apply", {
+          resume: true,
+        })
+      ).outcome,
+      "completed",
+    );
+  });
+
+  it("resumes interrupted exact cleanup then claims a fresh stage generation", async () => {
+    const fixture = await mountedSeedFixture();
+    await assert.rejects(
+      seedMountedModule(fixture.config, fixture.plan, "apply", {
+        checkpoint: async ({ checkpoint }) => {
+          if (checkpoint === "before-publication")
+            throw new Error("cleanup fixture interruption");
+        },
+      }),
+      /cleanup fixture interruption/u,
+    );
+    const path = await onlyJournalPath(fixture.stateRoot);
+    const events: Record<string, unknown>[] = (await readFile(path, "utf8"))
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    const started = events[0];
+    const receipt = events.find(
+      (event) =>
+        event.type === "entry-created" &&
+        typeof event.operation === "object" &&
+        event.operation !== null &&
+        "kind" in event.operation &&
+        event.operation.kind === "file",
+    );
+    assert.ok(started !== undefined && typeof started.stagingRoot === "string");
+    assert.ok(
+      receipt !== undefined &&
+        typeof receipt.operation === "object" &&
+        receipt.operation !== null &&
+        "path" in receipt.operation &&
+        typeof receipt.operation.path === "string",
+    );
+    await writeFile(
+      path,
+      JSON.stringify({
+        ...receipt,
+        type: "stage-entry-removing",
+        path: receipt.operation.path,
+        sequence: events.length,
+      }) + "\n",
+      { flag: "a" },
+    );
+    await rm(join(started.stagingRoot, receipt.operation.path));
+    assert.equal(
+      (await seedMountedModule(fixture.config, fixture.plan, "apply")).outcome,
+      "safely-resumable",
+    );
+    assert.equal(
+      (
+        await seedMountedModule(fixture.config, fixture.plan, "apply", {
+          resume: true,
+        })
+      ).outcome,
+      "completed",
+    );
+    const finalEvents = await readOnlySeedJournal(fixture.stateRoot);
+    assert.equal(
+      finalEvents.filter((event) => event.type === "stage-claimed").length,
+      2,
+    );
+    assert.equal(
+      finalEvents.filter((event) => event.type === "stage-cleaned").length,
+      2,
+    );
   });
 
   it("refuses duplicate root claims as an ambiguous journal", async () => {

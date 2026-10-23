@@ -7,7 +7,10 @@ import type {
   SeedOutcome,
   SeedPlan,
 } from "../seed/index.js";
-import { isCanonicalBase64 } from "../seed/seed-operation-bytes.js";
+import {
+  isCanonicalBase64,
+  seedFileBytes,
+} from "../seed/seed-operation-bytes.js";
 
 export interface ModuleSeedTargetIdentity {
   module: string;
@@ -38,7 +41,7 @@ export interface SeedPreconditions {
 }
 
 interface SeedJournalBase {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   runId: string;
   sequence: number;
   recordedAt: string;
@@ -51,7 +54,37 @@ export interface SeedJournalStarted extends SeedJournalBase {
   plan: SeedablePlan;
   preconditions: SeedPreconditions;
   stagingRoot: string;
+  ownership?: SeedOwnershipBaseline;
 }
+
+export interface SeedEntryIdentity {
+  device: string;
+  inode: string;
+}
+
+export interface SeedDirectoryClaim {
+  path: string;
+  identity: SeedEntryIdentity;
+}
+
+export interface SeedOwnershipBaseline {
+  parent: SeedEntryIdentity;
+  publicationDirectories: SeedDirectoryClaim[];
+}
+
+export type SeedOwnershipEvent =
+  | { type: "stage-planned"; generation: number; stagingRoot: string }
+  | { type: "stage-claimed"; generation: number; identity: SeedEntryIdentity }
+  | {
+      type: "entry-created";
+      phase: "staging" | "publication";
+      generation: number;
+      operation: { kind: "directory" | "file"; path: string };
+      identity: SeedEntryIdentity;
+      sha256?: string;
+    }
+  | { type: "stage-entry-removing"; generation: number; path: string }
+  | { type: "stage-cleaned"; generation: number };
 
 export interface SeedRootClaim {
   type: "root-claimed";
@@ -61,10 +94,12 @@ export interface SeedRootClaim {
 
 export type SeedJournalEvent =
   | SeedJournalStarted
+  | (SeedJournalBase & SeedOwnershipEvent)
   | (SeedJournalBase & SeedRootClaim)
   | (SeedJournalBase & {
       type: "operation-completed";
       phase: "staging" | "publication";
+      generation?: number;
       operation: { kind: "directory" | "file"; path: string };
     })
   | (SeedJournalBase & {
@@ -81,10 +116,12 @@ export type SeedJournalEvent =
     });
 
 type SeedJournalAppendEvent =
+  | SeedOwnershipEvent
   | SeedRootClaim
   | {
       type: "operation-completed";
       phase: "staging" | "publication";
+      generation?: number;
       operation: { kind: "directory" | "file"; path: string };
     }
   | {
@@ -126,9 +163,10 @@ export async function startSeedJournal(input: {
   plan: SeedablePlan;
   preconditions: SeedPreconditions;
   stagingRoot: string;
+  ownership: SeedOwnershipBaseline;
 }): Promise<SeedJournal> {
   const started: SeedJournalStarted = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     type: "started",
     runId: randomUUID(),
     sequence: 0,
@@ -138,6 +176,7 @@ export async function startSeedJournal(input: {
     plan: input.plan,
     preconditions: input.preconditions,
     stagingRoot: input.stagingRoot,
+    ownership: input.ownership,
   };
   await mkdir(dirname(input.path), { recursive: true, mode: 0o700 });
   const file = await open(input.path, "wx", 0o600);
@@ -191,12 +230,38 @@ export async function readSeedJournal(
   if (
     events.some(
       (event, index) =>
-        event.runId !== started.runId || event.sequence !== index,
+        event.runId !== started.runId ||
+        event.sequence !== index ||
+        event.schemaVersion !== started.schemaVersion,
     )
   ) {
     return {
       diagnostic: "Seed continuation has an ambiguous journal sequence.",
     };
+  }
+  if (started.schemaVersion === 2 && started.ownership !== undefined) {
+    const paths = started.ownership.publicationDirectories.map(
+      (entry) => entry.path,
+    );
+    if (
+      new Set(paths).size !== paths.length ||
+      (started.preconditions.targetState === "absent"
+        ? paths.length !== 0
+        : !paths.includes("")) ||
+      paths.some(
+        (path) =>
+          path !== "" &&
+          !started.plan.operations.some(
+            (operation) =>
+              operation.kind === "directory" && operation.path === path,
+          ),
+      )
+    ) {
+      return {
+        diagnostic:
+          "Seed continuation has an ambiguous journal ownership baseline.",
+      };
+    }
   }
   if (!hasValidJournalLifecycle(events)) {
     return {
@@ -211,7 +276,7 @@ export async function appendSeedJournalEvent(
   event: SeedJournalAppendEvent,
 ): Promise<void> {
   const complete = {
-    schemaVersion: 1,
+    schemaVersion: journal.started.schemaVersion,
     runId: journal.started.runId,
     sequence: journal.events.length,
     recordedAt: new Date().toISOString(),
@@ -244,7 +309,7 @@ function isSeedJournalEvent(value: unknown): value is SeedJournalEvent {
   const event = value as Record<string, unknown>;
   const target = event.target;
   if (
-    event.schemaVersion !== 1 ||
+    (event.schemaVersion !== 1 && event.schemaVersion !== 2) ||
     typeof event.runId !== "string" ||
     !Number.isInteger(event.sequence) ||
     typeof event.recordedAt !== "string" ||
@@ -262,8 +327,20 @@ function isSeedJournalEvent(value: unknown): value is SeedJournalEvent {
       typeof event.planDigest === "string" &&
       typeof event.stagingRoot === "string" &&
       isSeedPlan(event.plan) &&
-      isSeedPreconditions(event.preconditions)
+      isSeedPreconditions(event.preconditions) &&
+      (event.schemaVersion === 1 || isOwnershipBaseline(event.ownership))
     );
+  }
+  if (
+    [
+      "stage-planned",
+      "stage-claimed",
+      "entry-created",
+      "stage-entry-removing",
+      "stage-cleaned",
+    ].some((type) => type === event.type)
+  ) {
+    return event.schemaVersion === 2 && isOwnershipEvent(event);
   }
   if (event.type === "root-claimed") {
     return (
@@ -275,22 +352,27 @@ function isSeedJournalEvent(value: unknown): value is SeedJournalEvent {
   }
   if (event.type === "operation-completed") {
     return (
-      ["staging", "publication"].includes(String(event.phase)) &&
-      isPublicOperation(event.operation)
+      (event.phase === "staging" || event.phase === "publication") &&
+      isPublicOperation(event.operation) &&
+      (event.generation === undefined ||
+        (Number.isSafeInteger(event.generation) &&
+          Number(event.generation) >= 0))
     );
   }
   if (event.type === "failure") {
     return (
-      ["staging", "verification", "publication", "finalization"].includes(
-        String(event.phase),
-      ) && typeof event.evidence === "string"
+      (event.phase === "staging" ||
+        event.phase === "verification" ||
+        event.phase === "publication" ||
+        event.phase === "finalization") &&
+      typeof event.evidence === "string"
     );
   }
   return (
     event.type === "outcome" &&
-    ["blocked", "partially-completed", "completed"].includes(
-      String(event.outcome),
-    )
+    (event.outcome === "blocked" ||
+      event.outcome === "partially-completed" ||
+      event.outcome === "completed")
   );
 }
 
@@ -298,6 +380,15 @@ function hasValidJournalLifecycle(events: SeedJournalEvent[]): boolean {
   const completedOperations = new Set<string>();
   let claimed = false;
   let published = false;
+  const ownership = {
+    generation: 0,
+    claimed: false,
+    cleaned: false,
+    entries: new Set<string>(),
+    removing: new Set<string>(),
+  };
+  const stagePaths = new Set<string>();
+  const publicationEntries = new Set<string>();
   for (let index = 1; index < events.length; index += 1) {
     const event = events[index];
     const previous = events[index - 1];
@@ -318,6 +409,127 @@ function hasValidJournalLifecycle(events: SeedJournalEvent[]): boolean {
     ) {
       return false;
     }
+    const started = events[0];
+    if (started?.type !== "started") return false;
+    if (event.type === "stage-planned") {
+      if (
+        !ownership.cleaned ||
+        event.generation !== ownership.generation + 1 ||
+        event.stagingRoot === started.stagingRoot ||
+        stagePaths.has(event.stagingRoot)
+      )
+        return false;
+      stagePaths.add(event.stagingRoot);
+      ownership.generation = event.generation;
+      ownership.claimed = false;
+      ownership.cleaned = false;
+      ownership.entries.clear();
+      ownership.removing.clear();
+    }
+    if (event.type === "stage-claimed") {
+      if (
+        event.generation !== ownership.generation ||
+        ownership.claimed ||
+        ownership.cleaned
+      )
+        return false;
+      ownership.claimed = true;
+    }
+    if (event.type === "entry-created") {
+      const approved = started.plan.operations.find(
+        (operation) =>
+          operation.path === event.operation.path &&
+          operation.kind === event.operation.kind,
+      );
+      if (
+        approved === undefined ||
+        (approved.kind === "file" &&
+          createHash("sha256").update(seedFileBytes(approved)).digest("hex") !==
+            event.sha256)
+      )
+        return false;
+      if (event.phase === "staging") {
+        if (
+          !ownership.claimed ||
+          ownership.cleaned ||
+          ownership.removing.size > 0 ||
+          event.generation !== ownership.generation ||
+          ownership.entries.has(event.operation.path)
+        )
+          return false;
+        ownership.entries.add(event.operation.path);
+      } else {
+        if (
+          event.generation !== 0 ||
+          (started.preconditions.targetState === "absent" && !claimed) ||
+          publicationEntries.has(event.operation.path) ||
+          started.ownership?.publicationDirectories.some(
+            (claim) => claim.path === event.operation.path,
+          )
+        )
+          return false;
+        publicationEntries.add(event.operation.path);
+      }
+    }
+    if (event.type === "stage-entry-removing") {
+      if (
+        !ownership.claimed ||
+        ownership.cleaned ||
+        event.generation !== ownership.generation ||
+        ownership.removing.has(event.path) ||
+        (event.path !== "" && !ownership.entries.has(event.path))
+      )
+        return false;
+      if (
+        event.path === "" &&
+        [...ownership.entries].some((path) => !ownership.removing.has(path))
+      )
+        return false;
+      ownership.removing.add(event.path);
+    }
+    if (event.type === "stage-cleaned") {
+      if (
+        event.generation !== ownership.generation ||
+        ownership.cleaned ||
+        (ownership.claimed && !ownership.removing.has(""))
+      )
+        return false;
+      ownership.cleaned = true;
+    }
+    if (started.schemaVersion === 2 && event.type === "operation-completed") {
+      if (
+        !started.plan.operations.some(
+          (operation) =>
+            operation.path === event.operation.path &&
+            operation.kind === event.operation.kind,
+        )
+      )
+        return false;
+      if (
+        event.phase === "staging" &&
+        (!ownership.claimed ||
+          ownership.cleaned ||
+          ownership.removing.size > 0 ||
+          event.generation !== ownership.generation ||
+          !ownership.entries.has(event.operation.path))
+      )
+        return false;
+      if (event.phase === "publication" && event.generation !== undefined)
+        return false;
+      if (
+        event.phase === "publication" &&
+        started.preconditions.targetState === "absent" &&
+        !claimed
+      )
+        return false;
+    }
+    if (
+      started.schemaVersion === 2 &&
+      event.type === "outcome" &&
+      event.outcome === "completed" &&
+      !ownership.cleaned
+    )
+      return false;
     if (event.type === "root-claimed") {
       const started = events[0];
       if (
@@ -331,7 +543,7 @@ function hasValidJournalLifecycle(events: SeedJournalEvent[]): boolean {
     }
     if (event.type === "operation-completed") {
       if (event.phase === "publication") published = true;
-      const key = `${event.phase}\u0000${event.operation.path}`;
+      const key = `${event.phase}\u0000${event.generation ?? 0}\u0000${event.operation.path}`;
       if (completedOperations.has(key)) return false;
       completedOperations.add(key);
     }
@@ -351,6 +563,52 @@ function hasValidJournalLifecycle(events: SeedJournalEvent[]): boolean {
     }
   }
   return events.at(-1)?.type !== "failure";
+}
+
+function isEntryIdentity(value: unknown): value is SeedEntryIdentity {
+  return (
+    isRecord(value) &&
+    ["device", "inode"].every(
+      (key) => typeof value[key] === "string" && /^\d+$/u.test(value[key]),
+    )
+  );
+}
+
+function isOwnershipBaseline(value: unknown): value is SeedOwnershipBaseline {
+  return (
+    isRecord(value) &&
+    isEntryIdentity(value.parent) &&
+    Array.isArray(value.publicationDirectories) &&
+    value.publicationDirectories.every(
+      (entry) =>
+        isRecord(entry) &&
+        typeof entry.path === "string" &&
+        isEntryIdentity(entry.identity),
+    )
+  );
+}
+
+function isOwnershipEvent(event: Record<string, unknown>): boolean {
+  if (!Number.isSafeInteger(event.generation) || Number(event.generation) < 0)
+    return false;
+  if (event.type === "stage-planned")
+    return typeof event.stagingRoot === "string";
+  if (event.type === "stage-claimed") return isEntryIdentity(event.identity);
+  if (event.type === "stage-cleaned") return true;
+  if (event.type === "stage-entry-removing")
+    return typeof event.path === "string";
+  if (event.type === "entry-created")
+    return (
+      (event.phase === "staging" || event.phase === "publication") &&
+      isPublicOperation(event.operation) &&
+      isEntryIdentity(event.identity) &&
+      isRecord(event.operation) &&
+      (event.operation.kind === "directory"
+        ? event.sha256 === undefined
+        : typeof event.sha256 === "string" &&
+          /^[a-f0-9]{64}$/u.test(event.sha256))
+    );
+  return false;
 }
 
 function isSeedPlan(value: unknown): value is SeedablePlan {
@@ -458,7 +716,7 @@ function isPublicOperation(value: unknown): boolean {
   }
   const operation = value as Record<string, unknown>;
   return (
-    ["directory", "file"].includes(String(operation.kind)) &&
+    (operation.kind === "directory" || operation.kind === "file") &&
     typeof operation.path === "string"
   );
 }
@@ -471,7 +729,8 @@ function isSeedPreconditions(value: unknown): value is SeedPreconditions {
   return (
     (typeof preconditions.contractVersion === "number" ||
       preconditions.contractVersion === "unavailable") &&
-    ["absent", "partial"].includes(String(preconditions.targetState)) &&
+    (preconditions.targetState === "absent" ||
+      preconditions.targetState === "partial") &&
     Array.isArray(preconditions.completedOperations) &&
     preconditions.completedOperations.every(
       (path) => typeof path === "string",

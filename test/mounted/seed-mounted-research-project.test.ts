@@ -20,6 +20,9 @@ import { seedMountedResearchProject } from "../../src/mounted/index.js";
 import { createResearchProjectSeedPlan } from "../../src/seed/index.js";
 import { recordResearchBehaviorEvidence } from "../support/rule-evidence.js";
 
+import { seedOwnershipTests } from "../support/seed-ownership.js";
+import { assertSeedPartialRootIdentity } from "../support/seed-partial-root-identity.js";
+
 const temporaryRoots: string[] = [];
 
 afterEach(async () => {
@@ -29,6 +32,39 @@ afterEach(async () => {
 });
 
 describe("seedMountedResearchProject", () => {
+  it("adds to a partial root whose inode exceeds numeric precision", async () => {
+    const fixture = await researchSeedFixture({ existing: false });
+    await assertSeedPartialRootIdentity({
+      kind: "research-project",
+      config: fixture.config,
+      plan: fixture.plan,
+      targetRoot: fixture.projectRoot,
+    });
+  });
+
+  seedOwnershipTests(async () => {
+    const fixture = await researchSeedFixture({ existing: false });
+    return {
+      parentRoot: fixture.researchRoot,
+      targetRoot: fixture.projectRoot,
+      stateRoot: fixture.stateRoot,
+      directoryPath:
+        fixture.plan.operations.find(
+          (operation) => operation.kind === "directory",
+        )?.path ?? "missing",
+      filePath:
+        fixture.plan.operations.find((operation) => operation.kind === "file")
+          ?.path ?? "missing",
+      run: (options) =>
+        seedMountedResearchProject(
+          fixture.config,
+          fixture.plan,
+          "apply",
+          options,
+        ),
+    };
+  });
+
   it("previews, applies, preserves Finder metadata, and repeats as a no-op", async () => {
     const fixture = await researchSeedFixture();
 

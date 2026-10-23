@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { readdir, rm } from "node:fs/promises";
+import { readdir } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 
 import type { SeedMode, SeedOperation, SeedOutcome } from "../seed/index.js";
@@ -32,6 +32,12 @@ import {
   publicSeedOperation,
   type OperationState,
 } from "./seed-target-state.js";
+import {
+  captureSeedOwnership,
+  inspectSeedOwnership,
+  removeOwnedSeedStage,
+  seedStage,
+} from "./seed-ownership.js";
 import type { SeedExecutionOptions } from "./types.js";
 
 export interface MountedSeedResult {
@@ -131,6 +137,11 @@ export async function seedMountedTarget(
         return blockedResult(current, [
           "Completed publication root claim no longer verifies.",
         ]);
+      if (journal.started.schemaVersion === 2) {
+        const ownershipBlocker = await inspectSeedOwnership(journal);
+        if (ownershipBlocker !== undefined)
+          return blockedResult(current, [ownershipBlocker]);
+      }
       return await reportCompletedTarget(adapter);
     }
   }
@@ -144,6 +155,11 @@ export async function seedMountedTarget(
     return blockedResult(current, [
       "Publication target has no matching durable root claim; resume refused.",
     ]);
+  }
+  if (journal !== undefined) {
+    const ownershipBlocker = await inspectSeedOwnership(journal);
+    if (ownershipBlocker !== undefined)
+      return blockedResult(current, [ownershipBlocker]);
   }
   if (current.conflicts.length > 0) {
     return blockedResult(current, current.conflicts);
@@ -178,7 +194,11 @@ export async function seedMountedTarget(
   ) {
     const recovered = await reportCompletedTarget(adapter);
     if (recovered.outcome !== "completed") return recovered;
-    await removeValidatedStagingRoot(journal, adapter.stagingPrefix);
+    const cleanup = await removeOwnedSeedStage(journal);
+    if (cleanup !== undefined) return blockedResult(current, [cleanup]);
+    const ownershipBlocker = await inspectSeedOwnership(journal);
+    if (ownershipBlocker !== undefined)
+      return blockedResult(current, [ownershipBlocker]);
     await appendSeedJournalEvent(journal, {
       type: "outcome",
       outcome: "completed",
@@ -202,6 +222,11 @@ export async function seedMountedTarget(
         completedOperations: current.matching.map(({ path }) => path),
         remainingOperations: current.remaining.map(({ path }) => path),
       },
+      ownership: await captureSeedOwnership(
+        adapter.parentRoot,
+        targetRoot,
+        adapter.plan.operations,
+      ),
       stagingRoot: join(
         adapter.parentRoot,
         `${adapter.stagingPrefix}${randomUUID()}`,
@@ -242,15 +267,28 @@ export async function seedMountedTarget(
         "Publication target root claim changed before final verification.",
     });
   }
-  const finalAudit = await adapter.auditTarget();
-  if (finalAudit.length > 0) {
+  const finalVerification = await reportCompletedTarget(adapter);
+  if (finalVerification.outcome !== "completed") {
     return await finalizeFailure(activeJournal, adapter, {
       outcome: "blocked",
       phase: "verification",
-      evidence: finalAudit.join(" "),
+      evidence: finalVerification.evidence.join(" "),
     });
   }
-  await removeValidatedStagingRoot(activeJournal, adapter.stagingPrefix);
+  const cleanup = await removeOwnedSeedStage(activeJournal);
+  if (cleanup !== undefined)
+    return await finalizeFailure(activeJournal, adapter, {
+      outcome: "blocked",
+      phase: "verification",
+      evidence: cleanup,
+    });
+  const ownershipBlocker = await inspectSeedOwnership(activeJournal);
+  if (ownershipBlocker !== undefined)
+    return await finalizeFailure(activeJournal, adapter, {
+      outcome: "blocked",
+      phase: "verification",
+      evidence: ownershipBlocker,
+    });
   await appendSeedJournalEvent(activeJournal, {
     type: "outcome",
     outcome: "completed",
@@ -269,12 +307,12 @@ async function finalizeFailure(
   adapter: MountedSeedAdapter,
   failure: SeedExecutionFailure,
 ): Promise<MountedSeedResult> {
+  const cleanup = await removeOwnedSeedStage(journal);
   await appendSeedJournalEvent(journal, {
     type: "failure",
     phase: failure.phase,
     evidence: failure.evidence,
   });
-  await removeValidatedStagingRoot(journal, adapter.stagingPrefix);
   await appendSeedJournalEvent(journal, {
     type: "outcome",
     outcome: failure.outcome,
@@ -285,7 +323,8 @@ async function finalizeFailure(
   );
   return progressResult(failure.outcome, current, [
     failure.evidence,
-    "The safely handled failure removed temporary staging; the private journal was retained.",
+    cleanup ??
+      "The safely handled failure removed temporary staging; the private journal was retained.",
   ]);
 }
 
@@ -300,7 +339,13 @@ function validateJournal(
   ) {
     return ["Seed journal contains a mismatched target identity."];
   }
-  if (!isExpectedStagingRoot(journal.started, adapter.stagingPrefix)) {
+  if (
+    !isExpectedStagingRoot(journal.started, adapter.stagingPrefix) ||
+    !isExpectedStagingRoot(
+      { ...journal.started, stagingRoot: seedStage(journal).root },
+      adapter.stagingPrefix,
+    )
+  ) {
     return ["Seed journal contains an unsafe or ambiguous staging identity."];
   }
   if (
@@ -351,24 +396,11 @@ async function reconcileStagingArtifacts(
       ? undefined
       : `Staging artifact has no matching journal: ${stages.sort().join(", ")}.`;
   }
-  const expectedStage = basename(journal.started.stagingRoot);
+  const expectedStage = basename(seedStage(journal).root);
   const unrelated = stages.filter((name) => name !== expectedStage);
   return unrelated.length === 0
     ? undefined
     : `Staging artifacts do not belong to the resumable journal: ${unrelated.sort().join(", ")}.`;
-}
-
-async function removeValidatedStagingRoot(
-  journal: SeedJournal,
-  stagingPrefix: string,
-): Promise<void> {
-  if (!isExpectedStagingRoot(journal.started, stagingPrefix)) {
-    throw new OperationalError(
-      "out-of-root",
-      "Refused to remove an unsafe seed staging path.",
-    );
-  }
-  await rm(journal.started.stagingRoot, { recursive: true, force: true });
 }
 
 function isExpectedStagingRoot(

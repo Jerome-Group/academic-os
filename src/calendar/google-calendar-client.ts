@@ -410,6 +410,9 @@ async function listCalendars(
         typeof calendar.id !== "string" ||
         calendar.id === "" ||
         typeof calendar.summary !== "string" ||
+        [calendar.selected, calendar.hidden, calendar.primary].some(
+          (value) => value !== undefined && typeof value !== "boolean",
+        ) ||
         (calendar.timeZone !== undefined &&
           typeof calendar.timeZone !== "string")
       )

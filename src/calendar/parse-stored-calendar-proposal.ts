@@ -241,9 +241,7 @@ function sourceItem(value: unknown): boolean {
     (value.recurringEventId === undefined || nonempty(value.recurringEventId))
   );
 }
-function target(
-  value: unknown,
-): value is Record<string, unknown> & {
+function target(value: unknown): value is Record<string, unknown> & {
   calendarId: string;
   calendarRole: OwnedCalendarRole;
 } {

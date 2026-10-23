@@ -218,6 +218,21 @@ describe("Google Calendar Refresh adapter", () => {
 });
 
 describe("Google Calendar source observation", () => {
+  it("refuses malformed calendar visibility metadata rather than silently dropping a participant", async () => {
+    for (const field of ["selected", "hidden", "primary"]) {
+      const reader = createGoogleCalendarProposalReader("unused", {
+        request: async <T>() => ({
+          data: {
+            items: [{ id: "calendar", summary: "Calendar", [field]: "true" }],
+          } as T,
+        }),
+      });
+      await assert.rejects(
+        reader.listCalendars(),
+        /invalid Calendar metadata/u,
+      );
+    }
+  });
   it("exhausts stored-resource pages including an empty middle page without a time clamp", async () => {
     const requests: CalendarHttpRequest[] = [];
     const requester: CalendarRequester = {

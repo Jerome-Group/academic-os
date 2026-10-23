@@ -34,6 +34,7 @@ Calendar propose/promote map to both their existing CLI suites and
 Google adapter with independently specified finite dates, stored exceptions and paginated provider
 fixtures. It covers restore availability, timetable peers, later recurrence conflicts, exact scope,
 legacy refusal and zero additional recovery writes after new blockers. Supported finite rules,
+current exact Owned ownership, scalar stored enums,
 zones, exemptions and retained-resource restoration are specified in
 [`ADR 0006`](../adr/0006-google-calendar-is-the-live-authority.md#complete-availability-and-recovery).
 Fixtures establish these local behaviors; they do not establish real-account recurrence parity or

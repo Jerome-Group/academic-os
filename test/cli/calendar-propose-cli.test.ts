@@ -2669,6 +2669,7 @@ async function setupFixture(
         {
           id: "academic-id",
           summary: "Personal",
+          accessRole: "owner",
           primary: true,
           selected: true,
           timeZone: "Asia/Singapore",
@@ -2679,6 +2680,7 @@ async function setupFixture(
         {
           id: "commitments-id",
           summary: "Commitments",
+          accessRole: "owner",
           selected: true,
           timeZone: "Asia/Singapore",
           colorId: "commitments-colour",
@@ -2688,6 +2690,7 @@ async function setupFixture(
         {
           id: "routine-id",
           summary: "Routine",
+          accessRole: "owner",
           selected: true,
           timeZone: "Asia/Singapore",
           colorId: "routine-colour",
@@ -2697,6 +2700,7 @@ async function setupFixture(
         {
           id: "observed-id",
           summary: "Observed",
+          accessRole: "reader",
           selected: true,
           timeZone: "Asia/Singapore",
           colorId: "observed-colour",

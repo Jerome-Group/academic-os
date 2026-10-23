@@ -1304,6 +1304,126 @@ it("requires EXDATE value kind to agree with DTSTART and retains explicit all-da
   assert.equal(writes(await provider(rdate)), 0);
 });
 
+it("rejects stored enum arrays as invalid state before any promotion provider read", async () => {
+  for (const field of [
+    "status",
+    "itemKind",
+    "recurrenceScope",
+    "kind",
+    "warningCoverage",
+    "reason",
+  ]) {
+    const fixture = await setup({ academic: [master(), second()] });
+    const preview = await propose(
+      fixture,
+      change("selected", { summary: "Metadata" }, "this-occurrence"),
+    );
+    assert.equal(preview.report.outcome, "ready", JSON.stringify(preview));
+    const path = join(fixture.calendarRoot, "pending-proposals.json");
+    const stored: unknown = JSON.parse(await readFile(path, "utf8"));
+    assert.ok(record(stored) && Array.isArray(stored.proposals));
+    const proposal: unknown = stored.proposals[0];
+    assert.ok(record(proposal));
+    let target = proposal;
+    if (["kind", "warningCoverage", "reason"].includes(field)) {
+      assert.ok(record(proposal.review) && record(proposal.review.coverage));
+      target = proposal.review.coverage;
+    }
+    assert.equal(typeof target[field], "string");
+    target[field] = [target[field]];
+    await writeFile(path, JSON.stringify(stored));
+    const reads = (await provider(fixture)).requests?.length;
+    const result = await promote(fixture, preview.report.proposal.id);
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.equal(result.report.error.code, "operational-failure");
+    assert.match(
+      result.report.error.message,
+      /private pending Calendar Proposal is invalid; re-preview/u,
+    );
+    assert.equal((await provider(fixture)).requests?.length, reads);
+    assert.equal(writes(await provider(fixture)), 0);
+  }
+});
+
+function record(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+it("requires exact current owner access for every configured Owned calendar before preview and promotion", async () => {
+  for (const role of roles) {
+    for (const access of [
+      "writer",
+      "reader",
+      "freeBusyReader",
+      undefined,
+      null,
+      false,
+      ["owner"],
+      "OWNER",
+    ]) {
+      for (const phase of ["preview", "promotion"]) {
+        const fixture = await setup();
+        const approved =
+          phase === "promotion" ? await propose(fixture, fixed()) : undefined;
+        if (approved !== undefined)
+          assert.equal(
+            approved.report.outcome,
+            "ready",
+            JSON.stringify(approved),
+          );
+        const path = join(fixture.calendarRoot, "pending-proposals.json");
+        const before =
+          approved === undefined ? undefined : await readFile(path, "utf8");
+        const raw: unknown = JSON.parse(
+          await readFile(fixture.providerPath, "utf8"),
+        );
+        assert.ok(record(raw) && Array.isArray(raw.calendars));
+        const calendar: unknown = raw.calendars.find(
+          (value: unknown) => record(value) && value.id === calendarIds[role],
+        );
+        assert.ok(record(calendar));
+        if (access === undefined) delete calendar.accessRole;
+        else calendar.accessRole = access;
+        await writeFile(fixture.providerPath, JSON.stringify(raw));
+        const result =
+          approved === undefined
+            ? await propose(fixture, fixed())
+            : await promote(fixture, approved.report.proposal.id);
+        assert.equal(
+          result.exitCode,
+          2,
+          JSON.stringify({ role, access, phase, result }),
+        );
+        assert.match(result.report.error.message, /current.*owner/u);
+        assert.equal(writes(await provider(fixture)), 0);
+        if (before === undefined)
+          await assert.rejects(readFile(path), { code: "ENOENT" });
+        else assert.equal(await readFile(path, "utf8"), before);
+      }
+    }
+  }
+  const owner = await setup();
+  const ready = await propose(owner, fixed());
+  assert.equal(ready.report.outcome, "ready", JSON.stringify(ready));
+  assert.equal(
+    (await promote(owner, ready.report.proposal.id)).report.outcome,
+    "promoted",
+  );
+  const observed = await setup({
+    observed: [
+      event(
+        "read-only-observed",
+        "2026-10-20T09:00:00+08:00",
+        "2026-10-20T10:00:00+08:00",
+      ),
+    ],
+  });
+  const conflict = await propose(observed, fixed());
+  assert.equal(conflict.report.outcome, "blocked", JSON.stringify(conflict));
+  assert.equal(conflict.report.conflicts[0].source, "Observed");
+  assert.equal(writes(await provider(observed)), 0);
+});
+
 interface ProviderState {
   calendars: CalendarListEntry[];
   events: {
@@ -1413,6 +1533,7 @@ async function setup(
         ...roles.map((role) => ({
           id: calendarIds[role],
           summary: role,
+          accessRole: "owner",
           selected: true,
           timeZone: "Asia/Singapore",
           etag: `${role}-v1`,
@@ -1420,6 +1541,7 @@ async function setup(
         {
           id: "observed",
           summary: "Observed",
+          accessRole: "reader",
           selected: true,
           timeZone: "Asia/Singapore",
         },

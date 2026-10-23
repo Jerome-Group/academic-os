@@ -1511,6 +1511,7 @@ async function setupFixture(): Promise<Fixture> {
         {
           id: "academic-id",
           summary: "Personal",
+          accessRole: "owner",
           primary: true,
           selected: true,
           timeZone: "Asia/Singapore",
@@ -1519,18 +1520,21 @@ async function setupFixture(): Promise<Fixture> {
         {
           id: "commitments-id",
           summary: "Commitments",
+          accessRole: "owner",
           selected: true,
           timeZone: "Asia/Singapore",
         },
         {
           id: "routine-id",
           summary: "Routine",
+          accessRole: "owner",
           selected: true,
           timeZone: "Asia/Singapore",
         },
         {
           id: "observed-id",
           summary: "Observed",
+          accessRole: "reader",
           selected: true,
           timeZone: "Asia/Singapore",
         },

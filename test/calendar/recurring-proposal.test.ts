@@ -215,6 +215,7 @@ async function propose(fixture: ReturnType<typeof fixtures>, eventId: string) {
         OWNED_CALENDAR_ROLES.map((role) => ({
           id: workspace.ownedCalendarIds[role],
           summary: role,
+          accessRole: "owner",
           timeZone: "Asia/Singapore",
         })),
       listStoredEvents: async () =>

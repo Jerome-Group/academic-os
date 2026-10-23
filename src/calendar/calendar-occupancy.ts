@@ -504,6 +504,14 @@ function validateCalendarMembership(
       workspace.ownedCalendarIds[proposal.target.calendarRole]
   )
     unsupported("Owned calendar membership changed or is unavailable");
+  for (const role of OWNED_CALENDAR_ROLES)
+    if (
+      calendars.find(({ id }) => id === workspace.ownedCalendarIds[role])
+        ?.accessRole !== "owner"
+    )
+      unsupported(
+        `configured Owned ${role} calendar requires current accessRole owner`,
+      );
 }
 function proposalIntent(proposal: CalendarProposalCandidate): unknown {
   const {

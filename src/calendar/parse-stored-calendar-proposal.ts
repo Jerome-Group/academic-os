@@ -21,17 +21,17 @@ function isStoredCalendarProposal(
     !isRecord(value) ||
     !nonempty(value.id) ||
     !nonempty(value.idempotencyKey) ||
-    !["ready", "stale", "promoted"].includes(String(value.status)) ||
+    !member(value.status, ["ready", "stale", "promoted"]) ||
     !isRecord(value.source) ||
     !nonempty(value.source.kind) ||
     !nonempty(value.source.reference) ||
     !target(value.target) ||
-    ![
+    !member(value.itemKind, [
       "fixed-event",
       "routine-event",
       "timed-milestone",
       "all-day-milestone",
-    ].includes(String(value.itemKind)) ||
+    ]) ||
     !Array.isArray(value.liveVersions) ||
     !isRecord(value.relevantAvailabilityVersion) ||
     !nonempty(value.relevantAvailabilityVersion.digest) ||
@@ -95,9 +95,11 @@ function isStoredCalendarProposal(
     if (
       !sourceItem(value.sourceItem) ||
       (value.recurrenceScope !== undefined &&
-        !["this-occurrence", "entire-series", "this-and-future"].includes(
-          String(value.recurrenceScope),
-        ))
+        !member(value.recurrenceScope, [
+          "this-occurrence",
+          "entire-series",
+          "this-and-future",
+        ]))
     )
       invalid();
     if (value.operation === "cancel") {
@@ -183,12 +185,12 @@ function isCalendarAssessmentReview(
         inventory.events.every(isCalendarEvent),
     ) ||
     !isRecord(value.coverage) ||
-    !["complete-finite", "not-required"].includes(
-      String(value.coverage.kind),
-    ) ||
-    !["complete-finite", "anchor-only", "not-enumerated"].includes(
-      String(value.coverage.warningCoverage),
-    ) ||
+    !member(value.coverage.kind, ["complete-finite", "not-required"]) ||
+    !member(value.coverage.warningCoverage, [
+      "complete-finite",
+      "anchor-only",
+      "not-enumerated",
+    ]) ||
     !Array.isArray(value.coverage.occurrences) ||
     !value.coverage.occurrences.every(
       (occupant) =>
@@ -207,9 +209,12 @@ function isCalendarAssessmentReview(
     return false;
   if (
     value.coverage.kind === "not-required" &&
-    !["cancellation", "milestone", "routine", "occupancy-preserving"].includes(
-      String(value.coverage.reason),
-    )
+    !member(value.coverage.reason, [
+      "cancellation",
+      "milestone",
+      "routine",
+      "occupancy-preserving",
+    ])
   )
     return false;
   return true;
@@ -283,4 +288,8 @@ function invalid(): never {
     "operational-failure",
     "The private pending Calendar Proposal is invalid; re-preview required.",
   );
+}
+
+function member(value: unknown, options: readonly string[]): value is string {
+  return typeof value === "string" && options.includes(value);
 }

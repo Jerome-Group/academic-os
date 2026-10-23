@@ -118,6 +118,10 @@ then checks intended occurrences against each other and live availability from a
 selected visible Observed calendars. The transport writer executes that plan without choosing
 another anchor, remaining count or replay action. Stored intervals, digests and calendar counts
 are display evidence; they cannot authorize a write.
+Each preview and every additional write requires current exact `accessRole: owner` for all three
+configured Owned calendars. Missing, malformed or weaker access refuses; an old workspace role
+binding cannot authorize a formerly owned calendar. Selected Observed calendars can remain readers
+and supply availability without becoming write targets.
 
 Busy recurrence coverage supports one DAILY or WEEKLY RRULE, positive INTERVAL, finite COUNT or
 inclusive UNTIL, weekly nonordinal BYDAY/WKST and supported EXDATE values. COUNT counts base

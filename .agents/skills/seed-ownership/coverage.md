@@ -12,6 +12,23 @@ Both expand the promise intentionally under [ADR-0041](../../../docs/adr/0041-re
 Those two changes do not alter the owner protocol. Parser completeness and recovery correctness remain outside its model.
 The existing seed state machine and every covered seed file except the outer wrapper are unchanged.
 
+## Containment maintenance
+
+Inspection extends through `d726ae44dc433f932f0f561d74f55d8d073af011`.
+The covered changes since `2d000f1a79e33c0178379abe247588b682242e67` are classified as **No effect** on the ownership properties.
+`6aee8dac8cf52c477dcc37ce4755e90a035395f1` corrects the shared containment predicate.
+`d726ae44dc433f932f0f561d74f55d8d073af011` routes repair snapshot and local-artifact preflight through it.
+Both compare an exact parent component instead of rejecting every two-dot-prefixed ordinary name.
+The helper is now a covered file because those checks moved out of the covered CLI file.
+This binding detects future source drift; the model still begins with a valid approved plan and does not prove preflight path policy.
+The owner callback, storage admission and drain, effect ordering, filesystem transitions, properties and all bounds are unchanged.
+
+The initial ordinary run refused the changed CLI source hash, which was verification drift rather than a failed ownership property.
+The explicit candidate at the recorded revision passed all 13 model runs, 34 adapter cases, 33 ownership tests and four prerequisite tests.
+The cleanup mutations still deleted foreign sentinels, owner mutations still let six losing CLIs complete, and repair mutations still duplicated creation.
+Restored implementations passed those same controls.
+The candidate runner also used the separate evidence-parent containment correction tracked by #362; that correction changes no protocol check.
+
 ## Bounds and assumptions
 
 The positive configurations enumerate one target, one active stage pathname, two claim generations, two nested directory components, two approved files, and one foreign descendant slot.

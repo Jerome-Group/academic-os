@@ -10,7 +10,8 @@ import {
   unlink,
   writeFile,
 } from "node:fs/promises";
-import { isAbsolute, join, relative } from "node:path";
+import { isAbsolute, join } from "node:path";
+import { isContainedBy } from "../mounted/is-contained-by.js";
 import { createRepositoryRepairPorts } from "./repository-repair-adapters.js";
 import {
   REQUIRED_REPOSITORY_CHECKS,
@@ -78,8 +79,7 @@ export async function runRepositoryRepair(input: {
     return result("blocked", { code: "invalid-private-state" });
   await mkdir(input.privateStateRoot, { recursive: true, mode: 0o700 });
   const privateRoot = await realpath(input.privateStateRoot);
-  const rel = relative(repositoryRoot, privateRoot);
-  if (rel === "" || (!rel.startsWith("..") && !isAbsolute(rel)))
+  if (isContainedBy(repositoryRoot, privateRoot))
     return result("blocked", { code: "private-state-in-repository" });
   const directory = join(privateRoot, "repository-repair");
   await mkdir(directory, { mode: 0o700, recursive: true });

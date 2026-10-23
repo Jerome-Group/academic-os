@@ -406,6 +406,8 @@ function normalizedContent(
     delete result[key];
   if (result.status === "confirmed" || result.status === undefined)
     delete result.status;
+  if (result.eventType === undefined || result.eventType === "default")
+    delete result.eventType;
   result.transparency = result.transparency ?? "opaque";
   if (result.visibility === undefined || result.visibility === "default")
     delete result.visibility;

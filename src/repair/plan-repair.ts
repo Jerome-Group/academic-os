@@ -353,7 +353,7 @@ function validateOperations(
   localArtifacts: CompleteRepairInventory["localArtifacts"],
 ): void {
   const operationIds = new Set<string>();
-  const createdOperations = new Set<string>();
+  const createdFolders = new Set<string>();
   const destinationKeys = new Set(
     [...items.values()].flatMap((item) =>
       item.parentIds.map(
@@ -395,13 +395,15 @@ function validateOperations(
       operation.kind === "create-folder" ||
       operation.kind === "create-file"
     ) {
-      validateParent(operation.parent, items, createdOperations);
+      validateParent(operation.parent, items, createdFolders);
       validateDestinationName(operation.name);
       rejectDestinationCollision(
         destinationKeys,
         destinationKey(operation.parent, operation.name),
       );
-      createdOperations.add(operation.operationId);
+      if (operation.kind === "create-folder") {
+        createdFolders.add(operation.operationId);
+      }
       continue;
     }
     const source = items.get(operation.sourceId);
@@ -434,7 +436,7 @@ function validateOperations(
       }
     }
     if (operation.kind === "relocate-item") {
-      validateDestination(operation.destination, items, createdOperations);
+      validateDestination(operation.destination, items, createdFolders);
       rejectDestinationCollision(
         destinationKeys,
         destinationKey(
@@ -569,21 +571,21 @@ function validateDecisions(
 function validateDestination(
   destination: RepairDestination,
   items: Map<string, CompleteRepairInventory["items"][number]>,
-  createdOperations: Set<string>,
+  createdFolders: Set<string>,
 ): void {
-  validateParent(destination.parent, items, createdOperations);
+  validateParent(destination.parent, items, createdFolders);
   validateDestinationName(destination.name);
 }
 
 function validateParent(
   parent: RepairParentReference,
   items: Map<string, CompleteRepairInventory["items"][number]>,
-  createdOperations: Set<string>,
+  createdFolders: Set<string>,
 ): void {
   if (parent.kind === "planned") {
-    if (!createdOperations.has(parent.operationId)) {
+    if (!createdFolders.has(parent.operationId)) {
       throw new RepairPlanError(
-        "A planned parent must be created before it is referenced.",
+        "A planned parent must be an earlier create-folder operation.",
       );
     }
     return;

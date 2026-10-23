@@ -1,24 +1,24 @@
 import { createHash } from "node:crypto";
 import { lstat, readFile, realpath, stat, unlink } from "node:fs/promises";
-import { isAbsolute, join, relative, resolve } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-
-import { type AcademicConfig, loadLocalConfig } from "../config/index.js";
 import { resolveConfiguredAuditTarget } from "../cohort/index.js";
+import { type AcademicConfig, loadLocalConfig } from "../config/index.js";
 import {
+  type LocalConfig,
   OperationalError,
   resolveConfiguredRoots,
-  type LocalConfig,
 } from "../mounted/index.js";
+import { isContainedBy } from "../mounted/is-contained-by.js";
 import {
   createFileRepairJournalStore,
   createGoogleDriveRepairClient,
   executeRepairPlan,
   inventoryLocalRepairArtifacts,
-  recoverRepairPlan,
-  type RepairExecutionReport,
   type LocalRepairArtifact,
+  type RepairExecutionReport,
   type RepairPlan,
+  recoverRepairPlan,
   verifyRepairPlan,
   verifyRepairRecovery,
 } from "../repair/index.js";
@@ -59,7 +59,7 @@ export async function runRepairCommand(
   ) => {
     const candidate = resolve(moduleRoot, artifact.relativePath);
     const path = await realpath(candidate);
-    if (!isWithin(path, moduleRoot)) {
+    if (!isContainedBy(moduleRoot, path)) {
       throw new OperationalError(
         "out-of-root",
         "Local-only repair artifact escapes the module root.",
@@ -294,12 +294,7 @@ async function validateSnapshotRoot(
 }
 
 function overlaps(left: string, right: string): boolean {
-  return isWithin(left, right) || isWithin(right, left);
-}
-
-function isWithin(candidate: string, parent: string): boolean {
-  const path = relative(parent, candidate);
-  return path === "" || (!path.startsWith("..") && !isAbsolute(path));
+  return isContainedBy(left, right) || isContainedBy(right, left);
 }
 
 function writeRepairReport(report: RepairExecutionReport, json: boolean): void {

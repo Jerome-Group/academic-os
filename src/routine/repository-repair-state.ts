@@ -67,6 +67,13 @@ export async function readRepositoryRepairStatus(
       !Number.isFinite(Date.parse(receipt.observedAt))
     )
       return fail();
+    const candidateCleanup = receipt.candidateCleanup;
+    if (
+      candidateCleanup !== undefined &&
+      candidateCleanup !== "released" &&
+      candidateCleanup !== "retained"
+    )
+      return fail();
     for (const key of [
       "head",
       "mergeCommit",
@@ -117,10 +124,8 @@ export async function readRepositoryRepairStatus(
       if (typeof value[key] === "string") report[key] = value[key];
     for (const key of ["issue", "pullRequest"] as const)
       if (Number.isSafeInteger(value[key])) report[key] = value[key] as number;
-    if (["released", "retained"].includes(String(receipt.candidateCleanup)))
-      report.candidateCleanup = receipt.candidateCleanup as
-        | "released"
-        | "retained";
+    if (candidateCleanup !== undefined)
+      report.candidateCleanup = candidateCleanup;
     if (report.mergeCommit) {
       report.postmergeVerification =
         value.postmergeVerified === true ? "passed" : "blocked";

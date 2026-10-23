@@ -71,6 +71,20 @@ jobs:
         run: node --test --test-reporter=tap dist/test/textbooks/shelf-preservation-process.test.js
       - run: node dist/src/cli.js capabilities verify --workflow discovery --json
       - run: node dist/src/cli.js capabilities check --profile tests --json
+
+  formal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
@@ -225,7 +239,7 @@ jobs:
 
   checks:
     if: always()
-    needs: [format, lint, typecheck, test, rule-coverage, privacy, templates]
+    needs: [format, lint, typecheck, test, formal, rule-coverage, privacy, templates]
     runs-on: ubuntu-latest
     timeout-minutes: 1
     steps:
@@ -251,6 +265,7 @@ jobs:
           LINT_RESULT: ${{ needs.lint.result }}
           TYPECHECK_RESULT: ${{ needs.typecheck.result }}
           TEST_RESULT: ${{ needs.test.result }}
+          FORMAL_RESULT: ${{ needs.formal.result }}
           RULE_COVERAGE_RESULT: ${{ needs.rule-coverage.result }}
           PRIVACY_RESULT: ${{ needs.privacy.result }}
           TEMPLATES_RESULT: ${{ needs.templates.result }}
@@ -259,6 +274,7 @@ jobs:
           test "$LINT_RESULT" = success
           test "$TYPECHECK_RESULT" = success
           test "$TEST_RESULT" = success
+          test "$FORMAL_RESULT" = success
           test "$RULE_COVERAGE_RESULT" = success
           test "$PRIVACY_RESULT" = success
           test "$TEMPLATES_RESULT" = success

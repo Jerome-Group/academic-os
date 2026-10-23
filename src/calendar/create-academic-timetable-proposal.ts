@@ -1,25 +1,18 @@
 import { OperationalError } from "../operational-error.js";
-import {
-  collectCalendarAvailability,
-  findCalendarOverlaps,
-} from "./calendar-conflicts.js";
 import { calendarEventIdFor } from "./calendar-idempotency.js";
+import { saveAssessedCalendarProposal } from "./save-assessed-calendar-proposal.js";
+import { calendarTimetableMapVersion } from "./calendar-occupancy.js";
 import { calendarStateDigest } from "./calendar-state-digest.js";
 import type {
   CalendarBulkCreateItem,
   CalendarBulkCreateProposalCandidate,
-  CalendarInterval,
-  CalendarProposal,
   CalendarProposeReport,
   CalendarProposalReader,
   CalendarProposalStore,
   OwnedCalendarMirrorStore,
   OwnedCalendarWorkspace,
 } from "./types.js";
-import type {
-  ParsedCalendarAcademicTimetableProposalInput,
-  ParsedCalendarBulkCreateItem,
-} from "./calendar-proposal-input.js";
+import type { ParsedCalendarAcademicTimetableProposalInput } from "./calendar-proposal-input.js";
 import { readCurrentCalendarMirrors } from "./read-current-calendar-mirrors.js";
 
 export async function createAcademicTimetableProposal(input: {
@@ -49,20 +42,6 @@ export async function createAcademicTimetableProposal(input: {
     );
   }
 
-  const intervals = input.value.items.flatMap(
-    ({ occupiedIntervals }) => occupiedIntervals,
-  );
-  const availability = await collectCalendarAvailability({
-    reader: input.reader,
-    calendars,
-    mirrors,
-    ownedCalendarIds: input.workspace.ownedCalendarIds,
-    interval: boundingInterval(intervals),
-  });
-  const { conflicts, warnings } = collectBulkOverlaps(
-    input.value.items,
-    availability.items,
-  );
   const intentDigest = calendarStateDigest({
     operation: "bulk-create",
     source: input.value.source,
@@ -77,7 +56,8 @@ export async function createAcademicTimetableProposal(input: {
   }));
   const proposal: CalendarBulkCreateProposalCandidate = {
     id: `proposal-${intentDigest.slice(0, 24)}`,
-    ...(conflicts.length === 0 ? { status: "ready" as const } : {}),
+    timetableRecipe: input.value.recipe,
+    timetableMapVersion: calendarTimetableMapVersion(),
     operation: "bulk-create",
     source: input.value.source,
     itemKind: "fixed-event",
@@ -100,82 +80,19 @@ export async function createAcademicTimetableProposal(input: {
       lastSuccessfulRefresh: mirror.lastSuccessfulRefresh as string,
     })),
     relevantAvailabilityVersion: {
-      digest: calendarStateDigest(
-        availability.items.map(({ calendarId, event }) => ({
-          calendarId,
-          event,
-        })),
-      ),
-      intervals,
-      checkedCalendarCount: availability.checkedCalendarCount,
+      digest: "",
+      intervals: [],
+      checkedCalendarCount: 0,
     },
-    conflictSummary: {
-      blockers: conflicts.length,
-      warnings: warnings.length,
-    },
+    conflictSummary: { blockers: 0, warnings: 0 },
   };
-  const ready = conflicts.length === 0;
-  if (ready) {
-    const readyProposal: CalendarProposal = { ...proposal, status: "ready" };
-    await input.proposalStore.writeCurrent(readyProposal);
-  }
-  return {
-    schemaVersion: 1,
-    command: "calendar propose",
-    outcome: ready ? "ready" : "blocked",
+  return await saveAssessedCalendarProposal({
     proposal,
-    conflicts,
-    warnings,
-    workspace: ready ? "written" : "not-written",
-  };
-}
-
-function collectBulkOverlaps(
-  items: ParsedCalendarBulkCreateItem[],
-  availability: Parameters<typeof findCalendarOverlaps>[0]["availability"],
-) {
-  const seen = new Set<string>();
-  const overlaps = items.flatMap((item) =>
-    item.occupiedIntervals.flatMap((interval) =>
-      findCalendarOverlaps({
-        availability,
-        interval,
-        proposedKind: item.itemKind,
-      }).filter((overlap) => {
-        const key = `${item.key}\0${overlap.eventId}\0${overlap.start}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      }),
-    ),
-  );
-  return {
-    conflicts: overlaps.filter(({ severity }) => severity === "block"),
-    warnings: overlaps.filter(({ severity }) => severity === "warning"),
-  };
-}
-
-function boundingInterval(intervals: CalendarInterval[]): CalendarInterval {
-  const first = intervals[0];
-  if (first === undefined) {
-    throw new OperationalError(
-      "invalid-target",
-      "An academic timetable Proposal must contain an occupied interval.",
-    );
-  }
-  return intervals.reduce(
-    (result, interval) => ({
-      start:
-        Date.parse(interval.start) < Date.parse(result.start)
-          ? interval.start
-          : result.start,
-      end:
-        Date.parse(interval.end) > Date.parse(result.end)
-          ? interval.end
-          : result.end,
-    }),
-    first,
-  );
+    workspace: input.workspace,
+    mirrors,
+    reader: input.reader,
+    proposalStore: input.proposalStore,
+  });
 }
 
 function validateReminders(

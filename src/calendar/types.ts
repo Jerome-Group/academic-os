@@ -1,3 +1,4 @@
+import type { CalendarAssessmentReview } from "./calendar-occupancy.js";
 export type OwnedCalendarRole = "Academic" | "Commitments" | "Routine";
 
 export const OWNED_CALENDAR_ROLES: readonly OwnedCalendarRole[] = [
@@ -19,6 +20,7 @@ export interface CalendarListEntry {
   primary?: boolean;
   selected?: boolean;
   summary: string;
+  timeZone?: string;
 }
 
 export interface CalendarSetupReader {
@@ -84,7 +86,7 @@ export interface CalendarEvent {
     dateTime?: string;
     timeZone?: string;
   };
-  transparency?: string;
+  transparency?: string | null;
   [key: string]: unknown;
 }
 
@@ -100,6 +102,16 @@ export interface CalendarRefreshReader {
 }
 
 export interface CalendarProposalReader {
+  readEvent?(input: {
+    calendarId: string;
+    eventId: string;
+  }): Promise<CalendarEvent>;
+  listStoredEvents?(input: { calendarId: string }): Promise<CalendarEvent[]>;
+  listSeriesInstances?(input: {
+    calendarId: string;
+    eventId: string;
+    originalStart: string;
+  }): Promise<CalendarEvent[]>;
   listCalendars(): Promise<CalendarListEntry[]>;
   listEventOccurrences(input: {
     calendarId: string;
@@ -143,7 +155,7 @@ export interface CalendarProposalStore {
     proposalId: string,
     reason: CalendarProposalStaleReason,
   ): Promise<void>;
-  read(proposalId: string): Promise<CalendarProposal | undefined>;
+  read(proposalId: string): Promise<CalendarStoredProposal | undefined>;
   markStaleForDeletedItems(
     deletedItems: Array<{
       calendarRole: OwnedCalendarRole;
@@ -171,7 +183,7 @@ export interface CalendarPromotionWriter {
   patchEvent(input: {
     calendarId: string;
     eventId: string;
-    patch: CalendarEventPatch;
+    patch: CalendarEventPatch | CalendarEvent;
   }): Promise<void>;
   moveEvent(input: {
     sourceCalendarId: string;
@@ -182,17 +194,6 @@ export interface CalendarPromotionWriter {
     calendarId: string;
     eventId: string;
   }): Promise<"deleted" | "missing">;
-  splitRecurringEvent(input: {
-    sourceCalendarId: string;
-    targetCalendarId: string;
-    instanceId: string;
-    recurringEventId: string;
-    patch: CalendarEventPatch;
-    idempotencyKey: string;
-    exceptions: CalendarEvent[];
-    recurringMaster: CalendarEvent;
-    occurrence?: CalendarEvent;
-  }): Promise<{ eventId: string }>;
 }
 
 export interface CalendarPromotionReport {
@@ -202,6 +203,9 @@ export interface CalendarPromotionReport {
   proposalId: string;
   verifiedEvent?: CalendarEvent;
   verifiedEvents?: CalendarEvent[];
+  reason?: string;
+  acceptedStepCount?: number;
+  remainingStepCount?: number;
 }
 
 export interface CalendarPromotionRecord {
@@ -274,6 +278,8 @@ export interface CalendarProposalLiveVersion {
 }
 
 export interface CalendarCreateProposalCandidate {
+  review?: CalendarAssessmentReview;
+  travelBuffer?: { beforeMinutes: number; afterMinutes: number };
   id: string;
   status?: "ready";
   operation: "create";
@@ -315,6 +321,9 @@ export interface CalendarBulkCreateItem {
 }
 
 export interface CalendarBulkCreateProposalCandidate {
+  review?: CalendarAssessmentReview;
+  timetableRecipe?: unknown;
+  timetableMapVersion?: string;
   id: string;
   status?: "ready";
   operation: "bulk-create";
@@ -341,6 +350,7 @@ export interface CalendarBulkCreateProposalCandidate {
 }
 
 export interface CalendarChangeProposalCandidate {
+  review?: CalendarAssessmentReview;
   id: string;
   status?: "ready";
   operation: "update" | "move";
@@ -378,6 +388,7 @@ export interface CalendarChangeProposalCandidate {
 }
 
 export interface CalendarCancelProposalCandidate {
+  review?: CalendarAssessmentReview;
   id: string;
   status?: "ready";
   operation: "cancel";
@@ -400,6 +411,7 @@ export interface CalendarCancelProposalCandidate {
 }
 
 export interface CalendarRestoreProposalCandidate {
+  review?: CalendarAssessmentReview;
   id: string;
   status?: "ready";
   operation: "restore";
@@ -467,6 +479,7 @@ export interface CalendarRoutineMigrationCompletion {
 }
 
 export interface CalendarRoutineMigrationProposalCandidate {
+  review?: CalendarAssessmentReview;
   id: string;
   status?: "ready";
   operation: "routine-migration";
@@ -498,11 +511,18 @@ export type CalendarProposalCandidate =
   | CalendarRoutineMigrationProposalCandidate;
 
 export type CalendarProposal = CalendarProposalCandidate & { status: "ready" };
+export type CalendarStoredProposal = CalendarProposalCandidate & {
+  status: "ready" | "stale" | "promoted";
+};
 
 export interface CalendarOverlap {
   severity: "block" | "warning";
-  source: "Owned" | "Observed";
+  source: "Owned" | "Observed" | "Proposed";
   calendarRole?: OwnedCalendarRole;
+  proposedKey?: string;
+  peerKey?: string;
+  originalStart?: string;
+  peerOriginalStart?: string;
   eventId: string;
   summary: string;
   start: string;

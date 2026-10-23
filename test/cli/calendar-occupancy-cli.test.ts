@@ -1,8 +1,17 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, it } from "node:test";
+import { parseStoredCalendarProposal } from "../../src/calendar/parse-stored-calendar-proposal.js";
+import type {
+  CalendarEvent,
+  CalendarInterval,
+  CalendarListEntry,
+  CalendarStoredProposal,
+} from "../../src/calendar/types.js";
+import type { NtuWeekSelection } from "../../src/calendar/ntu-academic-calendar.js";
 import { runCliWithEnvironment } from "../support/run-cli.js";
 
 const roots: string[] = [];
@@ -87,13 +96,18 @@ it("refuses overlapping timetable peers and preserves a nonoverlap/adjacency con
 it("checks a timetable's later peer occurrences from its recipe and ignores forged saved geometry", async () => {
   const fixture = await setup();
   const value = timetable("11:00");
-  value.classes[0]!.weeks = { from: 10, to: 11 };
+  const firstClass = value.classes[0];
+  assert.ok(firstClass);
+  firstClass.weeks = { from: 10, to: 11 };
   const preview = await propose(fixture, value);
   assert.equal(preview.report.outcome, "ready", JSON.stringify(preview));
   await alterProposal(fixture, (proposal) => {
-    proposal.items[1].intendedEvent.start.dateTime =
-      "2026-10-20T10:30:00+08:00";
-    proposal.items[1].occupiedIntervals = [];
+    assert.ok(proposal.operation === "bulk-create");
+    const item = proposal.items[1];
+    assert.ok(item);
+    assert.ok("dateTime" in item.intendedEvent.start);
+    item.intendedEvent.start.dateTime = "2026-10-20T10:30:00+08:00";
+    item.occupiedIntervals = [];
     proposal.relevantAvailabilityVersion.intervals = [];
   });
   const publication = await promote(fixture, preview.report.proposal.id);
@@ -128,7 +142,7 @@ it("covers every finite occurrence and blocks the second week as well as its anc
   assert.equal(preview.report.outcome, "ready", JSON.stringify(preview));
   assert.deepEqual(
     preview.report.proposal.review.coverage.occurrences.map(
-      (item: any) => item.interval,
+      (item: { interval: CalendarInterval }) => item.interval,
     ),
     [
       { start: "2026-10-05T03:00:00.000Z", end: "2026-10-05T04:00:00.000Z" },
@@ -142,7 +156,7 @@ it("covers every finite occurrence and blocks the second week as well as its anc
     JSON.stringify(publication),
   );
   assert.equal(
-    (await provider(fixture)).events.academic[0].start.dateTime,
+    (await provider(fixture)).events.academic[0]?.start?.dateTime,
     timePatch.start.dateTime,
   );
 });
@@ -182,7 +196,7 @@ it("rechecks a later conflict introduced after preview regardless of saved inter
 
 it("checks default-opaque restore availability and rejects blockers arriving after preview", async () => {
   for (const phase of ["preview", "promotion", "none"]) {
-    const original: any = event("deleted");
+    const original: CalendarEvent = event("deleted");
     delete original.transparency;
     const fixture = await setup({
       tombstones: [
@@ -224,10 +238,32 @@ it("checks default-opaque restore availability and rejects blockers arriving aft
 it("requires re-preview for every unjournaled legacy proposal", async () => {
   for (const item of [
     fixed(),
+    {
+      ...fixed(),
+      kind: "routine-event",
+      calendarRole: "Routine",
+      recurrence: ["RRULE:FREQ=DAILY"],
+    },
     timetable("11:00"),
     change("series", { summary: "Renamed" }, "entire-series"),
+    {
+      operation: "cancel",
+      calendarRole: "Academic",
+      eventId: "series",
+      recurrenceScope: "entire-series",
+    },
+    { operation: "restore", calendarRole: "Academic", eventId: "deleted" },
   ]) {
-    const fixture = await setup({ academic: [master()] });
+    const fixture = await setup({
+      academic: [master()],
+      tombstones: [
+        {
+          access: "owned",
+          deletedAt: "2026-10-01T00:00:00Z",
+          event: event("deleted"),
+        },
+      ],
+    });
     const preview = await propose(fixture, item);
     assert.equal(preview.report.outcome, "ready", JSON.stringify(preview));
     await alterProposal(fixture, (proposal) => {
@@ -264,8 +300,11 @@ it("patches the master selected through an occurrence and keeps instance sibling
   );
   assert.equal(
     (await provider(fixture)).requests
-      .find((request: any) => request.method === "PATCH")
-      .url.endsWith("/events/series"),
+      ?.find(
+        (request: { method: string; url: string }) =>
+          request.method === "PATCH",
+      )
+      ?.url.endsWith("/events/series"),
     true,
   );
   const sibling = {
@@ -362,8 +401,9 @@ it("uses inclusive UNTIL, EXDATE without COUNT refill, INTERVAL/BYDAY/WKST, and 
     );
     assert.equal(preview.report.outcome, "ready", JSON.stringify(preview));
     assert.deepEqual(
-      preview.report.proposal.review.coverage.occurrences.map((item: any) =>
-        item.interval.start.slice(0, 10),
+      preview.report.proposal.review.coverage.occurrences.map(
+        (item: { interval: CalendarInterval }) =>
+          item.interval.start.slice(0, 10),
       ),
       testCase.expected,
     );
@@ -389,8 +429,11 @@ it("binds empty-calendar membership even when the number of selected calendars i
   const fixture = await setup();
   const preview = await propose(fixture, fixed());
   await mutate(fixture, (state) => {
-    state.calendars.find((calendar: any) => calendar.id === "observed").id =
-      "other-observed";
+    const observed = state.calendars.find(
+      (calendar) => calendar.id === "observed",
+    );
+    assert.ok(observed);
+    observed.id = "other-observed";
     state.events["other-observed"] = [];
   });
   const publication = await promote(fixture, preview.report.proposal.id);
@@ -418,7 +461,9 @@ it("checks UTC and Singapore all-day exclusive geometry and refuses historical S
     ],
   });
   await mutate(fixture, (state) => {
-    state.calendars[0].timeZone = "UTC";
+    const academic = state.calendars[0];
+    assert.ok(academic);
+    academic.timeZone = "UTC";
     state.events.observed.push(
       event("last-hour", "2026-10-05T23:00:00Z", "2026-10-06T00:00:00Z"),
     );
@@ -523,7 +568,7 @@ it("reassesses an interrupted move before its remaining PATCH", async () => {
   assert.equal(retry.report.acceptedStepCount, 1);
   assert.equal(writes(await provider(fixture)), count);
   assert.equal(
-    (await provider(fixture)).events.commitments[0].start.dateTime,
+    (await provider(fixture)).events.commitments[0]?.start?.dateTime,
     start,
   );
 });
@@ -556,8 +601,9 @@ it("counts cancelled original positions and refuses uncertain future exception r
   );
   assert.deepEqual(
     (await provider(fixture)).events.academic.find(
-      (item: any) => item.id !== "series" && item.recurrence !== undefined,
-    ).recurrence,
+      (item: CalendarEvent) =>
+        item.id !== "series" && item.recurrence !== undefined,
+    )?.recurrence,
     ["RRULE:FREQ=WEEKLY;COUNT=2"],
   );
   const exception = {
@@ -588,6 +634,571 @@ it("counts cancelled original positions and refuses uncertain future exception r
   assert.equal(writes(await provider(refusalFixture)), 0);
 });
 
+it("rechecks exact future trim/create/replay prefixes and preserves approved exception metadata", async () => {
+  const override = {
+    ...event(
+      "override",
+      "2026-10-19T15:00:00+08:00",
+      "2026-10-19T16:00:00+08:00",
+    ),
+    recurringEventId: "series",
+    originalStartTime: point("2026-10-19T10:00:00+08:00"),
+    description: "approved detached detail",
+    location: "synthetic room",
+    extendedProperties: { private: { retained: "yes" } },
+  };
+  const fixture = await setup({ routine: [master(), second(), override] });
+  const preview = await propose(fixture, {
+    ...change("selected", { summary: "future summary" }, "this-and-future"),
+    calendarRole: "Routine",
+    targetCalendarRole: "Academic",
+  });
+  assert.equal(preview.report.outcome, "ready", JSON.stringify(preview));
+  assert.deepEqual(
+    preview.report.proposal.review.coverage.occurrences.map(
+      (item: { interval: CalendarInterval }) => item.interval,
+    ),
+    [
+      { start: "2026-10-12T02:00:00.000Z", end: "2026-10-12T03:00:00.000Z" },
+      { start: "2026-10-19T07:00:00.000Z", end: "2026-10-19T08:00:00.000Z" },
+    ],
+  );
+  const key = preview.report.proposal.idempotencyKey;
+  const futureId = `a${createHash("sha256").update(key).digest("hex").slice(0, 31)}`;
+  await mutate(fixture, (state) => {
+    state.instanceEvents = {
+      [`academic/${futureId}/2026-10-19T02:00:00.000Z`]: [
+        {
+          ...event(
+            "replacement-override",
+            "2026-10-19T10:00:00+08:00",
+            "2026-10-19T11:00:00+08:00",
+          ),
+          summary: "future summary",
+          recurringEventId: futureId,
+          originalStartTime: point("2026-10-19T10:00:00+08:00"),
+          extendedProperties: { private: { academicOsIdempotencyKey: key } },
+        },
+      ],
+    };
+    state.patchFailures = ["replacement-override"];
+  });
+  const interrupted = await promote(fixture, preview.report.proposal.id);
+  assert.equal(interrupted.exitCode, 2, JSON.stringify(interrupted));
+  const partial = await provider(fixture);
+  const count = writes(partial);
+  assert.equal(partial.events.routine.length, 1);
+  assert.equal(partial.events.academic[0]?.id, futureId);
+  assert.deepEqual(partial.events.routine[0]?.recurrence, [
+    "RRULE:FREQ=WEEKLY;UNTIL=20261012T015959Z",
+  ]);
+  await mutate(fixture, (state) => {
+    state.events.observed.push(
+      event(
+        "later-blocker",
+        "2026-10-19T15:00:00+08:00",
+        "2026-10-19T16:00:00+08:00",
+      ),
+    );
+  });
+  const blocked = await promote(fixture, preview.report.proposal.id);
+  assert.equal(blocked.report.outcome, "blocked", JSON.stringify(blocked));
+  assert.equal(blocked.report.acceptedStepCount, 4);
+  assert.equal(writes(await provider(fixture)), count);
+  await mutate(fixture, (state) => {
+    state.events.observed = [];
+  });
+  const retry = await promote(fixture, preview.report.proposal.id);
+  assert.equal(retry.report.outcome, "promoted", JSON.stringify(retry));
+  const complete = await provider(fixture);
+  const replayed = complete.events.academic.find(
+    ({ id }) => id === "replacement-override",
+  );
+  assert.partialDeepStrictEqual(replayed, {
+    description: override.description,
+    location: override.location,
+    extendedProperties: override.extendedProperties,
+    start: override.start,
+    end: override.end,
+  });
+  const completedWrites = writes(complete);
+  const receipt = await promote(fixture, preview.report.proposal.id);
+  assert.equal(receipt.report.outcome, "retry", JSON.stringify(receipt));
+  assert.equal(writes(await provider(fixture)), completedWrites);
+  await mutate(fixture, (state) => {
+    const changed = state.events.academic.find(
+      ({ id }) => id === "replacement-override",
+    );
+    assert.ok(changed);
+    changed.location = "unexpected";
+  });
+  const drift = await promote(fixture, preview.report.proposal.id);
+  assert.notEqual(drift.report.outcome, "retry", JSON.stringify(drift));
+  assert.equal(writes(await provider(fixture)), completedWrites);
+});
+
+it("refuses a new later blocker after source trimming and before replacement creation", async () => {
+  const fixture = await setup({ academic: [master(), second()] });
+  const preview = await propose(
+    fixture,
+    change(
+      "selected",
+      {
+        start: point("2026-10-12T11:00:00+08:00"),
+        end: point("2026-10-12T12:00:00+08:00"),
+      },
+      "this-and-future",
+    ),
+  );
+  assert.equal(preview.report.outcome, "ready", JSON.stringify(preview));
+  const key = preview.report.proposal.idempotencyKey;
+  await mutate(fixture, (state) => {
+    state.eventCreateFailures = [
+      `a${createHash("sha256").update(key).digest("hex").slice(0, 31)}`,
+    ];
+  });
+  const interrupted = await promote(fixture, preview.report.proposal.id);
+  assert.equal(interrupted.exitCode, 2, JSON.stringify(interrupted));
+  const count = writes(await provider(fixture));
+  await mutate(fixture, (state) => {
+    state.events.observed.push(
+      event(
+        "later-blocker",
+        "2026-10-19T11:00:00+08:00",
+        "2026-10-19T12:00:00+08:00",
+      ),
+    );
+  });
+  const retry = await promote(fixture, preview.report.proposal.id);
+  assert.equal(retry.report.outcome, "blocked", JSON.stringify(retry));
+  assert.equal(retry.report.acceptedStepCount, 2);
+  assert.equal(writes(await provider(fixture)), count);
+});
+
+it("keeps prefix exceptions by original identity and distinguishes equal IDs on different calendars", async () => {
+  const prior = {
+    ...event("prior", "2026-10-19T11:00:00+08:00", "2026-10-19T12:00:00+08:00"),
+    recurringEventId: "series",
+    originalStartTime: point(start),
+  };
+  const fixture = await setup({ academic: [master(), second(), prior] });
+  const preview = await propose(
+    fixture,
+    change(
+      "selected",
+      {
+        start: point("2026-10-12T11:00:00+08:00"),
+        end: point("2026-10-12T12:00:00+08:00"),
+      },
+      "this-and-future",
+    ),
+  );
+  assert.equal(preview.report.outcome, "blocked", JSON.stringify(preview));
+  assert.equal(preview.report.conflicts[0].eventId, "prior");
+  assert.equal(writes(await provider(fixture)), 0);
+  const sameId = await setup({
+    academic: [event("equal")],
+    observed: [
+      event("equal", "2026-10-05T11:00:00+08:00", "2026-10-05T12:00:00+08:00"),
+    ],
+  });
+  const conflict = await propose(sameId, change("equal", timePatch));
+  assert.equal(conflict.report.outcome, "blocked", JSON.stringify(conflict));
+  assert.equal(conflict.report.conflicts[0].source, "Observed");
+});
+
+it("rejects invalid geometry before milestone and metadata exemptions, with exact instant controls", async () => {
+  for (const item of [
+    {
+      ...fixed(),
+      kind: "timed-milestone",
+      end: point("2026-10-20T08:00:00+08:00"),
+    },
+    { ...fixed(), start: point("2026-02-30T09:00:00+08:00") },
+  ]) {
+    const fixture = await setup();
+    const preview = await propose(fixture, item);
+    assert.equal(preview.exitCode, 2, JSON.stringify(preview));
+    assert.equal(writes(await provider(fixture)), 0);
+  }
+  const { end: _missingEnd, ...incomplete } = master();
+  const invalid = await setup({ academic: [incomplete] });
+  const refused = await propose(
+    invalid,
+    change("series", { summary: "metadata" }, "entire-series"),
+  );
+  assert.equal(refused.exitCode, 2, JSON.stringify(refused));
+  const exact = await setup({
+    observed: [
+      event("adjacent", "2026-10-20T01:00:00.000Z", "2026-10-20T01:00:00.001Z"),
+    ],
+  });
+  const okay = await propose(
+    exact,
+    fixed("2026-10-20T01:00:00.001Z", "2026-10-20T01:00:00.002Z"),
+  );
+  assert.equal(okay.report.outcome, "ready", JSON.stringify(okay));
+  assert.deepEqual(
+    okay.report.proposal.review.coverage.occurrences[0].interval,
+    { start: "2026-10-20T01:00:00.001Z", end: "2026-10-20T01:00:00.002Z" },
+  );
+});
+
+it("binds review engine and complete occurrence evidence rather than trusting saved proof fields", async () => {
+  for (const part of ["engine", "coverage", "intent"]) {
+    const fixture = await setup();
+    const preview = await propose(fixture, fixed());
+    assert.equal(preview.report.outcome, "ready", JSON.stringify(preview));
+    await alterProposal(fixture, (proposal) => {
+      assert.ok(proposal.review);
+      if (part === "engine") proposal.review.engine.tz = "different";
+      if (part === "coverage") proposal.review.coverage.occurrences = [];
+      if (part === "intent") {
+        assert.equal(proposal.operation, "create");
+        if (proposal.operation === "create")
+          proposal.intendedEvent.summary = "unreviewed";
+      }
+    });
+    const publication = await promote(fixture, preview.report.proposal.id);
+    assert.equal(
+      publication.report.outcome,
+      "stale",
+      JSON.stringify(publication),
+    );
+    assert.equal(writes(await provider(fixture)), 0);
+  }
+});
+
+it("compares independently listed NTU semester dates including recess and no-class exclusions", async () => {
+  const fixture = await setup();
+  const value = timetable("12:00", { from: 1, to: 13 });
+  value.classes = value.classes.slice(0, 1);
+  const first = value.classes[0];
+  assert.ok(first);
+  first.weekday = "MO";
+  const preview = await propose(fixture, value);
+  assert.equal(preview.report.outcome, "ready", JSON.stringify(preview));
+  assert.deepEqual(
+    preview.report.proposal.review.coverage.occurrences.map(
+      (item: { interval: CalendarInterval }) =>
+        item.interval.start.slice(0, 10),
+    ),
+    [
+      "2026-08-17",
+      "2026-08-24",
+      "2026-08-31",
+      "2026-09-07",
+      "2026-09-14",
+      "2026-09-21",
+      "2026-10-05",
+      "2026-10-12",
+      "2026-10-19",
+      "2026-10-26",
+      "2026-11-02",
+    ],
+  );
+});
+
+it("keeps all-excluded finite sets and supported UTC recurrence exact, with explicit zone/budget refusals", async () => {
+  const excluded = await setup({
+    academic: [
+      {
+        ...master(),
+        recurrence: [
+          "RRULE:FREQ=WEEKLY;COUNT=2",
+          "EXDATE:20261005T020000Z,20261012T020000Z",
+        ],
+      },
+    ],
+  });
+  const preview = await propose(
+    excluded,
+    change("series", timePatch, "entire-series"),
+  );
+  assert.equal(preview.report.outcome, "ready", JSON.stringify(preview));
+  // Exclusions are immutable original starts: changing the time does not silently move EXDATE.
+  assert.equal(preview.report.proposal.review.coverage.occurrences.length, 2);
+  const noOccupancy = await propose(
+    await setup({
+      academic: [
+        {
+          ...master(),
+          recurrence: [
+            "RRULE:FREQ=WEEKLY;COUNT=2",
+            "EXDATE:20261005T020000Z,20261012T020000Z",
+          ],
+        },
+      ],
+    }),
+    change(
+      "series",
+      { end: point("2026-10-05T12:00:00+08:00") },
+      "entire-series",
+    ),
+  );
+  assert.equal(
+    noOccupancy.report.proposal.review.coverage.occurrences.length,
+    0,
+  );
+  for (const zone of ["UTC", "Europe/London"]) {
+    const series = {
+      ...master(),
+      start: { dateTime: "2026-10-05T10:00:00Z", timeZone: zone },
+      end: { dateTime: "2026-10-05T11:00:00Z", timeZone: zone },
+    };
+    const fixture = await setup({ academic: [series] });
+    const result = await propose(
+      fixture,
+      change(
+        "series",
+        { end: { dateTime: "2026-10-05T12:00:00Z", timeZone: zone } },
+        "entire-series",
+      ),
+    );
+    assert.equal(
+      result.exitCode,
+      zone === "UTC" ? 0 : 2,
+      JSON.stringify(result),
+    );
+    if (zone === "UTC")
+      assert.deepEqual(
+        result.report.proposal.review.coverage.occurrences.map(
+          (item: { interval: CalendarInterval }) => item.interval.start,
+        ),
+        [
+          "2026-10-05T10:00:00.000Z",
+          "2026-10-12T10:00:00.000Z",
+          "2026-10-19T10:00:00.000Z",
+        ],
+      );
+    assert.equal(writes(await provider(fixture)), 0);
+  }
+  const budget = await setup({
+    academic: [
+      { ...master(), recurrence: ["RRULE:FREQ=DAILY;INTERVAL=100001;COUNT=2"] },
+    ],
+  });
+  const result = await propose(
+    budget,
+    change("series", timePatch, "entire-series"),
+  );
+  assert.equal(result.exitCode, 2, JSON.stringify(result));
+  assert.match(result.report.error.message, /iteration budget/u);
+});
+
+it("checks later timetable peers and overlapping occurrences within one changed series", async () => {
+  const fixture = await setup();
+  const value = timetable("10:30", { from: 10, to: 11 });
+  const later = value.classes[1];
+  assert.ok(later);
+  later.weeks = { week: 11 };
+  const overlap = await propose(fixture, value);
+  assert.equal(overlap.report.outcome, "blocked", JSON.stringify(overlap));
+  assert.equal(overlap.report.conflicts[0].start.slice(0, 10), "2026-10-27");
+  const series = await setup({ academic: [master()] });
+  const same = await propose(
+    series,
+    change(
+      "series",
+      { end: point("2026-10-13T11:00:00+08:00") },
+      "entire-series",
+    ),
+  );
+  assert.equal(same.report.outcome, "blocked", JSON.stringify(same));
+  assert.equal(same.report.conflicts[0].source, "Proposed");
+  assert.notEqual(
+    same.report.conflicts[0].originalStart,
+    same.report.conflicts[0].peerOriginalStart,
+  );
+});
+
+it("checks complete paginated sparse exceptions and rejects new exception membership before trimming", async () => {
+  const cancelled = {
+    id: "sparse",
+    status: "cancelled",
+    recurringEventId: "series",
+    originalStartTime: point("2026-10-19T10:00:00+08:00"),
+  };
+  const fixture = await setup({ academic: [master(), second(), cancelled] });
+  await mutate(fixture, (state) => {
+    state.responsePages = {
+      "academic/stored": [
+        { items: [], nextPageToken: "1" },
+        { items: [master(), second(), cancelled] },
+      ],
+    };
+  });
+  const preview = await propose(
+    fixture,
+    change(
+      "selected",
+      {
+        start: point("2026-10-12T11:00:00+08:00"),
+        end: point("2026-10-12T12:00:00+08:00"),
+      },
+      "this-and-future",
+    ),
+  );
+  // An exact cancellation still needs remapping when its original no longer exists in the new anchor.
+  assert.equal(preview.exitCode, 2, JSON.stringify(preview));
+  assert.equal(writes(await provider(fixture)), 0);
+  const changed = await setup({ academic: [master(), second()] });
+  const ready = await propose(
+    changed,
+    change(
+      "selected",
+      {
+        start: point("2026-10-12T11:00:00+08:00"),
+        end: point("2026-10-12T12:00:00+08:00"),
+      },
+      "this-and-future",
+    ),
+  );
+  assert.equal(ready.report.outcome, "ready", JSON.stringify(ready));
+  await mutate(changed, (state) => {
+    state.events.academic.push(cancelled);
+  });
+  const stale = await promote(changed, ready.report.proposal.id);
+  assert.equal(stale.report.outcome, "stale", JSON.stringify(stale));
+  assert.equal(writes(await provider(changed)), 0);
+});
+
+it("retains cancellation and transparent Routine restoration without finite busy expansion", async () => {
+  for (const first of [false, true]) {
+    const selected = first
+      ? {
+          ...second(),
+          start: point(start),
+          end: point(end),
+          originalStartTime: point(start),
+        }
+      : second();
+    const fixture = await setup({
+      academic: [{ ...master(), recurrence: ["RRULE:FREQ=WEEKLY"] }, selected],
+      observed: [event("existing")],
+    });
+    const preview = await propose(fixture, {
+      operation: "cancel",
+      calendarRole: "Academic",
+      eventId: "selected",
+      recurrenceScope: "this-and-future",
+    });
+    assert.equal(preview.report.outcome, "ready", JSON.stringify(preview));
+    assert.equal(
+      preview.report.proposal.review.coverage.reason,
+      "cancellation",
+    );
+    const publication = await promote(fixture, preview.report.proposal.id);
+    assert.equal(
+      publication.report.outcome,
+      "promoted",
+      JSON.stringify(publication),
+    );
+    const state = await provider(fixture);
+    if (first)
+      assert.equal(
+        state.events.academic.some(({ id }) => id === "series"),
+        false,
+      );
+    else
+      assert.deepEqual(
+        state.events.academic.find(({ id }) => id === "series")?.recurrence,
+        ["RRULE:FREQ=WEEKLY;UNTIL=20261012T015959Z"],
+      );
+  }
+  const retained = {
+    ...master(),
+    transparency: "transparent",
+    recurrence: ["RRULE:FREQ=DAILY"],
+  };
+  const fixture = await setup({
+    tombstoneRole: "Routine",
+    tombstones: [
+      { access: "owned", deletedAt: "2026-10-01T00:00:00Z", event: retained },
+    ],
+    observed: [event("existing")],
+  });
+  const preview = await propose(fixture, {
+    operation: "restore",
+    calendarRole: "Routine",
+    eventId: "series",
+  });
+  assert.equal(preview.report.outcome, "ready", JSON.stringify(preview));
+  assert.equal(preview.report.proposal.review.coverage.reason, "routine");
+  assert.equal(
+    preview.report.proposal.review.coverage.restorationScope,
+    "retained-resource-only",
+  );
+  assert.equal(preview.report.warnings.length, 1);
+  assert.equal(
+    (await promote(fixture, preview.report.proposal.id)).report.outcome,
+    "promoted",
+  );
+  assert.deepEqual(
+    (await provider(fixture)).events.routine[0]?.recurrence,
+    retained.recurrence,
+  );
+});
+
+it("converts recurring offset instants into their declared zone and rejects inconsistent start/end zones", async () => {
+  const series = {
+    ...master(),
+    start: point("2026-10-05T02:00:00Z"),
+    end: point("2026-10-05T03:00:00Z"),
+  };
+  const fixture = await setup({ academic: [series] });
+  const result = await propose(
+    fixture,
+    change("series", { end: point("2026-10-05T04:00:00Z") }, "entire-series"),
+  );
+  assert.equal(result.report.outcome, "ready", JSON.stringify(result));
+  assert.deepEqual(
+    result.report.proposal.review.coverage.occurrences.map(
+      (item: { interval: CalendarInterval }) => item.interval.start,
+    ),
+    [
+      "2026-10-05T02:00:00.000Z",
+      "2026-10-12T02:00:00.000Z",
+      "2026-10-19T02:00:00.000Z",
+    ],
+  );
+  const mismatch = await setup({ academic: [master()] });
+  const refused = await propose(
+    mismatch,
+    change(
+      "series",
+      { end: { dateTime: "2026-10-05T04:00:00Z", timeZone: "UTC" } },
+      "entire-series",
+    ),
+  );
+  assert.equal(refused.exitCode, 2, JSON.stringify(refused));
+  assert.match(refused.report.error.message, /zones must agree/u);
+});
+
+interface ProviderState {
+  calendars: CalendarListEntry[];
+  events: {
+    academic: CalendarEvent[];
+    commitments: CalendarEvent[];
+    routine: CalendarEvent[];
+    observed: CalendarEvent[];
+    [key: string]: CalendarEvent[];
+  };
+  requests?: Array<{
+    method: string;
+    url: string;
+    params?: Record<string, unknown>;
+    body?: Record<string, unknown>;
+  }>;
+  responsePages?: Record<
+    string,
+    Array<{ items: CalendarEvent[]; nextPageToken?: string }>
+  >;
+  eventCreateFailures?: string[];
+  patchFailures?: string[];
+  instanceEvents?: Record<string, CalendarEvent[]>;
+}
+
 interface Fixture {
   config: string;
   calendarRoot: string;
@@ -596,10 +1207,12 @@ interface Fixture {
 }
 async function setup(
   input: {
-    academic?: unknown[];
-    observed?: unknown[];
+    academic?: CalendarEvent[];
+    routine?: CalendarEvent[];
+    observed?: CalendarEvent[];
     tombstones?: unknown[];
-    occurrences?: Record<string, unknown[]>;
+    tombstoneRole?: "Academic" | "Routine";
+    occurrences?: Record<string, CalendarEvent[]>;
   } = {},
 ): Promise<Fixture> {
   const root = await mkdtemp(join(tmpdir(), "academic-os-occupancy-"));
@@ -644,14 +1257,22 @@ async function setup(
         lastSuccessfulRefresh: "2026-10-01T00:00:00Z",
         freshness: "fresh",
         syncToken: `${calendarIds[role]}-sync`,
-        items: (role === "Academic" ? (input.academic ?? []) : [])
-          .filter((item: any) => item.status !== "cancelled")
+        items: (role === "Academic"
+          ? (input.academic ?? [])
+          : role === "Routine"
+            ? (input.routine ?? [])
+            : []
+        )
+          .filter((item: CalendarEvent) => item.status !== "cancelled")
           .map((item) => ({
             actualCalendarRole: role,
             access: "owned",
             event: item,
           })),
-        tombstones: role === "Academic" ? (input.tombstones ?? []) : [],
+        tombstones:
+          role === (input.tombstoneRole ?? "Academic")
+            ? (input.tombstones ?? [])
+            : [],
       }),
     );
   await writeFile(
@@ -676,7 +1297,7 @@ async function setup(
       events: {
         academic: input.academic ?? [],
         commitments: [],
-        routine: [],
+        routine: input.routine ?? [],
         observed: input.observed ?? [],
       },
       occurrenceEvents: input.occurrences ?? {},
@@ -706,26 +1327,29 @@ async function cli(fixture: Fixture, ...args: string[]) {
   );
   return { ...result, report: JSON.parse(result.stdout) };
 }
-async function provider(fixture: Fixture): Promise<any> {
+async function provider(fixture: Fixture): Promise<ProviderState> {
   return JSON.parse(await readFile(fixture.providerPath, "utf8"));
 }
-async function mutate(fixture: Fixture, update: (state: any) => void) {
+async function mutate(
+  fixture: Fixture,
+  update: (state: ProviderState) => void,
+) {
   const state = await provider(fixture);
   update(state);
   await writeFile(fixture.providerPath, JSON.stringify(state));
 }
 async function alterProposal(
   fixture: Fixture,
-  update: (proposal: any) => void,
+  update: (proposal: CalendarStoredProposal) => void,
 ) {
   const path = join(fixture.calendarRoot, "pending-proposals.json");
   const state = JSON.parse(await readFile(path, "utf8"));
-  update(state.proposals[0]);
+  update(parseStoredCalendarProposal(state.proposals[0]));
   await writeFile(path, JSON.stringify(state));
 }
-function writes(state: any): number {
+function writes(state: ProviderState): number {
   return (state.requests ?? []).filter(
-    (request: any) => request.method !== "GET",
+    (request: { method: string; url: string }) => request.method !== "GET",
   ).length;
 }
 function fixed(
@@ -749,7 +1373,10 @@ function change(eventId: string, patch: unknown, recurrenceScope?: string) {
     ...(recurrenceScope === undefined ? {} : { recurrenceScope }),
   };
 }
-function timetable(secondStart: string) {
+function timetable(
+  secondStart: string,
+  firstWeeks: NtuWeekSelection = { week: 10 },
+) {
   return {
     operation: "academic-timetable",
     calendarRole: "Academic",
@@ -759,7 +1386,7 @@ function timetable(secondStart: string) {
         key: "class-a",
         summary: "Synthetic class A",
         weekday: "TU",
-        weeks: { week: 10 } as { week: number } | { from: number; to: number },
+        weeks: firstWeeks,
         startTime: "10:00",
         endTime: "11:00",
       },
@@ -767,7 +1394,7 @@ function timetable(secondStart: string) {
         key: "class-b",
         summary: "Synthetic class B",
         weekday: "TU",
-        weeks: { week: 10 } as { week: number } | { from: number; to: number },
+        weeks: { week: 10 },
         startTime: secondStart,
         endTime:
           secondStart === "10:30"

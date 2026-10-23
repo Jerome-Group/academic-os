@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 import { calendarStateDigest } from "../../src/calendar/index.js";
+import { reviewCalendarProposalFixture } from "../support/review-calendar-proposal-fixture.js";
 import { runCliWithEnvironment } from "../support/run-cli.js";
 
 const temporaryRoots: string[] = [];
@@ -132,6 +133,9 @@ describe("academic-os calendar promote", () => {
     const normalized: Record<string, unknown> = {
       id: item.eventId,
       ...item.intendedEvent,
+      extendedProperties: {
+        private: { academicOsIdempotencyKey: item.idempotencyKey },
+      },
       recurrence: [...(item.intendedEvent.recurrence ?? [])].reverse(),
     };
     delete normalized.transparency;
@@ -166,23 +170,28 @@ describe("academic-os calendar promote", () => {
     assert.equal(report.proposalId, "proposal-ready");
     assert.equal(report.verifiedEvent.id, fixture.eventId);
     assert.equal(JSON.parse(retry.stdout).outcome, "retry");
+    const firstWrite = firstProvider.requests.findIndex(
+      ({ method }) => method !== "GET",
+    );
+    assert.ok(firstWrite >= 3);
+    assert.ok(
+      firstProvider.requests
+        .slice(0, firstWrite)
+        .every(({ method }) => method === "GET"),
+    );
+    assert.ok(
+      firstProvider.requests
+        .slice(firstWrite + 1)
+        .some(
+          ({ method, url }) =>
+            method === "GET" && url.endsWith(`/events/${fixture.eventId}`),
+        ),
+    );
     assert.deepEqual(
-      firstProvider.requests.map(({ method, url }) => ({
-        method,
-        target: providerTarget(url, fixture.eventId),
-      })),
-      [
-        { method: "GET", target: "Academic events" },
-        { method: "GET", target: "Commitments events" },
-        { method: "GET", target: "Routine events" },
-        { method: "GET", target: "Calendar list" },
-        { method: "GET", target: "Observed events" },
-        { method: "POST", target: "Academic events" },
-        { method: "GET", target: "Verified event" },
-        { method: "GET", target: "Academic events" },
-        { method: "GET", target: "Commitments events" },
-        { method: "GET", target: "Routine events" },
-      ],
+      firstProvider.requests
+        .slice(-3)
+        .map(({ url }) => providerTarget(url, fixture.eventId)),
+      ["Academic events", "Commitments events", "Routine events"],
     );
 
     const provider = await readProvider(fixture);
@@ -361,11 +370,10 @@ describe("academic-os calendar promote", () => {
 
           assert.equal(
             result.exitCode,
-            ambiguous ? 2 : 3,
+            3,
             `${JSON.stringify(mismatch)}: ${JSON.stringify(result)}`,
           );
-          if (!ambiguous)
-            assert.equal(JSON.parse(result.stdout).outcome, "blocked");
+          assert.equal(JSON.parse(result.stdout).outcome, "blocked");
           assert.equal((await readProposal(fixture)).status, "ready");
           await assert.rejects(
             readFile(join(fixture.calendarRoot, "promotions.jsonl")),
@@ -535,7 +543,7 @@ describe("academic-os calendar promote", () => {
     const fixture = await setupChangeFixture(
       "Academic",
       { recurrence },
-      { recurrence },
+      { recurrence: ["RRULE:FREQ=WEEKLY;COUNT=2"] },
     );
     await mutateProvider(fixture, (provider) => {
       provider.reverseRecurrenceOnPatch = ["owned-event"];
@@ -792,7 +800,7 @@ describe("academic-os calendar promote", () => {
       } else {
         assert.deepEqual(
           mutations.map(({ method }) => method),
-          ["PUT", "POST", "PATCH"],
+          ["PATCH", "DELETE", "DELETE", "POST", "PATCH"],
         );
         const provider = await readProvider(fixture);
         const preservedException = provider.events["academic-id"]?.find(
@@ -809,7 +817,7 @@ describe("academic-os calendar promote", () => {
             event !== null &&
             "recurrence" in event &&
             Array.isArray(event.recurrence) &&
-            event.recurrence.includes("RRULE:FREQ=WEEKLY;COUNT=4"),
+            event.recurrence.includes("RRULE:FREQ=WEEKLY;COUNT=3"),
         );
         assert.ok(replacementSeries);
       }
@@ -839,8 +847,11 @@ describe("academic-os calendar promote", () => {
     assert.equal(JSON.parse(retry.stdout).outcome, "promoted");
     const provider = await readProvider(fixture);
     assert.equal(
-      provider.requests.filter(({ method }) => method === "PUT").length,
-      2,
+      provider.requests.filter(
+        ({ method, url }) =>
+          method === "PATCH" && url.endsWith("/events/weekly-class"),
+      ).length,
+      1,
     );
     assert.equal(
       provider.events["academic-id"]?.filter(
@@ -937,11 +948,8 @@ describe("academic-os calendar promote", () => {
       "2026-08-20T15:00:00+08:00";
     await writeFile(path, `${JSON.stringify(state)}\n`);
     const result = await runPromote(fixture, "proposal-recurring", "--json");
-    assert.equal(result.exitCode, 2, JSON.stringify(result));
-    assert.match(
-      JSON.parse(result.stdout).error.message,
-      /snapshot does not match/u,
-    );
+    assert.equal(result.exitCode, 3, JSON.stringify(result));
+    assert.equal(JSON.parse(result.stdout).outcome, "stale");
     assert.equal(
       (await readProvider(fixture)).requests.some(
         (request) => request.method !== "GET",
@@ -1066,12 +1074,7 @@ describe("academic-os calendar promote", () => {
             source: { kind: "instruction", reference: "restore-owned-event" },
             itemKind: "fixed-event",
             target: { calendarRole: "Academic", calendarId: "academic-id" },
-            intendedEvent: {
-              summary: "Original title",
-              visibility: "private",
-              start: mirror.tombstones[0].event.start,
-              end: mirror.tombstones[0].event.end,
-            },
+            intendedEvent: { ...mirror.tombstones[0].event },
             restoredFrom: {
               calendarRole: "Academic",
               eventId: "owned-event",
@@ -1089,6 +1092,7 @@ describe("academic-os calendar promote", () => {
         ],
       })}\n`,
     );
+    await reviewCalendarProposalFixture(fixture);
     const restored = await runPromote(fixture, "proposal-restore", "--json");
     const restoreRetry = await runPromote(
       fixture,
@@ -1201,6 +1205,15 @@ describe("academic-os calendar promote", () => {
       const result = await runPromote(fixture, proposal.id, "--json");
 
       const provider = await readProvider(fixture);
+      if (legacy) {
+        assert.equal(result.exitCode, 3, JSON.stringify(result));
+        assert.equal(JSON.parse(result.stdout).outcome, "stale");
+        assert.equal(
+          provider.requests.some(({ method }) => method !== "GET"),
+          false,
+        );
+        return;
+      }
       const expected = {
         ...writable,
         extendedProperties: {
@@ -1270,6 +1283,7 @@ describe("academic-os calendar promote", () => {
         `${JSON.stringify({ schemaVersion: 1, proposals: [proposal] })}\n`,
       );
 
+      await reviewCalendarProposalFixture(fixture);
       const result = await runPromote(fixture, "proposal-recurring", "--json");
       assert.equal(result.exitCode, 0, `${scope}: ${JSON.stringify(result)}`);
       const mutations = (await readProvider(fixture)).requests.filter(
@@ -1320,6 +1334,7 @@ describe("academic-os calendar promote", () => {
       statePath,
       `${JSON.stringify({ schemaVersion: 1, proposals: [proposal] })}\n`,
     );
+    await reviewCalendarProposalFixture(fixture);
     await mutateProvider(fixture, (provider) => {
       provider.ignoredPatches = ["weekly-class"];
     });
@@ -1498,11 +1513,27 @@ async function setupFixture(): Promise<Fixture> {
           summary: "Personal",
           primary: true,
           selected: true,
+          timeZone: "Asia/Singapore",
           etag: "academic-version",
         },
-        { id: "commitments-id", summary: "Commitments", selected: true },
-        { id: "routine-id", summary: "Routine", selected: true },
-        { id: "observed-id", summary: "Observed", selected: true },
+        {
+          id: "commitments-id",
+          summary: "Commitments",
+          selected: true,
+          timeZone: "Asia/Singapore",
+        },
+        {
+          id: "routine-id",
+          summary: "Routine",
+          selected: true,
+          timeZone: "Asia/Singapore",
+        },
+        {
+          id: "observed-id",
+          summary: "Observed",
+          selected: true,
+          timeZone: "Asia/Singapore",
+        },
       ],
       events: {
         "academic-id": [],
@@ -1517,7 +1548,7 @@ async function setupFixture(): Promise<Fixture> {
       },
     })}\n`,
   );
-  return {
+  const fixture = {
     calendarRoot,
     configPath,
     eventId,
@@ -1526,6 +1557,8 @@ async function setupFixture(): Promise<Fixture> {
     providerPath,
     writeCredential,
   };
+  await reviewCalendarProposalFixture(fixture);
+  return fixture;
 }
 
 async function setupReadbackFixture(
@@ -1593,6 +1626,7 @@ async function setupReadbackFixture(
     await writeFile(mirrorPath, `${JSON.stringify(mirror)}\n`);
   }
   await writeFile(statePath, `${JSON.stringify(state)}\n`);
+  await reviewCalendarProposalFixture(fixture);
   return fixture;
 }
 
@@ -1655,6 +1689,9 @@ async function setupChangeFixture(
               targetRole === "Academic" ? "academic-id" : "routine-id",
           },
           patch,
+          ...(eventOverrides.recurrence === undefined
+            ? {}
+            : { recurrenceScope: "entire-series" }),
           idempotencyKey: `change-${targetRole}`,
           liveVersions: [],
           relevantAvailabilityVersion: {
@@ -1670,6 +1707,7 @@ async function setupChangeFixture(
   await mutateProvider(fixture, (provider) => {
     provider.events["academic-id"] = [event];
   });
+  await reviewCalendarProposalFixture(fixture);
   return fixture;
 }
 
@@ -1713,6 +1751,7 @@ async function setupCancellationFixture(): Promise<Fixture> {
       ],
     })}\n`,
   );
+  await reviewCalendarProposalFixture(fixture);
   return fixture;
 }
 
@@ -1848,6 +1887,7 @@ async function setupRecurringChangeFixture(
   await mutateProvider(fixture, (provider) => {
     provider.events["academic-id"] = [master, instance, exception];
   });
+  await reviewCalendarProposalFixture(fixture);
   return fixture;
 }
 
@@ -1981,6 +2021,7 @@ async function setupRoutineMigrationFixture(
   await mutateProvider(fixture, (provider) => {
     provider.events["academic-id"] = [master, exception, exercise];
   });
+  await reviewCalendarProposalFixture(fixture);
   return fixture;
 }
 
@@ -2073,6 +2114,27 @@ async function mutateProvider(
 ): Promise<void> {
   const provider = await readProvider(fixture);
   mutate(provider);
+  for (const [calendarId, tokens] of Object.entries(
+    provider.incrementalEvents,
+  )) {
+    const events = provider.events[calendarId] ?? [];
+    for (const event of Object.values(tokens).flat()) {
+      if (typeof event !== "object" || event === null || !("id" in event))
+        continue;
+      const index = events.findIndex(
+        (current) =>
+          typeof current === "object" &&
+          current !== null &&
+          "id" in current &&
+          current.id === event.id,
+      );
+      if ("status" in event && event.status === "cancelled") {
+        if (index >= 0) events.splice(index, 1);
+      } else if (index >= 0) events[index] = event;
+      else events.push(event);
+    }
+    provider.events[calendarId] = events;
+  }
   await writeFile(fixture.providerPath, `${JSON.stringify(provider)}\n`);
 }
 

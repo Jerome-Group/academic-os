@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
+import { parseStoredCalendarProposal } from "./parse-stored-calendar-proposal.js";
 import { OperationalError } from "../operational-error.js";
 import {
   isJsonObject,
@@ -40,7 +41,9 @@ export function createFileCalendarProposalStore(
       const proposal = value.proposals.find(
         (candidate) => isJsonObject(candidate) && candidate.id === proposalId,
       );
-      return proposal as Awaited<ReturnType<CalendarProposalStore["read"]>>;
+      return proposal === undefined
+        ? undefined
+        : parseStoredCalendarProposal(proposal);
     },
     writeCurrent: async (proposal) => {
       await replacePrivateCalendarJson(

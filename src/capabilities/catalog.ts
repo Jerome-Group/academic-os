@@ -158,12 +158,22 @@ export const cliCapabilities: Capability[] = [
     [
       "proposal input; current calendar evidence; Google Calendar read credentials",
     ],
+    null,
+    [
+      "test/cli/calendar-propose-cli.test.ts",
+      "test/cli/calendar-occupancy-cli.test.ts",
+    ],
   ),
   cli(
     "calendar promote",
     ["Google Calendar events", "private proposal state/mirror"],
     [
       "proposal ID; fresh conflict checks; Google Calendar read and write credentials",
+    ],
+    null,
+    [
+      "test/cli/calendar-promote-cli.test.ts",
+      "test/cli/calendar-occupancy-cli.test.ts",
     ],
   ),
   cli(

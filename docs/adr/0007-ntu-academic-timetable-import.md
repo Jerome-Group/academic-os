@@ -12,8 +12,11 @@ Students' Union Day undergraduate no-class interval. A multi-week class becomes 
 Google recurring master with explicit exceptions; a single-week class and every exam become one
 timed event. Multiple possible rooms stay as details on one event.
 
-The importer checks every expanded occurrence against current Owned and selected Observed
-availability and writes one bulk Proposal. Promotion remains the only Google event-write path.
+The importer persists a canonical recipe and date-map version. The shared Calendar assessor
+derives writable events and every finite occurrence from that recipe, checks peers within the
+batch as well as current Owned and selected visible Observed availability, and writes one bulk
+Proposal. Promotion repeats that assessment before each write, including recovery after a partial
+batch; saved interval arrays cannot authorize publication. Promotion remains the only Google event-write path.
 The operator must review the exact preview and explicitly promote it. A later NTU calendar change
 requires a new Proposal rather than silently mutating an existing series.
 

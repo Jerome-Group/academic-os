@@ -7,6 +7,7 @@ import {
   CALENDAR_PROPERTIES_WRITE_SCOPE,
   createGoogleCalendarRefreshReader,
   createGoogleCalendarPromotionWriter,
+  createGoogleCalendarProposalReader,
   createGoogleCalendarSetupReader,
   createGoogleCalendarSetupWriter,
   type CalendarHttpRequest,
@@ -216,387 +217,95 @@ describe("Google Calendar Refresh adapter", () => {
   });
 });
 
-describe("recurring Calendar split adapter", () => {
-  const splitInput = {
-    sourceCalendarId: "source",
-    targetCalendarId: "target",
-    recurringEventId: "master",
-    instanceId: "instance",
-    recurringMaster: {
-      id: "master",
-      recurrence: ["RRULE:FREQ=DAILY;COUNT=400"],
-    },
-    patch: {
-      start: {
-        dateTime: "2026-10-01T11:00:00+08:00",
-        timeZone: "Asia/Singapore",
-      },
-      end: {
-        dateTime: "2026-10-01T12:00:00+08:00",
-        timeZone: "Asia/Singapore",
-      },
-    },
-    idempotencyKey: "synthetic-split",
-    exceptions: [],
-  };
-  const instance = {
-    id: "instance",
-    start: { dateTime: "2026-10-01T09:00:00+08:00" },
-    end: { dateTime: "2026-10-01T10:00:00+08:00" },
-  };
-
-  it("retains the source series when recurring-instance pagination cycles", async () => {
+describe("Google Calendar source observation", () => {
+  it("exhausts stored-resource pages including an empty middle page without a time clamp", async () => {
     const requests: CalendarHttpRequest[] = [];
     const requester: CalendarRequester = {
       request: async <T>(request: CalendarHttpRequest) => {
         requests.push(request);
-        if (requests.length > 4) throw new Error("fixture loop limit");
-        if (request.url.endsWith("/instance")) return { data: instance as T };
-        if (request.url.endsWith("/instances"))
-          return { data: { items: [], nextPageToken: "repeat" } as T };
-        throw { response: { status: 404 } };
-      },
-    };
-    await assert.rejects(
-      () =>
-        createGoogleCalendarPromotionWriter(
-          "/private/synthetic",
-          requester,
-        ).splitRecurringEvent(splitInput),
-      /invalid or repeated pagination token/u,
-    );
-    assert.equal(
-      requests.filter(({ url }) => url.endsWith("/instances")).length,
-      2,
-    );
-    assert.ok(requests.every(({ method }) => method === "GET"));
-  });
-
-  it("counts every predecessor page and preserves the requested future start and end", async () => {
-    const requests: CalendarHttpRequest[] = [];
-    const requester: CalendarRequester = {
-      request: async <T>(request: CalendarHttpRequest) => {
-        requests.push(request);
-        if (
-          request.method === "GET" &&
-          !request.url.endsWith("/instance") &&
-          !request.url.endsWith("/instances")
-        )
-          throw { response: { status: 404 } };
-        return {
-          data: (request.url.endsWith("/instance")
-            ? instance
-            : request.url.endsWith("/instances")
-              ? request.params?.pageToken === undefined
-                ? {
-                    items: Array.from({ length: 250 }, (_, index) => ({
-                      id: `prior-${index}`,
+        const data =
+          request.params?.pageToken === undefined
+            ? {
+                items: [
+                  { id: "master", recurrence: ["RRULE:FREQ=WEEKLY;COUNT=2"] },
+                ],
+                nextPageToken: "empty",
+              }
+            : request.params.pageToken === "empty"
+              ? { items: [], nextPageToken: "last" }
+              : {
+                  items: [
+                    {
+                      id: "cancelled",
+                      status: "cancelled",
+                      recurringEventId: "master",
                       originalStartTime: {
-                        dateTime: "2026-09-01T09:00:00+08:00",
+                        dateTime: "2026-10-12T10:00:00+08:00",
                       },
-                    })),
-                    nextPageToken: "next",
-                  }
-                : {
-                    items: [
-                      {
-                        id: "deleted",
-                        status: "cancelled",
-                        originalStartTime: {
-                          dateTime: "2026-09-01T09:00:00+08:00",
-                        },
-                      },
-                      {
-                        id: "previous",
-                        originalStartTime: {
-                          dateTime: "2026-09-01T09:00:00+08:00",
-                        },
-                      },
-                    ],
-                  }
-              : {}) as T,
-        };
+                    },
+                  ],
+                };
+        return { data: data as T };
       },
     };
-    await createGoogleCalendarPromotionWriter(
-      "unused",
-      requester,
-    ).splitRecurringEvent(splitInput);
-    const instanceRequests = requests.filter((request) =>
-      request.url.endsWith("/instances"),
+    const reader = createGoogleCalendarProposalReader("unused", requester);
+    assert.ok(reader.listStoredEvents);
+    const events = await reader.listStoredEvents({ calendarId: "source/id" });
+    assert.deepEqual(
+      events.map(({ id }) => id),
+      ["master", "cancelled"],
     );
-    assert.equal(instanceRequests.length, 2);
-    assert.equal(instanceRequests[1]?.params?.pageToken, "next");
-    assert.equal(instanceRequests[0]?.params?.showDeleted, true);
-    const created = requests.find((request) => request.method === "POST")?.data;
-    assert.deepEqual(created?.recurrence, ["RRULE:FREQ=DAILY;COUNT=148"]);
-    assert.deepEqual(created?.start, splitInput.patch.start);
-    assert.deepEqual(created?.end, splitInput.patch.end);
+    assert.equal(events[1]?.start, undefined);
+    assert.equal(requests.length, 3);
+    assert.ok(
+      requests.every(
+        ({ method, params }) =>
+          method === "GET" &&
+          params?.singleEvents === false &&
+          params.showDeleted === true &&
+          params.timeMin === undefined &&
+          params.timeMax === undefined,
+      ),
+    );
   });
-
-  it("does not trim or create a series after an inconclusive existence check", async () => {
-    for (const status of [403, 503]) {
-      const requests: CalendarHttpRequest[] = [];
-      const requester: CalendarRequester = {
-        request: async (request) => {
-          requests.push(request);
-          throw { response: { status } };
-        },
-      };
-      await assert.rejects(
-        createGoogleCalendarPromotionWriter(
-          "unused",
-          requester,
-        ).splitRecurringEvent(splitInput),
-      );
-      assert.equal(requests.length, 1);
-      assert.equal(requests[0]?.method, "GET");
-    }
-  });
-
-  it("validates the future occurrence count before trimming the source", async () => {
+  it("fully paginates an exact original-start replacement selector", async () => {
     const requests: CalendarHttpRequest[] = [];
-    const requester: CalendarRequester = {
+    const reader = createGoogleCalendarProposalReader("unused", {
       request: async <T>(request: CalendarHttpRequest) => {
         requests.push(request);
-        if (
-          !request.url.endsWith("/instance") &&
-          !request.url.endsWith("/instances")
-        )
-          throw { response: { status: 404 } };
         return {
-          data: (request.url.endsWith("/instance")
-            ? instance
+          data: (request.params?.pageToken === undefined
+            ? { items: [], nextPageToken: "last" }
             : {
                 items: [
                   {
-                    id: "first",
+                    id: "replacement",
+                    recurringEventId: "future",
                     originalStartTime: {
-                      dateTime: "2026-09-01T09:00:00+08:00",
+                      dateTime: "2026-10-12T10:00:00+08:00",
                     },
                   },
                 ],
               }) as T,
         };
       },
-    };
-    await assert.rejects(
-      createGoogleCalendarPromotionWriter(
-        "unused",
-        requester,
-      ).splitRecurringEvent({
-        ...splitInput,
-        recurringMaster: {
-          id: "master",
-          recurrence: ["RRULE:FREQ=DAILY;COUNT=1"],
-        },
-      }),
-      /no future occurrences/u,
-    );
-    assert.equal(
-      requests.some((request) => request.method !== "GET"),
-      false,
-    );
-  });
-
-  it("counts original anchors rather than moved instance start times", async () => {
-    const requests: CalendarHttpRequest[] = [];
-    const requester: CalendarRequester = {
-      request: async <T>(request: CalendarHttpRequest) => {
-        requests.push(request);
-        if (
-          request.method === "GET" &&
-          !request.url.endsWith("/instance") &&
-          !request.url.endsWith("/instances")
-        )
-          throw { response: { status: 404 } };
-        return {
-          data: (request.url.endsWith("/instance")
-            ? instance
-            : request.url.endsWith("/instances")
-              ? {
-                  items: [
-                    {
-                      id: "moved-after",
-                      originalStartTime: {
-                        dateTime: "2026-09-30T09:00:00+08:00",
-                      },
-                      start: { dateTime: "2026-10-02T09:00:00+08:00" },
-                    },
-                    {
-                      id: "moved-before",
-                      originalStartTime: {
-                        dateTime: "2026-10-02T09:00:00+08:00",
-                      },
-                      start: { dateTime: "2026-09-30T09:00:00+08:00" },
-                    },
-                    { ...instance, originalStartTime: instance.start },
-                  ],
-                }
-              : {}) as T,
-        };
-      },
-    };
-    await createGoogleCalendarPromotionWriter(
-      "unused",
-      requester,
-    ).splitRecurringEvent({
-      ...splitInput,
-      recurringMaster: {
-        id: "master",
-        recurrence: ["RRULE:FREQ=DAILY;COUNT=3"],
-      },
     });
-    assert.equal(
-      requests.find((request) => request.url.endsWith("/instances"))?.params
-        ?.timeMax,
-      undefined,
-    );
-    assert.deepEqual(
-      requests.find((request) => request.method === "POST")?.data?.recurrence,
-      ["RRULE:FREQ=DAILY;COUNT=2"],
-    );
-  });
-
-  it("uses an explicit replacement recurrence and skips obsolete predecessor counting", async () => {
-    const requests: CalendarHttpRequest[] = [];
-    const requester: CalendarRequester = {
-      request: async <T>(request: CalendarHttpRequest) => {
-        requests.push(request);
-        if (request.method === "GET" && !request.url.endsWith("/instance"))
-          throw { response: { status: 404 } };
-        return {
-          data: (request.url.endsWith("/instance") ? instance : {}) as T,
-        };
-      },
-    };
-    const recurrence = ["RRULE:FREQ=WEEKLY;COUNT=12"];
-    await createGoogleCalendarPromotionWriter(
-      "unused",
-      requester,
-    ).splitRecurringEvent({ ...splitInput, patch: { recurrence } });
-    assert.deepEqual(
-      requests.find((request) => request.method === "POST")?.data?.recurrence,
-      recurrence,
-    );
-    assert.equal(
-      requests.some((request) => request.url.endsWith("/instances")),
-      false,
-    );
-  });
-
-  it("refuses unsupported recurrence combinations before sending requests", async () => {
-    let requests = 0;
-    const requester: CalendarRequester = {
-      request: async () => {
-        requests += 1;
-        return { data: {} as never };
-      },
-    };
-    for (const recurrence of [
-      ["RRULE:FREQ=DAILY;COUNT=10", "RRULE:FREQ=WEEKLY;COUNT=5"],
-      ["RRULE:FREQ=DAILY;COUNT=10", "RDATE:20261004T010000Z"],
-      ["RRULE:FREQ=DAILY;COUNT=10", "EXDATE:20261004T010000Z"],
-      ["RRULE:FREQ=DAILY", "RRULE:FREQ=WEEKLY"],
-      ["RRULE:FREQ=DAILY", "RDATE:20261004T010000Z"],
-      ["RRULE:FREQ=DAILY", "EXDATE:20261004T010000Z"],
-      ["RDATE:20261004T010000Z"],
-    ]) {
-      await assert.rejects(
-        createGoogleCalendarPromotionWriter(
-          "unused",
-          requester,
-        ).splitRecurringEvent({
-          ...splitInput,
-          recurringMaster: { id: "master", recurrence },
-        }),
-        /Recurring splits require one RRULE/u,
-      );
-    }
-    assert.equal(requests, 0);
-  });
-
-  it("skips predecessor reads when no rule has COUNT", async () => {
-    const requests: CalendarHttpRequest[] = [];
-    const requester: CalendarRequester = {
-      request: async <T>(request: CalendarHttpRequest) => {
-        requests.push(request);
-        if (request.method === "GET" && !request.url.endsWith("/instance"))
-          throw { response: { status: 404 } };
-        return {
-          data: (request.url.endsWith("/instance") ? instance : {}) as T,
-        };
-      },
-    };
-    await createGoogleCalendarPromotionWriter(
-      "unused",
-      requester,
-    ).splitRecurringEvent({
-      ...splitInput,
-      recurringMaster: { id: "master", recurrence: ["RRULE:FREQ=DAILY"] },
+    assert.ok(reader.listSeriesInstances);
+    const events = await reader.listSeriesInstances({
+      calendarId: "target/id",
+      eventId: "future",
+      originalStart: "2026-10-12T02:00:00Z",
     });
-    assert.equal(
-      requests.some((request) => request.url.endsWith("/instances")),
-      false,
+    assert.equal(events[0]?.id, "replacement");
+    assert.equal(requests.length, 2);
+    assert.ok(
+      requests.every(
+        ({ method, params }) =>
+          method === "GET" &&
+          params?.originalStart === "2026-10-12T02:00:00Z" &&
+          params.showDeleted === true,
+      ),
     );
-  });
-
-  it("refuses exception-anchor changes before sending requests", async () => {
-    let requests = 0;
-    const requester: CalendarRequester = {
-      request: async () => {
-        requests += 1;
-        return { data: {} as never };
-      },
-    };
-    await assert.rejects(
-      createGoogleCalendarPromotionWriter(
-        "unused",
-        requester,
-      ).splitRecurringEvent({
-        ...splitInput,
-        exceptions: [{ id: "retained-exception" }],
-      }),
-      /cannot change its start or recurrence/u,
-    );
-    assert.equal(requests, 0);
-  });
-
-  it("recovers a disappeared split occurrence from its bound snapshot only for a missing response", async () => {
-    for (const status of [404, 503]) {
-      const requests: CalendarHttpRequest[] = [];
-      const requester: CalendarRequester = {
-        request: async <T>(request: CalendarHttpRequest) => {
-          requests.push(request);
-          if (request.method === "GET")
-            throw {
-              response: {
-                status: request.url.endsWith("/instance") ? status : 404,
-              },
-            };
-          return { data: {} as T };
-        },
-      };
-      const writer = createGoogleCalendarPromotionWriter("unused", requester);
-      const input = {
-        ...splitInput,
-        occurrence: instance,
-        recurringMaster: { id: "master", recurrence: ["RRULE:FREQ=DAILY"] },
-      };
-      if (status === 404) {
-        await writer.splitRecurringEvent(input);
-        assert.deepEqual(
-          requests.find((request) => request.method === "POST")?.data?.start,
-          splitInput.patch.start,
-        );
-      } else {
-        await assert.rejects(writer.splitRecurringEvent(input));
-        assert.equal(
-          requests.some((request) => request.method !== "GET"),
-          false,
-        );
-      }
-    }
   });
 });
 

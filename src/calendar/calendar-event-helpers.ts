@@ -104,3 +104,61 @@ export function isRecurringMaster(event: CalendarEvent): boolean {
     event.recurrence.length > 0
   );
 }
+
+export function isCalendarEvent(value: unknown): value is CalendarEvent {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    value.id !== "" &&
+    isCalendarEventContent(value)
+  );
+}
+
+export function isCalendarEventContent(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  for (const key of [
+    "summary",
+    "description",
+    "location",
+    "recurringEventId",
+    "transparency",
+    "visibility",
+    "status",
+    "etag",
+  ])
+    if (
+      value[key] !== undefined &&
+      typeof value[key] !== "string" &&
+      !(key === "transparency" && value[key] === null)
+    )
+      return false;
+  if (
+    value.recurrence !== undefined &&
+    (!Array.isArray(value.recurrence) ||
+      !value.recurrence.every((line) => typeof line === "string"))
+  )
+    return false;
+  for (const key of ["start", "end", "originalStartTime"]) {
+    const point = value[key];
+    if (point === undefined) continue;
+    if (
+      !isRecord(point) ||
+      (typeof point.date !== "string" && typeof point.dateTime !== "string") ||
+      (point.date !== undefined && point.dateTime !== undefined)
+    )
+      return false;
+    for (const field of ["date", "dateTime", "timeZone"])
+      if (point[field] !== undefined && typeof point[field] !== "string")
+        return false;
+  }
+  if (
+    value.organizer !== undefined &&
+    (!isRecord(value.organizer) ||
+      (value.organizer.self !== undefined &&
+        typeof value.organizer.self !== "boolean") ||
+      (value.organizer.email !== undefined &&
+        typeof value.organizer.email !== "string"))
+  )
+    return false;
+  return true;
+}

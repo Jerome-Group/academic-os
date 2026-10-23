@@ -304,8 +304,9 @@ describe("academic-os calendar propose", () => {
     assert.equal(report.warnings[0].eventId, "sensitive-observed-id");
 
     const provider = await readProvider(fixture);
-    const eventRequests = provider.requests.filter(({ url }) =>
-      url.includes("/events"),
+    const eventRequests = provider.requests.filter(
+      ({ url, params }) =>
+        url.includes("/events") && params?.singleEvents === true,
     );
     assert.ok(eventRequests.length > 0);
     assert.ok(
@@ -389,19 +390,18 @@ describe("academic-os calendar propose", () => {
         }),
       ),
       [
-        { eventId: "existing-class", source: "Owned" },
         { eventId: "weekly-class-20260820", source: "Owned" },
+        { eventId: "unrefreshed-live-only", source: "Owned" },
         { eventId: "observed-commitment", source: "Observed" },
       ],
     );
     const eventRequests = (await readProvider(fixture)).requests.filter(
-      ({ url }) => url.includes("/events"),
+      ({ url, params }) =>
+        url.includes("/events") && params?.singleEvents === true,
     );
     assert.deepEqual(
-      eventRequests.map(({ url }) =>
-        url.includes("academic-id") ? "Academic" : "Observed",
-      ),
-      ["Academic", "Observed"],
+      eventRequests.map(({ url }) => url.match(/calendars\/([^/]+)/u)?.[1]),
+      ["academic-id", "commitments-id", "observed-id", "routine-id"],
     );
     assert.ok(
       eventRequests.every(
@@ -2004,10 +2004,14 @@ describe("academic-os calendar propose", () => {
     const result = await runCalendarPropose(fixture, inputPath, "--json");
 
     assert.equal(result.exitCode, 0, JSON.stringify(result));
-    const [dependency] = JSON.parse(result.stdout).proposal
-      .recurrenceDependencies;
-    assert.equal(dependency.eventId, master.id);
-    assert.match(dependency.versionDigest, /^[a-f0-9]{64}$/u);
+    const originals = JSON.parse(result.stdout).proposal.review.originals;
+    assert.equal(
+      originals.some(
+        (original: { ref: { eventId: string }; event: { id: string } }) =>
+          original.ref.eventId === master.id && original.event.id === master.id,
+      ),
+      true,
+    );
   });
 
   it("accepts a recurrence patch for an entire recurring series", async () => {
@@ -2045,7 +2049,7 @@ describe("academic-os calendar propose", () => {
     ]);
   });
 
-  it("prepares this-and-future for an all-day recurring occurrence", async () => {
+  it("refuses unsupported YEARLY future scope before any write", async () => {
     const master = {
       id: "annual-day",
       summary: "Annual day",
@@ -2076,10 +2080,15 @@ describe("academic-os calendar propose", () => {
       },
     });
     const result = await runCalendarPropose(fixture, inputPath, "--json");
-    assert.equal(result.exitCode, 0, JSON.stringify(result));
-    assert.equal(
-      JSON.parse(result.stdout).proposal.recurrenceScope,
-      "this-and-future",
+    assert.equal(result.exitCode, 2, JSON.stringify(result));
+    assert.match(
+      JSON.parse(result.stdout).error.message,
+      /only DAILY and WEEKLY/u,
+    );
+    assert.ok(
+      (await readProvider(fixture)).requests.every(
+        ({ method }) => method === "GET",
+      ),
     );
   });
 
@@ -2155,6 +2164,11 @@ describe("academic-os calendar propose", () => {
       },
     ];
     await writeFile(mirrorPath, `${JSON.stringify(mirror)}\n`);
+    const providerState = JSON.parse(
+      await readFile(fixture.providerPath, "utf8"),
+    );
+    providerState.events["academic-id"] = [];
+    await writeFile(fixture.providerPath, JSON.stringify(providerState));
     const restorePath = await writeInput(fixture, {
       schemaVersion: 1,
       source: { kind: "instruction", reference: "restore-class" },
@@ -2657,6 +2671,7 @@ async function setupFixture(
           summary: "Personal",
           primary: true,
           selected: true,
+          timeZone: "Asia/Singapore",
           colorId: "academic-colour",
           etag: "academic-version",
           defaultReminders: [{ method: "popup", minutes: 30 }],
@@ -2665,6 +2680,7 @@ async function setupFixture(
           id: "commitments-id",
           summary: "Commitments",
           selected: true,
+          timeZone: "Asia/Singapore",
           colorId: "commitments-colour",
           etag: "commitments-version",
           defaultReminders: [{ method: "email", minutes: 60 }],
@@ -2673,6 +2689,7 @@ async function setupFixture(
           id: "routine-id",
           summary: "Routine",
           selected: true,
+          timeZone: "Asia/Singapore",
           colorId: "routine-colour",
           etag: "routine-version",
           defaultReminders: [],
@@ -2681,6 +2698,7 @@ async function setupFixture(
           id: "observed-id",
           summary: "Observed",
           selected: true,
+          timeZone: "Asia/Singapore",
           colorId: "observed-colour",
         },
         {
@@ -2749,7 +2767,7 @@ async function readProposalState(fixture: Fixture): Promise<{
 async function readProvider(fixture: Fixture): Promise<{
   requests: Array<{
     method: string;
-    params: Record<string, string>;
+    params: Record<string, string | boolean>;
     url: string;
   }>;
 }> {

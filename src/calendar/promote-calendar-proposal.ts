@@ -1,38 +1,27 @@
 import { OperationalError } from "../operational-error.js";
 import {
+  assessCalendarProposal,
+  calendarContentMatches,
+  type CalendarAssessment,
+} from "./calendar-occupancy.js";
+import { readCurrentCalendarMirrors } from "./read-current-calendar-mirrors.js";
+import {
   eventContainsPatch,
-  recurrenceMatches,
   restorableEvent,
 } from "./calendar-event-helpers.js";
-import {
-  collectCalendarAvailability,
-  findCalendarOverlaps,
-} from "./calendar-conflicts.js";
-import { calendarStateDigest } from "./calendar-state-digest.js";
 import { calendarEventIdFor } from "./calendar-idempotency.js";
-import { trimCalendarRecurrence } from "./calendar-recurrence.js";
-import { promoteRoutineMigration } from "./promote-routine-migration.js";
 import type {
-  CalendarBulkCreateItem,
-  CalendarBulkCreateProposalCandidate,
   CalendarEvent,
-  CalendarInterval,
-  CalendarProposal,
-  CalendarCancelProposalCandidate,
-  CalendarChangeProposalCandidate,
-  CalendarCreateProposalCandidate,
-  CalendarEventPatch,
+  CalendarStoredProposal,
   CalendarProposalReader,
   CalendarProposalStore,
   CalendarPromotionJournal,
   CalendarRefreshReport,
   CalendarPromotionReport,
   CalendarPromotionWriter,
-  CalendarRestoreProposalCandidate,
   OwnedCalendarMirrorStore,
   OwnedCalendarWorkspaceReader,
 } from "./types.js";
-import { OWNED_CALENDAR_ROLES } from "./types.js";
 
 type PromotionInput = {
   proposalId: string;
@@ -45,258 +34,221 @@ type PromotionInput = {
   mirrorStore: OwnedCalendarMirrorStore;
 };
 
-type NonRoutineCalendarProposal =
-  | (CalendarCreateProposalCandidate & { status: "ready" })
-  | (CalendarChangeProposalCandidate & { status: "ready" })
-  | (CalendarCancelProposalCandidate & { status: "ready" })
-  | (CalendarRestoreProposalCandidate & { status: "ready" });
-
-type CalendarMoveProposal = CalendarChangeProposalCandidate & {
-  status: "ready";
-};
-
 export async function promoteCalendarProposal(
   input: PromotionInput,
 ): Promise<CalendarPromotionReport> {
-  const storedProposal = await input.proposalStore.read(input.proposalId);
-  if (storedProposal === undefined) {
+  const proposal = await input.proposalStore.read(input.proposalId);
+  if (proposal === undefined)
     throw new OperationalError(
       "invalid-target",
       "Calendar Promote requires an existing ready Proposal ID.",
     );
-  }
-  const proposal =
-    storedProposal.operation === "restore"
-      ? {
-          ...storedProposal,
-          intendedEvent: restorableEvent(
-            storedProposal.intendedEvent,
-            storedProposal.idempotencyKey,
-          ),
-        }
-      : storedProposal;
-  if (proposal.operation === "routine-migration") {
-    return await promoteRoutineMigration(input, proposal);
-  }
-  if (proposal.operation === "bulk-create") {
-    return await promoteBulkCalendarProposal(input, proposal);
-  }
-  const eventId =
-    proposal.operation === "create" || proposal.operation === "restore"
-      ? calendarEventIdFor(proposal.idempotencyKey)
-      : proposal.operation === "cancel" &&
-          proposal.recurrenceScope === "this-and-future"
-        ? (proposal.recurringMaster?.id ?? proposal.sourceItem.eventId)
-        : proposal.recurrenceScope === "this-and-future"
-          ? calendarEventIdFor(proposal.idempotencyKey)
-          : proposal.recurrenceScope === "entire-series"
-            ? (proposal.sourceItem.recurringEventId ??
-              proposal.sourceItem.eventId)
-            : proposal.sourceItem.eventId;
   const recorded = await input.journal.find(proposal.id);
-  if (recorded !== undefined) {
-    if (proposal.operation === "cancel") {
-      return await finalizeCancellation(
-        input,
-        proposal,
-        recorded.eventId,
-        false,
-      );
-    }
-    return await finalizePromotion(
-      input,
-      proposal,
-      recorded.eventId,
-      recorded.calendarId ?? proposal.target.calendarId,
-      false,
-    );
-  }
-  if (proposal.status !== "ready") {
-    throw new OperationalError(
-      "invalid-target",
-      "Calendar Promote requires an existing ready Proposal ID.",
-    );
-  }
-
-  const refresh = await input.refresh();
-  if (refresh.calendars.some(({ freshness }) => freshness === "stale")) {
-    return blockedReport(proposal.id);
-  }
   if (
-    proposal.operation === "move" &&
-    proposal.recurrenceScope !== "this-and-future" &&
-    !(await sourceItemExists(input, proposal))
-  ) {
-    return await recoverInterruptedMove(input, proposal, eventId);
-  }
-  const validation = await validateProposal(proposal, input);
-  if (validation === "stale") {
-    await input.proposalStore.markStale(proposal.id, "live-version-changed");
-    return {
-      schemaVersion: 1,
-      command: "calendar promote",
-      outcome: "stale",
-      proposalId: proposal.id,
-    };
-  }
-  if (validation === "blocked") {
-    return blockedReport(proposal.id);
-  }
-  if (proposal.operation === "cancel") {
-    await applyCancellation(input.writer, proposal, eventId);
-    return await finalizeCancellation(input, proposal, eventId, true);
-  }
-  let verifiedEventId = eventId;
-  try {
-    verifiedEventId = await applyProposal(input.writer, proposal, eventId);
-  } catch (error) {
-    if (
-      proposal.operation !== "create" &&
-      proposal.operation !== "restore" &&
-      proposal.recurrenceScope === "this-and-future"
-    ) {
-      throw error;
-    }
-    try {
-      const acceptedEvent = await input.writer.readEvent({
-        calendarId: proposal.target.calendarId,
-        eventId: verifiedEventId,
-      });
-      if (
-        proposal.operation === "create" || proposal.operation === "restore"
-          ? !eventMatchesIntended(acceptedEvent, proposal.intendedEvent)
-          : !eventContainsPatch(acceptedEvent, proposal.patch)
-      ) {
-        throw error;
-      }
-    } catch {
-      throw error;
-    }
-  }
-  return await finalizePromotion(
-    input,
-    proposal,
-    verifiedEventId,
-    proposal.target.calendarId,
-    true,
-  );
-}
-
-async function promoteBulkCalendarProposal(
-  input: PromotionInput,
-  proposal: CalendarBulkCreateProposalCandidate & { status: "ready" },
-): Promise<CalendarPromotionReport> {
-  const recorded = await input.journal.find(proposal.id);
-  if (recorded !== undefined) {
-    const eventIds = recorded.eventIds ?? [recorded.eventId];
-    const verifiedEvents = await readBulkEvents(
-      input.writer,
-      proposal.target.calendarId,
-      eventIds,
+    recorded !== undefined &&
+    (recorded.idempotencyKey !== proposal.idempotencyKey ||
+      recorded.proposalId !== proposal.id ||
+      (recorded.calendarId !== undefined &&
+        recorded.calendarId !== proposal.target.calendarId))
+  )
+    return refused(
+      proposal.id,
+      "blocked",
+      "Promotion receipt does not match the exact Calendar identity and intent.",
     );
-    if (verifiedEvents === undefined) return blockedReport(proposal.id);
-    return await finalizeBulkPromotion(
+  if (recorded === undefined && proposal.review?.schemaVersion !== 2)
+    return stale(
       input,
-      proposal,
-      eventIds,
-      verifiedEvents,
-      false,
+      proposal.id,
+      "Legacy Calendar Proposal requires re-preview. Its saved intervals, digest and counts cannot authorize publication.",
     );
-  }
-  if (proposal.status !== "ready") {
+  if (recorded === undefined && proposal.status !== "ready")
     throw new OperationalError(
       "invalid-target",
       "Calendar Promote requires an existing ready Proposal ID.",
     );
-  }
-
-  const refresh = await input.refresh();
-  if (refresh.calendars.some(({ freshness }) => freshness === "stale")) {
-    return blockedReport(proposal.id);
-  }
-  const validation = await validateBulkProposal(proposal, input);
-  if (validation === "stale") {
-    await input.proposalStore.markStale(proposal.id, "live-version-changed");
-    return {
-      schemaVersion: 1,
-      command: "calendar promote",
-      outcome: "stale",
-      proposalId: proposal.id,
-    };
-  }
-  if (validation === "blocked") return blockedReport(proposal.id);
-
-  const eventIds = proposal.items.map(({ eventId }) => eventId);
-  const verifiedEvents: CalendarEvent[] = [];
-  for (const item of proposal.items) {
-    const eventId = item.eventId;
-    try {
-      await input.writer.createEvent({
-        calendarId: proposal.target.calendarId,
-        eventId,
-        event: item.intendedEvent,
-        idempotencyKey: item.idempotencyKey,
-      });
-    } catch (error) {
-      const accepted = await readBulkEventAfterCreateFailure(
-        input.writer,
-        proposal.target.calendarId,
-        eventId,
-      );
-      if (
-        accepted === undefined ||
-        !eventMatchesIntended(accepted, item.intendedEvent)
-      ) {
-        throw error;
-      }
-    }
-    const verified = await input.writer.readEvent({
-      calendarId: proposal.target.calendarId,
-      eventId,
-    });
-    if (!eventMatchesIntended(verified, item.intendedEvent)) {
-      throw new OperationalError(
-        "operational-failure",
-        `Calendar Promotion read back an unexpected event for ${item.key}.`,
-      );
-    }
-    verifiedEvents.push(verified);
-  }
-  return await finalizeBulkPromotion(
-    input,
-    proposal,
-    eventIds,
-    verifiedEvents,
-    true,
-  );
-}
-
-async function finalizeBulkPromotion(
-  input: PromotionInput,
-  proposal: CalendarBulkCreateProposalCandidate & { status: "ready" },
-  eventIds: string[],
-  verifiedEvents: CalendarEvent[],
-  appendJournal: boolean,
-): Promise<CalendarPromotionReport> {
-  if (eventIds.length === 0 || verifiedEvents.length !== eventIds.length) {
-    return blockedReport(proposal.id);
-  }
-  const appended = appendJournal
-    ? await input.journal.appendOnce({
-        schemaVersion: 1,
-        proposalId: proposal.id,
-        eventId: eventIds[0] as string,
-        eventIds,
-        idempotencyKey: proposal.idempotencyKey,
-        calendarId: proposal.target.calendarId,
-      })
-    : false;
+  if (recorded !== undefined && proposal.review?.schemaVersion !== 2)
+    return await finalizeLegacyReceipt(
+      input,
+      proposal,
+      recorded.eventIds ?? [recorded.eventId],
+    );
   const refreshed = await input.refresh();
+  if (refreshed.calendars.some(({ freshness }) => freshness === "stale"))
+    return refused(
+      proposal.id,
+      "blocked",
+      "Calendar Refresh must succeed before publication.",
+    );
+  const workspace = await input.workspaceReader.read();
+  const mirrors = await readCurrentCalendarMirrors(
+    input.mirrorStore,
+    workspace,
+  );
   if (
-    refreshed.calendars.some(({ freshness }) => freshness === "stale") ||
-    !(await mirrorContainsBulkEvents(input, proposal, eventIds))
-  ) {
-    return blockedReport(proposal.id);
+    recorded === undefined &&
+    proposal.operation === "cancel" &&
+    proposal.recurrenceScope !== "this-and-future" &&
+    !mirrors.some(
+      (mirror) =>
+        mirror.calendarId === proposal.sourceItem.calendarId &&
+        mirror.items.some(
+          ({ event }) => event.id === proposal.sourceItem.eventId,
+        ),
+    )
+  )
+    return stale(
+      input,
+      proposal.id,
+      "The live item was deleted before an unrecorded cancellation; reconcile the retained tombstone.",
+    );
+  const reader: CalendarProposalReader = {
+    ...input.reader,
+    readEvent: input.reader.readEvent ?? input.writer.readEvent,
+  };
+  const assess = async () =>
+    await assessCalendarProposal({
+      proposal,
+      workspace,
+      mirrors,
+      reader,
+      promotion: true,
+      ...(recorded === undefined ? {} : { completed: true }),
+    });
+  let assessment = await assess();
+  while (assessment.outcome === "ready" && assessment.remainingStepCount > 0) {
+    const accepted = assessment.acceptedStepCount;
+    try {
+      await assessment.executeNext(input.writer);
+    } catch (error) {
+      const afterFailure = await assess();
+      if (afterFailure.outcome !== "ready")
+        return {
+          ...assessmentReport(proposal.id, afterFailure),
+          outcome: "blocked",
+          reason:
+            "Provider call failed and current state cannot authorize another write; reconcile the existing effects. " +
+            afterFailure.reason,
+        };
+      if (afterFailure.acceptedStepCount <= accepted)
+        throw new OperationalError(
+          "operational-failure",
+          `Calendar provider write failed with ${accepted} accepted plan steps retained; no further writes attempted. ${error instanceof Error ? error.message : "Reconcile provider state before retrying."}`,
+        );
+      assessment = afterFailure;
+      continue;
+    }
+    assessment = await assess();
+    if (assessment.outcome === "stale")
+      return {
+        ...assessmentReport(proposal.id, assessment),
+        outcome: "blocked",
+        reason:
+          "Provider readback differs from the exact assessed write; reconcile the existing effects before further publication.",
+      };
+    if (
+      assessment.outcome === "ready" &&
+      assessment.acceptedStepCount <= accepted
+    )
+      return refused(
+        proposal.id,
+        "blocked",
+        "Provider did not accept the assessed write; no further steps were attempted.",
+      );
+  }
+  if (assessment.outcome !== "ready") {
+    if (assessment.outcome === "stale" && assessment.acceptedStepCount === 0)
+      await input.proposalStore.markStale(proposal.id, "live-version-changed");
+    return assessmentReport(proposal.id, assessment);
+  }
+  if (
+    recorded !== undefined &&
+    (recorded.eventIds ?? [recorded.eventId]).join("\0") !==
+      assessment.results.map(({ eventId }) => eventId).join("\0") &&
+    proposal.operation !== "cancel"
+  )
+    return refused(
+      proposal.id,
+      "blocked",
+      "Completed receipt event identities do not match the approved plan.",
+    );
+  const verifiedEvents: CalendarEvent[] = [];
+  for (const ref of assessment.results)
+    verifiedEvents.push(await input.writer.readEvent(ref));
+  const eventIds = assessment.results.map(({ eventId }) => eventId);
+  const eventId =
+    eventIds[0] ??
+    (proposal.operation === "cancel"
+      ? proposal.sourceItem.eventId
+      : proposal.id);
+  const appended =
+    recorded === undefined
+      ? await input.journal.appendOnce({
+          schemaVersion: 1,
+          proposalId: proposal.id,
+          eventId,
+          ...(eventIds.length > 1 ||
+          proposal.operation === "bulk-create" ||
+          proposal.operation === "routine-migration"
+            ? { eventIds }
+            : {}),
+          idempotencyKey: proposal.idempotencyKey,
+          calendarId: proposal.target.calendarId,
+        })
+      : false;
+  const finalRefresh = await input.refresh();
+  if (finalRefresh.calendars.some(({ freshness }) => freshness === "stale"))
+    return refused(
+      proposal.id,
+      "blocked",
+      "Approved effects were read back but the final Refresh is incomplete.",
+    );
+  const mirror = await input.mirrorStore.read(proposal.target.calendarRole);
+  if (
+    mirror === undefined ||
+    verifiedEvents.some(
+      (event) =>
+        !mirror.items.some(
+          (item) =>
+            item.event.id === event.id &&
+            calendarContentMatches(item.event, event),
+        ),
+    )
+  )
+    return refused(
+      proposal.id,
+      "blocked",
+      "Approved provider effects are missing from the refreshed Owned mirror.",
+    );
+  if (proposal.operation === "cancel") {
+    if (proposal.recurrenceScope === "this-and-future") {
+      if (
+        !mirror.tombstones.some(
+          ({ event }) => event.id === proposal.preview.event.id,
+        )
+      )
+        await input.mirrorStore.write({
+          ...mirror,
+          tombstones: [
+            ...mirror.tombstones,
+            {
+              access: "owned",
+              deletedAt:
+                mirror.lastSuccessfulRefresh ?? new Date().toISOString(),
+              event: proposal.preview.event,
+            },
+          ],
+        });
+    } else if (
+      !mirror.tombstones.some(
+        ({ event }) => event.id === proposal.sourceItem.eventId,
+      )
+    )
+      return refused(
+        proposal.id,
+        "blocked",
+        "Cancellation is not retained in the refreshed Calendar tombstones.",
+      );
   }
   await input.proposalStore.markPromoted(proposal.id);
   return {
@@ -304,657 +256,130 @@ async function finalizeBulkPromotion(
     command: "calendar promote",
     outcome: appended ? "promoted" : "retry",
     proposalId: proposal.id,
-    verifiedEvents,
+    ...(proposal.operation === "bulk-create" ||
+    proposal.operation === "routine-migration"
+      ? { verifiedEvents }
+      : verifiedEvents[0] === undefined
+        ? {}
+        : { verifiedEvent: verifiedEvents[0] }),
   };
 }
 
-async function validateBulkProposal(
-  proposal: CalendarBulkCreateProposalCandidate & { status: "ready" },
-  input: Pick<PromotionInput, "reader" | "workspaceReader" | "mirrorStore">,
-): Promise<"valid" | "stale" | "blocked"> {
-  const workspace = await input.workspaceReader.read();
-  const calendars = await input.reader.listCalendars();
-  const target = calendars.find(({ id }) => id === proposal.target.calendarId);
-  if (target?.etag !== proposal.targetCalendarVersion.etag) return "stale";
-  const mirrors = [];
-  for (const role of OWNED_CALENDAR_ROLES) {
-    const mirror = await input.mirrorStore.read(role);
-    if (mirror === undefined || mirror.freshness === "stale") return "blocked";
-    mirrors.push(mirror);
-  }
-  const interval = boundingInterval(
-    proposal.relevantAvailabilityVersion.intervals,
-  );
-  const availability = await collectCalendarAvailability({
-    reader: input.reader,
-    calendars,
-    mirrors,
-    ownedCalendarIds: workspace.ownedCalendarIds,
-    interval,
-  });
-  const proposalEventIds = new Set(
-    proposal.items.map(({ eventId }) => eventId),
-  );
-  const relevantAvailability = availability.items.filter(
-    ({ event }) =>
-      !proposalEventIds.has(event.id) &&
-      !proposalEventIds.has(event.recurringEventId ?? ""),
-  );
-  const availabilityDigest = calendarStateDigest(
-    relevantAvailability.map(({ calendarId, event }) => ({
-      calendarId,
-      event,
-    })),
-  );
-  if (
-    availabilityDigest !== proposal.relevantAvailabilityVersion.digest ||
-    availability.checkedCalendarCount !==
-      proposal.relevantAvailabilityVersion.checkedCalendarCount
-  ) {
-    const blockers = bulkConflicts(proposal.items, relevantAvailability);
-    return blockers.length > 0 ? "blocked" : "stale";
-  }
-  return "valid";
-}
-
-function bulkConflicts(
-  items: CalendarBulkCreateItem[],
-  availability: Parameters<typeof findCalendarOverlaps>[0]["availability"],
-) {
-  const seen = new Set<string>();
-  return items.flatMap((item) =>
-    item.occupiedIntervals.flatMap((interval) =>
-      findCalendarOverlaps({
-        availability,
-        interval,
-        proposedKind: item.itemKind,
-      }).filter((overlap) => {
-        const key = `${item.key}\0${overlap.eventId}\0${overlap.start}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return overlap.severity === "block";
-      }),
-    ),
-  );
-}
-
-async function readBulkEvents(
-  writer: CalendarPromotionWriter,
-  calendarId: string,
+async function finalizeLegacyReceipt(
+  input: PromotionInput,
+  proposal: CalendarStoredProposal,
   eventIds: string[],
-): Promise<CalendarEvent[] | undefined> {
+): Promise<CalendarPromotionReport> {
   const events: CalendarEvent[] = [];
   for (const eventId of eventIds) {
+    let event: CalendarEvent;
     try {
-      events.push(await writer.readEvent({ calendarId, eventId }));
-    } catch (error) {
-      if (isMissingEventError(error)) return undefined;
-      throw error;
-    }
-  }
-  return events;
-}
-
-async function readBulkEventAfterCreateFailure(
-  writer: CalendarPromotionWriter,
-  calendarId: string,
-  eventId: string,
-): Promise<CalendarEvent | undefined> {
-  try {
-    return await writer.readEvent({ calendarId, eventId });
-  } catch (error) {
-    if (isMissingEventError(error)) return undefined;
-    throw error;
-  }
-}
-
-async function mirrorContainsBulkEvents(
-  input: Pick<PromotionInput, "mirrorStore">,
-  proposal: CalendarBulkCreateProposalCandidate,
-  eventIds: string[],
-): Promise<boolean> {
-  const mirror = await input.mirrorStore.read(proposal.target.calendarRole);
-  return (
-    mirror !== undefined &&
-    eventIds.every((eventId) =>
-      mirror.items.some(({ event }) => event.id === eventId),
-    )
-  );
-}
-
-function eventMatchesIntended(
-  event: CalendarEvent,
-  intended:
-    | CalendarBulkCreateItem["intendedEvent"]
-    | CalendarRestoreProposalCandidate["intendedEvent"],
-): boolean {
-  return Object.entries(intended).every(([key, value]) =>
-    key === "transparency"
-      ? transparencyMatches(event[key], value)
-      : eventContainsPatch(event, { [key]: value }),
-  );
-}
-
-function transparencyMatches(actual: unknown, expected: unknown): boolean {
-  return (
-    (actual === undefined || actual === null ? "opaque" : actual) === expected
-  );
-}
-
-function boundingInterval(intervals: CalendarInterval[]): CalendarInterval {
-  const first = intervals[0];
-  if (first === undefined) {
-    throw new OperationalError(
-      "invalid-target",
-      "An academic timetable Proposal must contain an occupied interval.",
-    );
-  }
-  return intervals.reduce(
-    (result, interval) => ({
-      start:
-        Date.parse(interval.start) < Date.parse(result.start)
-          ? interval.start
-          : result.start,
-      end:
-        Date.parse(interval.end) > Date.parse(result.end)
-          ? interval.end
-          : result.end,
-    }),
-    first,
-  );
-}
-
-function isMissingEventError(error: unknown): boolean {
-  if (typeof error !== "object" || error === null) return false;
-  const value = error as {
-    code?: number | string;
-    response?: { status?: number };
-  };
-  return value.response?.status === 404 || value.code === 404;
-}
-
-async function recoverInterruptedMove(
-  input: PromotionInput,
-  proposal: CalendarMoveProposal,
-  eventId: string,
-): Promise<CalendarPromotionReport> {
-  if (proposal.operation !== "move") return blockedReport(proposal.id);
-  try {
-    await input.writer.readEvent({
-      calendarId: proposal.target.calendarId,
-      eventId,
-    });
-  } catch {
-    return await markProposalStale(input.proposalStore, proposal.id);
-  }
-  if (Object.keys(proposal.patch).length > 0) {
-    await input.writer.patchEvent({
-      calendarId: proposal.target.calendarId,
-      eventId,
-      patch: proposal.patch,
-    });
-  }
-  return await finalizePromotion(
-    input,
-    proposal,
-    eventId,
-    proposal.target.calendarId,
-    true,
-  );
-}
-
-async function finalizePromotion(
-  input: PromotionInput,
-  proposal: NonRoutineCalendarProposal,
-  eventId: string,
-  calendarId: string,
-  appendJournal: boolean,
-): Promise<CalendarPromotionReport> {
-  if (proposal.operation === "cancel") return blockedReport(proposal.id);
-  const verifiedEvent = await input.writer.readEvent({ calendarId, eventId });
-  if (
-    proposal.operation === "create" || proposal.operation === "restore"
-      ? !eventMatchesIntended(verifiedEvent, proposal.intendedEvent)
-      : !eventContainsPatch(verifiedEvent, proposal.patch)
-  ) {
-    return blockedReport(proposal.id);
-  }
-  const appended = appendJournal
-    ? await input.journal.appendOnce({
-        schemaVersion: 1,
-        proposalId: proposal.id,
+      event = await input.writer.readEvent({
+        calendarId: proposal.target.calendarId,
         eventId,
-        idempotencyKey: proposal.idempotencyKey,
-        calendarId,
-      })
-    : false;
-  const refreshed = await input.refresh();
-  if (
-    refreshed.calendars.some(({ freshness }) => freshness === "stale") ||
-    !(await mirrorContainsVerifiedEvent(input, proposal, verifiedEvent))
-  ) {
-    return blockedReport(proposal.id);
-  }
-  await input.proposalStore.markPromoted(proposal.id);
-  return report(appended ? "promoted" : "retry", proposal.id, verifiedEvent);
-}
-
-async function finalizeCancellation(
-  input: PromotionInput,
-  proposal: Extract<CalendarProposal, { operation: "cancel" }>,
-  eventId: string,
-  appendJournal: boolean,
-): Promise<CalendarPromotionReport> {
-  const recurrencePatch =
-    proposal.recurrenceScope === "this-and-future"
-      ? futureCancellationPatch(proposal)
-      : undefined;
-  if (recurrencePatch !== undefined) {
-    const verifiedMaster = await input.writer.readEvent({
-      calendarId: proposal.sourceItem.calendarId,
-      eventId,
-    });
-    if (!eventContainsPatch(verifiedMaster, recurrencePatch)) {
-      return blockedReport(proposal.id);
+      });
+    } catch {
+      return refused(
+        proposal.id,
+        "blocked",
+        "Legacy receipt could not be verified read-only; reconcile the existing effects.",
+      );
     }
-  }
-  const appended = appendJournal
-    ? await input.journal.appendOnce({
-        schemaVersion: 1,
-        proposalId: proposal.id,
-        eventId,
-        idempotencyKey: proposal.idempotencyKey,
-        calendarId: proposal.sourceItem.calendarId,
-      })
-    : false;
-  const refreshed = await input.refresh();
-  let mirror = await input.mirrorStore.read(proposal.sourceItem.calendarRole);
-  if (
-    refreshed.calendars.some(({ freshness }) => freshness === "stale") ||
-    mirror === undefined
-  ) {
-    return blockedReport(proposal.id);
-  }
-  if (recurrencePatch !== undefined) {
-    const mirroredMaster = mirror.items.find(
-      ({ event }) => event.id === eventId,
-    )?.event;
-    if (
-      mirroredMaster === undefined ||
-      !eventContainsPatch(mirroredMaster, recurrencePatch)
-    ) {
-      return blockedReport(proposal.id);
-    }
-  }
-  if (
-    proposal.recurrenceScope === "this-and-future" &&
-    !mirror.tombstones.some(
-      ({ event }) => event.id === proposal.preview.event.id,
-    )
-  ) {
-    mirror = {
-      ...mirror,
-      tombstones: [
-        ...mirror.tombstones,
-        {
-          access: "owned",
-          deletedAt: mirror.lastSuccessfulRefresh ?? new Date().toISOString(),
-          event: proposal.preview.event,
-        },
-      ],
-    };
-    await input.mirrorStore.write(mirror);
-  }
-  const deleted =
-    proposal.recurrenceScope === "this-and-future"
-      ? mirror?.items.some(({ event }) => event.id === eventId) === true &&
-        mirror.tombstones.some(
-          ({ event }) => event.id === proposal.preview.event.id,
-        )
-      : mirror?.tombstones.some(({ event }) => event.id === eventId) === true;
-  if (!deleted) {
-    return blockedReport(proposal.id);
-  }
-  await input.proposalStore.markPromoted(proposal.id);
-  return report(appended ? "promoted" : "retry", proposal.id);
-}
-
-async function markProposalStale(
-  store: CalendarProposalStore,
-  proposalId: string,
-): Promise<CalendarPromotionReport> {
-  await store.markStale(proposalId, "live-version-changed");
-  return {
-    schemaVersion: 1,
-    command: "calendar promote",
-    outcome: "stale",
-    proposalId,
-  };
-}
-
-async function mirrorContainsVerifiedEvent(
-  input: Pick<Parameters<typeof promoteCalendarProposal>[0], "mirrorStore">,
-  proposal: NonRoutineCalendarProposal,
-  verifiedEvent: Awaited<ReturnType<CalendarPromotionWriter["readEvent"]>>,
-): Promise<boolean> {
-  const currentMirror = await input.mirrorStore.read(
-    proposal.target.calendarRole,
-  );
-  const currentEvent = currentMirror?.items.find(
-    ({ event }) => event.id === verifiedEvent.id,
-  )?.event;
-  return (
-    currentEvent !== undefined &&
-    calendarStateDigest(currentEvent) === calendarStateDigest(verifiedEvent)
-  );
-}
-
-async function sourceItemExists(
-  input: Pick<Parameters<typeof promoteCalendarProposal>[0], "mirrorStore">,
-  proposal: CalendarMoveProposal,
-): Promise<boolean> {
-  if (proposal.operation !== "move") return false;
-  const mirror = await input.mirrorStore.read(proposal.sourceItem.calendarRole);
-  return (
-    mirror?.items.some(
-      ({ event }) => event.id === proposal.sourceItem.eventId,
-    ) === true
-  );
-}
-
-function blockedReport(proposalId: string): CalendarPromotionReport {
-  return {
-    schemaVersion: 1,
-    command: "calendar promote",
-    outcome: "blocked",
-    proposalId,
-  };
-}
-
-async function validateProposal(
-  proposal: NonRoutineCalendarProposal,
-  input: Pick<
-    Parameters<typeof promoteCalendarProposal>[0],
-    "reader" | "workspaceReader" | "mirrorStore"
-  >,
-): Promise<"valid" | "stale" | "blocked"> {
-  const workspace = await input.workspaceReader.read();
-  const calendars = await input.reader.listCalendars();
-  if (proposal.operation === "create") {
-    const target = calendars.find(
-      ({ id }) => id === proposal.target.calendarId,
-    );
-    if (target?.etag !== proposal.targetCalendarVersion.etag) return "stale";
-  }
-  const mirrors = [];
-  for (const role of OWNED_CALENDAR_ROLES) {
-    const mirror = await input.mirrorStore.read(role);
-    if (mirror === undefined || mirror.freshness === "stale") return "blocked";
-    mirrors.push(mirror);
-  }
-  if (proposal.operation === "restore") {
-    const mirror = mirrors.find(
-      ({ role }) => role === proposal.restoredFrom.calendarRole,
-    );
-    const tombstone = mirror?.tombstones.find(
-      ({ event, deletedAt }) =>
-        event.id === proposal.restoredFrom.eventId &&
-        deletedAt === proposal.restoredFrom.deletedAt,
-    );
-    if (tombstone === undefined) return "stale";
-  }
-  if (proposal.operation !== "create" && proposal.operation !== "restore") {
-    const sourceMirror = mirrors.find(
-      ({ role }) => role === proposal.sourceItem.calendarRole,
-    );
-    const current = sourceMirror?.items.find(
-      ({ event }) => event.id === proposal.sourceItem.eventId,
-    )?.event;
-    const trimmedSplit =
-      proposal.operation !== "cancel" &&
-      proposal.recurrenceScope === "this-and-future" &&
-      isAuthorizedTrimmedSplit(proposal, sourceMirror);
-    if (
-      current === undefined
-        ? !trimmedSplit
-        : calendarStateDigest(current) !== proposal.sourceItem.versionDigest
-    ) {
-      return "stale";
-    }
-    for (const dependency of proposal.recurrenceDependencies ?? []) {
-      const dependentEvent = sourceMirror?.items.find(
-        ({ event }) => event.id === dependency.eventId,
-      )?.event;
-      const digest =
-        dependentEvent === undefined
-          ? undefined
-          : calendarStateDigest(dependentEvent);
+    if (proposal.operation === "create" || proposal.operation === "restore") {
+      const expected =
+        proposal.operation === "restore"
+          ? restorableEvent(proposal.intendedEvent, proposal.idempotencyKey)
+          : { ...proposal.intendedEvent, id: eventId };
       if (
-        digest !== dependency.versionDigest &&
-        digest !== dependency.acceptedTrimmedDigest &&
-        !(
-          trimmedSplit &&
-          (dependentEvent === undefined ||
-            dependency.eventId === proposal.sourceItem.recurringEventId)
-        )
-      ) {
-        return "stale";
-      }
-    }
+        eventId !== calendarEventIdFor(proposal.idempotencyKey) ||
+        !calendarContentMatches(event, expected)
+      )
+        return refused(
+          proposal.id,
+          "blocked",
+          "Legacy receipt content differs from the approved effect.",
+        );
+    } else if (
+      proposal.operation === "update" ||
+      proposal.operation === "move"
+    ) {
+      if (!eventContainsPatch(event, proposal.patch))
+        return refused(
+          proposal.id,
+          "blocked",
+          "Legacy receipt patch differs from the approved effect.",
+        );
+    } else
+      return refused(
+        proposal.id,
+        "blocked",
+        "Legacy receipt requires read-only reconciliation; re-preview before further writes.",
+      );
+    events.push(event);
   }
-  const interval = proposal.relevantAvailabilityVersion.interval;
-  const availability =
-    interval === null
-      ? { items: [], checkedCalendarCount: 0 }
-      : await collectCalendarAvailability({
-          reader: input.reader,
-          calendars,
-          mirrors,
-          ownedCalendarIds: workspace.ownedCalendarIds,
-          interval,
-        });
-  const relevantAvailability = availability.items.filter(
-    ({ calendarId, event }) =>
-      proposal.operation === "create" ||
-      proposal.operation === "restore" ||
-      calendarId !== proposal.sourceItem.calendarId ||
-      !belongsToSourceSeries(event, proposal.sourceItem),
-  );
-  const availabilityDigest = calendarStateDigest(
-    relevantAvailability.map(({ calendarId, event }) => ({
-      calendarId,
-      event,
-    })),
-  );
+  const refreshed = await input.refresh();
+  if (refreshed.calendars.some(({ freshness }) => freshness === "stale"))
+    return refused(
+      proposal.id,
+      "blocked",
+      "Legacy receipt Refresh is incomplete.",
+    );
+  const mirror = await input.mirrorStore.read(proposal.target.calendarRole);
   if (
-    availabilityDigest !== proposal.relevantAvailabilityVersion.digest ||
-    availability.checkedCalendarCount !==
-      proposal.relevantAvailabilityVersion.checkedCalendarCount
-  ) {
-    const blockers = findCalendarOverlaps({
-      availability: relevantAvailability,
-      interval,
-      proposedKind: proposal.itemKind,
-    }).filter(({ severity }) => severity === "block");
-    return blockers.length > 0 ? "blocked" : "stale";
-  }
-  return "valid";
-}
-
-function isAuthorizedTrimmedSplit(
-  proposal: CalendarChangeProposalCandidate,
-  mirror: Awaited<ReturnType<OwnedCalendarMirrorStore["read"]>>,
-): boolean {
-  const occurrence = proposal.recurringOccurrence;
-  const master = proposal.recurringMaster;
-  if (
-    occurrence === undefined ||
-    master === undefined ||
-    occurrence.id !== proposal.sourceItem.eventId ||
-    calendarStateDigest(occurrence) !== proposal.sourceItem.versionDigest ||
-    master.id !== proposal.sourceItem.recurringEventId ||
-    !proposal.recurrenceDependencies?.some(
-      (dependency) =>
-        dependency.eventId === master.id &&
-        dependency.versionDigest === calendarStateDigest(master),
+    events.some(
+      (event) =>
+        !mirror?.items.some(
+          (item) =>
+            item.event.id === event.id &&
+            calendarContentMatches(item.event, event),
+        ),
     )
   )
-    return false;
-  const boundary =
-    occurrence.originalStartTime?.dateTime ??
-    occurrence.originalStartTime?.date ??
-    occurrence.start?.dateTime ??
-    occurrence.start?.date;
-  const current = mirror?.items.find(
-    (item) => item.event.id === master.id,
-  )?.event;
-  if (boundary === undefined || current === undefined) return false;
-  const expected: CalendarEvent = {
-    ...master,
-    recurrence: trimCalendarRecurrence(master.recurrence ?? [], boundary),
+    return refused(
+      proposal.id,
+      "blocked",
+      "Legacy receipt is absent from the refreshed mirror.",
+    );
+  await input.proposalStore.markPromoted(proposal.id);
+  return {
+    schemaVersion: 1,
+    command: "calendar promote",
+    outcome: "retry",
+    proposalId: proposal.id,
+    ...(events[0] !== undefined && events.length === 1
+      ? { verifiedEvent: events[0] }
+      : { verifiedEvents: events }),
   };
-  if (!recurrenceMatches(current.recurrence, expected.recurrence)) return false;
-  const actual: CalendarEvent = {
-    ...current,
-    recurrence: expected.recurrence ?? [],
-  };
-  for (const key of ["etag", "updated", "sequence"]) {
-    delete expected[key];
-    delete actual[key];
-  }
-  return calendarStateDigest(actual) === calendarStateDigest(expected);
 }
 
-function belongsToSourceSeries(
-  event: CalendarEvent,
-  source: { eventId: string; recurringEventId?: string | undefined },
-): boolean {
-  const seriesId = source.recurringEventId ?? source.eventId;
-  return event.id === seriesId || event.recurringEventId === seriesId;
-}
-
-async function applyProposal(
-  writer: CalendarPromotionWriter,
-  proposal: NonRoutineCalendarProposal,
-  eventId: string,
-): Promise<string> {
-  if (proposal.operation === "create" || proposal.operation === "restore") {
-    await writer.createEvent({
-      calendarId: proposal.target.calendarId,
-      eventId,
-      event: proposal.intendedEvent,
-      idempotencyKey: proposal.idempotencyKey,
-    });
-    return eventId;
-  }
-  if (proposal.operation === "cancel") {
-    throw new Error("Cancellation uses its dedicated Promotion path.");
-  }
-  if (proposal.recurrenceScope === "this-and-future") {
-    const recurringEventId = proposal.sourceItem.recurringEventId;
-    const recurringMaster = proposal.recurringMaster;
-    if (recurringEventId === undefined || recurringMaster === undefined) {
-      throw new OperationalError(
-        "invalid-target",
-        "This-and-future Promotion requires a recurring occurrence.",
-      );
-    }
-    if (
-      proposal.recurringOccurrence !== undefined &&
-      (proposal.recurringOccurrence.id !== proposal.sourceItem.eventId ||
-        proposal.recurringOccurrence.recurringEventId !== recurringEventId ||
-        calendarStateDigest(proposal.recurringOccurrence) !==
-          proposal.sourceItem.versionDigest)
-    ) {
-      throw new OperationalError(
-        "invalid-target",
-        "The recurring occurrence snapshot does not match the Proposal's bound source version.",
-      );
-    }
-    return (
-      await writer.splitRecurringEvent({
-        sourceCalendarId: proposal.sourceItem.calendarId,
-        targetCalendarId: proposal.target.calendarId,
-        instanceId: proposal.sourceItem.eventId,
-        recurringEventId,
-        patch: proposal.patch,
-        idempotencyKey: proposal.idempotencyKey,
-        exceptions: proposal.recurrenceExceptions ?? [],
-        recurringMaster,
-        ...(proposal.recurringOccurrence === undefined
-          ? {}
-          : { occurrence: proposal.recurringOccurrence }),
-      })
-    ).eventId;
-  }
-  const patchCalendarId =
-    proposal.operation === "move"
-      ? proposal.target.calendarId
-      : proposal.sourceItem.calendarId;
-  if (proposal.operation === "move") {
-    await writer.moveEvent({
-      sourceCalendarId: proposal.sourceItem.calendarId,
-      targetCalendarId: proposal.target.calendarId,
-      eventId,
-    });
-  }
-  if (Object.keys(proposal.patch).length > 0) {
-    await writer.patchEvent({
-      calendarId: patchCalendarId,
-      eventId,
-      patch: proposal.patch,
-    });
-  }
-  return eventId;
-}
-
-function report(
-  outcome: "promoted" | "retry",
+async function stale(
+  input: PromotionInput,
   proposalId: string,
-  verifiedEvent?: Awaited<ReturnType<CalendarPromotionWriter["readEvent"]>>,
+  reason: string,
+): Promise<CalendarPromotionReport> {
+  await input.proposalStore.markStale(proposalId, "live-version-changed");
+  return refused(proposalId, "stale", reason);
+}
+function assessmentReport(
+  proposalId: string,
+  assessment: Exclude<CalendarAssessment, { outcome: "ready" }>,
+): CalendarPromotionReport {
+  return {
+    ...refused(proposalId, assessment.outcome, assessment.reason),
+    acceptedStepCount: assessment.acceptedStepCount,
+    remainingStepCount: assessment.remainingStepCount,
+  };
+}
+function refused(
+  proposalId: string,
+  outcome: "blocked" | "stale",
+  reason: string,
 ): CalendarPromotionReport {
   return {
     schemaVersion: 1,
     command: "calendar promote",
     outcome,
     proposalId,
-    ...(verifiedEvent === undefined ? {} : { verifiedEvent }),
+    reason,
   };
-}
-
-async function applyCancellation(
-  writer: CalendarPromotionWriter,
-  proposal: Extract<CalendarProposal, { operation: "cancel" }>,
-  eventId: string,
-): Promise<void> {
-  if (proposal.recurrenceScope === "this-and-future") {
-    await writer.patchEvent({
-      calendarId: proposal.sourceItem.calendarId,
-      eventId,
-      patch: futureCancellationPatch(proposal),
-    });
-    return;
-  }
-  await writer.deleteEvent({
-    calendarId: proposal.sourceItem.calendarId,
-    eventId,
-  });
-}
-
-function futureCancellationPatch(
-  proposal: CalendarCancelProposalCandidate,
-): CalendarEventPatch {
-  const master = proposal.recurringMaster;
-  const boundary =
-    proposal.preview.event.originalStartTime?.dateTime ??
-    proposal.preview.event.originalStartTime?.date ??
-    proposal.preview.event.start?.dateTime ??
-    proposal.preview.event.start?.date;
-  if (master?.recurrence === undefined || boundary === undefined) {
-    throw new OperationalError(
-      "invalid-target",
-      "This-and-future cancellation requires its recurring master.",
-    );
-  }
-  return { recurrence: trimCalendarRecurrence(master.recurrence, boundary) };
 }

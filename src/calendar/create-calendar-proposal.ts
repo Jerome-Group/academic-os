@@ -1,11 +1,6 @@
 import { OperationalError } from "../operational-error.js";
 import { restorableEvent } from "./calendar-event-helpers.js";
 import {
-  addTravelBuffer,
-  collectCalendarAvailability,
-  findCalendarOverlaps,
-} from "./calendar-conflicts.js";
-import {
   type ParsedCalendarActionProposalInput,
   type ParsedCalendarChangeProposalInput,
   parseCalendarAcademicTimetableProposalInput,
@@ -13,7 +8,7 @@ import {
   parseCalendarProposalInput,
   parseCalendarRoutineMigrationProposalInput,
 } from "./calendar-proposal-input.js";
-import { trimCalendarRecurrence } from "./calendar-recurrence.js";
+import { saveAssessedCalendarProposal } from "./save-assessed-calendar-proposal.js";
 import { calendarStateDigest } from "./calendar-state-digest.js";
 import { createAcademicTimetableProposal } from "./create-academic-timetable-proposal.js";
 import { createRoutineMigrationProposal } from "./create-routine-migration-proposal.js";
@@ -25,7 +20,6 @@ import {
 import type {
   CalendarChangeProposalCandidate,
   CalendarEvent,
-  CalendarInterval,
   CalendarListEntry,
   CalendarProposal,
   CalendarProposalCandidate,
@@ -55,6 +49,7 @@ export async function createCalendarProposal(input: {
   if (routineMigrationInput !== undefined) {
     return await createRoutineMigrationProposal({
       value: routineMigrationInput,
+      reader: input.reader,
       workspace,
       mirrorStore: input.mirrorStore,
       proposalStore: input.proposalStore,
@@ -107,27 +102,6 @@ export async function createCalendarProposal(input: {
     );
   }
 
-  const checkedInterval = addTravelBuffer(
-    parsed.item.occupiedInterval,
-    parsed.item.travelBuffer,
-  );
-  const availability =
-    checkedInterval === null
-      ? { items: [], checkedCalendarCount: 0 }
-      : await collectCalendarAvailability({
-          reader: input.reader,
-          calendars,
-          mirrors,
-          ownedCalendarIds: workspace.ownedCalendarIds,
-          interval: checkedInterval,
-        });
-  const overlaps = findCalendarOverlaps({
-    availability: availability.items,
-    interval: checkedInterval,
-    proposedKind: parsed.item.kind,
-  });
-  const conflicts = overlaps.filter(({ severity }) => severity === "block");
-  const warnings = overlaps.filter(({ severity }) => severity === "warning");
   const intentDigest = calendarStateDigest({
     operation: "create",
     source: parsed.source,
@@ -140,7 +114,6 @@ export async function createCalendarProposal(input: {
   });
   const proposal: CalendarProposalCandidate = {
     id: `proposal-${intentDigest.slice(0, 24)}`,
-    ...(conflicts.length === 0 ? { status: "ready" as const } : {}),
     operation: "create",
     source: parsed.source,
     itemKind: parsed.item.kind,
@@ -149,6 +122,7 @@ export async function createCalendarProposal(input: {
       calendarId: targetCalendarId,
     },
     intendedEvent: parsed.item.intendedEvent,
+    travelBuffer: parsed.item.travelBuffer,
     inheritedDefaults: {
       calendarColorId: targetCalendar.colorId ?? null,
       reminders: validateReminders(targetCalendar.defaultReminders),
@@ -166,34 +140,19 @@ export async function createCalendarProposal(input: {
       lastSuccessfulRefresh: mirror.lastSuccessfulRefresh as string,
     })),
     relevantAvailabilityVersion: {
-      digest: calendarStateDigest(
-        availability.items.map(({ calendarId, event }) => ({
-          calendarId,
-          event,
-        })),
-      ),
-      interval: checkedInterval,
-      checkedCalendarCount: availability.checkedCalendarCount,
+      digest: "",
+      interval: null,
+      checkedCalendarCount: 0,
     },
-    conflictSummary: {
-      blockers: conflicts.length,
-      warnings: warnings.length,
-    },
+    conflictSummary: { blockers: 0, warnings: 0 },
   };
-  const ready = conflicts.length === 0;
-  if (ready) {
-    const readyProposal: CalendarProposal = { ...proposal, status: "ready" };
-    await input.proposalStore.writeCurrent(readyProposal);
-  }
-  return {
-    schemaVersion: 1,
-    command: "calendar propose",
-    outcome: ready ? "ready" : "blocked",
+  return await saveAssessedCalendarProposal({
     proposal,
-    conflicts,
-    warnings,
-    workspace: ready ? "written" : "not-written",
-  };
+    workspace,
+    mirrors,
+    reader: input.reader,
+    proposalStore: input.proposalStore,
+  });
 }
 
 async function createActionProposal(input: {
@@ -233,6 +192,7 @@ async function createActionProposal(input: {
 }
 
 async function createCancelProposal(input: {
+  reader: CalendarProposalReader;
   workspace: Awaited<ReturnType<OwnedCalendarWorkspaceReader["read"]>>;
   mirrorStore: OwnedCalendarMirrorStore;
   proposalStore: CalendarProposalStore;
@@ -268,10 +228,6 @@ async function createCancelProposal(input: {
     event: targetEvent,
     scope: input.actionInput.recurrenceScope,
   });
-  const futureState =
-    input.actionInput.recurrenceScope === "this-and-future"
-      ? recurringFutureState(sourceMirror, event)
-      : undefined;
   const proposal: CalendarProposal = {
     id: `proposal-${digest.slice(0, 24)}`,
     status: "ready",
@@ -294,12 +250,6 @@ async function createCancelProposal(input: {
     ...(input.actionInput.recurrenceScope === undefined
       ? {}
       : { recurrenceScope: input.actionInput.recurrenceScope }),
-    ...(futureState === undefined
-      ? {}
-      : {
-          recurringMaster: futureState.recurringMaster,
-          recurrenceDependencies: futureState.recurrenceDependencies,
-        }),
     preview: {
       event: targetEvent,
       ...(input.actionInput.recurrenceScope === undefined
@@ -315,11 +265,17 @@ async function createCancelProposal(input: {
     },
     conflictSummary: { blockers: 0, warnings: 0 },
   };
-  await input.proposalStore.writeCurrent(proposal);
-  return readyReport(proposal);
+  return await saveAssessedCalendarProposal({
+    proposal,
+    workspace: input.workspace,
+    mirrors,
+    reader: input.reader,
+    proposalStore: input.proposalStore,
+  });
 }
 
 async function createRestoreProposal(input: {
+  reader: CalendarProposalReader;
   workspace: Awaited<ReturnType<OwnedCalendarWorkspaceReader["read"]>>;
   mirrorStore: OwnedCalendarMirrorStore;
   proposalStore: CalendarProposalStore;
@@ -383,8 +339,13 @@ async function createRestoreProposal(input: {
     },
     conflictSummary: { blockers: 0, warnings: 0 },
   };
-  await input.proposalStore.writeCurrent(proposal);
-  return readyReport(proposal);
+  return await saveAssessedCalendarProposal({
+    proposal,
+    workspace: input.workspace,
+    mirrors,
+    reader: input.reader,
+    proposalStore: input.proposalStore,
+  });
 }
 
 function resolveActionTarget(
@@ -436,18 +397,6 @@ function liveVersions(mirrors: OwnedCalendarMirror[]) {
   }));
 }
 
-function readyReport(proposal: CalendarProposal): CalendarProposeReport {
-  return {
-    schemaVersion: 1,
-    command: "calendar propose",
-    outcome: "ready",
-    proposal,
-    conflicts: [],
-    warnings: [],
-    workspace: "written",
-  };
-}
-
 async function createChangeProposal(input: {
   workspace: Awaited<ReturnType<OwnedCalendarWorkspaceReader["read"]>>;
   reader: CalendarProposalReader;
@@ -480,7 +429,14 @@ async function createChangeProposal(input: {
     recurrenceScope: input.changeInput.recurrenceScope,
   };
   const digest = calendarStateDigest(intent);
-  const projectedEvent = { ...event, ...input.changeInput.patch };
+  const targetEvent =
+    input.changeInput.recurrenceScope === "entire-series" &&
+    event.recurringEventId !== undefined
+      ? (sourceMirror.items.find(
+          ({ event: candidate }) => candidate.id === event.recurringEventId,
+        )?.event ?? event)
+      : event;
+  const projectedEvent = { ...targetEvent, ...input.changeInput.patch };
   const projectedItemKind = inferItemKind(projectedEvent, targetRole);
   const recurringMaster =
     event.recurringEventId === undefined
@@ -498,19 +454,6 @@ async function createChangeProposal(input: {
       "An entire-series Proposal requires its mirrored recurring master.",
     );
   }
-  const entireSeriesState =
-    input.changeInput.recurrenceScope === "entire-series" &&
-    event.recurringEventId !== undefined &&
-    recurringMaster !== undefined
-      ? {
-          recurrenceDependencies: [
-            {
-              eventId: recurringMaster.id,
-              versionDigest: calendarStateDigest(recurringMaster),
-            },
-          ],
-        }
-      : undefined;
   const visibleEvidenceStatus =
     detectVisibleResearchProjectEvidenceStatus(event) ??
     (recurringMaster === undefined
@@ -530,19 +473,6 @@ async function createChangeProposal(input: {
       projectedEvent.recurrence !== undefined ||
       event.recurringEventId !== undefined,
     visibleEvidenceStatus,
-  });
-  const futureState =
-    input.changeInput.recurrenceScope === "this-and-future"
-      ? recurringFutureState(sourceMirror, event)
-      : undefined;
-  const availability = await prepareChangeAvailability({
-    reader: input.reader,
-    mirrors,
-    ownedCalendarIds: input.workspace.ownedCalendarIds,
-    sourceCalendarId,
-    sourceEvent: event,
-    projectedEvent,
-    targetRole,
   });
   const proposal: CalendarChangeProposalCandidate & { status: "ready" } = {
     id: `proposal-${digest.slice(0, 24)}`,
@@ -564,8 +494,6 @@ async function createChangeProposal(input: {
     ...(input.changeInput.recurrenceScope === undefined
       ? {}
       : { recurrenceScope: input.changeInput.recurrenceScope }),
-    ...(entireSeriesState ?? {}),
-    ...(futureState ?? {}),
     idempotencyKey: `${operation}-${digest}`,
     liveVersions: mirrors.map((mirror) => ({
       kind: "owned-mirror",
@@ -575,32 +503,19 @@ async function createChangeProposal(input: {
       lastSuccessfulRefresh: mirror.lastSuccessfulRefresh as string,
     })),
     relevantAvailabilityVersion: {
-      digest: calendarStateDigest(
-        availability.items.map(({ calendarId, event: relevantEvent }) => ({
-          calendarId,
-          event: relevantEvent,
-        })),
-      ),
-      interval: availability.interval,
-      checkedCalendarCount: availability.checkedCalendarCount,
+      digest: "",
+      interval: null,
+      checkedCalendarCount: 0,
     },
-    conflictSummary: {
-      blockers: availability.conflicts.length,
-      warnings: availability.warnings.length,
-    },
+    conflictSummary: { blockers: 0, warnings: 0 },
   };
-  if (availability.conflicts.length === 0) {
-    await input.proposalStore.writeCurrent(proposal);
-  }
-  return {
-    schemaVersion: 1,
-    command: "calendar propose",
-    outcome: availability.conflicts.length === 0 ? "ready" : "blocked",
+  return await saveAssessedCalendarProposal({
     proposal,
-    conflicts: availability.conflicts,
-    warnings: availability.warnings,
-    workspace: availability.conflicts.length === 0 ? "written" : "not-written",
-  };
+    workspace: input.workspace,
+    mirrors,
+    reader: input.reader,
+    proposalStore: input.proposalStore,
+  });
 }
 
 function resolveChangeTarget(
@@ -651,140 +566,6 @@ function validateRecurrenceScope(
       `${scope} requires a mirrored recurring occurrence.`,
     );
   }
-}
-
-async function prepareChangeAvailability(input: {
-  reader: CalendarProposalReader;
-  mirrors: OwnedCalendarMirror[];
-  ownedCalendarIds: Record<OwnedCalendarRole, string>;
-  sourceCalendarId: string;
-  sourceEvent: CalendarEvent;
-  projectedEvent: CalendarEvent;
-  targetRole: OwnedCalendarRole;
-}) {
-  const proposedKind = inferItemKind(input.projectedEvent, input.targetRole);
-  const interval = occupiedIntervalFor(proposedKind, input.projectedEvent);
-  const calendars = await input.reader.listCalendars();
-  const availability =
-    interval === null
-      ? { items: [], checkedCalendarCount: 0 }
-      : await collectCalendarAvailability({
-          reader: input.reader,
-          calendars,
-          mirrors: input.mirrors,
-          ownedCalendarIds: input.ownedCalendarIds,
-          interval,
-        });
-  const items = availability.items.filter(
-    ({ calendarId, event }) =>
-      calendarId !== input.sourceCalendarId ||
-      !belongsToSourceSeries(event, {
-        eventId: input.sourceEvent.id,
-        recurringEventId: input.sourceEvent.recurringEventId,
-      }),
-  );
-  const overlaps = findCalendarOverlaps({
-    availability: items,
-    interval,
-    proposedKind,
-  });
-  return {
-    items,
-    interval,
-    checkedCalendarCount: availability.checkedCalendarCount,
-    conflicts: overlaps.filter(({ severity }) => severity === "block"),
-    warnings: overlaps.filter(({ severity }) => severity === "warning"),
-  };
-}
-
-function belongsToSourceSeries(
-  event: CalendarEvent,
-  source: { eventId: string; recurringEventId?: string | undefined },
-): boolean {
-  const seriesId = source.recurringEventId ?? source.eventId;
-  return event.id === seriesId || event.recurringEventId === seriesId;
-}
-
-function recurringFutureState(
-  mirror: OwnedCalendarMirror,
-  target: CalendarEvent,
-): Pick<
-  CalendarChangeProposalCandidate,
-  | "recurrenceExceptions"
-  | "recurringMaster"
-  | "recurringOccurrence"
-  | "recurrenceDependencies"
-> {
-  const boundary =
-    target.originalStartTime?.dateTime ??
-    target.originalStartTime?.date ??
-    target.start?.dateTime ??
-    target.start?.date;
-  const master = mirror.items.find(
-    ({ event }) => event.id === target.recurringEventId,
-  )?.event;
-  if (
-    target.recurringEventId === undefined ||
-    boundary === undefined ||
-    master?.recurrence === undefined
-  ) {
-    throw new OperationalError(
-      "invalid-target",
-      "This-and-future Proposal requires its mirrored recurring master.",
-    );
-  }
-  const exceptions = mirror.items
-    .map(({ event }) => event)
-    .filter(
-      (event) =>
-        event.id !== target.id &&
-        event.recurringEventId === target.recurringEventId &&
-        Date.parse(
-          event.originalStartTime?.dateTime ??
-            event.originalStartTime?.date ??
-            event.start?.dateTime ??
-            event.start?.date ??
-            "",
-        ) >= Date.parse(boundary),
-    );
-  return {
-    recurrenceExceptions: exceptions,
-    recurringMaster: master,
-    recurringOccurrence: target,
-    recurrenceDependencies: [master, ...exceptions].map((dependency) => ({
-      eventId: dependency.id,
-      versionDigest: calendarStateDigest(dependency),
-      ...(dependency.id === master.id
-        ? {
-            acceptedTrimmedDigest: calendarStateDigest({
-              ...dependency,
-              recurrence: trimCalendarRecurrence(
-                dependency.recurrence ?? [],
-                boundary,
-              ),
-            }),
-          }
-        : {}),
-    })),
-  };
-}
-
-// A milestone never occupies time (`CONTEXT.md`), which is why the create path parses one with a
-// null occupied interval. Saying so here too keeps an annotation out of the conflict check it
-// would otherwise raise against the very session it annotates.
-function occupiedIntervalFor(
-  kind: ReturnType<typeof inferItemKind>,
-  event: CalendarEvent,
-): CalendarInterval | null {
-  return kind === "timed-milestone" ? null : intervalFor(event);
-}
-
-function intervalFor(event: CalendarEvent): CalendarInterval | null {
-  const start = event.start?.dateTime;
-  const end = event.end?.dateTime;
-  return typeof start === "string" && typeof end === "string"
-    ? { start, end }
-    : null;
 }
 
 function inferItemKind(event: CalendarEvent, role: OwnedCalendarRole) {

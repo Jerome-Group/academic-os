@@ -8067,15 +8067,18 @@ import { isAbsolute as isAbsolute2, win32 } from "node:path";
 
 // src/contract/importer-citations.ts
 var importerLandmarks = /* @__PURE__ */ new Set([
+  "",
   "Course.md",
   "Last synced.md",
-  "Announcements"
+  "Announcements",
+  "Announcements/"
 ]);
 function citesImporterInterior(citation, importerRoots) {
-  const [root, landmark] = citation.split("/");
-  if (root === void 0 || !importerRoots.includes(root)) return false;
-  if (landmark === void 0 || landmark === "") return false;
-  return !importerLandmarks.has(landmark);
+  const separator = citation.indexOf("/");
+  if (separator === -1) return false;
+  const root = citation.slice(0, separator);
+  if (!importerRoots.includes(root)) return false;
+  return !importerLandmarks.has(citation.slice(separator + 1));
 }
 
 // src/conformance/value-shape.ts
@@ -8335,7 +8338,7 @@ function validateIdentityAndOffering(value, identity) {
     problems.push(`offering.semester ${identity.semester} is not 1 or 2.`);
   }
   const offering = value.offering;
-  if (!isRecord(offering) || !["active", "past", "future"].includes(String(offering.status))) {
+  if (!isRecord(offering) || typeof offering.status !== "string" || !["active", "past", "future"].includes(offering.status)) {
     problems.push("offering.status must be active, past, or future.");
   }
   return problems;
@@ -8344,7 +8347,7 @@ function validateStructure(value) {
   if (!isRecord(value)) return ["structure must be a mapping."];
   const problems = [];
   const tutorials = value.tutorials;
-  if (!isRecord(tutorials) || !["flat", "grouped"].includes(String(tutorials.layout))) {
+  if (!isRecord(tutorials) || typeof tutorials.layout !== "string" || !["flat", "grouped"].includes(tutorials.layout)) {
     problems.push("structure.tutorials.layout must be flat or grouped.");
   } else if (tutorials.layout === "grouped") {
     if (!Array.isArray(tutorials.groups) || tutorials.groups.length === 0 || !tutorials.groups.every(isDirectoryName) || new Set(tutorials.groups).size !== tutorials.groups.length) {
@@ -9079,7 +9082,7 @@ var fixedProfileTables = /* @__PURE__ */ new Map([
   ["Workspaces", ["Workspace", "Purpose", "Pointer"]],
   ["Known Gaps", ["Gap", "Consequence", "Next evidence"]]
 ]);
-function validateProfile(source, definition) {
+function validateProfile(source, definition, importerRoots) {
   if (source === void 0) {
     return [
       failedControl("MF-PROFILE-001", profilePath, [
@@ -9096,16 +9099,16 @@ function validateProfile(source, definition) {
       "Profile title, headings, and required tables match the current contract version.",
       "The Profile has the locked structure and allows prose in its prose sections."
     ) : failedControl("MF-PROFILE-001", profilePath, problems),
-    validateProfileEvidence(source)
+    validateProfileEvidence(source, importerRoots)
   ];
   if (definition !== void 0 && problems.length === 0) {
     findings.push(validateProfileAgreement(source, definition));
   }
   return findings;
 }
-function validateProfileEvidence(source) {
+function validateProfileEvidence(source, importerRoots) {
   const problems = [
-    ...evidenceTableProblems(source),
+    ...evidenceTableProblems(source, importerRoots),
     ...explicitUnknownProblems(source)
   ];
   return problems.length === 0 ? controlFinding(
@@ -9122,7 +9125,7 @@ function validateProfileEvidence(source) {
     "Profile claims need evidence or an explicit unknown before they can be trusted."
   );
 }
-function evidenceTableProblems(source) {
+function evidenceTableProblems(source, importerRoots) {
   return ["Offering", "Assessment Structure", "Source Authority"].flatMap(
     (section) => {
       const rows = firstDirectTableRows(sectionBody(source, section));
@@ -9134,7 +9137,12 @@ function evidenceTableProblems(source) {
       return rows.slice(2).filter((row) => row.length === header.length).flatMap((row) => {
         const subject = row[0] === "" || row[0] === void 0 ? "row" : row[0];
         const evidence = row[provenanceIndex]?.trim() ?? "";
-        return evidence === "" ? [`${section} ${JSON.stringify(subject)} has no evidence.`] : [];
+        if (evidence === "") {
+          return [`${section} ${JSON.stringify(subject)} has no evidence.`];
+        }
+        return citesImporterInterior(evidence, importerRoots) ? [
+          `${section} ${JSON.stringify(subject)} cites an importer interior; cite a landmark, file name, or document in words.`
+        ] : [];
       });
     }
   );
@@ -9289,13 +9297,14 @@ async function prepareCheatsheet(input) {
   const identity = "value" in definition && isRecord(definition.value) ? readDefinitionIdentity(definition.value) : void 0;
   if (identity?.code !== input.moduleCode)
     throw new Error("Requested module disagrees with Definition identity.");
+  const definitionValidation = validateDefinition(
+    controls.find(({ kind }) => kind === "definition")?.text,
+    input.moduleCode,
+    `S${identity.semester}`
+  );
   const controlFindings = [
-    ...validateDefinition(
-      controls.find(({ kind }) => kind === "definition")?.text,
-      input.moduleCode,
-      `S${identity.semester}`
-    ).findings,
-    ...validateProfile(profile, identity)
+    ...definitionValidation.findings,
+    ...validateProfile(profile, identity, definitionValidation.importerRoots)
   ];
   const sourceMap = controls.find(({ kind }) => kind === "sourceMap")?.text ?? "";
   const validation = validateSourceMap(sourceMap);

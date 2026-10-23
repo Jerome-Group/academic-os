@@ -6,17 +6,20 @@
 // Three names the importer guarantees are the exception, because they never move: `Course.md` and
 // `Last synced.md` at the root, and the `Announcements/` folder.
 const importerLandmarks = new Set([
+  "",
   "Course.md",
   "Last synced.md",
   "Announcements",
+  "Announcements/",
 ]);
 
 export function citesImporterInterior(
   citation: string,
   importerRoots: readonly string[],
 ): boolean {
-  const [root, landmark] = citation.split("/");
-  if (root === undefined || !importerRoots.includes(root)) return false;
-  if (landmark === undefined || landmark === "") return false;
-  return !importerLandmarks.has(landmark);
+  const separator = citation.indexOf("/");
+  if (separator === -1) return false;
+  const root = citation.slice(0, separator);
+  if (!importerRoots.includes(root)) return false;
+  return !importerLandmarks.has(citation.slice(separator + 1));
 }

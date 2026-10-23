@@ -8,7 +8,7 @@ import {
   deterministicFailure,
   withDeterministicPass,
 } from "./finding.js";
-import { directChildEntries } from "./inventory-paths.js";
+import { directChildEntries, isInsideRoot } from "./inventory-paths.js";
 import type { Finding, Inventory } from "./types.js";
 
 export function auditStructuralPlacement(
@@ -21,7 +21,7 @@ export function auditStructuralPlacement(
     ...assessmentFlatnessFindings(inventory),
     ...tutorialNestingFindings(inventory, context.tutorialLayout),
     ...controlledRootFindings(inventory, context.paths),
-    ...misplacedControlFindings(inventory),
+    ...misplacedControlFindings(inventory, context.importerRoots),
   ];
 }
 
@@ -186,9 +186,16 @@ function controlledRootFindings(
   return failures;
 }
 
-function misplacedControlFindings(inventory: Inventory): Finding[] {
+function misplacedControlFindings(
+  inventory: Inventory,
+  importerRoots: ReadonlySet<string>,
+): Finding[] {
   return inventory.entries.flatMap(({ path, kind }) => {
-    if (kind !== "file") return [];
+    if (
+      kind !== "file" ||
+      [...importerRoots].some((root) => isInsideRoot(path, root))
+    )
+      return [];
     const name = basename(path);
     const expected = controlPaths.get(name);
     if (expected === undefined || expected === path) return [];

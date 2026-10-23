@@ -120,6 +120,64 @@ async function conformantModule(): Promise<{
 }
 
 describe("academic-os audit", () => {
+  it("requires a decision for importer landmark descendants in direct Profile cells", async () => {
+    const { configPath, moduleRoot } = await conformantModule();
+    const controls = validModuleControls();
+    await mkdir(join(moduleRoot, "ProviderMirror"));
+    await writeFile(
+      join(moduleRoot, "00 Module Admin/10 Module Definition.yaml"),
+      (controls.definition ?? "").replace(
+        "    - {role: primary, destination: NTULearn, evidence: [course-site]}",
+        "    - {role: primary, destination: NTULearn, evidence: [course-site]}\n    - {role: supplementary, destination: ProviderMirror, evidence: [course-site]}",
+      ),
+    );
+    for (const root of ["NTULearn", "ProviderMirror"]) {
+      for (const { citation, status } of [
+        ...[
+          "Announcements/Week 01/slides.pdf",
+          "Course.md/child.pdf",
+          "Last synced.md/child.pdf",
+          "/Week 01/slides.pdf",
+        ].map((interior) => ({
+          citation: `${root}/${interior}`,
+          status: "requires-decision",
+        })),
+        ...[
+          root,
+          `${root}/`,
+          `${root}/Course.md`,
+          `${root}/Last synced.md`,
+          `${root}/Announcements`,
+          `${root}/Announcements/`,
+          "slides.pdf",
+          "NTULearn assessment profile",
+        ].map((citation) => ({ citation, status: "conformant" })),
+      ]) {
+        await writeFile(
+          join(moduleRoot, "00 Module Admin/00 Module Profile.md"),
+          (controls.profile ?? "").replace(
+            "| Academic year | 2026-2027 | Definition |",
+            `| Academic year | 2026-2027 | ${citation} |`,
+          ),
+        );
+        const result = await runCli("audit", "--config", configPath, "--json");
+        assert.equal(
+          result.exitCode,
+          status === "conformant" ? 0 : 3,
+          citation,
+        );
+        const report = JSON.parse(result.stdout) as JsonReport;
+        assert.equal(report.outcome, status, citation);
+        assert.equal(
+          report.findings.find(({ ruleId }) => ruleId === "MF-PROFILE-002")
+            ?.status,
+          status === "conformant" ? "pass" : "requires-decision",
+          citation,
+        );
+      }
+    }
+  });
+
   it("keeps human and JSON findings equivalent and assigns exit codes 0–3 [MF-AUDIT-001]", async () => {
     const { configPath, moduleRoot } = await conformantModule();
 

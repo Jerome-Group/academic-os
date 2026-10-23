@@ -111,8 +111,8 @@ export function deriveContextualStructure(
     paths: orderedPaths,
     rootPaths: new Set(orderedPaths.filter((path) => !path.includes("/"))),
     importerRoots,
-    ...(["flat", "grouped"].includes(String(tutorials.layout))
-      ? { tutorialLayout: tutorials.layout as "flat" | "grouped" }
+    ...(tutorials.layout === "flat" || tutorials.layout === "grouped"
+      ? { tutorialLayout: tutorials.layout }
       : {}),
   };
 }

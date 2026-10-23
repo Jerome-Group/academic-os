@@ -67,8 +67,9 @@ export function isAuditObservation(value: unknown): value is AuditObservation {
     isIsoTimestamp(value.observedAt) &&
     isInventory(value.inventory, envelope.target.moduleCode) &&
     isRecord(value.metadataAvailability) &&
+    typeof value.metadataAvailability.contentChecksums === "string" &&
     ["unavailable", "entry-specific"].includes(
-      String(value.metadataAvailability.contentChecksums),
+      value.metadataAvailability.contentChecksums,
     ) &&
     typeof value.metadataAvailability.reason === "string" &&
     Array.isArray(value.findings) &&
@@ -101,8 +102,10 @@ function isFinding(value: unknown): value is Finding {
   return (
     expectedEnforcement !== undefined &&
     value.enforcement === expectedEnforcement &&
-    findingStatuses.has(String(value.status)) &&
-    findingSeverities.has(String(value.severity)) &&
+    typeof value.status === "string" &&
+    findingStatuses.has(value.status) &&
+    typeof value.severity === "string" &&
+    findingSeverities.has(value.severity) &&
     typeof value.path === "string" &&
     typeof value.evidence === "string" &&
     typeof value.explanation === "string" &&

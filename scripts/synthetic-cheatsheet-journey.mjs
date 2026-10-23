@@ -52,11 +52,11 @@ Synthetic difference quotients and chain rule.
 ## Assessment Structure
 | Component | Weight | Timing | Evidence |
 | --- | --- | --- | --- |
-| Midterm | 20% | synthetic Week 6 | NTULearn/synthetic-notice.md |
+| Midterm | 20% | synthetic Week 6 | synthetic-notice.md |
 ## Source Authority
 | Rank | Source | Role | Governs | Evidence |
 | --- | --- | --- | --- | --- |
-| 1 | Synthetic notice | Primary | Synthetic assessment | NTULearn/synthetic-notice.md |
+| 1 | Synthetic notice | Primary | Synthetic assessment | synthetic-notice.md |
 ## Workspaces
 | Workspace | Purpose | Pointer |
 | --- | --- | --- |

@@ -260,7 +260,8 @@ function validateIdentityAndOffering(
   const offering = value.offering;
   if (
     !isRecord(offering) ||
-    !["active", "past", "future"].includes(String(offering.status))
+    typeof offering.status !== "string" ||
+    !["active", "past", "future"].includes(offering.status)
   ) {
     problems.push("offering.status must be active, past, or future.");
   }
@@ -273,7 +274,8 @@ function validateStructure(value: unknown): string[] {
   const tutorials = value.tutorials;
   if (
     !isRecord(tutorials) ||
-    !["flat", "grouped"].includes(String(tutorials.layout))
+    typeof tutorials.layout !== "string" ||
+    !["flat", "grouped"].includes(tutorials.layout)
   ) {
     problems.push("structure.tutorials.layout must be flat or grouped.");
   } else if (tutorials.layout === "grouped") {

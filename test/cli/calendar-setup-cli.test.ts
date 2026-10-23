@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import {
   access,
-  mkdtemp,
   mkdir,
+  mkdtemp,
   readFile,
   rm,
   writeFile,
@@ -28,9 +28,14 @@ afterEach(async () => {
 describe("academic-os calendar setup", () => {
   it("binds the primary as Academic and reuses existing Owned calendars", async () => {
     const fixture = await setupFixture([
-      { id: "primary-id", summary: "Personal", primary: true },
-      { id: "commitments-id", summary: "Commitments" },
-      { id: "routine-id", summary: "Routine" },
+      {
+        id: "primary-id",
+        summary: "Personal",
+        primary: true,
+        accessRole: "owner",
+      },
+      { id: "commitments-id", summary: "Commitments", accessRole: "owner" },
+      { id: "routine-id", summary: "Routine", accessRole: "owner" },
     ]);
 
     const result = await runCalendarSetup(fixture, "--json");
@@ -73,8 +78,13 @@ describe("academic-os calendar setup", () => {
 
   it("previews missing secondary calendars without creating or writing state", async () => {
     const fixture = await setupFixture([
-      { id: "primary-id", summary: "Personal", primary: true },
-      { id: "routine-id", summary: "Routine" },
+      {
+        id: "primary-id",
+        summary: "Personal",
+        primary: true,
+        accessRole: "owner",
+      },
+      { id: "routine-id", summary: "Routine", accessRole: "owner" },
     ]);
 
     const json = await runCalendarSetup(fixture, "--json");
@@ -131,8 +141,13 @@ describe("academic-os calendar setup", () => {
 
   it("creates only previewed missing calendars on apply and is idempotent", async () => {
     const fixture = await setupFixture([
-      { id: "primary-id", summary: "Personal", primary: true },
-      { id: "routine-id", summary: "Routine" },
+      {
+        id: "primary-id",
+        summary: "Personal",
+        primary: true,
+        accessRole: "owner",
+      },
+      { id: "routine-id", summary: "Routine", accessRole: "owner" },
     ]);
 
     const first = await runCalendarSetup(fixture, "--apply", "--json");
@@ -177,9 +192,91 @@ describe("academic-os calendar setup", () => {
     });
   });
 
+  for (const role of ["Academic", "Commitments", "Routine"] as const) {
+    it(`refuses non-owner ${role} before creation or workspace replacement`, async () => {
+      for (const accessRole of [
+        undefined,
+        "reader",
+        "writer",
+        "freeBusyReader",
+        "OWNER",
+        ["owner"],
+        { role: "owner" },
+      ]) {
+        for (const apply of [false, true]) {
+          const calendars: Array<{
+            id: string;
+            summary: string;
+            primary?: boolean;
+            accessRole?: unknown;
+          }> = [
+            {
+              id: "primary-id",
+              summary: "Personal",
+              primary: true,
+              accessRole: "owner",
+            },
+            {
+              id: "commitments-id",
+              summary: "Commitments",
+              accessRole: "owner",
+            },
+            {
+              id: "routine-id",
+              summary: "Routine",
+              accessRole: "owner",
+            },
+          ].filter(
+            (calendar) =>
+              calendar.summary !==
+              (role === "Commitments" ? "Routine" : "Commitments"),
+          );
+          const selected = calendars.find((calendar) =>
+            role === "Academic"
+              ? calendar.primary === true
+              : calendar.summary === role,
+          );
+          assert.ok(selected);
+          if (accessRole === undefined) delete selected.accessRole;
+          else selected.accessRole = accessRole;
+          const fixture = await setupFixture(calendars);
+          const workspacePath = join(
+            fixture.stateRoot,
+            "calendar",
+            "owned-calendars.json",
+          );
+          await mkdir(join(fixture.stateRoot, "calendar"));
+          const prior = "retained workspace bytes\n";
+          await writeFile(workspacePath, prior);
+          const result = await runCalendarSetup(
+            fixture,
+            ...(apply ? ["--apply"] : []),
+            "--json",
+          );
+          assert.equal(
+            result.exitCode,
+            2,
+            JSON.stringify({ role, accessRole, apply, result }),
+          );
+          assert.equal(JSON.parse(result.stdout).error.code, "invalid-target");
+          assert.match(JSON.parse(result.stdout).error.message, /owner/u);
+          assert.equal(await readFile(workspacePath, "utf8"), prior);
+          const provider = await readProvider(fixture);
+          assert.ok(provider.requests.every(({ method }) => method === "GET"));
+          assert.deepEqual(provider.calendars, calendars);
+        }
+      }
+    });
+  }
+
   it("rejects shared credential configuration before provider access", async () => {
     const fixture = await setupFixture([
-      { id: "primary-id", summary: "Personal", primary: true },
+      {
+        id: "primary-id",
+        summary: "Personal",
+        primary: true,
+        accessRole: "owner",
+      },
     ]);
     const config = JSON.parse(await readFile(fixture.configPath, "utf8"));
     config.calendar.credentials.interactiveWrite = fixture.readCredential;
@@ -194,10 +291,15 @@ describe("academic-os calendar setup", () => {
 
   it("blocks ambiguous named calendars without creation", async () => {
     const fixture = await setupFixture([
-      { id: "primary-id", summary: "Personal", primary: true },
-      { id: "commitments-1", summary: "Commitments" },
-      { id: "commitments-2", summary: "Commitments" },
-      { id: "routine-id", summary: "Routine" },
+      {
+        id: "primary-id",
+        summary: "Personal",
+        primary: true,
+        accessRole: "owner",
+      },
+      { id: "commitments-1", summary: "Commitments", accessRole: "owner" },
+      { id: "commitments-2", summary: "Commitments", accessRole: "owner" },
+      { id: "routine-id", summary: "Routine", accessRole: "owner" },
     ]);
 
     const result = await runCalendarSetup(fixture, "--apply", "--json");
@@ -224,7 +326,12 @@ interface CalendarFixture {
 }
 
 async function setupFixture(
-  calendars: Array<{ id: string; summary: string; primary?: boolean }>,
+  calendars: Array<{
+    id: string;
+    summary: string;
+    primary?: boolean;
+    accessRole?: unknown;
+  }>,
 ): Promise<CalendarFixture> {
   const root = await mkdtemp(join(tmpdir(), "academic-os-calendar-cli-"));
   temporaryRoots.push(root);

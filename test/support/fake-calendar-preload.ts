@@ -90,7 +90,7 @@ prototype.request = async function (options) {
     const body = options.data as { summary?: string };
     const id = `created-${state.nextId ?? 1}`;
     state.nextId = (state.nextId ?? 1) + 1;
-    const calendar = { id, summary: body.summary ?? "" };
+    const calendar = { id, summary: body.summary ?? "", accessRole: "owner" };
     state.calendars.push(calendar);
     await writeFile(statePath, `${JSON.stringify(state)}\n`);
     return { data: calendar };

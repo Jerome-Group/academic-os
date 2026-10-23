@@ -203,7 +203,7 @@ Complete == /\ s.pc = "complete"
 EnvironmentStep == /\ s.faults < MaxFaults
                    /\ (s.pc \in {"boundary", "cleanup-preflight", "cleanup-boundary", "audit-boundary"} \/
                        (Environment = "syscall" /\ s.pc \notin {"done", "refused", "crashed", "retry"}))
-                   /\ \E t \in Trees, n \in Slots, node \in {Empty, Link, Directory(3), File(3, "foreign"), File(1, "foreign")}:
+                   /\ \E t \in Trees, n \in Slots, node \in {Empty, Link, Directory(3), File(3, "foreign"), File(1, "foreign"), File(2, "foreign")}:
                          /\ s.fs[t][n] # node
                          /\ s' = [s EXCEPT !.fs[t][n] = node, !.faults = @ + 1,
                                   !.pc = CASE s.pc = "boundary" -> IF s.slot = 0 /\

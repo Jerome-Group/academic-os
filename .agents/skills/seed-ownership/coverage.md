@@ -62,6 +62,8 @@ The old `createSeedOperation` remains a separate cheatsheet caller and supplies 
 ## Abstraction decisions
 
 The five safety promises and all bounds are unchanged. The creation model already described the proposed repair. Maintenance confirms its mapping against the merged source.
+Maintenance also adds foreign bytes under identity tag 2. The creation model omitted that same-inode edit for second-generation files.
+The existing three identity tags now each have a foreign-byte fault. This expands fault coverage within the original bounds.
 
 The model's identities are exact abstract tags. The implementation stores bigint-derived decimal strings for device and inode, including an approved partial root's durable baseline.
 Numeric observations in `publishSeedPlan` decide kind only. The model does not prove decimal parsing or numeric precision.

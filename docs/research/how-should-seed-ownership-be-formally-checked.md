@@ -14,5 +14,6 @@ Unrestricted syscall swaps and concurrent journal writers remain expected counte
 The runner pins the [official TLA+ 1.7.4 release](https://github.com/tlaplus/tlaplus/releases/tag/v1.7.4) by SHA-256 `936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88`.
 The release jar reports TLC 2.19 of 08 August 2024.
 
-The referenced [poteto X post](https://x.com/poteto/status/2113398433977659654) returned HTTP 403 during the coordinator's direct attempt.
-Its contents were unavailable. The GitHub sources above support the workflow decision independently.
+The referenced [poteto X post](https://x.com/poteto/status/2113398433977659654) initially returned HTTP 403.
+A fresh primary-source read on 2026-10-24 succeeded. It announces a forthcoming companion skill for drawing statecharts and diagrams, then checking them against specifications produced by pstack's formal-verification skill.
+The installed skill and GitHub sources above define this runnable workflow. The post describes a future companion.

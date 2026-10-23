@@ -8,8 +8,7 @@ description: Check mounted seed ownership after changes to staging claims, publi
 A seed writes through proved directory identities and deletes only unchanged artifacts its journal proves it created.
 Otherwise a retry can write outside its approved folder or delete unrelated academic bytes.
 
-Creation status is `blocked`. The model describes the selected ownership repair, while `coverage.json` keeps its sync revision unset.
-Finish the exact-head mapping and real-code mutation check before treating this draft as maintained verification.
+The checked product revision and maintenance outcome are in `coverage.json`.
 
 ## Run
 
@@ -22,11 +21,11 @@ For offline use, set `TLA2TOOLS_JAR` to a copy of that release jar.
 From the repository root, run:
 
 ```sh
-node .agents/skills/seed-ownership/run.mjs
+npm run seed-ownership:check
 ```
 
 Read the printed `results.json` and each failed child log.
-Require outcome `passed`, both positive models, five expected model counterexamples, two expected residual counterexamples, all compiled schedules, both real-code mutation failures, and both restored passes.
+Require outcome `passed`, both positive models, five expected model counterexamples, two expected residual counterexamples, four protocol prerequisite regressions, all 34 compiled schedules, both real-code mutation failures, and both restored passes.
 `model-only` is a partial result. A successful process exit alone does not complete this skill.
 The runner retains source patches, exact heads, manifests, fixture journals, and TLC traces in a fresh OS temporary directory.
 It uses synthetic Module and Research-project folders only.
@@ -56,3 +55,6 @@ Treat those results as unresolved product boundaries, including concurrent resum
 For a separate checkout, `--product-root` selects the exact committed product source while keeping these verification files.
 `--evidence-parent` selects an existing parent beneath an OS temporary directory.
 The normal command rejects covered-source drift and uncommitted changes.
+During maintenance, `--candidate-revision <full-product-HEAD>` runs the candidate without changing the recorded sync revision.
+Advance the record only after that run passes and its source mapping agrees. Commit the verification, then run the ordinary command from the clean checkout.
+Each schedule batch runs in a fresh Node process so restored builds cannot reuse mutated imports.

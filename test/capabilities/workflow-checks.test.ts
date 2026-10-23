@@ -15,8 +15,8 @@ import { join, resolve } from "node:path";
 import { it } from "node:test";
 
 import {
-  capabilityIndex,
   type Capability,
+  capabilityIndex,
 } from "../../src/capabilities/catalog.js";
 import {
   verificationWorkflows,
@@ -114,6 +114,67 @@ it("reports a failing selected CLI journey and a clean retry through the public 
       /private-workflow-sentinel/u,
     );
     await writeFile(journey, original);
+    const retry = run("retry.json");
+    assert.equal(retry.status, 0, retry.stdout + retry.stderr);
+    assert.equal(JSON.parse(retry.stdout).outcome, "passed");
+  } finally {
+    await rm(fixture, { recursive: true, force: true });
+  }
+});
+
+it("propagates formal profile failure and a restored retry through the public command", async () => {
+  const fixture = await mkdtemp(join(tmpdir(), "academic-formal-profile-"));
+  const installation = join(fixture, "installation");
+  try {
+    await cp("dist/src", join(installation, "dist/src"), { recursive: true });
+    await symlink(
+      join(process.cwd(), "node_modules"),
+      join(installation, "node_modules"),
+      "junction",
+    );
+    await writeFile(
+      join(installation, "package.json"),
+      JSON.stringify({
+        type: "module",
+        scripts: { "seed-ownership:check": "node formal-sentinel.mjs" },
+      }),
+    );
+    const sentinel = join(installation, "formal-sentinel.mjs");
+    const environment = { ...process.env };
+    delete environment.NODE_TEST_CONTEXT;
+    const run = (log: string) =>
+      spawnSync(
+        process.execPath,
+        [
+          join(installation, "dist/src/cli.js"),
+          "capabilities",
+          "check",
+          "--profile",
+          "formal",
+          "--json",
+          "--log",
+          join(fixture, log),
+        ],
+        { cwd: installation, env: environment, encoding: "utf8" },
+      );
+    await writeFile(
+      sentinel,
+      'console.error("private-formal-marker"); process.exit(7);\n',
+    );
+    const failed = run("failed.json");
+    assert.equal(failed.status, 1, failed.stdout + failed.stderr);
+    const report = JSON.parse(failed.stdout);
+    assert.equal(report.outcome, "failed");
+    assert.equal(report.profile, "formal");
+    assert.equal(report.checks.length, 1);
+    assert.equal(report.checks[0].action, "npm run seed-ownership:check");
+    assert.equal(report.checks[0].exitCode, 7);
+    assert.ok(!failed.stdout.includes("private-formal-marker"));
+    assert.match(
+      await readFile(join(fixture, "failed.json"), "utf8"),
+      /private-formal-marker/u,
+    );
+    await writeFile(sentinel, "process.exit(0);\n");
     const retry = run("retry.json");
     assert.equal(retry.status, 0, retry.stdout + retry.stderr);
     assert.equal(JSON.parse(retry.stdout).outcome, "passed");

@@ -398,7 +398,7 @@ async function manifest(root) {
   async function visit(path, relative) {
     let metadata;
     try {
-      metadata = await lstat(path);
+      metadata = await lstat(path, { bigint: true });
     } catch (error) {
       if (error.code === "ENOENT") {
         entries.push({ path: relative, kind: "absent" });
@@ -410,6 +410,8 @@ async function manifest(root) {
       entries.push({
         path: relative,
         kind: "link",
+        device: String(metadata.dev),
+        inode: String(metadata.ino),
         target: await readlink(path),
       });
     else if (metadata.isDirectory()) {
@@ -427,7 +429,7 @@ async function manifest(root) {
         kind: "file",
         device: String(metadata.dev),
         inode: String(metadata.ino),
-        size: metadata.size,
+        size: String(metadata.size),
         sha256: createHash("sha256")
           .update(await readFile(path))
           .digest("hex"),

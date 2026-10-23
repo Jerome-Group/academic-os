@@ -13,7 +13,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { runSchedules } from "./probes.mjs";
+import { parseArgs } from "node:util";
 
 const directory = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(directory, "../../..");
@@ -28,13 +28,22 @@ const invariants = [
   "NoAdoptionFromPathOrBytes",
   "CompletionRequiresVerifiedPublicationAndCleanup",
 ];
-const arguments_ = process.argv.slice(2);
-const productIndex = arguments_.indexOf("--product-root");
-const root =
-  productIndex === -1 ? skillRoot : resolve(arguments_[productIndex + 1]);
-const modelOnly = arguments_.includes("--model-only");
-const parentIndex = arguments_.indexOf("--evidence-parent");
-const parent = parentIndex === -1 ? tmpdir() : arguments_[parentIndex + 1];
+const { values } = parseArgs({
+  options: {
+    "product-root": { type: "string" },
+    "evidence-parent": { type: "string" },
+    "candidate-revision": { type: "string" },
+    "model-only": { type: "boolean", default: false },
+  },
+});
+const root = resolve(values["product-root"] ?? skillRoot);
+const modelOnly = values["model-only"];
+const candidate = values["candidate-revision"];
+assert.ok(
+  candidate === undefined || !modelOnly,
+  "candidate requires a full run",
+);
+const parent = values["evidence-parent"] ?? tmpdir();
 assert.ok(
   parent && isAbsolute(parent),
   "evidence parent must be an existing absolute OS temporary path",
@@ -56,6 +65,7 @@ const results = {
   product: [],
   mutation: undefined,
 };
+const started = performance.now();
 process.stdout.write(`Evidence ${evidence}\n`);
 
 try {
@@ -98,14 +108,24 @@ try {
   ).output.trim();
   results.syncRevision = coverage.syncRevision;
   if (!modelOnly) {
+    const revision = candidate ?? coverage.syncRevision;
     assert.equal(
-      typeof coverage.syncRevision,
+      typeof revision,
       "string",
       "draft verification has no checked product revision; complete source mapping and maintenance first",
     );
+    assert.match(revision, /^[a-f0-9]{40}$/u, "full product commit required");
+    if (candidate !== undefined) {
+      assert.equal(
+        candidate,
+        results.sourceRevision,
+        "candidate must be product HEAD",
+      );
+      results.candidateRevision = candidate;
+    }
     const drift = await command(
       "git",
-      ["diff", coverage.syncRevision, "--", ...coverage.files],
+      ["diff", revision, "--", ...coverage.files],
       root,
       "covered-diff",
       evidence,
@@ -117,7 +137,7 @@ try {
     );
     const dirty = await command(
       "git",
-      ["status", "--porcelain", "--", ...coverage.files],
+      ["status", "--porcelain"],
       root,
       "covered-dirty",
       evidence,
@@ -125,7 +145,7 @@ try {
     assert.equal(
       dirty.output,
       "",
-      "commit or isolate covered source before checking an exact revision",
+      "commit or isolate changes before checking an exact revision",
     );
   }
   async function model(name, config, module, expected) {
@@ -179,6 +199,7 @@ try {
       generated: states?.[1],
       distinct: states?.[2],
       log: join(evidence, `${name}.log`),
+      durationMs: run.durationMs,
     });
     await save();
     process.stdout.write(
@@ -230,7 +251,31 @@ try {
       "product head changed during the model run",
     );
     await command("npm", ["run", "build"], root, "build", evidence);
-    results.product = await runSchedules(root, join(evidence, "baseline"));
+    const prerequisites = await command(
+      process.execPath,
+      [
+        "--test",
+        "--test-reporter=tap",
+        "--test-name-pattern=rejects coerced|resumes interrupted exact cleanup|inode exceeds numeric precision",
+        "dist/test/mounted/seed-mounted-module.test.js",
+        "dist/test/mounted/seed-mounted-research-project.test.js",
+      ],
+      root,
+      "protocol-prerequisites",
+      evidence,
+    );
+    assert.match(
+      prerequisites.output,
+      /# tests 4\n/u,
+      "all four protocol prerequisite regressions ran",
+    );
+    results.protocolPrerequisites = {
+      outcome: "passed",
+      tests: 4,
+      durationMs: prerequisites.durationMs,
+      log: join(evidence, "protocol-prerequisites.log"),
+    };
+    results.product = await schedules(root, "baseline");
     await save();
     assert.equal(
       (
@@ -246,7 +291,7 @@ try {
       "product head changed during compiled schedules",
     );
     assert.ok(
-      results.product.length > 0 &&
+      results.product.length === 34 &&
         results.product.every(({ outcome }) => outcome === "passed"),
       "compiled product schedules failed; inspect baseline/results.json",
     );
@@ -300,10 +345,10 @@ try {
       true,
     );
     await command("npm", ["run", "build"], scratch, "mutation-build", evidence);
-    const mutation = await runSchedules(
+    const mutation = await schedules(
       scratch,
-      join(evidence, "mutation"),
-      (id) => id.endsWith("/cleanup-foreign-child"),
+      "mutation",
+      "cleanup-foreign-child",
     );
     results.mutation = mutation;
     await save();
@@ -318,14 +363,43 @@ try {
     );
     await writeFile(target, original);
     await command("npm", ["run", "build"], scratch, "restored-build", evidence);
-    results.restored = await runSchedules(
+    results.restored = await schedules(
       scratch,
-      join(evidence, "restored"),
-      (id) => id.endsWith("/cleanup-foreign-child"),
+      "restored",
+      "cleanup-foreign-child",
     );
+    assert.equal(results.restored.length, 2);
     assert.ok(
       results.restored.every(({ outcome }) => outcome === "passed"),
       "restored product must preserve both sentinels",
+    );
+    await command(
+      "git",
+      ["diff", "--exit-code", "HEAD", "--", ...coverage.files],
+      root,
+      "final-covered-clean",
+      evidence,
+    );
+    results.finalSourceRevision = (
+      await command("git", ["rev-parse", "HEAD"], root, "final-head", evidence)
+    ).output.trim();
+    assert.equal(
+      results.finalSourceRevision,
+      results.sourceRevision,
+      "product HEAD changed during mutation controls",
+    );
+    assert.equal(
+      (
+        await command(
+          "git",
+          ["status", "--porcelain"],
+          root,
+          "final-product-clean",
+          evidence,
+        )
+      ).output,
+      "",
+      "product changed during verification",
     );
     results.outcome = "passed";
   }
@@ -334,6 +408,7 @@ try {
   results.error = error instanceof Error ? error.message : String(error);
   process.exitCode = 1;
 } finally {
+  results.durationMs = Math.round(performance.now() - started);
   await save();
   process.stdout.write(
     `${results.outcome} ${join(evidence, "results.json")}\n`,
@@ -351,6 +426,32 @@ function save() {
   );
 }
 
+async function schedules(productRoot, name, selected) {
+  const destination = join(evidence, name);
+  const run = await command(
+    process.execPath,
+    [
+      join(verification, "probes.mjs"),
+      productRoot,
+      destination,
+      ...(selected === undefined ? [] : [selected]),
+    ],
+    productRoot,
+    `${name}-schedules`,
+    evidence,
+    true,
+  );
+  const cases = JSON.parse(
+    await readFile(join(destination, "results.json"), "utf8"),
+  );
+  assert.equal(
+    run.code,
+    cases.some(({ outcome }) => outcome !== "passed") ? 1 : 0,
+    `${name} schedule process must finish normally`,
+  );
+  return cases;
+}
+
 async function command(
   program,
   args,
@@ -359,6 +460,7 @@ async function command(
   logs = cwd,
   permitFailure = false,
 ) {
+  const started = performance.now();
   const result = await new Promise((done, reject) => {
     const child = spawn(program, args, {
       cwd,
@@ -372,7 +474,14 @@ async function command(
       output += data;
     });
     child.on("error", reject);
-    child.on("close", (code, signal) => done({ code, signal, output }));
+    child.on("close", (code, signal) =>
+      done({
+        code,
+        signal,
+        output,
+        durationMs: Math.round(performance.now() - started),
+      }),
+    );
   });
   await writeFile(join(logs, `${name}.log`), result.output);
   if (!permitFailure)

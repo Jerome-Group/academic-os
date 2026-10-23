@@ -1,8 +1,8 @@
 {
-  "syncRevision": null,
-  "lastInspectedRevision": "fb381df4d0f5cbf8a4e9f2cca0e91bf8760378ea",
-  "outcome": "blocked",
-  "reason": "Creation draft awaits exact product-head mapping and the real-code mutation gate.",
+  "syncRevision": "64dfe99bcca15c13e9c49ab385da71656b857d1e",
+  "lastInspectedRevision": "64dfe99bcca15c13e9c49ab385da71656b857d1e",
+  "outcome": "updated",
+  "reason": "Reconciled the merged ownership protocol; all models, 34 compiled schedules, real cleanup mutations and restored passes succeeded.",
   "files": [
     "src/mounted/seed-mounted-module.ts",
     "src/mounted/seed-mounted-research-project.ts",

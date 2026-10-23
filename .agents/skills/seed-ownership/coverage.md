@@ -1,8 +1,9 @@
 # Seed ownership coverage
 
-This creation draft has no checked sync revision. `coverage.json` records that boundary.
-The original source inspected was `fb381df4d0f5cbf8a4e9f2cca0e91bf8760378ea`.
-Its stage writes and recursive removal break preservation. A green model of the proposed repair does not change that finding.
+`coverage.json` records the last successful product revision. A candidate run leaves that record unchanged until every gate passes.
+The maintenance inspection covers `fb381df4d0f5cbf8a4e9f2cca0e91bf8760378ea` through `64dfe99bcca15c13e9c49ab385da71656b857d1e`.
+The only covered-source commit in that range is the ownership repair in #340.
+The old source had unclaimed stage writes and recursive cleanup. The current source requires durable claims and exact entry removal.
 
 ## Bounds and assumptions
 
@@ -32,11 +33,10 @@ No claim follows about power loss, inode reuse, advisory locking, native descrip
 Completed publication means approved bytes were audited and current publication directory ownership was checked after cleanup.
 It does not freeze file bytes against future external edits.
 
-## Source mapping to reconcile after the repair
+## Source mapping
 
-The selected protocol adds `src/mounted/seed-ownership.ts` and version 2 journal events.
-The following mapping was read from the product author's implementation before its final exact-head review.
-It is a review checklist until the sync revision is populated.
+The protocol adds `src/mounted/seed-ownership.ts` and version 2 journal events.
+Each row was reconciled against the committed ownership repair, including its final byte readback, parser hardening and partial-root precision fix.
 
 | Model actions | Source functions and awaited effects |
 | --- | --- |
@@ -58,6 +58,30 @@ It is a review checklist until the sync revision is populated.
 
 `seedMountedModule` and `seedMountedResearchProject` both reach this protocol through `seedMountedTarget`.
 The old `createSeedOperation` remains a separate cheatsheet caller and supplies no mounted seed mutation authority after the repair.
+
+## Abstraction decisions
+
+The five safety promises and all bounds are unchanged. The creation model already described the proposed repair. Maintenance confirms its mapping against the merged source.
+
+The model's identities are exact abstract tags. The implementation stores bigint-derived decimal strings for device and inode, including an approved partial root's durable baseline.
+Numeric observations in `publishSeedPlan` decide kind only. The model does not prove decimal parsing or numeric precision.
+The compiled partial-root regressions exercise both adapters with an inode beyond numeric precision.
+
+`readSeedJournal` now rejects coerced scalar enums, duplicate receipts, mismatched generations, unapproved file hashes, removal without ownership, and completion before cleanup.
+The model starts after a valid durable journal start. Its transitions generate valid ownership events and model an ambiguous append tail as refusal.
+It does not enumerate malformed JSON or prove parser completeness. The compiled journal lifecycle regression checks those new rejection branches.
+Incomplete legacy journals refuse continuation. Completed legacy journals retain readback only and are outside the version 2 model.
+
+The model's generation tags 1 and 2 correspond to implementation generations 0 and 1.
+Removing a modeled receipt represents the durable removal intent plus the removed entry. The real journal retains both facts.
+Its cleanup preflight requires the whole active inventory to agree before deletion, and resumed cleanup permits missing entries only through that representation.
+The model can also recreate an empty claimed root or skip repeated identical observations where the implementation refuses or reproves it.
+Those extra behaviors overapproximate safety. They do not establish that every model trace is a resumable implementation trace.
+Repeated proofs inside one guarded operation add no environment step under the stated stable-path premise. They remain separate awaits in the source.
+
+Final approved-byte readback and directory observations stay distinct from cleanup and completion.
+The completion invariant records that readback occurred and that publication directory ownership still verifies after cleanup.
+It does not assert that a file cannot change after its readback. Syscall swaps and concurrent writers retain expected counterexamples.
 
 ## Failure controls
 

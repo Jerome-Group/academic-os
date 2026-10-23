@@ -5,7 +5,6 @@ CONSTANTS PartialTarget, Environment, Broken, MaxFaults
 
 Trees == {"stage", "target"}
 Slots == 0..5
-Plan == 1..4
 Empty == [kind |-> "absent", identity |-> 0, bytes |-> "empty"]
 Directory(identity) == [kind |-> "directory", identity |-> identity, bytes |-> "empty"]
 File(identity, bytes) == [kind |-> "file", identity |-> identity, bytes |-> bytes]
@@ -36,16 +35,8 @@ Init == s = [pc |-> "boundary", tree |-> "stage", slot |-> 0, generation |-> 1,
 RootMatches(t) == s.fs[t][0].kind = "directory" /\
                   (s.fs[t][0] = s.receipts[t][0] \/
                    (Broken = "claim" /\ t = "stage" /\ s.fs[t][0] = Directory(s.generation)))
-ParentsMatch(t, n) == \A p \in Parent(n): s.fs[t][p].kind = "directory" /\
-                                       (s.fs[t][p] = s.receipts[t][p] \/
-                                        (p = 0 /\ Broken = "claim" /\ t = "stage"))
 Escapes(t, n) == \E p \in Parent(n): s.fs[t][p].kind = "link"
 StageExact == \A n \in Slots: s.fs["stage"][n] = s.receipts["stage"][n]
-Published == /\ RootMatches("target")
-             /\ \A n \in {1, 2}: s.fs["target"][n] = s.receipts["target"][n]
-                                    /\ s.fs["target"][n].kind = "directory"
-             /\ \A n \in {3, 4}: s.fs["target"][n].kind = "file"
-                                    /\ s.fs["target"][n].bytes = "approved"
 PublicationOwnership == /\ RootMatches("target")
                         /\ \A n \in {1, 2}: s.fs["target"][n] = s.receipts["target"][n]
                                                /\ s.fs["target"][n].kind = "directory"

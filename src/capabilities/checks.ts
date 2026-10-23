@@ -9,6 +9,7 @@ export const checkProfiles = {
   privacy: ["privacy:check"],
   templates: ["templates:check"],
   coverage: ["rule-coverage:check"],
+  formal: ["seed-ownership:check"],
   full: [
     "format:check",
     "lint",
@@ -16,6 +17,7 @@ export const checkProfiles = {
     "cheatsheet-runtime:check",
     "rule-coverage:check",
     "templates:check",
+    "seed-ownership:check",
   ],
 } as const;
 export type CheckProfile = keyof typeof checkProfiles;

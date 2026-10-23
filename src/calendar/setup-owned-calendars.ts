@@ -1,5 +1,6 @@
 import { OperationalError } from "../mounted/index.js";
 import type {
+  CalendarListEntry,
   CalendarSetupReader,
   CalendarSetupReport,
   CalendarSetupWriter,
@@ -26,7 +27,7 @@ export async function setupOwnedCalendars(input: {
     );
   }
   const ids = {
-    Academic: requireCalendarId(primary[0], "primary"),
+    Academic: existingOwnedCalendarId(primary[0], "primary"),
     Commitments: exactNamedCalendarId(calendars, "Commitments"),
     Routine: exactNamedCalendarId(calendars, "Routine"),
   };
@@ -123,7 +124,20 @@ function exactNamedCalendarId(
   }
   return matches[0] === undefined
     ? undefined
-    : requireCalendarId(matches[0], summary);
+    : existingOwnedCalendarId(matches[0], summary);
+}
+
+function existingOwnedCalendarId(
+  calendar: CalendarListEntry | undefined,
+  role: string,
+): string {
+  if (calendar?.accessRole !== "owner") {
+    throw new OperationalError(
+      "invalid-target",
+      `Calendar setup requires explicit owner access for ${role}.`,
+    );
+  }
+  return requireCalendarId(calendar, role);
 }
 
 function requireCalendarId(

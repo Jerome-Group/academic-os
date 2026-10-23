@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { it } from "node:test";
 import { validModuleControls } from "../fixtures/module-controls.js";
 import { prepareCheatsheet } from "../../src/cheatsheet/index.js";
@@ -55,16 +56,65 @@ it("discovers synthetic MH2100 midterm with ordered provenance and detects chang
           `    - {role: primary, destination: NTULearn, evidence: [course-site]}\n    - {role: supplementary, destination: ProviderMirror, evidence: [course-site]}`,
         ),
       );
-      await writeFile(
-        join(admin, "00 Module Profile.md"),
-        (controls.profile ?? "").replace(
-          "Week 7 | NTULearn",
-          `Week 7 | ${root}/Week 01/notice.md`,
-        ),
-      );
-      const invalidCitation = await prepareCheatsheet(input);
-      assert.equal(invalidCitation.status, "needs-choice");
-      assert.match(invalidCitation.unresolved.join(" "), /MF-PROFILE-002/u);
+      for (const { citation, status } of [
+        ...[
+          "Week 01/notice.md",
+          "Announcements/Week 01/notice.md",
+          "Course.md/child.md",
+          "Last synced.md/child.md",
+          "Course.md/",
+          "Last synced.md/",
+          "/Week 01/notice.md",
+          "Announcements//",
+          "/",
+        ].map((interior) => ({
+          citation: `${root}/${interior}`,
+          status: "needs-choice",
+        })),
+        ...[
+          root,
+          `${root}/`,
+          `${root}/Course.md`,
+          `${root}/Last synced.md`,
+          `${root}/Announcements`,
+          `${root}/Announcements/`,
+          "notice.md",
+          "NTULearn assessment profile",
+        ].map((citation) => ({ citation, status: "context-discovered" })),
+      ]) {
+        await writeFile(
+          join(admin, "00 Module Profile.md"),
+          (controls.profile ?? "").replace(
+            "Week 7 | NTULearn",
+            `Week 7 | ${citation}`,
+          ),
+        );
+        const prepared = await prepareCheatsheet(input);
+        assert.equal(prepared.status, status, citation);
+        if (status === "needs-choice") {
+          assert.match(prepared.unresolved.join(" "), /MF-PROFILE-002/u);
+        }
+        const shipped = spawnSync(
+          process.execPath,
+          [
+            resolve("skills/cheatsheet/scripts/cheatsheet-tool.mjs"),
+            "prepare",
+            "--module-root",
+            input.moduleRoot,
+            "--module-code",
+            input.moduleCode,
+            "--assessment",
+            input.assessment,
+          ],
+          { encoding: "utf8" },
+        );
+        assert.equal(
+          shipped.status,
+          status === "needs-choice" ? 2 : 0,
+          citation,
+        );
+        assert.deepEqual(JSON.parse(shipped.stdout), prepared, citation);
+      }
     }
     await writeFile(
       join(admin, "10 Module Definition.yaml"),

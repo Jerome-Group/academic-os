@@ -180,8 +180,10 @@ describe("Module audit input contracts", () => {
     for (const root of ["NTULearn", "ProviderMirror"]) {
       for (const evidence of [
         root,
+        `${root}/`,
         `${root}/Course.md`,
         `${root}/Last synced.md`,
+        `${root}/Announcements`,
         `${root}/Announcements/`,
         "slides.pdf",
         "NTULearn assessment profile",
@@ -196,6 +198,72 @@ describe("Module audit input contracts", () => {
           audit(input, [], root === "NTULearn" ? [] : [root]).outcome,
           "conformant",
           evidence,
+        );
+      }
+    }
+  });
+
+  it("restricts importer landmarks to exact citations in every Module control", () => {
+    for (const root of ["NTULearn", "ProviderMirror"]) {
+      for (const interior of [
+        "Announcements/Week 01/slides.pdf",
+        "Course.md/child.pdf",
+        "Last synced.md/child.pdf",
+        "Course.md/",
+        "Last synced.md/",
+        "/Week 01/slides.pdf",
+        "/Course.md",
+        "Announcements//",
+        "/",
+      ]) {
+        const input = controls();
+        declareImporter(input, root);
+        const citation = `${root}/${interior}`;
+        input.profile = (input.profile ?? "").replace(
+          "| Academic year | 2026-2027 | Definition |",
+          `| Academic year | 2026-2027 | ${citation} |`,
+        );
+        input.definition = (input.definition ?? "").replace(
+          "source: NTULearn course site",
+          `source: ${citation}`,
+        );
+        input.taskRegister = `list_id: synthetic-list\ntasks:\n  - title: Read the notice\n    status: open\n    provenance:\n      source: ${citation}\n`;
+        const result = audit(input);
+        for (const [rule, status] of [
+          ["MF-PROFILE-002", "requires-decision"],
+          ["MF-DEFINITION-001", "fail"],
+          ["MF-TASKS-001", "fail"],
+        ]) {
+          const finding = result.findings.find(({ ruleId }) => ruleId === rule);
+          assert.equal(finding?.status, status, `${rule} ${citation}`);
+          assert.match(finding?.evidence ?? "", /importer.*interior/iu);
+        }
+      }
+      for (const citation of [
+        root,
+        `${root}/`,
+        `${root}/Course.md`,
+        `${root}/Last synced.md`,
+        `${root}/Announcements`,
+        `${root}/Announcements/`,
+        "slides.pdf",
+        "NTULearn assessment profile",
+      ]) {
+        const input = controls();
+        declareImporter(input, root);
+        input.profile = (input.profile ?? "").replace(
+          "| Academic year | 2026-2027 | Definition |",
+          `| Academic year | 2026-2027 | ${citation} |`,
+        );
+        input.definition = (input.definition ?? "").replace(
+          "source: NTULearn course site",
+          `source: ${citation}`,
+        );
+        input.taskRegister = `list_id: synthetic-list\ntasks:\n  - title: Read the notice\n    status: open\n    provenance:\n      source: ${citation}\n`;
+        assert.equal(
+          audit(input, [], root === "NTULearn" ? [] : [root]).outcome,
+          "conformant",
+          citation,
         );
       }
     }

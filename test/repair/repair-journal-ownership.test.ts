@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import {
   createFileRepairJournalStore,
   createRepairPlan,
+  repairApprovalDigest,
   executeRepairPlan,
   type RepairExecutionDrive,
   type RepairMutationJournal,
@@ -167,36 +168,95 @@ test("repair sessions bind the change set and expire at callback settlement", as
   assert.deepEqual(await store.inspect(plan.changeSetId), []);
 });
 
-test("uppercase historical repair IDs remain inspectable and refuse mutation before ownership allocation", async (t) => {
+test("case-alias repair IDs share a cold owner and preserve supplied uppercase continuation", async (t) => {
   const root = await journalFixture(t, "repair-case-alias");
   const store = createFileRepairJournalStore(root);
   const lower = "abcdef11-1111-4111-8111-111111111111";
   const upper = lower.toUpperCase();
-  const directory = join(root, "journals", "repairs");
-  await mkdir(directory, { recursive: true });
-  const plan = createRepairPlan(repairPlanDraft());
-  const event = {
-    schemaVersion: 1,
+  const draft = repairPlanDraft();
+  draft.changeSetId = upper;
+  draft.approval.approvedPlanDigest = repairApprovalDigest(draft);
+  const plan = createRepairPlan(draft);
+  const entered = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  const started = {
+    schemaVersion: 1 as const,
     sequence: 0,
     recordedAt: "2026-10-24T00:00:00Z",
     changeSetId: upper,
     planDigest: plan.planDigest,
-    type: "started",
+    type: "started" as const,
     plan,
   };
-  const path = join(directory, `${upper}.jsonl`);
-  await writeFile(path, `${JSON.stringify(event)}\n`);
-  const before = await readFile(path);
-  assert.deepEqual(await store.inspect(upper), [event]);
-  await assert.rejects(
-    store.mutate(upper, async () => assert.fail("uppercase mutation")),
-    /lowercase.*reconcile/u,
-  );
-  assert.deepEqual(await readFile(path), before);
+  const owner = store.mutate(upper, async (journal) => {
+    entered.resolve();
+    await release.promise;
+    await journal.append(started);
+  });
+  await entered.promise;
+  try {
+    const loser = await store.mutate(lower, async () =>
+      assert.fail("cold case alias callback"),
+    );
+    assert.equal(loser.kind, "refused");
+    if (loser.kind === "refused") assert.equal(loser.reason, "busy");
+    const child = await journalProcess(t, root, "lowercase-child", [
+      driver,
+      root,
+      join(root, "journals", "repairs", `${lower}.jsonl`),
+      "try",
+    ]).done;
+    assert.equal(child.code, 0, child.stderr);
+    assert.equal(JSON.parse(child.stdout).reason, "busy");
+  } finally {
+    release.resolve();
+    await owner;
+  }
+  assert.deepEqual(await store.inspect(upper), [started]);
+  const outcome = {
+    schemaVersion: 1 as const,
+    sequence: 1,
+    recordedAt: "2026-10-24T00:00:01Z",
+    changeSetId: upper,
+    planDigest: plan.planDigest,
+    type: "outcome" as const,
+    outcome: "blocked" as const,
+  };
   assert.equal(
-    (await optionalBytes(join(root, "journal-ownership"))).length,
-    0,
+    (
+      await store.mutate(upper, async (journal) => {
+        assert.deepEqual(await journal.read(), [started]);
+        await journal.append(outcome);
+      })
+    ).kind,
+    "owned",
   );
+  const path = join(root, "journals", "repairs", `${upper}.jsonl`);
+  const before = await readFile(path);
+  assert.deepEqual(await store.inspect(upper), [started, outcome]);
+  const lowerPath = join(root, "journals", "repairs", `${lower}.jsonl`);
+  if (await lstat(lowerPath).catch(() => undefined)) {
+    assert.equal(
+      (
+        await store.mutate(lower, async () =>
+          assert.fail("noncanonical existing spelling"),
+        )
+      ).kind,
+      "refused",
+    );
+  } else {
+    assert.equal(
+      (
+        await store.mutate(
+          lower,
+          async (journal) =>
+            await journal.append({ ...started, changeSetId: lower }),
+        )
+      ).kind,
+      "owned",
+    );
+  }
+  assert.deepEqual(await readFile(path), before);
 });
 
 test("a pending append stays owned after its callback returns and its session expires", async (t) => {

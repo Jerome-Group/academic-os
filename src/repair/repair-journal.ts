@@ -16,7 +16,7 @@ export function createFileRepairJournalStore(
       await readJournal(journalPath(stateRoot, changeSetId)),
     mutate: async (changeSetId, run) =>
       await withJournalMutationOwner(
-        { stateRoot, journalPath: mutationJournalPath(stateRoot, changeSetId) },
+        { stateRoot, journalPath: journalPath(stateRoot, changeSetId) },
         async (path) => {
           let active = true;
           const pending: Array<{
@@ -131,14 +131,6 @@ function journalPath(stateRoot: string, changeSetId: string): string {
     );
   }
   return join(stateRoot, "journals", "repairs", `${changeSetId}.jsonl`);
-}
-
-function mutationJournalPath(stateRoot: string, changeSetId: string): string {
-  if (changeSetId !== changeSetId.toLowerCase())
-    throw new RepairPlanError(
-      "Repair mutation requires a lowercase change-set ID. Inspect and reconcile the existing journal before changing a historical ID; no rename or approval rewrite was performed.",
-    );
-  return journalPath(stateRoot, changeSetId);
 }
 
 function isRepairJournalEvent(value: unknown): value is RepairJournalEvent {

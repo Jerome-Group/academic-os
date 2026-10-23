@@ -25,10 +25,11 @@ deleting or replacing ownership files. Callback, drain and release errors remain
 failures rather than effect-free busy refusals. Recovery still validates current JSONL and durable
 artifact provenance; ambiguous histories remain blocked.
 
-Repair mutation requires lowercase change-set storage IDs. Plan creation preserves the supplied
-approved ID. Uppercase IDs remain inspectable but require deliberate reconciliation before mutation;
-the system does not rename a journal or rewrite an approved plan's identity or digest. This avoids
-different cold ownership keys addressing one filename on a case-insensitive filesystem.
+The lease key folds only the journal basename to lowercase under its canonical parent. This keeps
+cold case aliases under one owner on case-insensitive filesystems. On case-sensitive filesystems,
+distinct case spellings conservatively contend. Journal paths, supplied approved IDs, events and
+plan digests retain their spelling; no rename or approval rewrite occurs. Existing noncanonical
+path spellings may refuse before mutation rather than select an ambiguous identity.
 
 This protocol assumes one host, one SQLite implementation per process, stable canonical private
 paths and a local filesystem with reliable SQLite locks. It does not coordinate copied or synced

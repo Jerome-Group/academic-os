@@ -1,6 +1,14 @@
 import { createHash } from "node:crypto";
 import { chmod, lstat, mkdir, realpath } from "node:fs/promises";
-import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import {
+  basename,
+  dirname,
+  isAbsolute,
+  join,
+  relative,
+  resolve,
+  sep,
+} from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 
 export type JournalMutationResult<T> =
@@ -46,7 +54,9 @@ export async function withJournalMutationOwner<T>(
       );
     const sidecar = join(
       directory,
-      `${createHash("sha256").update(journalPath).digest("hex")}.sqlite`,
+      `${createHash("sha256")
+        .update(join(dirname(journalPath), basename(journalPath).toLowerCase()))
+        .digest("hex")}.sqlite`,
     );
     await requireSidecar(sidecar);
     // Ordinary descriptor closes can cancel SQLite's POSIX locks in this process.

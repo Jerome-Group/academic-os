@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   chmod,
@@ -193,6 +194,7 @@ for (const malformed of [
   "directory",
   "hardlink",
   "permissions",
+  "fifo",
 ] as const) {
   test(`preserves malformed ${malformed} sidecars without entering a callback`, async (t) => {
     const root = await journalFixture(t, malformed);
@@ -213,6 +215,8 @@ for (const malformed of [
     if (malformed === "hardlink") await link(sentinel, sidecar);
     if (malformed === "permissions")
       await writeFile(sidecar, "", { mode: 0o400 });
+    if (malformed === "fifo")
+      assert.equal(spawnSync("mkfifo", [sidecar]).status, 0);
     const before = await lstat(sidecar);
     const result = await withJournalMutationOwner(
       { stateRoot: root, journalPath },
@@ -223,6 +227,24 @@ for (const malformed of [
     assert.equal(await readFile(sentinel, "utf8"), "preserved");
   });
 }
+
+test("an unsafe ownership namespace refuses without normalizing or entering it", async (t) => {
+  const root = await journalFixture(t, "unsafe-namespace");
+  const directory = join(root, "journal-ownership");
+  await mkdir(directory, { mode: 0o755 });
+  const before = await lstat(directory);
+  assert.equal(
+    (
+      await withJournalMutationOwner(
+        { stateRoot: root, journalPath: join(root, "journal.jsonl") },
+        async () => assert.fail("unsafe namespace callback"),
+      )
+    ).kind,
+    "refused",
+  );
+  assert.deepEqual(await lstat(directory), before);
+  assert.deepEqual(await readdir(directory), []);
+});
 
 test("an observed constructor crash before chmod leaves an empty bootstrap that normalizes and acquires", async (t) => {
   const root = await journalFixture(t, "bootstrap");

@@ -257,6 +257,15 @@ export async function executeRepairPlan(
       inspectedCompleted.add(recovered.operationId);
     }
     if (!input.resume) {
+      if (recovery !== undefined) {
+        try {
+          await input.recovery.verify(recovery);
+        } catch (error) {
+          return report(input.plan, "blocked", inspectedCompleted, [
+            errorEvidence(error),
+          ]);
+        }
+      }
       return report(input.plan, "safely-resumable", inspectedCompleted, [
         recovery === undefined
           ? "Journal and current target match; recovery is incomplete, so pass apply and resume explicitly."

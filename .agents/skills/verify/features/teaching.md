@@ -17,14 +17,17 @@ The `learn`, `cheatsheet` and `research-project` routers remain user-invoked. Ve
 
 ## Driving it with the compiled CLI
 
-Preconditions: the parent skill's build and fresh doctor succeeded. TeX and Poppler executables are installed.
+Preconditions: the parent skill's build and fresh doctor succeeded. TeX, `kpsewhich` and Poppler executables are installed.
 
 ```sh
+npm run cheatsheet-runtime:check > "$aos_proof/teaching-runtime-check.txt" 2>&1
 node dist/src/cli.js capabilities verify --workflow teaching --json --log "$aos_proof/teaching.json"
 ```
 
 Require both the synthetic workflow and cheatsheet journey to pass.
-Learning-material unit tests assert source order. CLI journeys assert gap reporting, human/JSON output, read-only behavior, sibling retention and symlink refusal.
+Learning-material tests and preparation API/shipped-helper fixtures assert Source Map order, including numeric keys.
+Portable-build fixtures reject host-local inputs and caller search-path dependencies and ignore user latexmk configuration; recorded inputs remain bound to the release and trusted TeX distribution.
+CLI journeys assert gap reporting, human/JSON output, read-only behavior, sibling retention and symlink refusal.
 The subprocess journey invokes the shipped cheatsheet runtime through preparation, audit, fitting, verification and review packaging.
 It checks stale sources, interrupted authoring and package retries.
 A package CLI fixture checks exact 16 MiB binary source bytes and provenance.
@@ -38,4 +41,4 @@ The journey intentionally leaves semantic review unreviewed. Preserve that resul
 Router document assertions do not measure the quality of a model-led teaching session.
 The personal teaching-folder route has router-text assertions, not an executed teaching session.
 Router finder execution assertions require macOS and skip on other platforms.
-Missing TeX or Poppler prevents release verification. Record the attempted command and missing executable.
+Missing TeX, `kpsewhich` or Poppler prevents release verification. Record the attempted command and missing executable.

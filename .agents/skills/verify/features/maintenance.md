@@ -8,7 +8,9 @@ The CLI observes maintenance state, coordinates bounded repository repair and ma
 - Repository status distinguishes healthy, attention and unobserved results.
 - Repository repair respects protected delivery and retained evidence.
 - Curation migration and rederivation preserve decision history.
-- Textbook catch-up, sweep and migration preview or publish their owned records.
+- Textbook catch-up and migration hold a canonical Shelf owner across fresh planning and publication.
+- Native exclusive moves preserve arriving targets; index exchange retains original generations permanently. Exact-run reconciliation observes without retrying exchange.
+- Weekly observations use immutable comments and a static anchor, causal receipts, unknown-response fences and observed snapshots before state-only rollover.
 
 ## How to get to it (user POV)
 
@@ -25,7 +27,10 @@ node dist/src/cli.js capabilities verify --workflow maintenance --json --log "$a
 
 Require a passed outcome. CLI journeys assert maintenance options, read-only status, curation migration and catch-up behavior.
 The curation CLI journey fills the seeded register example's placeholders and counts its item under the declared integration key.
-Domain journeys exercise bounded repository checks, recovery decisions, weekly evidence, curation rederivation and shelf migration.
+Domain journeys exercise bounded repository checks, recovery decisions, curation rederivation and weekly publication.
+Weekly subprocess fixtures check late Owner edits, causal conflicts, numeric repository-bound pagination, whole known-batch capacity and unknown-POST reconciliation.
+Compiled Shelf CLI journeys check catch-up/migration partial publication in human/JSON forms and exact-run reconciliation.
+Native process fixtures check exclusive moves, original captures, interruption/death recovery and unsupported-operation refusal.
 They inspect resulting records, checkpoints and fixture files and inject failures at existing adapters.
 The compiled launcher fixture previews the real installer with an owned config and toolchain `PATH`.
 It decodes the emitted plist with `/usr/bin/plutil` on macOS or `/usr/bin/python3` and standard-library `plistlib` on Linux.
@@ -37,7 +42,11 @@ It checks the selected Node executable, custom command output, an unrelated inhe
 ## Gotchas
 
 Repository-repair CLI coverage currently proves argument refusals. Its domain tests do not prove a real model repair or protected GitHub merge.
-Curation rederive, textbooks sweep and textbooks migrate currently have domain coverage without compiled CLI journeys.
+Curation rederive and textbooks sweep have domain coverage without compiled CLI journeys.
+Shelf mutation requires a compiler and native exclusive/exchange support; preview/no-op need no compiler. Unsupported mutation refuses before book effects.
+Same-host canonical private state and stable namespaces remain premises. Captures are recovery evidence, not active catalogs; preserve them.
+Local fixtures do not establish configured-mount interruption, Drive sync or power-loss recovery.
+Weekly admission covers observed history plus the known publication batch, without remote snapshot isolation or distributed ownership.
 Textbooks sweep writes a private review sheet and needs no mounted rewrite to produce that sheet.
 Do not run live morning maintenance, perform retention or change LaunchAgents merely to verify this map.
 Real scheduled recovery and model quality remain separate operational evidence.

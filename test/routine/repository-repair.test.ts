@@ -4,6 +4,7 @@ import {
   mkdir,
   mkdtemp,
   readFile,
+  readdir,
   realpath,
   rm,
   symlink,
@@ -1047,3 +1048,43 @@ test("controller-only Unix fixture flag is explicit and absent from ordinary wor
     await f.close();
   }
 });
+
+for (const kind of ["ordinary", "two-dot", "alias", "outside"] as const) {
+  test(`repository repair checks canonical private containment for ${kind}`, async () => {
+    const f = await fixture();
+    try {
+      const inside = join(
+        f.input.repositoryRoot,
+        kind === "ordinary" ? "private" : "..private",
+      );
+      const outside = join(f.root, "outside");
+      await mkdir(inside);
+      await mkdir(outside);
+      const alias = join(f.root, "alias");
+      await symlink(inside, alias);
+      const privateStateRoot =
+        kind === "outside" ? outside : kind === "alias" ? alias : inside;
+      let checks = 0;
+      f.ports.checks = async () => {
+        checks++;
+        return { passed: true, digest: "ok", actions: [] };
+      };
+      const report = await runRepositoryRepair({
+        ...f.input,
+        privateStateRoot,
+      });
+      if (kind === "outside") {
+        assert.equal(report.outcome, "healthy");
+        assert.equal(checks, 1);
+      } else {
+        assert.equal(report.outcome, "blocked");
+        assert.equal(report.code, "private-state-in-repository");
+        assert.equal(checks, 0);
+        assert.deepEqual(await readdir(inside), []);
+      }
+      assert.deepEqual(f.calls, []);
+    } finally {
+      await f.close();
+    }
+  });
+}

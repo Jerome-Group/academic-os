@@ -302,7 +302,10 @@ static void gate(const char *target){
  snprintf(reached,sizeof(reached),"%s/reached",directory);snprintf(release,sizeof(release),"%s/release",directory);
  int fd=open(reached,O_WRONLY|O_CREAT|O_EXCL,0600);
  if(fd<0)return;
- if(write(fd,target,strlen(target))<0)_exit(91);close(fd);
+ if(write(fd,target,strlen(target))<0){
+  _exit(91);
+ }
+ close(fd);
  for(int n=0;access(release,F_OK);n++){if(n>6000)_exit(92);usleep(5000);}
 }
 static int unsafe_target(const char *target){

@@ -1,19 +1,20 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
 import {
   access,
-  mkdtemp,
   mkdir,
+  mkdtemp,
   readFile,
   rm,
-  symlink,
   stat,
+  symlink,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { promisify } from "node:util";
 import { it } from "node:test";
+import { promisify } from "node:util";
 
 import {
   buildCheatsheetReleaseSource,
@@ -217,10 +218,20 @@ q1,issued-1,question 1,TOP-A,required,condensed,Q1,
     );
     const readme = await readFile(join(destination, "README.md"), "utf8");
     const documentedCommand = /```sh\n([^\n]+)\n```/u.exec(readme)?.[1];
-    assert.notEqual(documentedCommand, undefined);
-    await run("sh", ["-c", documentedCommand as string], {
+    assert.ok(documentedCommand);
+    const home = join(root, "hostile-home");
+    await mkdir(home);
+    await writeFile(
+      join(home, ".latexmkrc"),
+      'open(my $out, ">", "$ENV{HOME}/startup-executed") or die $!; close($out); die "review-startup-sentinel\\n";\n',
+    );
+    await rm(join(destination, "Final Aid.pdf"));
+    await run("sh", ["-c", documentedCommand], {
       cwd: destination,
+      env: { ...process.env, HOME: home },
     });
+    assert.equal(existsSync(join(home, "startup-executed")), false);
+    assert.ok((await readFile(join(destination, "Final Aid.pdf"))).length > 0);
     recordBehaviorEvidence("MF-CHEATSHEET-005", () => {
       assert.equal(packaged.verification.rendersMatch, true);
     });

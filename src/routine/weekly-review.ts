@@ -33,6 +33,11 @@ import {
   type PublishedObservation,
 } from "./weekly-review-state.js";
 import { routineFailure } from "./routine-failure.js";
+import {
+  planWeeklyResolution,
+  renderResolution,
+  type WeeklyResolutionProof,
+} from "./weekly-resolution.js";
 import type {
   MorningIssueReport,
   MorningRunEvidence,
@@ -72,7 +77,10 @@ interface Discovery {
 interface WeeklyBatch {
   anchor: Extract<PublicationOperation, { kind: "anchor" }> | undefined;
   publication: string | undefined;
-  reopen: boolean;
+  transition:
+    | { kind: "retain" }
+    | { kind: "reopen" }
+    | { kind: "resolve"; proof: WeeklyResolutionProof };
   predecessors: { number: number; transfer: string | undefined }[];
 }
 function transferBody(successor: number, predecessor: number): string {
@@ -95,7 +103,16 @@ function admitBatch(
   }
   if (batch.publication !== undefined)
     operations.push({ kind: "comment", number, body: batch.publication });
-  if (batch.reopen) operations.push({ kind: "state", number, state: "OPEN" });
+  if (batch.transition.kind === "reopen")
+    operations.push({ kind: "state", number, state: "OPEN" });
+  if (batch.transition.kind === "resolve")
+    operations.push({
+      kind: "resolution",
+      number,
+      anchorId: Number.MAX_SAFE_INTEGER,
+      publicationId: Number.MAX_SAFE_INTEGER,
+      proof: batch.transition.proof,
+    });
   for (const previous of batch.predecessors) {
     if (previous.transfer !== undefined)
       operations.push({
@@ -419,10 +436,14 @@ async function recover(
         continue;
       }
     } else {
+      if (op.kind === "resolution") requireResolutionPublication(journal, op);
       const issue = await port.readIssue(op.number);
       if (
         issue.creatorId === identity.publisherId &&
-        issue.state === op.state
+        issue.number === op.number &&
+        (op.kind === "resolution"
+          ? issue.id === op.anchorId && issue.state === "CLOSED"
+          : issue.state === op.state)
       ) {
         admitReceipt(journal, pending.id, [issue.number], [], []);
         await receipt(journal, pending.id, [issue.number]);
@@ -433,6 +454,20 @@ async function recover(
       "Unknown weekly mutation remains fenced; negative enumeration does not authorize a repost.",
     );
   }
+}
+function requireResolutionPublication(
+  journal: PublicationJournal,
+  operation: Extract<PublicationOperation, { kind: "resolution" }>,
+): void {
+  if (
+    !knownComments(journal).some(
+      (comment) =>
+        comment.id === operation.publicationId &&
+        comment.issueNumber === operation.number &&
+        comment.body.endsWith(renderResolution(operation.proof)),
+    )
+  )
+    throw new Error("Resolution requires its exact immutable publication.");
 }
 async function context(
   port: WeeklyDiscussionPort,
@@ -485,6 +520,8 @@ async function dispatch(
   operation: PublicationOperation,
 ): Promise<WeeklyIssue | WeeklyComment> {
   journal.requireCapacity(publicationJournalBytes(operation));
+  if (operation.kind === "resolution")
+    requireResolutionPublication(journal, operation);
   const id = await intent(journal, operation);
   try {
     if (operation.kind === "comment") {
@@ -514,15 +551,19 @@ async function dispatch(
           })
         : await port.setState({
             number: operation.number,
-            state: operation.state,
+            state: operation.kind === "resolution" ? "CLOSED" : operation.state,
           });
     const readback = await port.readIssue(result.number);
     if (
       readback.creatorId !== identity.publisherId ||
       readback.id !== result.id ||
+      (operation.kind === "resolution" &&
+        (readback.number !== operation.number ||
+          readback.id !== operation.anchorId)) ||
       (operation.kind === "anchor"
         ? readback.body !== operation.body
-        : readback.state !== operation.state)
+        : readback.state !==
+          (operation.kind === "resolution" ? "CLOSED" : operation.state))
     )
       throw new Error("Weekly issue readback mismatch.");
     if (operation.kind === "anchor")
@@ -569,7 +610,10 @@ export async function reconcileWeeklyIssue(input: {
         repositoryParents:
           input.repository === undefined ? [] : basis.repositoryParents,
         summary: input.summary,
-        needsOwner: input.needsOwner,
+        needsOwner:
+          input.needsOwner ||
+          (basis.coverage === "monitoring-cohort" &&
+            input.summary.preludePending > 0),
         ...(input.repository === undefined
           ? {}
           : { repository: input.repository }),
@@ -598,21 +642,39 @@ export async function reconcileWeeklyIssue(input: {
       ].sort((a, b) => a.id.localeCompare(b.id));
       validateHistory(records, basis.date);
       const view = reduceWeekly(records, weekStart, found.unknown);
+      const resolution = planWeeklyResolution({
+        basis,
+        observation,
+        before: found.observations,
+        records,
+        view,
+      });
+      const transition: WeeklyBatch["transition"] =
+        current?.state === "CLOSED" && view.actionable
+          ? { kind: "reopen" }
+          : current?.state !== "CLOSED" && resolution !== undefined
+            ? { kind: "resolve", proof: resolution }
+            : { kind: "retain" };
       const publish =
+        transition.kind === "resolve" ||
         current === undefined ||
         !found.observations.some((r) => r.issueNumber === current?.number) ||
         JSON.stringify(before) !== JSON.stringify(view) ||
         found.issues.some(
           (i) => i.number !== current?.number && i.state === "OPEN",
         );
-      const body = renderPublication(
-        observation,
-        found.observations,
-        view,
-        found.issues
-          .filter((i) => i.number !== current?.number)
-          .map((i) => i.number),
-      );
+      const body =
+        renderPublication(
+          observation,
+          found.observations,
+          view,
+          found.issues
+            .filter((i) => i.number !== current?.number)
+            .map((i) => i.number),
+        ) +
+        (transition.kind === "resolve"
+          ? renderResolution(transition.proof)
+          : "");
       const batch: WeeklyBatch = {
         anchor:
           current === undefined
@@ -620,11 +682,11 @@ export async function reconcileWeeklyIssue(input: {
                 kind: "anchor",
                 week: weekStart,
                 title: `Weekly maintenance review ${weekStart}`,
-                body: `${weeklyIssueMarker(weekStart)}\nImmutable as-of reviews are appended below. Owner notes and comments stay here. Prior notes remain linked at their source. Closure records transfer, not resolution.\n\n## Owner notes\n\n`,
+                body: `${weeklyIssueMarker(weekStart)}\nImmutable as-of reviews are appended below. Owner notes and comments stay here. Prior notes remain linked at their source. A resolution review closes observed machine work. A transfer comment records predecessor retirement, not resolution.\n\n## Owner notes\n\n`,
               }
             : undefined,
         publication: publish ? body : undefined,
-        reopen: current?.state === "CLOSED" && view.actionable,
+        transition,
         predecessors: found.issues
           .filter(
             (issue) =>
@@ -725,13 +787,46 @@ export async function reconcileWeeklyIssue(input: {
         throw new Error(
           "Weekly facts changed during publication; fresh reconciliation required before transfer.",
         );
-      if (batch.reopen) {
+      if (batch.transition.kind === "reopen") {
         await dispatch(input.issue, journal, identity, {
           kind: "state",
           number,
           state: "OPEN",
         });
         outcome = "reopened";
+      }
+      if (batch.transition.kind === "resolve") {
+        if (publication === undefined)
+          throw new Error("Resolution requires a fresh immutable review.");
+        const latest = await discover(
+          input.issue,
+          journal,
+          identity,
+          basis.date,
+        );
+        const anchor = latest.issues.find((issue) => issue.number === number);
+        const proof = batch.transition.proof;
+        if (
+          anchor?.id !== current.id ||
+          latest.issues.some((issue) => !plannedAnchors.has(issue.number)) ||
+          JSON.stringify(latest.observations.map((record) => record.id)) !==
+            JSON.stringify(proof.observationIds) ||
+          JSON.stringify(latest.unknown) !== JSON.stringify(proof.unknown) ||
+          digest(
+            reduceWeekly(latest.observations, weekStart, latest.unknown),
+          ) !== proof.viewDigest
+        )
+          throw new Error(
+            "Weekly facts changed before resolution; anchor retained for fresh reconciliation.",
+          );
+        await dispatch(input.issue, journal, identity, {
+          kind: "resolution",
+          number,
+          anchorId: current.id,
+          publicationId: publication.id,
+          proof,
+        });
+        outcome = "closed";
       }
       const retired: number[] = [];
       for (const [index, previous] of batch.predecessors.entries()) {
@@ -750,7 +845,7 @@ export async function reconcileWeeklyIssue(input: {
           {
             anchor: undefined,
             publication: undefined,
-            reopen: false,
+            transition: { kind: "retain" },
             predecessors: batch.predecessors.slice(index),
           },
           journal,

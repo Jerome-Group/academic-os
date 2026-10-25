@@ -525,6 +525,80 @@ const scopedRun = {
   modelAttestation: "unverified" as const,
 };
 
+for (const scenario of [
+  {
+    name: "task pull failure",
+    input: {
+      prelude: {
+        tasks: () => {
+          throw new Error("task provider unavailable");
+        },
+      },
+    },
+  },
+  { name: "parked module work", input: { passes: { AB1234: parkedPass } } },
+  {
+    name: "module failure",
+    input: {
+      passes: {
+        AB1234: {
+          ...quietPass,
+          failures: [
+            { code: "session-failed", message: "session unavailable" },
+          ],
+        },
+      },
+    },
+  },
+] satisfies { name: string; input: Parameters<typeof syntheticMorning>[0] }[]) {
+  it(`keeps ${scenario.name} actionable when modules-only skips the shelf`, async () => {
+    const morning = syntheticMorning({
+      ...scenario.input,
+      prelude: {
+        ...scenario.input.prelude,
+        shelf: {
+          step: "textbook-shelf-catch-up",
+          outcome: "skipped",
+          parked: 0,
+          detail: ["Shared shelf writes excluded by modules-only scope."],
+        },
+      },
+    });
+    const report = await runMorningRoutine({
+      ...morning,
+      date,
+      modules: cohort,
+      run: scopedRun,
+    });
+    assert.equal(report.issue.actionable, true);
+    assert.equal(morning.issues.get(900)?.state, "OPEN");
+    assert.equal(morning.states.length, 0);
+  });
+}
+
+it("keeps a skipped full-cohort prelude actionable before weekly publication", async () => {
+  const morning = syntheticMorning({
+    prelude: {
+      shelf: {
+        step: "textbook-shelf-catch-up",
+        outcome: "skipped",
+        parked: 0,
+        detail: [],
+      },
+    },
+  });
+  const report = await runMorningRoutine({
+    ...morning,
+    date,
+    modules: cohort,
+    run: { ...scopedRun, scope: "monitoring-cohort" },
+    weeklyRepository: { merged: [], unresolved: 0, awaiting: 0 },
+  });
+  assert.equal(report.issue.actionable, true);
+  assert.equal(morning.issues.get(900)?.state, "OPEN");
+  assert.equal(morning.states.length, 0);
+});
+
 it("public run summaries allowlist settings and keep private metadata out", async () => {
   const secret = "/private/synthetic-sensitive-metadata";
   const morning = syntheticMorning({ passes: { AB1234: parkedPass } });

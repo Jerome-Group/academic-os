@@ -280,11 +280,12 @@ export const cliCapabilities: Capability[] = [
       [
         "mounted maintenance content",
         "private logs/journals",
-        "GitHub weekly anchors, immutable review comments and state-only retirement",
+        "GitHub weekly anchors, immutable reviews, verified resolution, reopening and state-only retirement",
         "protected repository pull requests and clean primary checkout rollout",
         "ordinary expired artifacts removed unless --retain-artifacts",
       ],
       [
+        "fully resolved configured cohort selection; empty active Module lists are supported",
         "Codex executable; gh; scheduled Google read credentials",
         "bundled rg on the session PATH; supported package metadata or flat installation",
         "canonical docs/agents/safe-drive-testing.md in the repository installation",

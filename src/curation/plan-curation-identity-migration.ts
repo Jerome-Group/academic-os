@@ -1,5 +1,6 @@
 import { sha256 } from "../checksum.js";
 import { validateCurationRegister } from "../conformance/validate-curation-register.js";
+import { incompleteCurationOutcome } from "./incomplete-curation-outcome.js";
 import {
   closedCurationKeys,
   readCurationRegisterEvents,
@@ -36,7 +37,9 @@ export function planCurationIdentityMigration(input: {
     for (const state of stateNames) counts[state] += module.counts[state];
   }
   return {
-    outcome: counts.migrating > 0 ? "legacy" : "contract-v4",
+    outcome:
+      incompleteCurationOutcome({ modules }) ??
+      (counts.migrating > 0 ? "legacy" : "contract-v4"),
     counts,
     modules,
   };

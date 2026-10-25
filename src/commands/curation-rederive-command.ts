@@ -125,10 +125,18 @@ function sourcesSeen(counts: CurationRederivationReport["counts"]): number {
 }
 
 function closingLine(report: CurationRederivationReport): string {
-  if (report.counts.rederiving === 0 && report.appended === 0) {
+  if (report.outcome === "settled" && report.appended === 0) {
     return "No standing batch records one source as a curated line per artifact.";
   }
-  return report.mode === "preview"
-    ? "Preview only. Re-run with --apply."
-    : `Appended ${quantity(report.appended, "rederived line")}.`;
+  const progress =
+    report.mode === "preview"
+      ? report.counts.rederiving > 0
+        ? "Preview only. Re-run with --apply."
+        : "Preview only."
+      : `Appended ${quantity(report.appended, "rederived line")}.`;
+  if (report.outcome === "blocked")
+    return `${progress} Completion is blocked; inspect unresolved modules and register blockers.`;
+  if (report.outcome === "unresolved")
+    return `${progress} Discrepancies remain for the curation walk to decide.`;
+  return progress;
 }

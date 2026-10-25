@@ -36,6 +36,16 @@ Require bypass and early release each to lose a confirmed curation decision afte
 The runner retains source patches, exact heads, manifests, fixture journals, and TLC traces in a fresh OS temporary directory.
 It uses synthetic Module and Research-project folders only.
 
+To diagnose Java temporary writes in the repository repair sandbox, set `JAVA` and `TLA2TOOLS_JAR`, then run:
+
+```sh
+node .agents/skills/seed-ownership/java-temp-probe.mjs
+```
+
+The probe uses the actual repository sandbox arguments and retains a fresh owned sibling fixture.
+It requires default and outside-temp extraction refusals, owned-temp TLC execution, and all 19 runner model outcomes.
+An RMI listener refusal records `blocked`, exits nonzero, and leaves model checking unproved even when extraction succeeds.
+
 ## Read the claim
 
 [The coverage record](coverage.md) maps actions to source and states the model bounds and environment assumptions.

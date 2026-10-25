@@ -184,9 +184,11 @@ await mkdir(join(workspace, "compile"), { recursive: true });
 execFileSync(
   "latexmk",
   [
+    "-norc",
     "-pdf",
     "-interaction=nonstopmode",
     "-halt-on-error",
+    "-no-shell-escape",
     `-auxdir=${join(workspace, "compile")}`,
     "Synthetic Midterm Aid.tex",
   ],

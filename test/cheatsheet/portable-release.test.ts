@@ -13,7 +13,7 @@ import { recordBehaviorEvidence } from "../support/rule-evidence.js";
 const run = promisify(execFile);
 let latexAvailable = true;
 try {
-  await run("latexmk", ["-version"]);
+  await run("latexmk", ["-norc", "-version"]);
   await run("pdftoppm", ["-v"]);
 } catch {
   latexAvailable = false;
@@ -172,7 +172,13 @@ it("rebuilds a self-contained release and matches its extracted text and renders
     await writeFile(join(root, "sheet.tex"), source);
     await run(
       "latexmk",
-      ["-pdf", "-interaction=nonstopmode", "-halt-on-error", "sheet.tex"],
+      [
+        "-norc",
+        "-pdf",
+        "-interaction=nonstopmode",
+        "-halt-on-error",
+        "sheet.tex",
+      ],
       { cwd: root },
     );
     const releasedPdf = await readFile(join(root, "sheet.pdf"));
@@ -221,7 +227,13 @@ it("preserves the released PDF reference when the release is named released.tex"
     await writeFile(join(root, "old.tex"), oldSource);
     await run(
       "latexmk",
-      ["-pdf", "-interaction=nonstopmode", "-halt-on-error", "old.tex"],
+      [
+        "-norc",
+        "-pdf",
+        "-interaction=nonstopmode",
+        "-halt-on-error",
+        "old.tex",
+      ],
       { cwd: root },
     );
     await assert.rejects(
@@ -250,7 +262,13 @@ it("rejects a body-size marker that overstates the rendered body font", {
     await writeFile(join(root, "sheet.tex"), undersized);
     await run(
       "latexmk",
-      ["-pdf", "-interaction=nonstopmode", "-halt-on-error", "sheet.tex"],
+      [
+        "-norc",
+        "-pdf",
+        "-interaction=nonstopmode",
+        "-halt-on-error",
+        "sheet.tex",
+      ],
       { cwd: root },
     );
     await assert.rejects(
@@ -279,7 +297,13 @@ it("ignores invisible text when enforcing the rendered body font floor", {
     await writeFile(join(root, "sheet.tex"), lyingSource);
     await run(
       "latexmk",
-      ["-pdf", "-interaction=nonstopmode", "-halt-on-error", "sheet.tex"],
+      [
+        "-norc",
+        "-pdf",
+        "-interaction=nonstopmode",
+        "-halt-on-error",
+        "sheet.tex",
+      ],
       { cwd: root },
     );
     await assert.rejects(
@@ -325,7 +349,13 @@ it("refuses labels hidden in an inactive TeX conditional", {
     await writeFile(join(root, "sheet.tex"), inactive);
     await run(
       "latexmk",
-      ["-pdf", "-interaction=nonstopmode", "-halt-on-error", "sheet.tex"],
+      [
+        "-norc",
+        "-pdf",
+        "-interaction=nonstopmode",
+        "-halt-on-error",
+        "sheet.tex",
+      ],
       { cwd: root },
     );
     await assert.rejects(

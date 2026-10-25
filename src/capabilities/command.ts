@@ -140,13 +140,16 @@ export async function runCapabilitiesCommand(
           action: executable,
           executable:
             executable === "java" ? (process.env.JAVA ?? "java") : executable,
-          arguments: [
-            executable === "java"
-              ? "-version"
-              : executable.startsWith("pdf")
-                ? "-v"
-                : "--version",
-          ],
+          arguments:
+            executable === "latexmk"
+              ? ["-norc", "--version"]
+              : [
+                  executable === "java"
+                    ? "-version"
+                    : executable.startsWith("pdf")
+                      ? "-v"
+                      : "--version",
+                ],
           timeoutMs: 3000,
         }),
       ),

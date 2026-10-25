@@ -10103,7 +10103,7 @@ async function createCheatsheetReviewPackage(input) {
 This exact package passed isolated compilation and release comparison. Recompile its single dependency-free top-level release source from this directory:
 
 \`\`\`sh
-latexmk -pdf -interaction=nonstopmode -halt-on-error ./*.tex
+latexmk -norc -pdf -interaction=nonstopmode -halt-on-error -no-shell-escape ./*.tex
 \`\`\`
 
 Exact cited source bytes and module-relative locators are packaged under \`evidence/sources/\` with \`evidence/source-provenance.json\`. Coverage completeness and mathematical correctness require semantic review. Review state is recorded in \`evidence/manifest.yaml\`; package verification is in \`${verificationPath}\`. A passed review names this package's exact PDF digest.

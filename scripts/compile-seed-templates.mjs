@@ -1,7 +1,4 @@
 #!/usr/bin/env node
-// Compiles each seed-source LaTeX template in the form its target folder receives it. Needs
-// `latexmk` on PATH, so it stays out of `npm run check` — CI has no TeX. A failed compilation
-// keeps its workspace so the log can be read.
 import { execFileSync } from "node:child_process";
 import {
   cp,
@@ -60,16 +57,26 @@ for (const group of templateGroups) {
   let groupFailed = false;
   for (const document of documents) {
     try {
-      execFileSync("latexmk", ["-pdf", "-outdir=build", document], {
-        cwd: workspace,
-        stdio: "pipe",
-      });
+      execFileSync(
+        "latexmk",
+        [
+          "-norc",
+          "-pdf",
+          "-interaction=nonstopmode",
+          "-halt-on-error",
+          "-no-shell-escape",
+          "-outdir=build",
+          document,
+        ],
+        { cwd: workspace, stdio: "pipe" },
+      );
       console.log(`ok    ${group.label}/${document}`);
     } catch (error) {
       groupFailed = true;
       failures.push(`${group.label}/${document}`);
+      const diagnostics = `${error.stdout ?? ""}${error.stderr ?? ""}`;
       console.log(
-        `FAIL  ${group.label}/${document}\n${error.stdout ?? error.message}`,
+        `FAIL  ${group.label}/${document}\n${diagnostics || error.message}`,
       );
     }
   }

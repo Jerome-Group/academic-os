@@ -65,9 +65,9 @@ MODULE_CODE/
 | `20 Tutorials/` | Curated tutorial sheets as the module issued them. Working through one happens in the Teaching workspace. |
 | `30 Assessments/` | Graded-work artifacts, one flat directory per assessment category. |
 | `40 Projects and Labs/` | The project and lab workspaces this module has. |
-| `70 Learning/` | The Teaching workspace: one directory per activity area, each holding its `records/` beside one folder per unit, tutorial, topic or paper — `docs/20 Teaching Procedure.md` § The four activity areas says which of the four an area takes. |
+| `70 Learning/` | The Teaching workspace: one directory per activity area, each holding its `records/` beside one folder per unit, tutorial, topic or paper. `docs/20 Teaching Procedure.md` § Activity targets names each area's target. |
 | `90 Resources/` | Reference material that is not teaching material; `00 Unclassified/` holds what has no declared category. |
-| `.scratch/` | Working files nothing else reads. Nothing durable lives here, and a LaTeX `build/` never does. |
+| `.scratch/` | Disposable working files, including build output and runtime dependencies. Nothing durable lives here. |
 | `NTULearn/` | The importer's mirror — read-only, and the source curation copies out of. |
 | `docs/` | The five pinned procedure docs and this module's own ADRs. |
 

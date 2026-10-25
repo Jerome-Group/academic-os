@@ -69,7 +69,7 @@ has explicitly selected and adopted the material. Promotion requires:
 
 1. the Owner selects a concept, argument or synthesis worth retaining;
 2. the relevant session records and every applicable Source locator are complete;
-3. the Owner reconstructs, rewrites or explicitly adopts the mathematics;
+3. the Owner reconstructs or rewrites the mathematics, checks applicable sources and explicitly adopts it;
 4. assistance is recorded when material;
 5. a promotion record from `60 Templates/promotion-record.md` names the meeting inputs and target.
 

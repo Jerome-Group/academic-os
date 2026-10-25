@@ -14,6 +14,7 @@ import type {
   WeeklyScopeSummary,
 } from "../../src/routine/types.js";
 import { weeklyFixture } from "../fixtures/weekly-discussion.js";
+import { parsePublication } from "../../src/routine/weekly-review-state.js";
 
 const summary: WeeklyScopeSummary = {
   targets: 1,
@@ -181,6 +182,19 @@ it("resolution requires a fresh complete cohort and explicit repository evidence
   });
   assert.equal(f.states.length, 1);
   assert.equal(anchor.state, "OPEN");
+});
+
+it("incomplete full-cohort prelude stays actionable despite a false caller attention flag", async () => {
+  const f = weeklyFixture();
+  const result = await publish(f, {
+    repository: resolvedRepository,
+    summary: { ...summary, preludePending: 1 },
+    needsOwner: false,
+  });
+  assert.equal(result.actionable, true);
+  assert.equal(f.issues.get(900)?.state, "OPEN");
+  assert.equal(f.states.length, 0);
+  assert.equal(parsePublication(last(f))?.needsOwner, true);
 });
 
 it("resolution forces an immutable review before closing an already quiet open anchor", async () => {

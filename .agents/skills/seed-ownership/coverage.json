@@ -1,8 +1,8 @@
 {
-  "syncRevision": "4bde27955b2fb250adf7d9bac778f0068ea71567",
-  "lastInspectedRevision": "4bde27955b2fb250adf7d9bac778f0068ea71567",
+  "syncRevision": "4b87383783d8250830b22483db275efa9dc7254b",
+  "lastInspectedRevision": "4b87383783d8250830b22483db275efa9dc7254b",
   "outcome": "updated",
-  "reason": "Extend verification to canonical curation register ownership and its actual append order; seed and repair transitions, properties and existing bounds are unchanged.",
+  "reason": "Extend bounded coverage to canonical curation register ownership and its actual append order. The later completion classifier changes only reporting outside these ownership actions. Properties and bounds are unchanged; native TLC execution uses an exactly pinned offline artifact and owned Java temporary storage.",
   "files": [
     "src/mounted/seed-mounted-module.ts",
     "src/mounted/seed-mounted-research-project.ts",
@@ -43,8 +43,8 @@
     "src/commands/repair-command.ts": "4fc86c7839ef392a4b5c098665dac275ef9cf73b74f317cb7c5233b5ef133e10",
     "src/mounted/is-contained-by.ts": "a5816fbb55aa4957f2a25655c1603d0d5768b469d537cc5334551564e5863761",
     "src/curation/append-proved-register-lines.ts": "c4d4651d710584277112c47567b2047deea64f0016d486ae5d7f7e4f37d7d66f",
-    "src/curation/execute-curation-identity-migration.ts": "7650e5cc658bf1f31ece98ee9eeb7aeefb23fa30d2b4392f4029cca87d1e40aa",
-    "src/curation/execute-curation-rederivation.ts": "87e6f3f28ba9d8cff0f6c6d8c704054abc87202cb38a6d4d662bf9125555b352",
+    "src/curation/execute-curation-identity-migration.ts": "eb37006a67bdf42ad074efe3ff693c46a889a9abe39763cc4abedc48a4249c32",
+    "src/curation/execute-curation-rederivation.ts": "f6d1fce07fefcb5ceef839eb7163fc3984a364b9dcefc918cca1f3e668fbcdee",
     "src/curation/curation-register-journal.ts": "01c68e9cfb2f46163731d10e8bd0997b83c4f3cfe96fca837db64bdfe34b0da3",
     "src/curation/hash-source.ts": "f5e950223ba147e46847e4dfb55a812b248a031c7c815136e36259a617342a0c",
     "src/mounted/replace-mounted-file.ts": "3f0fdd2741ab12f7bb806a6d38a9807c582e151fb1bf1d81d4eb425c0257d718",

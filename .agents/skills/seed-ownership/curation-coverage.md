@@ -95,3 +95,12 @@ Curation fixtures use `owner-curation-*` evidence directories so the existing CI
 An exception, source hash mismatch or compilation error does not satisfy this control.
 After restoring the helper and rebuilding, all nine CLI schedules must pass for each mutation.
 The fresh ordinary run follows only after candidate gates pass, the exact source hashes are recorded and verification is committed.
+
+## Reporting maintenance
+
+The completion-report change in `4b87383783d8250830b22483db275efa9dc7254b` is **No effect** on these ownership actions.
+Both executors add a pure classifier only while constructing their preview or final report.
+Removing that import and the two outcome expressions restores each prior executor byte for byte.
+No await, pending selection, owner callback, append argument, journal result or replacement step changes.
+The complete candidate gate passed against the exact covered bytes before the source hashes advanced.
+Completion prose, discrepancy classification and planner correctness remain outside this model.

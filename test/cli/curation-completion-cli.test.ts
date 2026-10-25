@@ -93,7 +93,9 @@ async function fixture(command: Command) {
     await write(
       moduleRoot,
       `10 Learning Materials/${name}-copy.pdf`,
-      sourceBytes,
+      command === "rederive" && discrepancy === "unprovable"
+        ? "The whole copy was worked on.\n"
+        : sourceBytes,
     );
     await write(
       moduleRoot,
@@ -103,7 +105,9 @@ async function fixture(command: Command) {
     return lines(
       command,
       name,
-      discrepancy === "unprovable" ? "unknown" : undefined,
+      command === "migrate" && discrepancy === "unprovable"
+        ? "unknown"
+        : undefined,
     );
   }
   return { root, moduleRoot, stateRoot, configPath, item };

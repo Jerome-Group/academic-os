@@ -1,8 +1,8 @@
 {
-  "syncRevision": "d726ae44dc433f932f0f561d74f55d8d073af011",
-  "lastInspectedRevision": "d726ae44dc433f932f0f561d74f55d8d073af011",
+  "syncRevision": "4bde27955b2fb250adf7d9bac778f0068ea71567",
+  "lastInspectedRevision": "4bde27955b2fb250adf7d9bac778f0068ea71567",
   "outcome": "updated",
-  "reason": "Bound the moved repair containment helper and current preflight wiring; owner transitions, properties and bounds are unchanged.",
+  "reason": "Extend verification to canonical curation register ownership and its actual append order; seed and repair transitions, properties and existing bounds are unchanged.",
   "files": [
     "src/mounted/seed-mounted-module.ts",
     "src/mounted/seed-mounted-research-project.ts",
@@ -16,7 +16,17 @@
     "src/repair/repair-journal.ts",
     "src/repair/index.ts",
     "src/commands/repair-command.ts",
-    "src/mounted/is-contained-by.ts"
+    "src/mounted/is-contained-by.ts",
+    "src/curation/append-proved-register-lines.ts",
+    "src/curation/execute-curation-identity-migration.ts",
+    "src/curation/execute-curation-rederivation.ts",
+    "src/curation/curation-register-journal.ts",
+    "src/curation/hash-source.ts",
+    "src/mounted/replace-mounted-file.ts",
+    "src/mounted/run-journal.ts",
+    "test/cli/curation-register-ownership-cli.test.ts",
+    "test/support/curation-ownership-preload.mjs",
+    "test/support/journal-process.ts"
   ],
   "sourceHashes": {
     "src/mounted/seed-mounted-module.ts": "2fb149978e279f34f8e781206af161792c5d02e7933e714c2a2ebeb713b1b6c3",
@@ -31,6 +41,21 @@
     "src/repair/repair-journal.ts": "f3952080ee6e52ea3f7dc21d9b02915fb49ead456048d50a554b06b8efd7ee90",
     "src/repair/index.ts": "1a2bbe5b0697f9524d3221a914f977e0d06aebd0c641af1fe3c157521a3265aa",
     "src/commands/repair-command.ts": "4fc86c7839ef392a4b5c098665dac275ef9cf73b74f317cb7c5233b5ef133e10",
-    "src/mounted/is-contained-by.ts": "a5816fbb55aa4957f2a25655c1603d0d5768b469d537cc5334551564e5863761"
+    "src/mounted/is-contained-by.ts": "a5816fbb55aa4957f2a25655c1603d0d5768b469d537cc5334551564e5863761",
+    "src/curation/append-proved-register-lines.ts": "c4d4651d710584277112c47567b2047deea64f0016d486ae5d7f7e4f37d7d66f",
+    "src/curation/execute-curation-identity-migration.ts": "7650e5cc658bf1f31ece98ee9eeb7aeefb23fa30d2b4392f4029cca87d1e40aa",
+    "src/curation/execute-curation-rederivation.ts": "87e6f3f28ba9d8cff0f6c6d8c704054abc87202cb38a6d4d662bf9125555b352",
+    "src/curation/curation-register-journal.ts": "01c68e9cfb2f46163731d10e8bd0997b83c4f3cfe96fca837db64bdfe34b0da3",
+    "src/curation/hash-source.ts": "f5e950223ba147e46847e4dfb55a812b248a031c7c815136e36259a617342a0c",
+    "src/mounted/replace-mounted-file.ts": "3f0fdd2741ab12f7bb806a6d38a9807c582e151fb1bf1d81d4eb425c0257d718",
+    "src/mounted/run-journal.ts": "d11252219311b22d8c65ed69493335f3e330efe74c73b46268c6c6f3fd21765f",
+    "test/cli/curation-register-ownership-cli.test.ts": "cf8a88a8c6f9c278ed130068f33762d304d2bffaf77363045b413e1797f012c2",
+    "test/support/curation-ownership-preload.mjs": "35db12d4e3cf6b7cf40807ee4b2555d0aa244ee97e958d94f6a0edf2f8108498",
+    "test/support/journal-process.ts": "a585f8eed7c534ae17b20144019d2caedd46faaea197b3c9cb7f4c9f1fa0ac76"
+  },
+  "checks": {
+    "seedFilesystem": "in sync",
+    "journalMutationOwner": "in sync",
+    "curationRegister": "updated"
   }
 }

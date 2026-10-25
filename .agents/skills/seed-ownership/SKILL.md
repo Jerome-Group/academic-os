@@ -1,12 +1,13 @@
 ---
 name: seed-ownership
-description: Check mounted seed ownership after changes to staging claims, publication ancestors, cleanup, interruption recovery, or seed journal events.
+description: Check seed, repair journal, and curation register ownership after changes to their mutation callbacks, identity keys, persistence, cleanup, or interruption recovery.
 ---
 
 # Check seed ownership
 
 A seed writes through proved directory identities and deletes only unchanged artifacts its journal proves it created.
 Otherwise a retry can write outside its approved folder or delete unrelated academic bytes.
+Curation commands retain every confirmed register append while cooperating writers share one canonical owner.
 
 The checked product revision and maintenance outcome are in `coverage.json`.
 
@@ -26,8 +27,11 @@ npm run seed-ownership:check
 
 Read the printed `results.json` and each failed child log.
 Require outcome `passed`, four positive models, seven broken-model counterexamples, and both residual counterexamples.
+Also require both positive curation configurations and all four curation counterexamples.
 Require four protocol prerequisites, 34 filesystem schedules, 33 journal protocol tests, and the repair provider probe.
+Require nine curation CLI schedules, including actual register and journal readback and zero surviving child PIDs.
 Require both cleanup mutation failures and restored passes, six owner mutation CLI failures and restored passes, and both repair mutation failures and restored passes.
+Require bypass and early release each to lose a confirmed curation decision after both CLIs report success, then require both restored nine-schedule passes.
 `model-only` is a partial result. A successful process exit alone does not complete this skill.
 The runner retains source patches, exact heads, manifests, fixture journals, and TLC traces in a fresh OS temporary directory.
 It uses synthetic Module and Research-project folders only.
@@ -36,6 +40,7 @@ It uses synthetic Module and Research-project folders only.
 
 [The coverage record](coverage.md) maps actions to source and states the model bounds and environment assumptions.
 [The machine record](coverage.json) names the last checked source revision and binds every covered file to its SHA-256.
+[Curation coverage](curation-coverage.md) maps its distinct append order, identity key, bounds, and exclusions.
 The ordinary run compares exact source bytes, so a squash merge does not require the original product commit object.
 TLC checks a bounded model. The compiled schedules and real-code mutation connect that model to the TypeScript implementation.
 Their combined result is model safety plus implementation evidence.
@@ -56,6 +61,7 @@ Its kernel exclusion and process-death release are premises connected to compile
 5. Run the command. For each failure, replay the trace against the source and classify it as model drift, product bug, or blocked execution.
 6. Require the real cleanup mutation to lose the protected sentinel in both adapters. Require the exact `protected artifact manifest changed` assertion, then the restored passes. Source-text or digest failures do not demonstrate sensitivity.
 7. Require owner bypass and early release to admit real competing CLI calls. Inspect each retained `loser.json` and its trace. Require both repair mutants to repeat the fake provider operation, then require every restored check to pass.
+   For curation, inspect both child reports, final register bytes, both intent/result journals, and the two final-prefix digests. Require a lost confirmed migration under each mutant, followed by restored passes.
 8. Record `in sync`, `updated`, `bug`, or `blocked` for each check. Advance the sync revision only after the checked source and results agree. Keep verification upkeep in a separate commit from product repairs.
 
 For a separate checkout, `--product-root` selects the exact committed product source while keeping these verification files.

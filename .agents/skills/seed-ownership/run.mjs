@@ -251,6 +251,24 @@ try {
       "JournalMutationOwnership.tla",
       invariant,
     );
+  const curationInvariants = [
+    "CurationAppendPreserved",
+    "CurationNoStaleReplacement",
+  ];
+  for (const binding of ["same", "independent"])
+    await model(
+      `curation-${binding}`,
+      `SPECIFICATION Spec\nCHECK_DEADLOCK FALSE\nCONSTANTS Binding = "${binding}" Broken = "none"\n${curationInvariants.map((name) => `INVARIANT ${name}\n`).join("")}`,
+      "CurationRegisterOwnership.tla",
+    );
+  for (const broken of ["bypass", "early-release"])
+    for (const invariant of curationInvariants)
+      await model(
+        `broken-curation-${broken}-${invariant}`,
+        `SPECIFICATION Spec\nCHECK_DEADLOCK FALSE\nCONSTANTS Binding = "same" Broken = "${broken}"\nINVARIANT ${invariant}\n`,
+        "CurationRegisterOwnership.tla",
+        invariant,
+      );
   if (modelOnly) results.outcome = "model-only";
   else {
     assert.equal(
@@ -296,6 +314,7 @@ try {
       "journal-ownership",
     );
     results.repairOwnership = await repairOwnership(root, "repair-ownership");
+    results.curationOwnership = await curationProbe(root, "curation-ownership");
     results.product = await schedules(root, "baseline");
     await save();
     assert.equal(
@@ -455,7 +474,12 @@ try {
       );
       const cases = await ownershipMutation(scratch, mutation);
       const repair = await repairOwnership(scratch, `repair-${mutation}`, true);
-      results.ownerMutations.push({ mutation, cases, repair });
+      const curation = await curationProbe(
+        scratch,
+        `curation-${mutation}`,
+        true,
+      );
+      results.ownerMutations.push({ mutation, cases, repair, curation });
       await save();
       await writeFile(ownerTarget, originalOwner);
       await command(
@@ -477,10 +501,15 @@ try {
         scratch,
         `repair-${mutation}-restored`,
       );
+      const restoredCuration = await curationProbe(
+        scratch,
+        `curation-${mutation}-restored`,
+      );
       results.ownerRestored.push({
         mutation,
         cases: restored,
         repair: restoredRepair,
+        curation: restoredCuration,
       });
       await save();
     }
@@ -718,6 +747,34 @@ async function repairOwnership(productRoot, name, broken = false) {
     createAdminCalls: result.calls.filter((call) => call === "create-admin")
       .length,
     fixture: destination,
+    log: join(evidence, `${name}.log`),
+    durationMs: run.durationMs,
+  };
+}
+
+async function curationProbe(productRoot, name, broken = false) {
+  const destination = join(evidence, `owner-${name}`);
+  const run = await command(
+    process.execPath,
+    [
+      join(verification, "curation-owner-probe.mjs"),
+      productRoot,
+      destination,
+      ...(broken ? ["broken"] : []),
+    ],
+    productRoot,
+    name,
+    evidence,
+  );
+  const result = JSON.parse(
+    await readFile(join(destination, "results.json"), "utf8"),
+  );
+  assert.equal(
+    result.outcome,
+    broken ? "expected-assertion-failure" : "passed",
+  );
+  return {
+    ...result,
     log: join(evidence, `${name}.log`),
     durationMs: run.durationMs,
   };

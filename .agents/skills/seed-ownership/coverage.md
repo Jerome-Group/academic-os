@@ -153,9 +153,16 @@ Existing ambiguous histories still refuse. No history is renumbered.
 The expanded covered-source list includes the shared helper and the seed and repair entry, storage, export, and CLI wiring boundaries.
 Configuration loading, approved-plan validation, configured-root resolution, and repair mount/snapshot metadata preflight precede those entry boundaries.
 Those observations are outside the owner model. Continuation reads, provider requests, mounted mutations, and repair effects remain inside it.
-Search found no additional caller of the helper and no remaining unrestricted production repair append API.
+The earlier search found no additional caller of the helper and no remaining unrestricted production repair append API.
+The current search through `4bde27955b2fb250adf7d9bac778f0068ea71567` finds Calendar receipts, Shelf mutations, weekly publication, and curation register appends in addition to seed and repair.
+Calendar `appendOnce` owns duplicate observation through file and directory sync.
+Shelf `run` owns journal reconciliation, fresh planning, native publication and settlement.
+Weekly `withPublicationJournal` owns journal opening, callback work, sync and close, with bounded busy retries outside ownership.
+These three caller protocols are explicitly excluded from the formal models and compiled controls here.
+Their use of the shared helper does not make their semantics formally verified.
+Curation has a separate [coverage record and state machine](curation-coverage.md).
 The cheatsheet-only `createSeedOperation` remains outside mounted seed authority.
-Calendar promotion, pinned updates, routines, unrelated journals, provider implementations, and full repair recovery correctness remain outside this claim.
+Calendar promotion, Shelf publication, pinned updates, routines, unrelated journals, provider implementations, and full repair recovery correctness remain outside this claim.
 
 ## Failure controls
 

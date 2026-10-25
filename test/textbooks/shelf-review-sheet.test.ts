@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { Document } from "yaml";
 
 import {
   readShelfReviewSheet,
@@ -26,9 +27,10 @@ const sweep: ShelfSweep = {
 
 describe("the shelf review sheet", () => {
   it("carries the derived key of a book that needs no settling, and a blank rename", () => {
-    const review = readShelfReviewSheet(
-      renderShelfReviewSheet({ sweep, shelf: "/shelf" }),
-    );
+    const review = readShelfReviewSheet({
+      contents: renderShelfReviewSheet({ sweep, shelf: "/shelf" }),
+      shelfRoot: "/shelf",
+    });
 
     assert.deepEqual(review.books[0], {
       file: "Linear Algebra Done Right 4e Axler.pdf",
@@ -40,10 +42,13 @@ describe("the shelf review sheet", () => {
   it("leaves a settleable book with neither rename nor key, and asks in a comment", () => {
     const sheet = renderShelfReviewSheet({ sweep, shelf: "/shelf" });
 
-    assert.deepEqual(readShelfReviewSheet(sheet).books[1], {
-      file: "Isaacs - Algebra.pdf",
-      sha256: "c".repeat(64),
-    });
+    assert.deepEqual(
+      readShelfReviewSheet({ contents: sheet, shelfRoot: "/shelf" }).books[1],
+      {
+        file: "Isaacs - Algebra.pdf",
+        sha256: "c".repeat(64),
+      },
+    );
     assert.match(sheet, /# SETTLE — set `rename` to a conforming filename/u);
     assert.match(
       sheet,
@@ -69,14 +74,17 @@ describe("the shelf review sheet", () => {
   });
 
   it("reads back what the Owner settled", () => {
-    const review = readShelfReviewSheet(`schemaVersion: 1
+    const review = readShelfReviewSheet({
+      contents: `schemaVersion: 1
 shelf: /shelf
 books:
   - file: Isaacs - Algebra.pdf
     sha256: ${"c".repeat(64)}
     rename: Algebra A Graduate Course Isaacs.pdf
     key: Isaacs_Algebra
-`);
+`,
+      shelfRoot: "/shelf",
+    });
 
     assert.deepEqual(review.books, [
       {
@@ -91,12 +99,16 @@ books:
   it("refuses a sheet carrying a field it does not know", () => {
     assert.throws(
       () =>
-        readShelfReviewSheet(`schemaVersion: 1
+        readShelfReviewSheet({
+          contents: `schemaVersion: 1
+shelf: /shelf
 books:
   - file: Analysis I 4e Tao.pdf
     sha256: ${"h".repeat(64)}
     keyy: Tao
-`),
+`,
+          shelfRoot: "/shelf",
+        }),
       /not a readable shelf review sheet/u,
     );
   });
@@ -104,20 +116,68 @@ books:
   it("refuses a sheet whose pinned checksum is not a checksum", () => {
     assert.throws(
       () =>
-        readShelfReviewSheet(`schemaVersion: 1
+        readShelfReviewSheet({
+          contents: `schemaVersion: 1
+shelf: /shelf
 books:
   - file: Analysis I 4e Tao.pdf
     sha256: unknown
     key: Tao
-`),
+`,
+          shelfRoot: "/shelf",
+        }),
       /not a readable shelf review sheet/u,
     );
   });
 
   it("refuses a sheet of another schema version", () => {
     assert.throws(
-      () => readShelfReviewSheet("schemaVersion: 2\nbooks: []\n"),
+      () =>
+        readShelfReviewSheet({
+          contents: "schemaVersion: 2\nbooks: []\n",
+          shelfRoot: "/shelf",
+        }),
       /not a readable shelf review sheet/u,
+    );
+  });
+
+  for (const shelf of [
+    undefined,
+    null,
+    "",
+    " /shelf",
+    "/shelf ",
+    "shelf",
+    23,
+    [],
+    {},
+  ]) {
+    it(`refuses an invalid Shelf identity ${JSON.stringify(shelf)}`, () => {
+      const sheet = new Document({
+        schemaVersion: 1,
+        books: [],
+        ...(shelf === undefined ? {} : { shelf }),
+      });
+
+      assert.throws(
+        () =>
+          readShelfReviewSheet({
+            contents: sheet.toString(),
+            shelfRoot: "/shelf",
+          }),
+        /not a readable shelf review sheet/u,
+      );
+    });
+  }
+
+  it("refuses a changed target instead of rebinding the review", () => {
+    assert.throws(
+      () =>
+        readShelfReviewSheet({
+          contents: renderShelfReviewSheet({ sweep, shelf: "/original-shelf" }),
+          shelfRoot: "/shelf",
+        }),
+      /review sheet belongs to another Textbook Shelf/u,
     );
   });
 });

@@ -62,6 +62,121 @@ function last(f: ReturnType<typeof weeklyFixture>): string {
   return f.appended.at(-1)?.body ?? "";
 }
 
+const resolvedRepository: WeeklyRepositorySummary = {
+  merged: [],
+  unresolved: 0,
+  awaiting: 0,
+};
+
+it("resolution closes a complete quiet anchor, preserves Owner bytes and reopens for later work", async () => {
+  const f = weeklyFixture();
+  const result = await publish(f, { repository: resolvedRepository });
+  assert.equal(result.outcome, "closed");
+  assert.equal(f.issues.get(900)?.state, "CLOSED");
+  assert.match(
+    last(f),
+    /Resolution applies only to the machine evidence observed/u,
+  );
+  const issue = f.issues.get(900);
+  assert.ok(issue);
+  issue.body += "\nOWNER  whitespace\t\n";
+  const bytes = issue.body;
+  assert.equal(
+    (await publish(f, { repository: resolvedRepository })).outcome,
+    "not-needed",
+  );
+  assert.equal(f.appended.length, 1);
+  assert.equal(f.states.length, 1);
+  assert.equal(
+    (await publish(f, { repository: resolvedRepository, needsOwner: true }))
+      .outcome,
+    "reopened",
+  );
+  assert.equal(issue.state, "OPEN");
+  assert.equal(issue.body, bytes);
+  const journal = (
+    await readFile(
+      join(f.stateRoot, "weekly-publication/publication.jsonl"),
+      "utf8",
+    )
+  )
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
+  const close = journal.find(
+    (entry) => entry.kind === "intent" && entry.operation.kind === "resolution",
+  );
+  assert.ok(close);
+  assert.equal(close.operation.anchorId, issue.id);
+  assert.equal(close.operation.publicationId, result.publicationId);
+  assert.ok(
+    journal.some((entry) => entry.kind === "receipt" && entry.id === close.id),
+  );
+});
+
+it("resolution requires a fresh complete cohort and explicit repository evidence", async () => {
+  for (const changes of [
+    {},
+    { repository: { ...resolvedRepository, unresolved: 1 } },
+    { repository: { ...resolvedRepository, pendingIssueNumbers: [17] } },
+    {
+      repository: resolvedRepository,
+      summary: { ...summary, preludePending: 1 },
+    },
+    {
+      repository: resolvedRepository,
+      summary: { ...summary, awaitingMaintenance: 1 },
+    },
+  ]) {
+    const f = weeklyFixture();
+    await publish(f, changes);
+    assert.equal(f.issues.get(900)?.state, "OPEN");
+    assert.equal(f.states.length, 0);
+  }
+  const f = weeklyFixture();
+  const observation = await beginWeeklyObservation({
+    ...scope,
+    scope: "modules-only",
+    issue: f.issue,
+    stateRoot: f.stateRoot,
+  });
+  await reconcileWeeklyIssue({
+    issue: f.issue,
+    stateRoot: f.stateRoot,
+    observation,
+    summary,
+    needsOwner: false,
+  });
+  assert.equal(f.issues.get(900)?.state, "OPEN");
+  const stale = await beginWeeklyObservation({
+    ...scope,
+    issue: f.issue,
+    stateRoot: f.stateRoot,
+  });
+  await publish(f, { repository: resolvedRepository });
+  await reconcileWeeklyIssue({
+    issue: f.issue,
+    stateRoot: f.stateRoot,
+    observation: stale,
+    summary,
+    needsOwner: false,
+    repository: resolvedRepository,
+  });
+  assert.equal(f.states.length, 1);
+});
+
+it("resolution forces an immutable review before closing an already quiet open anchor", async () => {
+  const f = weeklyFixture();
+  await publish(f, { repository: resolvedRepository });
+  const issue = f.issues.get(900);
+  assert.ok(issue);
+  issue.state = "OPEN";
+  const closed = await publish(f, { repository: resolvedRepository });
+  assert.equal(closed.outcome, "closed");
+  assert.equal(f.appended.length, 2);
+  assert.equal(issue.state, "CLOSED");
+});
+
 it("keeps Monday offering identity and exact private scope hashing", () => {
   assert.equal(offeringWeekStart("2026-10-25"), "2026-10-19");
   assert.equal(

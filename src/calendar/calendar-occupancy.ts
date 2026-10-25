@@ -302,7 +302,7 @@ async function assessExternal(
           severity:
             occupant.role === "Routine" ||
             role === "Routine" ||
-            (role !== undefined && event.transparency === "transparent")
+            event.transparency === "transparent"
               ? "warning"
               : "block",
           source: role === undefined ? "Observed" : "Owned",

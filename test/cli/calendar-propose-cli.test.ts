@@ -357,7 +357,7 @@ describe("academic-os calendar propose", () => {
         {
           id: "observed-commitment",
           summary: "Shared commitment",
-          transparency: "transparent",
+          transparency: "opaque",
           start: { dateTime: "2026-08-20T11:15:00+08:00" },
           end: { dateTime: "2026-08-20T11:45:00+08:00" },
         },

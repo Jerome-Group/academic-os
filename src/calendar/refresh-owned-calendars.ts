@@ -1,5 +1,9 @@
 import { OperationalError } from "../operational-error.js";
 import { CalendarSyncTokenExpiredError } from "./calendar-refresh-error.js";
+import {
+  CALENDAR_REFRESH_QUERY,
+  hasCalendarRefreshBinding,
+} from "./calendar-refresh-query.js";
 import type {
   CalendarEvent,
   CalendarProposalStore,
@@ -33,25 +37,34 @@ export async function refreshOwnedCalendars(input: {
   const mirrors: OwnedCalendarMirror[] = [];
   const deletedItems: Array<{
     calendarRole: OwnedCalendarRole;
+    calendarId: string;
     eventId: string;
   }> = [];
   for (const role of OWNED_CALENDAR_ROLES) {
     const previous = await input.mirrorStore.read(role);
+    const calendarId = workspace.ownedCalendarIds[role];
+    const sameBinding = hasCalendarRefreshBinding(previous, {
+      calendarId,
+      managementHorizon: input.managementHorizon,
+    });
     try {
       const changes = await readChanges({
         reader: input.reader,
-        calendarId: workspace.ownedCalendarIds[role],
+        calendarId,
         managementHorizon: input.managementHorizon,
-        syncToken: previous?.syncToken,
+        syncToken: sameBinding ? previous?.syncToken : undefined,
       });
       const refreshed = createFreshMirror({
         role,
-        calendarId: workspace.ownedCalendarIds[role],
+        calendarId,
         managementHorizon: input.managementHorizon,
         refreshedAt: input.refreshedAt,
-        previous,
+        previous: previous?.calendarId === calendarId ? previous : undefined,
+        inferMissingDeletions: sameBinding,
         incremental:
-          previous?.syncToken !== undefined && !changes.performedFullRefresh,
+          sameBinding &&
+          previous?.syncToken !== undefined &&
+          !changes.performedFullRefresh,
         events: validateEvents(changes.events),
         nextSyncToken: changes.nextSyncToken,
       });
@@ -60,6 +73,7 @@ export async function refreshOwnedCalendars(input: {
       deletedItems.push(
         ...refreshed.deletedEventIds.map((eventId) => ({
           calendarRole: role,
+          calendarId,
           eventId,
         })),
       );
@@ -142,10 +156,14 @@ function createFreshMirror(input: {
   refreshedAt: string;
   previous?: OwnedCalendarMirror | undefined;
   incremental: boolean;
+  inferMissingDeletions: boolean;
   events: CalendarEvent[];
   nextSyncToken: string;
 }): { mirror: OwnedCalendarMirror; deletedEventIds: string[] } {
   const previousItems = input.incremental ? (input.previous?.items ?? []) : [];
+  const lastKnownById = new Map(
+    (input.previous?.items ?? []).map((item) => [item.event.id, item]),
+  );
   const itemsById = new Map(
     previousItems.map((item) => [item.event.id, item] as const),
   );
@@ -158,7 +176,7 @@ function createFreshMirror(input: {
   const deletedEventIds = new Set<string>();
   for (const event of input.events) {
     if (event.status === "cancelled") {
-      const lastKnown = itemsById.get(event.id);
+      const lastKnown = lastKnownById.get(event.id);
       const retained = tombstonesById.get(event.id);
       itemsById.delete(event.id);
       tombstonesById.set(event.id, {
@@ -179,7 +197,7 @@ function createFreshMirror(input: {
     });
     tombstonesById.delete(event.id);
   }
-  if (!input.incremental) {
+  if (!input.incremental && input.inferMissingDeletions) {
     for (const item of input.previous?.items ?? []) {
       if (itemsById.has(item.event.id)) continue;
       if (!tombstonesById.has(item.event.id)) {
@@ -201,6 +219,7 @@ function createFreshMirror(input: {
       lastSuccessfulRefresh: input.refreshedAt,
       freshness: "fresh",
       syncToken: input.nextSyncToken,
+      syncQuery: CALENDAR_REFRESH_QUERY,
       items: [...itemsById.values()],
       tombstones: [...tombstonesById.values()],
     },
@@ -214,18 +233,18 @@ function createStaleMirror(input: {
   managementHorizon: string;
   previous?: OwnedCalendarMirror | undefined;
 }): OwnedCalendarMirror {
+  if (input.previous !== undefined) {
+    return { ...input.previous, freshness: "stale" };
+  }
   return {
     schemaVersion: 1,
     role: input.role,
     calendarId: input.calendarId,
     managementHorizon: input.managementHorizon,
-    lastSuccessfulRefresh: input.previous?.lastSuccessfulRefresh ?? null,
+    lastSuccessfulRefresh: null,
     freshness: "stale",
-    ...(input.previous?.syncToken === undefined
-      ? {}
-      : { syncToken: input.previous.syncToken }),
-    items: input.previous?.items ?? [],
-    tombstones: input.previous?.tombstones ?? [],
+    items: [],
+    tombstones: [],
   };
 }
 

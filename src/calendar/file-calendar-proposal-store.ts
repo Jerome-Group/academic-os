@@ -67,6 +67,12 @@ export function createFileCalendarProposalStore(
       }
       const deletedKeys = new Set(
         deletedItems.map(
+          ({ calendarRole, calendarId, eventId }) =>
+            `${calendarRole}\0${calendarId}\0${eventId}`,
+        ),
+      );
+      const legacyDeletedKeys = new Set(
+        deletedItems.map(
           ({ calendarRole, eventId }) => `${calendarRole}\0${eventId}`,
         ),
       );
@@ -77,7 +83,7 @@ export function createFileCalendarProposalStore(
           proposal.status !== "ready" ||
           !Array.isArray(proposal.liveVersions) ||
           !proposal.liveVersions.some((version) =>
-            isDeletedDependency(version, deletedKeys),
+            isDeletedDependency(version, deletedKeys, legacyDeletedKeys),
           )
         ) {
           return proposal;
@@ -121,14 +127,18 @@ async function readProposalState(
 function isDeletedDependency(
   value: unknown,
   deletedKeys: ReadonlySet<string>,
+  legacyDeletedKeys: ReadonlySet<string>,
 ): boolean {
   if (!isJsonObject(value)) return false;
   const calendarRole = value.calendarRole;
   const eventId = value.eventId;
+  const calendarId = value.calendarId;
   return (
     isOwnedCalendarRole(calendarRole) &&
     typeof eventId === "string" &&
-    deletedKeys.has(`${calendarRole}\0${eventId}`)
+    (typeof calendarId === "string"
+      ? deletedKeys.has(`${calendarRole}\0${calendarId}\0${eventId}`)
+      : legacyDeletedKeys.has(`${calendarRole}\0${eventId}`))
   );
 }
 

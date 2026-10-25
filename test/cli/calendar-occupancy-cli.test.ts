@@ -1505,6 +1505,7 @@ async function setup(
         lastSuccessfulRefresh: "2026-10-01T00:00:00Z",
         freshness: "fresh",
         syncToken: `${calendarIds[role]}-sync`,
+        syncQuery: { singleEvents: false, showDeleted: true },
         items: (role === "Academic"
           ? (input.academic ?? [])
           : role === "Routine"

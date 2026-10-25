@@ -33,6 +33,7 @@ function fixtures(events: CalendarEvent[]) {
         managementHorizon: workspace.managementHorizon,
         freshness: "fresh",
         syncToken: "old",
+        syncQuery: { singleEvents: false, showDeleted: true },
         lastSuccessfulRefresh: "2026-09-26T00:00:00Z",
         items:
           role === "Academic"

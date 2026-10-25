@@ -40,6 +40,12 @@ zones, exemptions and retained-resource restoration are specified in
 Fixtures establish these local behaviors; they do not establish real-account recurrence parity or
 remove Google's observation/write race. The services workflow selects the Calendar CLI suite.
 
+Calendar Refresh also retains private recovery snapshots when its query binding changes. These
+remain beneath configured private state and carry their original calendar identity. The action
+maps the query-transition and snapshot-readback checks in
+`test/cli/calendar-refresh-binding-cli.test.ts`; [ADR-0043](../adr/0043-calendar-refresh-binds-query-scope-and-retains-displaced-evidence.md)
+defines their recovery boundary.
+
 For authorized Module recovery, select the morning action's explicit retention, Module-only scope
 and paired model/effort options from the index. Retention preserves existing artifacts; scoped
 settings belong to that invocation. Verify every Module's session and journal before resolving a

@@ -69,9 +69,11 @@ if (behavior !== 'descendant') {
   process.stderr.write('diagnostic stderr\\n');
 }
 if (behavior === 'volume') {
-  for (let i=0;i<64;i++) for (const stream of [process.stdout,process.stderr]) {
-    if (!stream.write(Buffer.alloc(65536,stream===process.stdout?120:121))) await once(stream,'drain');
-  }
+  await Promise.all([process.stdout,process.stderr].map(async stream => {
+    for (let i=0;i<64;i++) {
+      if (!stream.write(Buffer.alloc(65536,stream===process.stdout?120:121))) await once(stream,'drain');
+    }
+  }));
 }
 if (behavior === 'normal') process.exitCode = 7;
 if (behavior === 'ignore-term' || behavior === 'descendant') {

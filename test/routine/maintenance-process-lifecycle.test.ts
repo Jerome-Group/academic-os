@@ -20,7 +20,7 @@ for (const runner of ["repository", "module"] as const) {
       timeoutMs: 1500,
     });
     assert.ok(
-      fixture.report.maxBuffered <= 131072,
+      fixture.report.maxBuffered <= 196608,
       `queued ${fixture.report.maxBuffered} bytes behind a slow log`,
     );
     assert.ok(fixture.report.backpressureEvents > 0);
@@ -54,7 +54,7 @@ for (const runner of ["repository", "module"] as const) {
       assert.ok(fixture.report.streams.every((stream) => stream.closed));
       if (logFault !== "finish-stall") {
         assert.ok(fixture.report.backpressureEvents > 0);
-        assert.ok(fixture.report.maxBuffered <= 131072);
+        assert.ok(fixture.report.maxBuffered <= 196608);
       }
       if (logFault === "paused-write" || logFault === "paused-close") {
         const expectedCode =

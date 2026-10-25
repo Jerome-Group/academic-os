@@ -610,7 +610,10 @@ export async function reconcileWeeklyIssue(input: {
         repositoryParents:
           input.repository === undefined ? [] : basis.repositoryParents,
         summary: input.summary,
-        needsOwner: input.needsOwner,
+        needsOwner:
+          input.needsOwner ||
+          (basis.coverage === "monitoring-cohort" &&
+            input.summary.preludePending > 0),
         ...(input.repository === undefined
           ? {}
           : { repository: input.repository }),

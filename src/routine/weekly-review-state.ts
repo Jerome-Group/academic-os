@@ -262,8 +262,7 @@ export function reduceWeekly(
     view.scopes += 1;
     if (new Set(observations.map(scopeStatus)).size > 1)
       view.conflicts.push(...ids);
-    if (observations.some((o) => o.needsOwner || o.summary.preludePending > 0))
-      view.pending += 1;
+    if (observations.some((o) => o.needsOwner)) view.pending += 1;
     if (observations.every((o) => o.date < week)) view.stale += 1;
     view.checked += Math.max(
       0,

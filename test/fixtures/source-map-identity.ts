@@ -21,14 +21,14 @@ export const collidingSourceMaps = [
   `%YAML 1.1\n---\nunits: { !!str <<: [{ 'null': ${identityUnit("second")} }, { null: ${identityUnit("first")} }] }`,
 ] as const;
 
-export const orderedSourceMap = `units:\n  Week 02: &first ${identityUnit("first").replace("[first]", "[&name first]")}\n  2: ${identityUnit("second")}\n  '1': ${identityUnit("third")}\n  '01': ${identityUnit("fourth")}\n  Week 03: ${identityUnit("fifth")}\n  *name : ${identityUnit("sixth")}\n  Repeat: *first\n`;
+export const orderedSourceMap = `units:\n  Stage B: &first ${identityUnit("first").replace("[first]", "[&name first]")}\n  2: ${identityUnit("second")}\n  '1': ${identityUnit("third")}\n  '01': ${identityUnit("fourth")}\n  Stage C: ${identityUnit("fifth")}\n  *name : ${identityUnit("sixth")}\n  Repeat: *first\n`;
 
 export const orderedUnits = [
-  ["Week 02", "first"],
+  ["Stage B", "first"],
   ["2", "second"],
   ["1", "third"],
   ["01", "fourth"],
-  ["Week 03", "fifth"],
+  ["Stage C", "fifth"],
   ["first", "sixth"],
   ["Repeat", "first"],
 ] as const;

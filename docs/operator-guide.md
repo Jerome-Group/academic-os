@@ -1043,7 +1043,8 @@ node dist/src/cli.js pinned refresh --config academic-os.config.json \
 
 That previews only the shared router, procedures and blank Markdown templates. It leaves project
 context, registers, meeting prose, records, mathematics, preferences and locally adapted LaTeX
-unchanged. Add `--apply` only after reviewing every difference.
+unchanged. Inactive projects permit preview only. Add `--apply` for an active project only after
+reviewing every difference.
 
 ```bash
 node dist/src/cli.js pinned refresh --config academic-os.config.json
@@ -1064,7 +1065,7 @@ node dist/src/cli.js pinned refresh --config academic-os.config.json --apply
 |---:|---|
 | 0 | Every pinned copy is current |
 | 1 | A copy is stale or missing, and `--apply` would rewrite it |
-| 2 | The run was refused, stopped part-way, or a module could not be read |
+| 2 | The run was refused, stopped part-way, or cohort selection or reading was incomplete |
 
 Each write proves itself before it happens, under `docs/agents/safe-drive-testing.md`: the target
 resolves inside its exact configured target root, it is an ordinary file rather than a symlink, it holds real bytes
@@ -1079,8 +1080,9 @@ configured target or a source change immediately before publication refuses the 
 
 Should a write still fail after earlier ones have landed — an unwritable folder, a full disk — the
 run stops and reports `partially-rewritten`. Nothing can unwrite the copies already replaced, so the
-journal is the record of exactly how far it got. A module the cohort names but that cannot be read
-is listed as `Unresolved` and does not stop the others; the run exits 2 to say so.
+journal is the record of exactly how far it got. Duplicate mappings and unreadable Modules appear
+as `Unresolved`. Preview reports `incomplete` and still shows readable copies. Apply refuses the
+whole cohort before any target, backup or journal write until every target resolves.
 
 Every rewrite is journalled under `stateRoot` at `journals/pinned-documents/<run>.jsonl`, carrying
 the checksum replaced, checksum written and backup path where an original existed. A target already

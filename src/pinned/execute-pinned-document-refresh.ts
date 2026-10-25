@@ -36,10 +36,22 @@ export async function executePinnedDocumentRefresh(input: {
     unresolved: input.cohort.unresolved,
   } as const;
 
+  if (input.mode === "apply" && input.cohort.unresolved.length > 0) {
+    return {
+      ...summary,
+      outcome: "refused",
+      rewritten: 0,
+      refusals: [
+        "Cohort coverage is incomplete; resolve every target before applying.",
+      ],
+    };
+  }
+
   if (input.mode === "preview" || input.plan.rewrites.length === 0) {
     return {
       ...summary,
-      outcome: input.plan.outcome,
+      outcome:
+        input.cohort.unresolved.length > 0 ? "incomplete" : input.plan.outcome,
       rewritten: 0,
       refusals: [],
     };

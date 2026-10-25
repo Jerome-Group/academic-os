@@ -27,6 +27,7 @@ export interface PinnedCopyRewrite {
 // the journal is what says how far the run got.
 export type PinnedRefreshOutcome =
   | PinnedCopyState
+  | "incomplete"
   | "refused"
   | "partially-rewritten";
 

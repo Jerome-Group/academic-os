@@ -73,7 +73,6 @@ function productionOptions(input: Fixture) {
     return sessionSpawnOptions({
       codexPath: input.codexPath,
       moduleRoot: input.root,
-      timeoutMs: 1000,
     });
   } finally {
     if (previous === undefined) delete process.env.PATH;
@@ -87,6 +86,7 @@ for (const layout of ["nested", "flat", "wrapper"] as const) {
     const options = productionOptions(input);
     const result = spawnSync("rg", ["--version"], {
       ...options,
+      timeout: 1000,
       encoding: "utf8",
     });
     assert.equal(result.status, 0, result.stderr);

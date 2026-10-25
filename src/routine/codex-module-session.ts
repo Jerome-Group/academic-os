@@ -1,5 +1,3 @@
-import { spawn } from "node:child_process";
-import { createWriteStream } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { delimiter, dirname, join } from "node:path";
 import { resolveConfiguredAuditTarget } from "../cohort/index.js";
@@ -14,6 +12,7 @@ import {
 } from "../mounted/index.js";
 import { codexSearchDirectories } from "./codex-search-path.js";
 import { moduleSessionDirectory } from "./file-routine-artifacts.js";
+import { runMaintenanceProcess } from "./maintenance-process.js";
 import {
   stageMaintenanceSafetyEvidence,
   verifyMaintenanceSafetyEvidence,
@@ -626,50 +625,34 @@ async function writeJson(path: string, value: unknown): Promise<void> {
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-function spawnCodex(input: CodexSessionRunnerInput): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const log = createWriteStream(input.logPath);
-    const session = spawn(
-      input.codexPath,
-      input.arguments,
-      sessionSpawnOptions({
-        codexPath: input.codexPath,
-        moduleRoot: input.moduleRoot,
-        timeoutMs: input.timeoutMs,
-      }),
-    );
-    session.stdout.pipe(log);
-    session.stderr.pipe(log);
-    session.on("error", reject);
-    session.on("close", (code, signal) => {
-      log.end();
-      if (signal !== null) {
-        reject(
-          new Error(
-            `The session was stopped by ${signal} after ${input.timeoutMs} ms.`,
-          ),
-        );
-        return;
-      }
-      resolve(code ?? 1);
-    });
+async function spawnCodex(input: CodexSessionRunnerInput): Promise<number> {
+  const { code, signal } = await runMaintenanceProcess({
+    executable: input.codexPath,
+    args: input.arguments,
+    ...sessionSpawnOptions(input),
+    timeoutMs: input.timeoutMs,
+    log: input.logPath,
   });
+  if (signal !== null)
+    throw new Error(
+      `The session was stopped by ${signal} after ${input.timeoutMs} ms.`,
+    );
+  return code ?? 1;
 }
 
 export function sessionSpawnOptions(input: {
   codexPath: string;
   moduleRoot: string;
-  timeoutMs?: number;
 }): {
   cwd: string;
   stdio: ["ignore", "pipe", "pipe"];
-  timeout: number;
+  detached: true;
   env: NodeJS.ProcessEnv;
 } {
   return {
     cwd: input.moduleRoot,
     stdio: ["ignore", "pipe", "pipe"],
-    timeout: input.timeoutMs ?? MORNING_SESSION_TIMEOUT_MS,
+    detached: true,
     env: sessionEnvironment(input.codexPath),
   };
 }

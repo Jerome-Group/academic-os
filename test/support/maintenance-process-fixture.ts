@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import type { TestContext } from "node:test";
 import { learningWorkspacePaths } from "../fixtures/learning-workspace.js";
+import { syntheticMaintenanceCoverage } from "../fixtures/maintenance-coverage.js";
 import {
   moduleControlContents,
   validModuleControls,
@@ -15,7 +16,7 @@ export async function maintenanceProcessFixture(
   t: TestContext,
   input: {
     runner: "repository" | "module" | "check-budget";
-    behavior: "normal" | "ignore-term" | "descendant";
+    behavior: "normal" | "success" | "ignore-term" | "descendant";
     logFault?: "open" | "write" | "finish";
     unavailable?: boolean;
   },
@@ -44,16 +45,24 @@ if (${JSON.stringify(input.runner)} === 'check-budget') {
   setTimeout(()=>process.stdout.write(JSON.stringify({checks:[]})),510);
 } else {
 const behavior = ${JSON.stringify(input.behavior)};
-if (behavior !== 'normal') process.on('SIGTERM', () => {});
+if (behavior === 'success') {
+  const result = process.argv[process.argv.indexOf('--output-last-message')+1];
+  if (process.argv.includes('--output-last-message')) writeFileSync(result,${JSON.stringify(JSON.stringify({ maintenance: syntheticMaintenanceCoverage(), curated: [], rederived: [], superseded: [], withdrawn: [], parked: [], docWrites: [], failures: [], noted: [] }))});
+}
+if (behavior === 'ignore-term' || behavior === 'descendant') process.on('SIGTERM', () => {});
 if (behavior === 'descendant') {
   const child = spawn(process.execPath, ['-e', ${JSON.stringify(`const fs=require('node:fs');fs.writeFileSync(${JSON.stringify(pidFiles[1])},String(process.pid));process.on('SIGTERM',()=>{});process.stdout.write('descendant ready\\n');setTimeout(()=>process.exit(0),3000);`)}], {stdio:['ignore','inherit','inherit']});
   child.unref();
 }
-process.stdout.write('diagnostic stdout\\n');
-process.stderr.write('diagnostic stderr\\n');
+if (behavior !== 'descendant') {
+  process.stdout.write('diagnostic stdout\\n');
+  process.stderr.write('diagnostic stderr\\n');
+}
 if (behavior === 'normal') process.exitCode = 7;
-else setTimeout(() => writeFileSync(${JSON.stringify(marker)}, 'effect'), 600);
-if (behavior !== 'normal') setTimeout(() => process.exit(0), behavior === 'descendant' ? 100 : 3000);
+if (behavior === 'ignore-term' || behavior === 'descendant') {
+  setTimeout(() => writeFileSync(${JSON.stringify(marker)}, 'effect'), 600);
+  setTimeout(() => process.exit(0), behavior === 'descendant' ? 100 : 3000);
+}
 }
 `,
     { mode: 0o700 },
@@ -78,6 +87,26 @@ if (behavior !== 'normal') setTimeout(() => process.exit(0), behavior === 'desce
       if (kind !== "directory")
         await writeFile(path, controls.get(relative) ?? "fixture\n");
     }
+    await mkdir(join(moduleRoot, "30 Assessments", "10 Quizzes"));
+    await writeFile(
+      join(moduleRoot, "NTULearn", "Sync status.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        producer: "ntulearn",
+        status: "complete",
+        startedAt: "2026-08-22T21:00:00.000Z",
+        finishedAt: "2026-08-22T21:05:00.000Z",
+        lastSuccessfulAt: "2026-08-22T21:05:00.000Z",
+        counts: {
+          downloaded: 0,
+          skipped: 0,
+          markdown: 0,
+          uncopied: 0,
+          failures: 0,
+        },
+        unread: [],
+      }),
+    );
   }
   const runner = join(root, "runner.mjs");
   const repositoryApi = new URL(
@@ -97,7 +126,7 @@ const original = fs.createWriteStream;
 const fault = ${JSON.stringify(input.logFault ?? "")};
 fs.createWriteStream = (path, options) => {
   if (!String(path).endsWith('session.log') && !String(path).endsWith('repository.log')) return original(path,options);
-  if (fault === 'open' && String(path).endsWith('session.log')) return original(${JSON.stringify(badLog)},options);
+  if (fault === 'open' && String(path).endsWith('session.log')) return original(${JSON.stringify(badLog)},{...options,flags:'w'});
   if (fault === 'write' || fault === 'finish') {
     const stream = original(path,options);
     const method = fault === 'write' ? '_write' : '_final';

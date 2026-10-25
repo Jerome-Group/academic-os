@@ -1,8 +1,7 @@
-import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { createWriteStream } from "node:fs";
 import { lstat, realpath } from "node:fs/promises";
 import { dirname } from "node:path";
+import { runMaintenanceProcess } from "./maintenance-process.js";
 
 export async function repositoryFixtureRoot(
   cwd: string,
@@ -109,85 +108,47 @@ export async function runRepositoryProcess(input: {
   outputBytes: number;
   outputTruncated: boolean;
 }> {
-  return await new Promise((resolve, reject) => {
-    const env = { ...process.env };
-    for (const key of Object.keys(env))
-      if (
-        /TOKEN|SECRET|PASSWORD|PRIVATE_KEY|GOOGLE|OPENAI_API_KEY|GH_|GITHUB_|AWS_|AZURE_/iu.test(
-          key,
-        )
+  const env = { ...process.env };
+  for (const key of Object.keys(env))
+    if (
+      /TOKEN|SECRET|PASSWORD|PRIVATE_KEY|GOOGLE|OPENAI_API_KEY|GH_|GITHUB_|AWS_|AZURE_/iu.test(
+        key,
       )
-        delete env[key];
-    delete env.ACADEMIC_OS_REPOSITORY_FIXTURE_TRANSPORT;
-    if (input.fixtureUnixTransport)
-      env.ACADEMIC_OS_REPOSITORY_FIXTURE_TRANSPORT = "unix";
-    env.NODE_OPTIONS = "";
-    env.NODE_DISABLE_COMPILE_CACHE = "1";
-    delete env.NODE_COMPILE_CACHE;
-    env.TMPDIR = input.temporaryRoot ?? input.cwd;
-    env.TMP = input.temporaryRoot ?? input.cwd;
-    env.TEMP = input.temporaryRoot ?? input.cwd;
-    const child = spawn(input.executable, input.args, {
-      cwd: input.cwd,
-      stdio: ["ignore", "pipe", "pipe"],
-      env: input.cleanEnvironment === false ? process.env : env,
-      detached: true,
-    });
-    const hash = createHash("sha256");
-    let output = "";
-    let outputBytes = 0;
-    let outputTruncated = false;
-    const log =
-      input.log === undefined
-        ? undefined
-        : createWriteStream(input.log, { flags: "wx", mode: 0o600 });
-    log?.on("error", reject);
-    for (const stream of [child.stdout, child.stderr])
-      stream.on("data", (chunk: Buffer) => {
-        hash.update(chunk);
-        outputBytes += chunk.length;
-        if (outputBytes > 1_048_576) outputTruncated = true;
-        output = (output + chunk.toString()).slice(-1_048_576);
-        if (outputBytes <= 16_777_216) log?.write(chunk);
-        else if (child.pid !== undefined) {
-          try {
-            process.kill(-child.pid, "SIGKILL");
-          } catch {
-            child.kill("SIGKILL");
-          }
-        }
-      });
-    const timeout = setTimeout(() => {
-      if (child.pid !== undefined) {
-        try {
-          process.kill(-child.pid, "SIGKILL");
-        } catch {
-          child.kill("SIGKILL");
-        }
-      }
-    }, input.timeoutMs ?? 480_000);
-    child.on("error", (error) => {
-      clearTimeout(timeout);
-      log?.end();
-      reject(error);
-    });
-    child.on("close", (code) => {
-      clearTimeout(timeout);
-      log?.end();
-      if (child.pid !== undefined) {
-        try {
-          process.kill(-child.pid, "SIGKILL");
-        } catch {
-          /* Process group already completed. */
-        }
-      }
-      resolve({
-        code,
-        output,
-        digest: hash.digest("hex"),
-        outputBytes,
-        outputTruncated,
-      });
-    });
+    )
+      delete env[key];
+  delete env.ACADEMIC_OS_REPOSITORY_FIXTURE_TRANSPORT;
+  if (input.fixtureUnixTransport)
+    env.ACADEMIC_OS_REPOSITORY_FIXTURE_TRANSPORT = "unix";
+  env.NODE_OPTIONS = "";
+  env.NODE_DISABLE_COMPILE_CACHE = "1";
+  delete env.NODE_COMPILE_CACHE;
+  env.TMPDIR = input.temporaryRoot ?? input.cwd;
+  env.TMP = input.temporaryRoot ?? input.cwd;
+  env.TEMP = input.temporaryRoot ?? input.cwd;
+  const hash = createHash("sha256");
+  let output = "";
+  let outputBytes = 0;
+  let outputTruncated = false;
+  const { code } = await runMaintenanceProcess({
+    executable: input.executable,
+    args: input.args,
+    cwd: input.cwd,
+    env: input.cleanEnvironment === false ? process.env : env,
+    timeoutMs: input.timeoutMs ?? 480_000,
+    ...(input.log === undefined ? {} : { log: input.log }),
+    onOutput: (chunk) => {
+      hash.update(chunk);
+      outputBytes += chunk.length;
+      if (outputBytes > 1_048_576) outputTruncated = true;
+      output = (output + chunk.toString()).slice(-1_048_576);
+      return outputBytes <= 16_777_216 ? undefined : false;
+    },
   });
+  return {
+    code,
+    output,
+    digest: hash.digest("hex"),
+    outputBytes,
+    outputTruncated,
+  };
 }

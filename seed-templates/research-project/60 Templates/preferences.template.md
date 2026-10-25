@@ -1,10 +1,9 @@
 # Research learning preferences
 
-How the Owner is taught: the standing notes a session reads before it starts, seeded identically
-from Academic OS. `docs/20 Research Procedure.md` is
-the conduct - what a session produces and where it goes. This file is the register that conduct
-runs in. Where a new preference goes is at the foot of this file; an edit made here instead is a
-deviation the audit reports.
+Read these standing preferences before teaching the Owner. Academic OS seeds this file.
+The project's copy remains locally editable and is not byte-pinned by the audit.
+`docs/20 Research Procedure.md` owns session conduct and artifact placement. The final section
+describes how to propose changes to the shared preferences.
 
 ## The Owner is in the room
 

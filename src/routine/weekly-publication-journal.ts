@@ -3,6 +3,10 @@ import { constants } from "node:fs";
 import { lstat, mkdir, open } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { withJournalMutationOwner } from "../journal-mutation-owner.js";
+import {
+  parseResolutionProof,
+  type WeeklyResolutionProof,
+} from "./weekly-resolution.js";
 import type {
   MorningRunEvidence,
   WeeklyComment,
@@ -28,7 +32,14 @@ export interface WeeklyBasis {
 export type PublicationOperation =
   | { kind: "anchor"; week: string; title: string; body: string }
   | { kind: "comment"; number: number; body: string }
-  | { kind: "state"; number: number; state: "OPEN" | "CLOSED" };
+  | { kind: "state"; number: number; state: "OPEN" | "CLOSED" }
+  | {
+      kind: "resolution";
+      number: number;
+      anchorId: number;
+      publicationId: number;
+      proof: WeeklyResolutionProof;
+    };
 type JournalEntry =
   | { kind: "binding"; identity: WeeklyDiscussionIdentity }
   | { kind: "basis"; basis: WeeklyBasis }
@@ -376,6 +387,15 @@ function parseEntry(value: unknown): JournalEntry {
             kind: "state",
             number: positive(op.number),
             state: op.state,
+          };
+          break;
+        case "resolution":
+          operation = {
+            kind: "resolution",
+            number: positive(op.number),
+            anchorId: positive(op.anchorId),
+            publicationId: positive(op.publicationId),
+            proof: parseResolutionProof(op.proof),
           };
           break;
         default:

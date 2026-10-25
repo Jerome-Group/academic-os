@@ -270,3 +270,59 @@ it("insufficient replay evidence capacity retains the unknown intent without ano
     ),
   );
 });
+it("admits resolution review and close receipts together before the first remote effect", async (t) => {
+  const f = await fixture(t);
+  const observation = await f.basis();
+  const before = mutations(await f.read());
+  const path = join(f.root, "weekly-publication/publication.jsonl");
+  const bytes = await readFile(path, "utf8");
+  const line = `${JSON.stringify({ kind: "basis", basis: observation })}\n`;
+  const fill = (remaining: number) =>
+    writeFile(
+      path,
+      bytes +
+        line.repeat(
+          Math.floor(
+            (32 * 1024 * 1024 - remaining - Buffer.byteLength(bytes)) /
+              Buffer.byteLength(line),
+          ),
+        ),
+      { mode: 0o600 },
+    );
+  const resolve = () =>
+    reconcileWeeklyIssue({
+      issue: f.issue,
+      stateRoot: f.root,
+      observation,
+      summary,
+      needsOwner: false,
+      repository: { merged: [], unresolved: 0, awaiting: 0 },
+    });
+  await fill(2000);
+  await f.capture("resolution-before");
+  const refused = await resolve();
+  assert.equal(refused.outcome, "failed");
+  assert.match(refused.failure?.message ?? "", /journal exceeds 32 MiB/u);
+  assert.equal(mutations(await f.read()), before);
+  assert.equal((await f.read()).issues[0].state, "open");
+  await f.capture("resolution-refused");
+  await fill(100_000);
+  const result = await resolve();
+  assert.equal(result.outcome, "closed");
+  const actual = await f.read();
+  assert.equal(actual.issues[0].state, "closed");
+  assert.equal(mutations(actual), before + 2);
+  const journal = await readFile(path, "utf8");
+  assert.ok(Buffer.byteLength(journal) <= 32 * 1024 * 1024);
+  const entries = journal
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
+  const close = entries.find(
+    (entry) => entry.kind === "intent" && entry.operation.kind === "resolution",
+  );
+  assert.equal(close.operation.publicationId, result.publicationId);
+  assert.ok(
+    entries.some((entry) => entry.kind === "receipt" && entry.id === close.id),
+  );
+});

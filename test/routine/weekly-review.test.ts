@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile, readdir } from "node:fs/promises";
+import { appendFile, readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { it } from "node:test";
 import {
@@ -119,6 +119,20 @@ it("resolution requires a fresh complete cohort and explicit repository evidence
     {},
     { repository: { ...resolvedRepository, unresolved: 1 } },
     { repository: { ...resolvedRepository, pendingIssueNumbers: [17] } },
+    { repository: { ...resolvedRepository, pendingPullRequestNumbers: [19] } },
+    {
+      repository: {
+        ...resolvedRepository,
+        merged: [
+          {
+            pullRequest: 19,
+            commit: "a".repeat(40),
+            verification: "verified" as const,
+            rollout: "awaiting" as const,
+          },
+        ],
+      },
+    },
     {
       repository: resolvedRepository,
       summary: { ...summary, preludePending: 1 },
@@ -154,6 +168,9 @@ it("resolution requires a fresh complete cohort and explicit repository evidence
     stateRoot: f.stateRoot,
   });
   await publish(f, { repository: resolvedRepository });
+  const anchor = f.issues.get(900);
+  assert.ok(anchor);
+  anchor.state = "OPEN";
   await reconcileWeeklyIssue({
     issue: f.issue,
     stateRoot: f.stateRoot,
@@ -163,6 +180,7 @@ it("resolution requires a fresh complete cohort and explicit repository evidence
     repository: resolvedRepository,
   });
   assert.equal(f.states.length, 1);
+  assert.equal(anchor.state, "OPEN");
 });
 
 it("resolution forces an immutable review before closing an already quiet open anchor", async () => {
@@ -175,6 +193,116 @@ it("resolution forces an immutable review before closing an already quiet open a
   assert.equal(closed.outcome, "closed");
   assert.equal(f.appended.length, 2);
   assert.equal(issue.state, "CLOSED");
+});
+
+it("resolution retains an open anchor when trusted facts arrive immediately before close", async () => {
+  const { observationMarker } = await import(
+    "../../src/routine/weekly-review-state.js"
+  );
+  const f = weeklyFixture();
+  const comments = f.issue.listComments;
+  let scans = 0;
+  f.issue.listComments = async (number) => {
+    if (last(f).includes("academic-os-weekly-resolution") && ++scans === 2)
+      f.comments.set(999, {
+        id: 999,
+        issueNumber: number,
+        creatorId: 7,
+        body: `${observationMarker({ scope: "c".repeat(64), date: scope.date, parents: [], repositoryParents: [], summary, needsOwner: true })}\nlate`,
+        createdAt: "2026-10-01T00:00:00Z",
+        updatedAt: "2026-10-01T00:00:00Z",
+        url: `https://github.com/fixture/repo/issues/${number}#issuecomment-999`,
+      });
+    return comments(number);
+  };
+  const result = await publish(f, { repository: resolvedRepository });
+  assert.equal(result.outcome, "failed");
+  assert.match(
+    result.failure?.message ?? "",
+    /facts changed before resolution/u,
+  );
+  assert.equal(f.issues.get(900)?.state, "OPEN");
+  assert.equal(f.states.length, 0);
+});
+
+it("resolution requires exact closed readback and retains uncertain receipts until reconciliation", async () => {
+  for (const mismatch of ["identity", "state"]) {
+    const f = weeklyFixture();
+    const read = f.issue.readIssue;
+    f.issue.readIssue = async (number) => {
+      const result = await read(number);
+      return f.states.length === 0
+        ? result
+        : mismatch === "identity"
+          ? { ...result, id: result.id + 1 }
+          : { ...result, state: "OPEN" };
+    };
+    const result = await publish(f, { repository: resolvedRepository });
+    assert.equal(result.outcome, "failed");
+    const path = join(f.stateRoot, "weekly-publication/publication.jsonl");
+    const entries = (await readFile(path, "utf8"))
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    const close = entries.find(
+      (entry) =>
+        entry.kind === "intent" && entry.operation.kind === "resolution",
+    );
+    assert.ok(close);
+    assert.equal(
+      entries.some(
+        (entry) => entry.kind === "receipt" && entry.id === close.id,
+      ),
+      false,
+    );
+    f.issue.readIssue = read;
+    assert.equal(
+      (await publish(f, { repository: resolvedRepository })).outcome,
+      "not-needed",
+    );
+    assert.equal(f.states.length, 1);
+    assert.equal(f.appended.length, 1);
+    assert.equal(f.issues.get(900)?.state, "CLOSED");
+  }
+});
+
+it("resolution cannot erase incomplete coverage in another scope or a stale scope", async () => {
+  for (const prior of [
+    { moduleCodes: ["OTHER"], summary: { ...summary, preludePending: 1 } },
+    { moduleCodes: ["OTHER"], date: "2026-10-16" },
+  ]) {
+    const f = weeklyFixture();
+    await publish(f, prior);
+    const result = await publish(f, { repository: resolvedRepository });
+    assert.equal(result.actionable, true);
+    assert.equal(f.issues.get(result.number ?? 0)?.state, "OPEN");
+  }
+});
+
+it("legacy state intents retain their digest and transfer meaning through recovery", async () => {
+  const { digest } = await import("../../src/routine/weekly-review-state.js");
+  const f = weeklyFixture();
+  await publish(f);
+  const anchor = f.issues.get(900);
+  assert.ok(anchor);
+  anchor.state = "CLOSED";
+  const operation = { kind: "state", number: 900, state: "CLOSED" };
+  const id = "f".repeat(64);
+  await appendFile(
+    join(f.stateRoot, "weekly-publication/publication.jsonl"),
+    `${JSON.stringify({ kind: "intent", id, semanticDigest: digest(operation), operation })}\n`,
+  );
+  assert.equal((await publish(f)).outcome, "not-needed");
+  const journal = await readFile(
+    join(f.stateRoot, "weekly-publication/publication.jsonl"),
+    "utf8",
+  );
+  assert.ok(journal.includes(JSON.stringify(operation)));
+  assert.ok(
+    journal.includes(JSON.stringify({ kind: "receipt", id, remoteIds: [900] })),
+  );
+  assert.doesNotMatch(journal, /"kind":"resolution"/u);
+  assert.equal((await publish(f, { needsOwner: true })).outcome, "reopened");
 });
 
 it("keeps Monday offering identity and exact private scope hashing", () => {

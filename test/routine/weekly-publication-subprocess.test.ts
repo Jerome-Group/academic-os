@@ -134,6 +134,87 @@ it("compiled subprocess preserves early/late Owner body and comment edits throug
       .join();
   assert.doesNotMatch(publicBytes, /SECRET COHORT|SECRET MODULE/u);
 });
+it("compiled resolution recovers a committed close response loss and later reopens without duplicate writes", async (t) => {
+  const f = await fixture(t);
+  const repository: WeeklyRepositorySummary = {
+    merged: [],
+    unresolved: 0,
+    awaiting: 0,
+  };
+  await f.publish();
+  let state = await f.read();
+  state.issues[0].body += "\nOWNER BEFORE CLOSE\t\n";
+  state.comments.push({
+    id: 1,
+    body: "OWNER COMMENT\n",
+    user: { id: 99 },
+    issue_url: "https://api.github.com/repos/fixture/repo/issues/1",
+    html_url: "https://github.com/fixture/repo/issues/1#issuecomment-1",
+    created_at: "2026-10-01T00:00:00Z",
+    updated_at: "2026-10-01T00:00:00Z",
+  });
+  state.loseState = true;
+  state.inject = true;
+  await f.patch(state);
+  assert.equal((await f.publish({ repository })).outcome, "failed");
+  state = await f.read();
+  assert.equal(state.issues[0].state, "closed");
+  const body = state.issues[0].body;
+  const ownerComment = state.comments.find(
+    (c: { id: number }) => c.id === 1,
+  ).body;
+  const mutations = state.requests.filter(
+    (r: { args: string[] }) =>
+      r.args.includes("POST") || r.args.includes("PATCH"),
+  ).length;
+  const comments = state.comments.length;
+  assert.equal((await f.publish({ repository })).outcome, "not-needed");
+  state = await f.read();
+  assert.equal(state.comments.length, comments);
+  assert.equal(
+    state.requests.filter(
+      (r: { args: string[] }) =>
+        r.args.includes("POST") || r.args.includes("PATCH"),
+    ).length,
+    mutations,
+  );
+  assert.equal(
+    (await f.publish({ repository, needsOwner: true })).outcome,
+    "reopened",
+  );
+  state = await f.read();
+  assert.equal(state.issues[0].state, "open");
+  assert.equal(state.issues[0].body, body);
+  assert.equal(
+    state.comments.find((c: { id: number }) => c.id === 1).body,
+    ownerComment,
+  );
+  const entries = (
+    await readFile(join(f.root, "weekly-publication/publication.jsonl"), "utf8")
+  )
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
+  const close = entries.find(
+    (entry) => entry.kind === "intent" && entry.operation.kind === "resolution",
+  );
+  assert.equal(close.operation.anchorId, state.issues[0].id);
+  assert.ok(
+    entries.some((entry) => entry.kind === "receipt" && entry.id === close.id),
+  );
+  for (const request of state.requests)
+    if (request.args.includes("PATCH"))
+      assert.deepEqual(Object.keys(request.data), ["state"]);
+  const g = await fixture(t);
+  await g.patch({ loseState: true });
+  assert.equal((await g.publish({ repository })).outcome, "failed");
+  assert.equal((await g.read()).issues[0].state, "closed");
+  assert.equal(
+    (await g.publish({ repository, needsOwner: true })).outcome,
+    "reopened",
+  );
+  assert.equal((await g.read()).issues[0].state, "open");
+});
 it("response lost after commit reuses exact trusted comment and unknown late commit stays fenced until found", async (t) => {
   const f = await fixture(t);
   await f.publish();

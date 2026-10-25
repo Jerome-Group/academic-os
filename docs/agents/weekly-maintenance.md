@@ -38,24 +38,41 @@ count evidenced entries and writes, not distinct defects. Concurrent different s
 Contradictory observations remain awaiting until fresh work observes both predecessor heads.
 Module-only recovery cannot clear repository observations or broader coverage.
 
+The current anchor closes only after a fresh complete monitoring-cohort observation supplies
+explicit repository evidence and the combined view has no actionable work. Missing repository
+input, incomplete coverage, stale or conflicting observations, unknown predecessors, pending
+references, and unverified merges retain the open anchor. A green check alone cannot discharge
+retained repository identities.
+
+Closing an open anchor forces an immutable resolution review, even when its ordinary status is
+unchanged. The private close intent binds that exact publication, numeric anchor, observation
+identities, unknown predecessors, reduced-view digest, and observation ticket. Immediately before
+the state-only close, reread the history and require the same facts. Report `closed` only after
+exact CLOSED readback and a durable receipt. Resolution applies to observed machine evidence.
+Owner notes are not resolved implicitly. Later actionable evidence reopens the same anchor.
+An unchanged quiet closed anchor adds no duplicate review or state write.
+
 Owner body text and comments stay untouched. Rollover links prior notes in their source issue.
 Before retiring a predecessor, retain complete observed body and comment snapshots privately,
 verify successor publication, append and verify the fixed transfer comment, then close with a
-state-only request and verify the closed state. Closure records transfer, not resolution.
+state-only request and verify the closed state. Predecessor closure records transfer, not resolution.
 Legacy state without an exact private publication receipt remains evidence-unknown.
 
 The private publication journal belongs to the configured state root, including retained runs.
 Keep its intents, receipts, and original comment bytes outside ordinary report retention. A failed
 or timed-out POST can commit later. Preserve its unknown intent. An empty later list does not
-permit another POST. A later exact trusted match permits reuse. Do not delete the journal to retry.
+permit another POST. A later exact trusted match permits reuse. A lost close response requires exact
+numeric anchor and CLOSED readback before its receipt. Recovery acknowledges that effect, then
+current trusted facts still determine whether to reopen. Historical state intents retain their
+transfer meaning and cannot become resolution proof. Do not delete the journal to retry.
 A changed publisher or repository identity, edited or missing known publication, incomplete page,
 or exceeded bound requires reconciliation before publication.
 
 The complete historical scan is bounded to 500 observations, 10,000 raw issue records or comments,
 and 100 pages per provider listing. Raw issue records include pull requests. Discussion text and the
 private journal each have a 32 MiB bound. Before the first remote mutation, admit the observed
-history plus every known planned anchor, review, transfer and state change. Reserve encoded journal
-intent, readback and receipt bytes, and a possible additional provider page per new record. Quiet
+history plus every known planned anchor, review, resolution, transfer and state change. Reserve encoded
+journal intent, readback and receipt bytes, and a possible additional provider page per new record. Quiet
 reuse requires no new-record page headroom.
 
 Provider pagination follows only the authenticated repository's owner/name or numeric repository

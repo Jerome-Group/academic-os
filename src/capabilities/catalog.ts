@@ -280,7 +280,7 @@ export const cliCapabilities: Capability[] = [
       [
         "mounted maintenance content",
         "private logs/journals",
-        "GitHub weekly anchors, immutable review comments and state-only retirement",
+        "GitHub weekly anchors, immutable reviews, verified resolution, reopening and state-only retirement",
         "protected repository pull requests and clean primary checkout rollout",
         "ordinary expired artifacts removed unless --retain-artifacts",
       ],

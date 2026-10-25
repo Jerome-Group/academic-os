@@ -40,6 +40,7 @@ export async function executeCurationIdentityMigration(input: {
   const outcome = await appendProvedRegisterLines({
     pending: pending.map(pendingAppend),
     roots: input.cohort,
+    stateRoot: input.cohort.stateRoot,
     journal: async () => {
       const journal = await openCurationRegisterJournal({
         stateRoot: input.cohort.stateRoot,

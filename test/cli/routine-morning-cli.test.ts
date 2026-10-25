@@ -1,5 +1,14 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
@@ -77,6 +86,127 @@ describe("academic-os routine morning", () => {
     assert.match(error.message, /routine configuration/u);
   });
 });
+
+for (const modules of [
+  ["AB1234", "AB1234"],
+  ["AB1234", "AB1234", "CD5678"],
+]) {
+  for (const scope of [[], ["--modules-only"]]) {
+    it(`refuses unresolved ${modules.length === 2 ? "duplicate-only" : "mixed"} selection before effects in ${scope.length === 0 ? "monitoring-cohort" : "modules-only"} scope`, async (t) => {
+      const root = await mkdtemp(join(tmpdir(), "academic-os-cohort-refusal-"));
+      t.after(async () => {
+        if (process.env.ACADEMIC_ROUTINE_EVIDENCE_ROOT === undefined)
+          await rm(root, { recursive: true });
+      });
+      t.diagnostic(`Cohort refusal fixture ${root}`);
+      const driveMount = join(root, "drive");
+      const stateRoot = join(root, "state");
+      for (const module of new Set(modules)) {
+        const moduleRoot = join(driveMount, "Semester", module);
+        await mkdir(moduleRoot, { recursive: true });
+        await writeFile(
+          join(moduleRoot, "Owner.txt"),
+          "Owner academic bytes\n",
+        );
+      }
+      await mkdir(join(driveMount, "Shelf"));
+      await writeFile(
+        join(driveMount, "Shelf", "Owner.txt"),
+        "Owner shelf bytes\n",
+      );
+      const repairDirectoryRefusal = join(stateRoot, "repository-repair");
+      await mkdir(repairDirectoryRefusal, { recursive: true });
+      await chmod(repairDirectoryRefusal, 0o755);
+      const { ghPath, providerPath } = await writeWeeklyGhFixture(root);
+      const codexPath = join(root, "codex.cjs");
+      const codexLog = join(root, "codex-invocations.txt");
+      await writeFile(codexLog, "");
+      await writeFile(
+        codexPath,
+        `#!${process.execPath}\nrequire('node:fs').appendFileSync(${JSON.stringify(codexLog)}, 'invoked\\n');\nprocess.exitCode = 1;\n`,
+      );
+      await chmod(codexPath, 0o700);
+      const configPath = join(root, "config.json");
+      await writeFile(
+        configPath,
+        JSON.stringify({
+          driveMount,
+          stateRoot,
+          activeSemester: "Y2S1",
+          semesters: { Y2S1: { root: "Semester", status: "active", modules } },
+          routine: { codexPath, ghPath },
+          textbooks: { shelfRoot: "Shelf" },
+          tasks: {
+            credentials: {
+              scheduledRead: join(root, "absent-read-credentials"),
+              interactiveWrite: join(root, "absent-write-credentials"),
+            },
+          },
+        }),
+      );
+      const before = {
+        academic: await snapshot(driveMount),
+        state: await snapshot(stateRoot),
+        provider: await readFile(providerPath, "utf8"),
+        sessions: await readFile(codexLog, "utf8"),
+      };
+      const result = await runCli(
+        "routine",
+        "morning",
+        "--config",
+        configPath,
+        "--retain-artifacts",
+        ...scope,
+        "--json",
+      );
+      const after = {
+        academic: await snapshot(driveMount),
+        state: await snapshot(stateRoot),
+        provider: await readFile(providerPath, "utf8"),
+        sessions: await readFile(codexLog, "utf8"),
+      };
+      await writeFile(
+        join(root, "observations.json"),
+        JSON.stringify({ result, before, after }, null, 2),
+      );
+      assert.deepEqual(
+        {
+          academicChanged:
+            JSON.stringify(after.academic) !== JSON.stringify(before.academic),
+          stateChanged:
+            JSON.stringify(after.state) !== JSON.stringify(before.state),
+          providerChanged: after.provider !== before.provider,
+          sessionInvocations: after.sessions,
+        },
+        {
+          academicChanged: false,
+          stateChanged: false,
+          providerChanged: false,
+          sessionInvocations: "",
+        },
+      );
+      assert.equal(result.exitCode, 2, result.stdout);
+      const { error } = JSON.parse(result.stdout);
+      assert.equal(error.code, "invalid-config");
+      assert.match(error.message, /Y2S1\/AB1234.*duplicated-module/u);
+      assert.match(error.message, /selection.*unresolved/u);
+    });
+  }
+}
+
+async function snapshot(root: string) {
+  return Promise.all(
+    (await readdir(root, { recursive: true })).sort().map(async (path) => {
+      const fullPath = join(root, path);
+      const metadata = await lstat(fullPath);
+      return {
+        path,
+        mode: metadata.mode & 0o777,
+        contents: metadata.isFile() ? await readFile(fullPath, "base64") : null,
+      };
+    }),
+  );
+}
 
 it("rejects invalid or unpaired model overrides before reading configuration", async () => {
   for (const flags of [

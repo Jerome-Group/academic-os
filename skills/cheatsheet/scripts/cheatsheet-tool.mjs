@@ -8031,7 +8031,7 @@ function readControlDocument(source) {
     if (problems.length > 0) return { problems };
     const mappingKeys = mappings.map((map) => ({
       map,
-      keys: declaredMappingKeys(map.items, resolvedKeys)
+      keys: declaredMappingKeys(map.items, resolvedKeys, document.schema)
     }));
     for (const { map, keys } of mappingKeys) {
       problems.push(
@@ -8041,7 +8041,7 @@ function readControlDocument(source) {
     for (const pairs of orderedMaps)
       problems.push(
         ...declaredKeyProblems(
-          declaredMappingKeys(pairs, resolvedKeys, false),
+          declaredMappingKeys(pairs, resolvedKeys, void 0),
           false
         )
       );
@@ -8064,9 +8064,9 @@ function readControlDocument(source) {
     };
   }
 }
-function declaredMappingKeys(pairs, resolvedKeys, mergeInstructions = true) {
+function declaredMappingKeys(pairs, resolvedKeys, mergeSchema) {
   return pairs.flatMap((pair) => {
-    if (mergeInstructions && (0, import_yaml2.isScalar)(pair.key) && pair.key.addToJSMap)
+    if (mergeSchema && isMergeInstruction(pair.key, mergeSchema))
       return [{ kind: "merge", pair }];
     const key = resolvedKeys.get(pair);
     if (key === void 0) return [];
@@ -8074,6 +8074,11 @@ function declaredMappingKeys(pairs, resolvedKeys, mergeInstructions = true) {
     const propertyKey = nativeKey === null ? "" : typeof nativeKey === "object" ? String(pair.key) : String(nativeKey);
     return [{ kind: "entry", nativeKey, propertyKey }];
   });
+}
+function isMergeInstruction(key, schema) {
+  return (0, import_yaml2.isScalar)(key) && (Boolean(key.addToJSMap) || (!key.type || key.type === "PLAIN") && (key.value === "<<" || typeof key.value === "symbol" && key.value.description === "<<") && schema.tags.some(
+    (tag) => tag.tag === "tag:yaml.org,2002:merge" && tag.default
+  ));
 }
 function declaredKeyProblems(keys, objectProperties) {
   const nativeKeys = /* @__PURE__ */ new Set();

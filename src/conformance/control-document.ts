@@ -44,7 +44,7 @@ export function readControlDocument(
     if (problems.length > 0) return { problems };
     const mappingKeys = mappings.map((map) => ({
       map,
-      keys: declaredMappingKeys(map.items, resolvedKeys),
+      keys: declaredMappingKeys(map.items, resolvedKeys, document.schema),
     }));
     for (const { map, keys } of mappingKeys) {
       problems.push(
@@ -54,7 +54,7 @@ export function readControlDocument(
     for (const pairs of orderedMaps)
       problems.push(
         ...declaredKeyProblems(
-          declaredMappingKeys(pairs, resolvedKeys, false),
+          declaredMappingKeys(pairs, resolvedKeys, undefined),
           false,
         ),
       );
@@ -84,10 +84,10 @@ export function readControlDocument(
 function declaredMappingKeys(
   pairs: readonly Pair[],
   resolvedKeys: ReadonlyMap<Pair, Scalar>,
-  mergeInstructions = true,
+  mergeSchema: ControlDocument["schema"] | undefined,
 ): MappingKey[] {
   return pairs.flatMap((pair): MappingKey[] => {
-    if (mergeInstructions && isScalar(pair.key) && pair.key.addToJSMap)
+    if (mergeSchema && isMergeInstruction(pair.key, mergeSchema))
       return [{ kind: "merge", pair }];
     const key = resolvedKeys.get(pair);
     if (key === undefined) return [];
@@ -100,6 +100,22 @@ function declaredMappingKeys(
           : String(nativeKey);
     return [{ kind: "entry", nativeKey, propertyKey }];
   });
+}
+
+function isMergeInstruction(
+  key: Pair["key"],
+  schema: ControlDocument["schema"],
+): boolean {
+  return (
+    isScalar(key) &&
+    (Boolean(key.addToJSMap) ||
+      ((!key.type || key.type === "PLAIN") &&
+        (key.value === "<<" ||
+          (typeof key.value === "symbol" && key.value.description === "<<")) &&
+        schema.tags.some(
+          (tag) => tag.tag === "tag:yaml.org,2002:merge" && tag.default,
+        )))
+  );
 }
 
 function declaredKeyProblems(

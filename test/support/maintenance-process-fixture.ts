@@ -14,7 +14,7 @@ import { universalPaths } from "../fixtures/universal-structure.js";
 export async function maintenanceProcessFixture(
   t: TestContext,
   input: {
-    runner: "repository" | "module";
+    runner: "repository" | "module" | "check-budget";
     behavior: "normal" | "ignore-term" | "descendant";
     logFault?: "open" | "write" | "finish";
     unavailable?: boolean;
@@ -40,6 +40,9 @@ import {spawn} from 'node:child_process';
 import {writeFileSync} from 'node:fs';
 if (process.argv.includes('--warm')) process.exit(0);
 writeFileSync(${JSON.stringify(pidFiles[0])}, String(process.pid));
+if (${JSON.stringify(input.runner)} === 'check-budget') {
+  setTimeout(()=>process.stdout.write(JSON.stringify({checks:[]})),510);
+} else {
 const behavior = ${JSON.stringify(input.behavior)};
 if (behavior !== 'normal') process.on('SIGTERM', () => {});
 if (behavior === 'descendant') {
@@ -51,12 +54,17 @@ process.stderr.write('diagnostic stderr\\n');
 if (behavior === 'normal') process.exitCode = 7;
 else setTimeout(() => writeFileSync(${JSON.stringify(marker)}, 'effect'), 600);
 if (behavior !== 'normal') setTimeout(() => process.exit(0), behavior === 'descendant' ? 100 : 3000);
+}
 `,
     { mode: 0o700 },
   );
   assert.equal(spawnSync(executable, ["--warm"], { timeout: 5000 }).status, 0);
   const moduleRoot = join(root, "Drive", "Modules", "Y2S1", "MH2100");
   const stateRoot = join(root, "State");
+  const checkout = join(root, "checkout");
+  const fixtureRoot = join(root, "fixture");
+  await mkdir(checkout);
+  await mkdir(fixtureRoot, { mode: 0o700 });
   if (input.runner === "module") {
     const controls = moduleControlContents(validModuleControls());
     for (const [relative, kind] of [
@@ -101,11 +109,17 @@ fs.createWriteStream = (path, options) => {
 syncBuiltinESMExports();
 const {runRepositoryProcess} = await import(${JSON.stringify(repositoryApi)});
 const {createCodexModuleSession} = await import(${JSON.stringify(moduleApi)});
+const {createRepositoryRepairPorts} = await import(${JSON.stringify(new URL("../../src/routine/repository-repair-adapters.js", import.meta.url).href)});
 const started = performance.now();
 let result;
 try {
   if (${JSON.stringify(input.runner)} === 'repository') result = await runRepositoryProcess({executable:${JSON.stringify(input.unavailable ? join(root, "missing") : executable)},args:[],cwd:${JSON.stringify(root)},log:${JSON.stringify(log)},timeoutMs:250});
-  else {
+  else if (${JSON.stringify(input.runner)} === 'check-budget') {
+    const originalTimeout = globalThis.setTimeout;
+    globalThis.setTimeout = (callback,delay,...args)=>originalTimeout(callback,delay >= 480000 ? delay/1000 : delay,...args);
+    const ports = createRepositoryRepairPorts({repositoryRoot:${JSON.stringify(checkout)},privateStateRoot:${JSON.stringify(stateRoot)},codexPath:${JSON.stringify(executable)},ghPath:'/unavailable-fixture-gh'});
+    result = await ports.checks({root:${JSON.stringify(checkout)},fixtureRoot:${JSON.stringify(fixtureRoot)},branch:'codex/fixture',base:'fixture'},${JSON.stringify(join(root, "checks"))});
+  } else {
     let clocks = 0;
     const session = createCodexModuleSession({config:${JSON.stringify({ driveMount: join(root, "Drive"), stateRoot, activeSemester: "Y2S1", semesters: { Y2S1: { root: "Modules/Y2S1", status: "active", modules: ["MH2100"] } } })},codexPath:${JSON.stringify(input.unavailable ? join(root, "missing") : executable)},date:'2026-08-23',sessionSettings:{model:'gpt-6.1-sol',reasoningEffort:'xhigh'},clock:()=>new Date(Date.parse('2026-08-22T22:00:00.000Z') + (clocks++ === 0 ? 0 : 1200000-250))});
     result = await session.run({semester:'Y2S1',module:'MH2100'});
@@ -180,6 +194,7 @@ process.exit(0);
         result: {
           error?: { code?: string; message: string };
           code?: number;
+          passed?: boolean;
           output?: string;
           failures?: Array<{ code: string; message: string }>;
           artifacts?: string;

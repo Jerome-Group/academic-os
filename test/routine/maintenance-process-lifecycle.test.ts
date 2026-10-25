@@ -3,6 +3,14 @@ import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 import { maintenanceProcessFixture } from "../support/maintenance-process-fixture.js";
 
+test("repository check envelope permits the declared full-check budget", async (t) => {
+  const fixture = await maintenanceProcessFixture(t, {
+    runner: "check-budget",
+    behavior: "normal",
+  });
+  assert.equal(fixture.report.result.passed, true);
+});
+
 for (const runner of ["repository", "module"] as const) {
   test(`${runner} refuses bad log before child work`, async (t) => {
     const fixture = await maintenanceProcessFixture(t, {

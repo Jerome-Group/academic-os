@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { AsyncLocalStorage } from "node:async_hooks";
-import filesystem, { mkdir, readFile, writeFile } from "node:fs/promises";
+import filesystem, { mkdir, writeFile } from "node:fs/promises";
 import { syncBuiltinESMExports } from "node:module";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -105,6 +105,11 @@ test("a confirmed append survives a competing writer that captured the same fina
       ),
     );
     assert.equal(firstResult.appended, 1);
+    assert.equal(secondResult.appended, 0);
+    assert.match(
+      secondResult.refusals.join(" "),
+      /another invocation owns this curation register/u,
+    );
     assert.ok(contents.startsWith(prefix));
     for (const [label, result] of [
       ["A", firstResult],

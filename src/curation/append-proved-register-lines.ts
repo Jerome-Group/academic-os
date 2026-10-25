@@ -3,6 +3,7 @@ import { join } from "node:path";
 
 import { sha256 } from "../checksum.js";
 import { writtenControlPaths } from "../conformance/control-paths.js";
+import { withJournalMutationOwner } from "../journal-mutation-owner.js";
 import { isContainedBy } from "../mounted/is-contained-by.js";
 import { replaceMountedFile } from "../mounted/replace-mounted-file.js";
 import type {
@@ -47,6 +48,7 @@ export interface RegisterAppendOutcome {
 export async function appendProvedRegisterLines(input: {
   pending: readonly PendingRegisterAppend[];
   roots: RegisterAppendRoots;
+  stateRoot: string;
   journal: () => Promise<CurationRegisterJournal>;
 }): Promise<RegisterAppendOutcome> {
   const proven: Array<{
@@ -72,7 +74,7 @@ export async function appendProvedRegisterLines(input: {
     return { appended: 0, written: new Set(), refusals };
   }
 
-  const journal = await input.journal();
+  let journalPromise: Promise<CurationRegisterJournal> | undefined;
   const written = new Set<string>();
   let appended = 0;
   for (const { pending, target, contents } of proven) {
@@ -82,20 +84,52 @@ export async function appendProvedRegisterLines(input: {
       path: registerPath,
     };
     const to = sha256(contents);
-    await journal.append({
-      ...subject,
-      type: "intent",
-      appended: pending.lines.length,
-      from: pending.observedSha256,
-      to,
-    });
-    const changedInputs = await unprovedInputs(pending, input.roots);
+    const owned = await withJournalMutationOwner(
+      {
+        stateRoot: input.stateRoot,
+        journalPath: join(
+          input.stateRoot,
+          "curation-registers",
+          `${sha256(target.toLowerCase())}.jsonl`,
+        ),
+      },
+      async () => {
+        journalPromise ??= input.journal();
+        const journal = await journalPromise;
+        await journal.append({
+          ...subject,
+          type: "intent",
+          appended: pending.lines.length,
+          from: pending.observedSha256,
+          to,
+        });
+        const fresh = await proveRegister(pending, input.roots);
+        const changedInputs = await unprovedInputs(pending, input.roots);
+        let evidence: string | undefined;
+        if ("refusal" in fresh) evidence = fresh.refusal;
+        else if (fresh.target !== target)
+          evidence =
+            "the register identity changed during ownership acquisition.";
+        else if (changedInputs.length > 0) evidence = changedInputs.join("\n");
+        else evidence = await writeRegister(pending, target, contents, to);
+        if (evidence !== undefined)
+          await journal.append({ ...subject, type: "refused", evidence });
+        else
+          await journal.append({
+            ...subject,
+            type: "result",
+            outcome: "appended",
+          });
+        return evidence;
+      },
+    );
     const evidence =
-      changedInputs.length > 0
-        ? changedInputs.join("\n")
-        : await writeRegister(pending, target, contents, to);
+      owned.kind === "owned"
+        ? owned.value
+        : owned.reason === "busy"
+          ? "another invocation owns this curation register; retry after it finishes."
+          : `curation register mutation ownership is unavailable. ${owned.evidence}`;
     if (evidence !== undefined) {
-      await journal.append({ ...subject, type: "refused", evidence });
       return {
         appended,
         written,
@@ -103,7 +137,6 @@ export async function appendProvedRegisterLines(input: {
         stopped: { module: pending.module, evidence },
       };
     }
-    await journal.append({ ...subject, type: "result", outcome: "appended" });
     written.add(pending.module);
     appended += pending.lines.length;
   }
@@ -207,7 +240,7 @@ async function proveRegister(
       refusal: `${where}: the register changed after it was read for this run.`,
     };
   }
-  return { target, current };
+  return { target: resolved, current };
 }
 
 // Append-only: every line already in the register is reproduced exactly as it was read, and the new

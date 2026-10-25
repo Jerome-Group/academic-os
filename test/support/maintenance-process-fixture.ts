@@ -1,0 +1,227 @@
+import assert from "node:assert/strict";
+import { spawn, spawnSync } from "node:child_process";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import type { TestContext } from "node:test";
+import { learningWorkspacePaths } from "../fixtures/learning-workspace.js";
+import {
+  moduleControlContents,
+  validModuleControls,
+} from "../fixtures/module-controls.js";
+import { universalPaths } from "../fixtures/universal-structure.js";
+
+export async function maintenanceProcessFixture(
+  t: TestContext,
+  input: {
+    runner: "repository" | "module";
+    behavior: "normal" | "ignore-term" | "descendant";
+    logFault?: "open" | "write" | "finish";
+    unavailable?: boolean;
+  },
+) {
+  const retained = process.env.AOS_MAINTENANCE_PROCESS_EVIDENCE_ROOT;
+  const root = await mkdtemp(
+    join(retained ?? tmpdir(), "maintenance-process-"),
+  );
+  if (retained === undefined)
+    t.after(() => rm(root, { recursive: true, force: true }));
+  const pidFiles = [join(root, "child.pid"), join(root, "descendant.pid")];
+  const marker = join(root, "effect");
+  const log = join(root, "repository.log");
+  const badLog = join(root, "bad-log");
+  await mkdir(badLog);
+  if (input.logFault === "open") await writeFile(log, "original log\n");
+  const executable = join(root, "fake-codex.mjs");
+  await writeFile(
+    executable,
+    `#!${process.execPath}
+import {spawn} from 'node:child_process';
+import {writeFileSync} from 'node:fs';
+if (process.argv.includes('--warm')) process.exit(0);
+writeFileSync(${JSON.stringify(pidFiles[0])}, String(process.pid));
+const behavior = ${JSON.stringify(input.behavior)};
+if (behavior !== 'normal') process.on('SIGTERM', () => {});
+if (behavior === 'descendant') {
+  const child = spawn(process.execPath, ['-e', ${JSON.stringify(`const fs=require('node:fs');fs.writeFileSync(${JSON.stringify(pidFiles[1])},String(process.pid));process.on('SIGTERM',()=>{});process.stdout.write('descendant ready\\n');setTimeout(()=>process.exit(0),3000);`)}], {stdio:['ignore','inherit','inherit']});
+  child.unref();
+}
+process.stdout.write('diagnostic stdout\\n');
+process.stderr.write('diagnostic stderr\\n');
+if (behavior === 'normal') process.exitCode = 7;
+else setTimeout(() => writeFileSync(${JSON.stringify(marker)}, 'effect'), 600);
+if (behavior !== 'normal') setTimeout(() => process.exit(0), behavior === 'descendant' ? 100 : 3000);
+`,
+    { mode: 0o700 },
+  );
+  assert.equal(spawnSync(executable, ["--warm"], { timeout: 5000 }).status, 0);
+  const moduleRoot = join(root, "Drive", "Modules", "Y2S1", "MH2100");
+  const stateRoot = join(root, "State");
+  if (input.runner === "module") {
+    const controls = moduleControlContents(validModuleControls());
+    for (const [relative, kind] of [
+      ...universalPaths,
+      ...learningWorkspacePaths,
+    ]) {
+      const path = join(moduleRoot, relative);
+      await mkdir(kind === "directory" ? path : dirname(path), {
+        recursive: true,
+      });
+      if (kind !== "directory")
+        await writeFile(path, controls.get(relative) ?? "fixture\n");
+    }
+  }
+  const runner = join(root, "runner.mjs");
+  const repositoryApi = new URL(
+    "../../src/routine/repository-repair-process.js",
+    import.meta.url,
+  ).href;
+  const moduleApi = new URL(
+    "../../src/routine/codex-module-session.js",
+    import.meta.url,
+  ).href;
+  await writeFile(
+    runner,
+    `import fs from 'node:fs';
+import {syncBuiltinESMExports} from 'node:module';
+import {writeFile} from 'node:fs/promises';
+const original = fs.createWriteStream;
+const fault = ${JSON.stringify(input.logFault ?? "")};
+fs.createWriteStream = (path, options) => {
+  if (!String(path).endsWith('session.log') && !String(path).endsWith('repository.log')) return original(path,options);
+  if (fault === 'open' && String(path).endsWith('session.log')) return original(${JSON.stringify(badLog)},options);
+  if (fault === 'write' || fault === 'finish') {
+    const stream = original(path,options);
+    const method = fault === 'write' ? '_write' : '_final';
+    stream[method] = (...args) => setTimeout(() => args.at(-1)(Object.assign(new Error('synthetic disk full'),{code:'ENOSPC'})), 50);
+    return stream;
+  }
+  return original(path,options);
+};
+syncBuiltinESMExports();
+const {runRepositoryProcess} = await import(${JSON.stringify(repositoryApi)});
+const {createCodexModuleSession} = await import(${JSON.stringify(moduleApi)});
+const started = performance.now();
+let result;
+try {
+  if (${JSON.stringify(input.runner)} === 'repository') result = await runRepositoryProcess({executable:${JSON.stringify(input.unavailable ? join(root, "missing") : executable)},args:[],cwd:${JSON.stringify(root)},log:${JSON.stringify(log)},timeoutMs:250});
+  else {
+    let clocks = 0;
+    const session = createCodexModuleSession({config:${JSON.stringify({ driveMount: join(root, "Drive"), stateRoot, activeSemester: "Y2S1", semesters: { Y2S1: { root: "Modules/Y2S1", status: "active", modules: ["MH2100"] } } })},codexPath:${JSON.stringify(input.unavailable ? join(root, "missing") : executable)},date:'2026-08-23',sessionSettings:{model:'gpt-6.1-sol',reasoningEffort:'xhigh'},clock:()=>new Date(Date.parse('2026-08-22T22:00:00.000Z') + (clocks++ === 0 ? 0 : 1200000-250))});
+    result = await session.run({semester:'Y2S1',module:'MH2100'});
+  }
+} catch(error) {result = {error:{message:error.message,code:error.code}};}
+await writeFile(${JSON.stringify(join(root, "result.json"))},JSON.stringify({elapsedMs:performance.now()-started,result,activeTimeouts:process.getActiveResourcesInfo().filter(name=>name==='Timeout').length}));
+process.exit(0);
+`,
+  );
+  const child = spawn(process.execPath, [runner], {
+    detached: true,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let stdout = "",
+    stderr = "",
+    watchdogFired = false;
+  child.stdout.on("data", (chunk: Buffer) => {
+    stdout += chunk.toString();
+  });
+  child.stderr.on("data", (chunk: Buffer) => {
+    stderr += chunk.toString();
+  });
+  const pids = async () => {
+    const owned: number[] = [];
+    for (const path of pidFiles) {
+      try {
+        owned.push(Number(await readFile(path, "utf8")));
+      } catch {}
+    }
+    return owned;
+  };
+  const kill = async () => {
+    for (const pid of [...(await pids()), child.pid]) {
+      if (pid === undefined) continue;
+      try {
+        process.kill(-pid, "SIGKILL");
+      } catch {}
+      try {
+        process.kill(pid, "SIGKILL");
+      } catch {}
+    }
+  };
+  const watchdog = setTimeout(() => {
+    watchdogFired = true;
+    void kill();
+  }, 2000);
+  t.after(async () => {
+    clearTimeout(watchdog);
+    await kill();
+  });
+  const exit = await new Promise<{
+    code: number | null;
+    signal: NodeJS.Signals | null;
+  }>((resolve, reject) => {
+    child.on("error", reject);
+    child.on("close", (code, signal) => resolve({ code, signal }));
+  });
+  clearTimeout(watchdog);
+  const alive = (pid: number) => {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  const ownedPids = await pids();
+  const aliveAtReturn = ownedPids.filter(alive);
+  let report:
+    | {
+        elapsedMs: number;
+        result: {
+          error?: { code?: string; message: string };
+          code?: number;
+          output?: string;
+          failures?: Array<{ code: string; message: string }>;
+          artifacts?: string;
+        };
+        activeTimeouts: number;
+      }
+    | undefined;
+  try {
+    report = JSON.parse(await readFile(join(root, "result.json"), "utf8"));
+  } catch {}
+  await kill();
+  const evidence = {
+    root,
+    input,
+    exit,
+    watchdogFired,
+    ownedPids,
+    aliveAtReturn,
+    report,
+    stdout,
+    stderr,
+  };
+  await writeFile(
+    join(root, "evidence.json"),
+    JSON.stringify(evidence, null, 2),
+  );
+  assert.equal(
+    watchdogFired,
+    false,
+    `external watchdog fired: ${JSON.stringify(evidence)}`,
+  );
+  assert.equal(exit.code, 0, stderr);
+  assert.ok(report, `controller returned no result: ${stderr}`);
+  assert.equal(
+    report.activeTimeouts,
+    0,
+    "a lifecycle deadline remains active after return",
+  );
+  assert.deepEqual(
+    aliveAtReturn,
+    [],
+    "owned descendants remain active after return",
+  );
+  return { ...evidence, report, marker, log, pidFiles };
+}

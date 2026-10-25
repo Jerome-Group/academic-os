@@ -1,4 +1,5 @@
 import { sha256 } from "../checksum.js";
+import { requireActiveResearchProject } from "../config/index.js";
 import { firstDifference } from "../conformance/first-difference.js";
 import type { ResearchProjectControls } from "../conformance/index.js";
 import type { ResearchProjectContract } from "../conformance/research-project-contract.js";
@@ -95,6 +96,8 @@ export async function executeResearchSharedControlRefresh(input: {
   target: ResolvedConfiguredResearchProjectRoots;
   mode: "preview" | "apply";
 }): Promise<ResearchSharedControlRefreshReport> {
+  if (input.mode === "apply")
+    requireActiveResearchProject(input.target.project);
   const summary = {
     schemaVersion: 1,
     command: "pinned refresh",

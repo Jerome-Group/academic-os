@@ -38,8 +38,9 @@ export async function observeCohortPinnedCopies(
   });
   const modules: ObservedModuleCopies[] = [];
   const moduleRoots = new Map<string, string>();
-  const unresolved: UnresolvedModule[] = [];
-  for (const target of planCohortAudit(config).targets) {
+  const plan = planCohortAudit(config);
+  const unresolved: UnresolvedModule[] = [...plan.selection.unresolved];
+  for (const target of plan.targets) {
     const resolved = await readableModule(target);
     if ("reason" in resolved) {
       unresolved.push(resolved);

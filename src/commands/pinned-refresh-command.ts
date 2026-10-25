@@ -109,6 +109,7 @@ function exitCodeForRefresh(
 ): 0 | 1 | 2 {
   if (
     report.outcome === "refused" ||
+    report.outcome === "incomplete" ||
     report.outcome === "partially-rewritten" ||
     report.unresolved.length > 0
   ) {

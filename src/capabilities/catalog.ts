@@ -119,7 +119,10 @@ export const cliCapabilities: Capability[] = [
   cli(
     "pinned refresh",
     ["private backups/journal", "mounted pinned content with --apply"],
-    [],
+    [
+      "complete cohort coverage before Module apply",
+      "active Research project before Research shared-control apply",
+    ],
     "omit --apply",
   ),
   cli(

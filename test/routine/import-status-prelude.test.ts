@@ -112,3 +112,15 @@ it("exposes unresolved controls independently of healthy roots", () => {
   );
   assert.match(prelude.detail.join("\n"), /AB1234\/NTULearn: current/u);
 });
+
+it("does not treat an unobserved selected Module as an empty resolved morning", () => {
+  const input = report();
+  input.outcome = "invalid";
+  input.modules = [];
+  input.selection.included = [{ semester: "Y2S1", module: "AB1234" }];
+  input.summary.roots.current = 0;
+
+  const prelude = importStatusPrelude(input);
+  assert.equal(prelude.outcome, "invalid");
+  assert.equal(prelude.failure?.code, "import-status-invalid");
+});

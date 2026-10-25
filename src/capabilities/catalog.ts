@@ -370,11 +370,20 @@ export const cliCapabilities: Capability[] = [
     result:
       "Versioned JSON; 0 observed healthy or verified merge/rollout, 1 attention, 2 unobserved or invalid request. Read-only; no model, provider or GitHub calls.",
   },
-  cli(
-    "imports status",
-    [],
-    ["optional importer-owned receipt; absence is unavailable evidence"],
-  ),
+  {
+    ...cli(
+      "imports status",
+      [],
+      ["optional importer-owned receipt; absence is unavailable evidence"],
+      null,
+      [
+        "test/cli/imports-status-cli.test.ts",
+        "test/imports/run-import-status.test.ts",
+      ],
+    ),
+    result:
+      "Versioned JSON; 0 current, 1 attention, 2 invalid or unreadable evidence, including an empty active Module cohort. No credentials, provider calls or writes.",
+  },
   {
     ...cli(
       "imports preflight",
@@ -399,7 +408,14 @@ export const cliCapabilities: Capability[] = [
         "Required absolute checkout root; relative destinations resolve here. Checkout code is never executed.",
     },
   },
-  cli("learning materials", []),
+  {
+    ...cli("learning materials", [], [], null, [
+      "test/cli/learning-materials-cli.test.ts",
+      "test/learning-materials/run-learning-materials.test.ts",
+    ]),
+    result:
+      "Versioned JSON; 0 available, 1 gaps, 2 invalid or incomplete evidence, including an empty active Module cohort. No filesystem or provider writes.",
+  },
   {
     ...cli("offering readiness", []),
     reads: ["active Module controls, mounted inventory and importer receipts"],

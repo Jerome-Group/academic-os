@@ -59,6 +59,7 @@ export async function runImportStatus(input: {
   }
   const summary = summarize(modules);
   const outcome =
+    modules.length === 0 ||
     plan.selection.unresolved.length > 0 ||
     summary.invalidModules > 0 ||
     summary.roots.invalid > 0

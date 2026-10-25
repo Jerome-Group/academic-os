@@ -74,7 +74,12 @@ function cohortOutcome(
   outcomes: LearningMaterialsAssessment["outcome"][],
   unresolved: number,
 ): LearningMaterialsAssessment["outcome"] {
-  if (unresolved > 0 || outcomes.includes("incomplete")) return "incomplete";
+  if (
+    outcomes.length === 0 ||
+    unresolved > 0 ||
+    outcomes.includes("incomplete")
+  )
+    return "incomplete";
   if (outcomes.includes("invalid")) return "invalid";
   return outcomes.includes("gaps") ? "gaps" : "available";
 }

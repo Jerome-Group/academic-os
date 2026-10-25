@@ -9,6 +9,9 @@ import {
   collidingSourceMaps,
   orderedSourceMap,
   orderedUnits,
+  nativeObjectSourceMap,
+  nativeObjectPaths,
+  nativeObjectCandidates,
 } from "../fixtures/source-map-identity.js";
 import { prepareCheatsheet } from "../../src/cheatsheet/index.js";
 import {
@@ -18,6 +21,74 @@ import {
 import type { CheatsheetManifest } from "../../src/cheatsheet/types.js";
 
 for (const mode of ["API", "shipped helper"] as const) {
+  it(`retains both complete Date-merge and raw-alias payloads through ${mode}`, async () => {
+    const root = await mkdtemp(join(tmpdir(), "cheatsheet-native-order-"));
+    try {
+      const admin = join(root, "00 Module Admin");
+      await mkdir(admin);
+      const controls = validModuleControls();
+      await writeFile(
+        join(admin, "00 Module Profile.md"),
+        controls.profile ?? "",
+      );
+      await writeFile(
+        join(admin, "10 Module Definition.yaml"),
+        controls.definition ?? "",
+      );
+      await writeFile(join(admin, "40 Source Map.yaml"), nativeObjectSourceMap);
+      for (const path of nativeObjectPaths)
+        await writeFile(join(root, path), `synthetic ${path}`);
+      const input = {
+        moduleRoot: root,
+        moduleCode: "MH2100",
+        assessment: "midterm",
+      };
+      const api = await prepareCheatsheet(input);
+      let result = api;
+      if (mode === "shipped helper") {
+        const child = spawnSync(
+          process.execPath,
+          [
+            resolve("skills/cheatsheet/scripts/cheatsheet-tool.mjs"),
+            "prepare",
+            "--module-root",
+            root,
+            "--module-code",
+            input.moduleCode,
+            "--assessment",
+            input.assessment,
+          ],
+          { encoding: "utf8" },
+        );
+        assert.equal(child.status, 0, child.stdout + child.stderr);
+        result = JSON.parse(child.stdout);
+        assert.deepEqual(result, api);
+      }
+      assert.equal(result.status, "context-discovered");
+      assert.ok(
+        result.candidates.every(
+          ({ availability, sha256 }) =>
+            availability === "observed" && sha256?.length === 64,
+        ),
+      );
+      assert.deepEqual(
+        result.candidates.map(
+          ({ unit, topics, path, locator, role, missing }) => ({
+            unit,
+            topics,
+            path,
+            locator,
+            role,
+            missing,
+          }),
+        ),
+        nativeObjectCandidates,
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it(`preserves mixed numeric and named Source Map declaration order through ${mode}`, async () => {
     const root = await mkdtemp(join(tmpdir(), "cheatsheet-unit-order-"));
     try {

@@ -32,3 +32,83 @@ export const orderedUnits = [
   ["first", "sixth"],
   ["Repeat", "first"],
 ] as const;
+
+export const nativeObjectUnits = [
+  [String(new Date("2026-01-01")), "alpha"],
+  ["*day", "beta"],
+] as const;
+
+const completeUnit = (label: string, week: number) =>
+  `{ topics: [${label}], historical_reference: [${label}-history.md], teaching_weeks: [${week}], tutorials: [{ block: ${label}-block, exercises: ${label}-exercises, sources: [{ file: ${label}-tutorial.md, locator: ${label}-locator, role: ${label}-role, missing: [${label}-missing] }] }], lectures: [${label}.md], supplementary_materials: [${label}-supplement.md], textbook: [${label}-textbook.md], practice_tests: [${label}-practice.md], past_papers: [${label}-past.md] }`;
+
+export const nativeObjectSourceMap = `%YAML 1.1\n---\nunits:\n  <<:\n    &day !!timestamp 2026-01-01: ${completeUnit("alpha", 1)}\n  *day : ${completeUnit("beta", 2)}\n`;
+
+export const completeCategories = [
+  ["historical_reference", "history"],
+  ["tutorials", "tutorial"],
+  ["lectures", ""],
+  ["supplementary_materials", "supplement"],
+  ["textbook", "textbook"],
+  ["practice_tests", "practice"],
+  ["past_papers", "past"],
+] as const;
+
+export const nativeObjectPaths = nativeObjectUnits.flatMap(([, label]) =>
+  completeCategories.map(([, suffix]) =>
+    suffix === "" ? `${label}.md` : `${label}-${suffix}.md`,
+  ),
+);
+
+export const nativeObjectCandidates = nativeObjectUnits.flatMap(
+  ([unit, label]) =>
+    completeCategories.map(([role, suffix]) => ({
+      unit,
+      topics: [label],
+      path: suffix === "" ? `${label}.md` : `${label}-${suffix}.md`,
+      locator: role === "tutorials" ? `${label}-locator` : "whole file",
+      role: role === "tutorials" ? `${label}-role` : role,
+      missing: role === "tutorials" ? [`${label}-missing`] : [],
+    })),
+);
+
+export const nativeObjectLearningUnits = nativeObjectUnits.map(
+  ([unit, label], index) => {
+    const reference = (category: string, suffix: string) => [
+      {
+        category,
+        file: suffix === "" ? `${label}.md` : `${label}-${suffix}.md`,
+        availability: "available",
+      },
+    ];
+    return {
+      unit,
+      topics: [label],
+      teachingWeeks: [index + 1],
+      lectures: reference("lectures", ""),
+      textbook: reference("textbook", "textbook"),
+      tutorials: [
+        {
+          kind: "block",
+          block: `${label}-block`,
+          exercises: `${label}-exercises`,
+          sources: [
+            {
+              ...reference("tutorials", "tutorial")[0],
+              locator: `${label}-locator`,
+              role: `${label}-role`,
+              declaredMissing: [`${label}-missing`],
+            },
+          ],
+        },
+      ],
+      supplementaryMaterials: reference(
+        "supplementary_materials",
+        "supplement",
+      ),
+      pastPapers: reference("past_papers", "past"),
+      practiceTests: reference("practice_tests", "practice"),
+      historicalReference: reference("historical_reference", "history"),
+      status: "gaps",
+    };
+  },
+);

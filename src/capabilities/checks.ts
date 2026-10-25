@@ -3,6 +3,8 @@ import { createHash } from "node:crypto";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 
+export const CHECK_PROFILE_TIMEOUT_MS = 540_000;
+
 export const checkProfiles = {
   fast: ["format:check", "lint", "build", "cheatsheet-runtime:check"],
   tests: ["test"],
@@ -120,7 +122,10 @@ export async function runChecks(
         executable: "npm",
         arguments: ["run", script],
         cwd: root,
-        timeoutMs: Math.max(1, 540_000 - (performance.now() - started)),
+        timeoutMs: Math.max(
+          1,
+          CHECK_PROFILE_TIMEOUT_MS - (performance.now() - started),
+        ),
       }),
     );
   if (profile === "templates" || profile === "full")
@@ -130,7 +135,10 @@ export async function runChecks(
         executable: process.execPath,
         arguments: ["scripts/synthetic-cheatsheet-journey.mjs"],
         cwd: root,
-        timeoutMs: Math.max(1, 540_000 - (performance.now() - started)),
+        timeoutMs: Math.max(
+          1,
+          CHECK_PROFILE_TIMEOUT_MS - (performance.now() - started),
+        ),
       }),
     );
   return results;

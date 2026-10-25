@@ -23,6 +23,7 @@ import {
 } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
+import { CHECK_PROFILE_TIMEOUT_MS } from "../capabilities/checks.js";
 import type {
   RepositoryCandidate,
   RepositoryCheckEvidence,
@@ -102,6 +103,7 @@ export function createRepositoryRepairPorts(input: {
         temporaryRoot,
         fixtureUnixTransport: true,
         log: join(evidence, `${action.replace(":", "-")}.log`),
+        timeoutMs: CHECK_PROFILE_TIMEOUT_MS + 60_000,
       });
       const diagnostics: string[] = [];
       if (r.outputTruncated) diagnosticsComplete = false;

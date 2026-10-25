@@ -91,14 +91,14 @@ describe("the Codex invocation a module pass runs under", () => {
 
   // Stdin closed rather than inherited: `codex exec` reads it, and an open pipe with nothing coming
   // holds the session — and behind it, the rest of the cohort — until the timeout.
-  it("runs in the module folder, with stdin closed and a timeout", () => {
+  it("runs in the module folder, with stdin closed and an owned process group", () => {
     const options = sessionSpawnOptions({
       codexPath: "/Applications/ChatGPT.app/Contents/Resources/codex",
       moduleRoot: "/mount/Modules/Y2S1/AB1234",
     });
     assert.equal(options.cwd, "/mount/Modules/Y2S1/AB1234");
     assert.deepEqual(options.stdio, ["ignore", "pipe", "pipe"]);
-    assert.ok(options.timeout > 0);
+    assert.equal(options.detached, true);
   });
 
   it("gets the module folder to write in and nothing wider", () => {

@@ -1,4 +1,4 @@
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 
 import { Document, isMap, isSeq, parseDocument } from "yaml";
 
@@ -75,16 +75,27 @@ export function renderShelfReviewSheet(input: {
   });
 }
 
-export function readShelfReviewSheet(contents: string): ShelfReview {
-  const document = parseDocument(contents);
+export function readShelfReviewSheet(input: {
+  contents: string;
+  shelfRoot: string;
+}): ShelfReview {
+  const document = parseDocument(input.contents);
   if (document.errors.length > 0) throw unreadableSheet();
   const value: unknown = document.toJS();
   if (
     !isRecord(value) ||
     value.schemaVersion !== 1 ||
+    !isText(value.shelf) ||
+    !isAbsolute(value.shelf) ||
     !Array.isArray(value.books)
   ) {
     throw unreadableSheet();
+  }
+  if (value.shelf !== input.shelfRoot) {
+    throw new OperationalError(
+      "operational-failure",
+      `The ${SHELF_REVIEW_FILENAME} review sheet belongs to another Textbook Shelf; restore its configured Shelf or sweep a new review.`,
+    );
   }
   return { books: value.books.map(readReviewBook) };
 }

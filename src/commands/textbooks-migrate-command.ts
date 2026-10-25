@@ -28,11 +28,13 @@ export async function runTextbooksMigrateCommand(
     resolveShelfRoot(config),
     resolveStateRoot(config),
   ]);
+  const review = readShelfReviewSheet({
+    contents: await readSheet(shelfReviewSheetPath(stateRoot)),
+    shelfRoot,
+  });
   const shelf = await openFileShelf({ shelfRoot, stateRoot });
   const report = await shelf.migrate({
-    review: readShelfReviewSheet(
-      await readSheet(shelfReviewSheetPath(stateRoot)),
-    ),
+    review,
     mode: parsed.apply ? "apply" : "preview",
   });
   process.stdout.write(

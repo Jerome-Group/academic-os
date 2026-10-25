@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 import { Document } from "yaml";
@@ -47,7 +47,7 @@ describe("Shelf CLI preservation and recovery", () => {
             shelfReviewSheetPath(f.stateRoot),
             new Document({
               schemaVersion: 1,
-              shelf: f.shelfRoot,
+              shelf: await realpath(f.shelfRoot),
               books: request.review.books,
             }).toString(),
           );

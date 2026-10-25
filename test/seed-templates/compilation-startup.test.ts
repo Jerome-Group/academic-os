@@ -10,6 +10,45 @@ const latexAvailable = spawnSync("latexmk", ["-norc", "-version"]).status === 0;
 const compiler = resolve("scripts/compile-seed-templates.mjs");
 const journey = resolve("scripts/synthetic-cheatsheet-journey.mjs");
 
+it("runs quality compile suites without host startup files or skipped TeX checks", {
+  skip: !latexAvailable,
+}, async () => {
+  const root = await mkdtemp(join(tmpdir(), "quality-compile-startup-"));
+  try {
+    const home = join(root, "home");
+    const temporary = join(root, "temporary");
+    await Promise.all([mkdir(home), mkdir(temporary)]);
+    await writeFile(
+      join(home, ".latexmkrc"),
+      'open(my $out, ">", "$ENV{HOME}/startup-executed") or die $!; close($out); die "quality-suite-startup-sentinel\\n";\n',
+    );
+    const result = spawnSync(
+      process.execPath,
+      [
+        "--test",
+        "--test-concurrency=1",
+        "--test-reporter=tap",
+        resolve("dist/test/cheatsheet/authoring-package.test.js"),
+        resolve("dist/test/cheatsheet/portable-release.test.js"),
+      ],
+      {
+        env: {
+          ...process.env,
+          HOME: home,
+          TMPDIR: temporary,
+          NODE_TEST_CONTEXT: undefined,
+        },
+        encoding: "utf8",
+      },
+    );
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.match(result.stdout, /^# skipped 0$/mu, result.stdout);
+    assert.equal(existsSync(join(home, "startup-executed")), false);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 async function writeTemplates(root: string, body: string): Promise<void> {
   for (const directory of [
     "seed-templates/70 Learning/templates",

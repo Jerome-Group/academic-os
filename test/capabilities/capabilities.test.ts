@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import {
   access,
   chmod,
@@ -23,6 +25,36 @@ import {
 } from "../../src/capabilities/checks.js";
 import { createMcpDispatcher } from "../../src/operations/index.js";
 import { runCli, runCliWithEnvironment } from "../support/run-cli.js";
+
+it("observes usable latexmk without executing host startup files", {
+  skip: spawnSync("latexmk", ["-norc", "--version"]).status !== 0,
+}, async () => {
+  const root = await mkdtemp(join(tmpdir(), "academic-latexmk-health-"));
+  try {
+    await writeFile(
+      join(root, ".latexmkrc"),
+      'open(my $out, ">", "$ENV{HOME}/startup-executed") or die $!; close($out); die "health-startup-sentinel\\n";\n',
+    );
+    const observed = await runCliWithEnvironment(
+      { HOME: root },
+      "capabilities",
+      "health",
+      "--json",
+    );
+    assert.equal(observed.exitCode, 0, observed.stdout);
+    const health: { tools: { action: string; outcome: string }[] } = JSON.parse(
+      observed.stdout,
+    );
+    assert.equal(
+      health.tools.find(({ action }) => action === "latexmk")?.outcome,
+      "passed",
+    );
+    assert.equal(existsSync(join(root, "startup-executed")), false);
+    assert.ok(!observed.stdout.includes("health-startup-sentinel"));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 it("discovers commands, prerequisites, effects and feature verification without config", async () => {
   const result = await runCli("capabilities", "index", "--json");

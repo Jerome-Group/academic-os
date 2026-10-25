@@ -46,7 +46,7 @@ var require_identity = __commonJS({
     var isAlias2 = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === ALIAS;
     var isDocument = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === DOC;
     var isMap = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === MAP;
-    var isPair = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === PAIR;
+    var isPair2 = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === PAIR;
     var isScalar2 = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === SCALAR;
     var isSeq = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === SEQ;
     function isCollection(node) {
@@ -83,7 +83,7 @@ var require_identity = __commonJS({
     exports.isDocument = isDocument;
     exports.isMap = isMap;
     exports.isNode = isNode;
-    exports.isPair = isPair;
+    exports.isPair = isPair2;
     exports.isScalar = isScalar2;
     exports.isSeq = isSeq;
   }
@@ -2025,7 +2025,7 @@ var require_YAMLMap = __commonJS({
       }
       return void 0;
     }
-    var YAMLMap = class extends Collection.Collection {
+    var YAMLMap2 = class extends Collection.Collection {
       static get tagName() {
         return "tag:yaml.org,2002:map";
       }
@@ -2142,7 +2142,7 @@ var require_YAMLMap = __commonJS({
         });
       }
     };
-    exports.YAMLMap = YAMLMap;
+    exports.YAMLMap = YAMLMap2;
     exports.findPair = findPair;
   }
 });
@@ -2152,18 +2152,18 @@ var require_map = __commonJS({
   "node_modules/yaml/dist/schema/common/map.js"(exports) {
     "use strict";
     var identity = require_identity();
-    var YAMLMap = require_YAMLMap();
+    var YAMLMap2 = require_YAMLMap();
     var map = {
       collection: "map",
       default: true,
-      nodeClass: YAMLMap.YAMLMap,
+      nodeClass: YAMLMap2.YAMLMap,
       tag: "tag:yaml.org,2002:map",
       resolve(map2, onError) {
         if (!identity.isMap(map2))
           onError("Expected a mapping for this tag");
         return map2;
       },
-      createNode: (schema, obj, ctx) => YAMLMap.YAMLMap.from(schema, obj, ctx)
+      createNode: (schema, obj, ctx) => YAMLMap2.YAMLMap.from(schema, obj, ctx)
     };
     exports.map = map;
   }
@@ -2731,17 +2731,17 @@ var require_omap = __commonJS({
     "use strict";
     var identity = require_identity();
     var toJS = require_toJS();
-    var YAMLMap = require_YAMLMap();
+    var YAMLMap2 = require_YAMLMap();
     var YAMLSeq = require_YAMLSeq();
     var pairs = require_pairs();
     var YAMLOMap = class _YAMLOMap extends YAMLSeq.YAMLSeq {
       constructor() {
         super();
-        this.add = YAMLMap.YAMLMap.prototype.add.bind(this);
-        this.delete = YAMLMap.YAMLMap.prototype.delete.bind(this);
-        this.get = YAMLMap.YAMLMap.prototype.get.bind(this);
-        this.has = YAMLMap.YAMLMap.prototype.has.bind(this);
-        this.set = YAMLMap.YAMLMap.prototype.set.bind(this);
+        this.add = YAMLMap2.YAMLMap.prototype.add.bind(this);
+        this.delete = YAMLMap2.YAMLMap.prototype.delete.bind(this);
+        this.get = YAMLMap2.YAMLMap.prototype.get.bind(this);
+        this.has = YAMLMap2.YAMLMap.prototype.has.bind(this);
+        this.set = YAMLMap2.YAMLMap.prototype.set.bind(this);
         this.tag = _YAMLOMap.tag;
       }
       /**
@@ -2969,8 +2969,8 @@ var require_set = __commonJS({
     "use strict";
     var identity = require_identity();
     var Pair = require_Pair();
-    var YAMLMap = require_YAMLMap();
-    var YAMLSet = class _YAMLSet extends YAMLMap.YAMLMap {
+    var YAMLMap2 = require_YAMLMap();
+    var YAMLSet = class _YAMLSet extends YAMLMap2.YAMLMap {
       constructor(schema) {
         super(schema);
         this.tag = _YAMLSet.tag;
@@ -2983,7 +2983,7 @@ var require_set = __commonJS({
           pair = new Pair.Pair(key.key, null);
         else
           pair = new Pair.Pair(key, null);
-        const prev = YAMLMap.findPair(this.items, pair.key);
+        const prev = YAMLMap2.findPair(this.items, pair.key);
         if (!prev)
           this.items.push(pair);
       }
@@ -2992,13 +2992,13 @@ var require_set = __commonJS({
        * Otherwise, returns the value of that Pair's key.
        */
       get(key, keepPair) {
-        const pair = YAMLMap.findPair(this.items, key);
+        const pair = YAMLMap2.findPair(this.items, key);
         return !keepPair && identity.isPair(pair) ? identity.isScalar(pair.key) ? pair.key.value : pair.key : pair;
       }
       set(key, value) {
         if (typeof value !== "boolean")
           throw new Error(`Expected boolean value for set(key, value) in a YAML set, not ${typeof value}`);
-        const prev = YAMLMap.findPair(this.items, key);
+        const prev = YAMLMap2.findPair(this.items, key);
         if (prev && !value) {
           this.items.splice(this.items.indexOf(prev), 1);
         } else if (!prev && value) {
@@ -3979,14 +3979,14 @@ var require_resolve_block_map = __commonJS({
   "node_modules/yaml/dist/compose/resolve-block-map.js"(exports) {
     "use strict";
     var Pair = require_Pair();
-    var YAMLMap = require_YAMLMap();
+    var YAMLMap2 = require_YAMLMap();
     var resolveProps = require_resolve_props();
     var utilContainsNewline = require_util_contains_newline();
     var utilFlowIndentCheck = require_util_flow_indent_check();
     var utilMapIncludes = require_util_map_includes();
     var startColMsg = "All mapping items must start at the same column";
     function resolveBlockMap({ composeNode, composeEmptyNode }, ctx, bm, onError, tag) {
-      const NodeClass = tag?.nodeClass ?? YAMLMap.YAMLMap;
+      const NodeClass = tag?.nodeClass ?? YAMLMap2.YAMLMap;
       const map = new NodeClass(ctx.schema);
       if (ctx.atRoot)
         ctx.atRoot = false;
@@ -4182,7 +4182,7 @@ var require_resolve_flow_collection = __commonJS({
     "use strict";
     var identity = require_identity();
     var Pair = require_Pair();
-    var YAMLMap = require_YAMLMap();
+    var YAMLMap2 = require_YAMLMap();
     var YAMLSeq = require_YAMLSeq();
     var resolveEnd = require_resolve_end();
     var resolveProps = require_resolve_props();
@@ -4193,7 +4193,7 @@ var require_resolve_flow_collection = __commonJS({
     function resolveFlowCollection({ composeNode, composeEmptyNode }, ctx, fc, onError, tag) {
       const isMap = fc.start.source === "{";
       const fcName = isMap ? "flow map" : "flow sequence";
-      const NodeClass = tag?.nodeClass ?? (isMap ? YAMLMap.YAMLMap : YAMLSeq.YAMLSeq);
+      const NodeClass = tag?.nodeClass ?? (isMap ? YAMLMap2.YAMLMap : YAMLSeq.YAMLSeq);
       const coll = new NodeClass(ctx.schema);
       coll.flow = true;
       const atRoot = ctx.atRoot;
@@ -4330,7 +4330,7 @@ var require_resolve_flow_collection = __commonJS({
               onError(keyStart, "DUPLICATE_KEY", "Map keys must be unique");
             map.items.push(pair);
           } else {
-            const map = new YAMLMap.YAMLMap(ctx.schema);
+            const map = new YAMLMap2.YAMLMap(ctx.schema);
             map.flow = true;
             map.items.push(pair);
             const endRange = (valueNode ?? keyNode).range;
@@ -4376,7 +4376,7 @@ var require_compose_collection = __commonJS({
     "use strict";
     var identity = require_identity();
     var Scalar = require_Scalar();
-    var YAMLMap = require_YAMLMap();
+    var YAMLMap2 = require_YAMLMap();
     var YAMLSeq = require_YAMLSeq();
     var resolveBlockMap = require_resolve_block_map();
     var resolveBlockSeq = require_resolve_block_seq();
@@ -4404,7 +4404,7 @@ var require_compose_collection = __commonJS({
         }
       }
       const expType = token.type === "block-map" ? "map" : token.type === "block-seq" ? "seq" : token.start.source === "{" ? "map" : "seq";
-      if (!tagToken || !tagName || tagName === "!" || tagName === YAMLMap.YAMLMap.tagName && expType === "map" || tagName === YAMLSeq.YAMLSeq.tagName && expType === "seq") {
+      if (!tagToken || !tagName || tagName === "!" || tagName === YAMLMap2.YAMLMap.tagName && expType === "map" || tagName === YAMLSeq.YAMLSeq.tagName && expType === "seq") {
         return resolveCollection(CN, ctx, token, onError, tagName);
       }
       let tag = ctx.schema.tags.find((t) => t.tag === tagName && t.collection === expType);
@@ -7319,7 +7319,7 @@ var require_dist = __commonJS({
     var identity = require_identity();
     var Pair = require_Pair();
     var Scalar = require_Scalar();
-    var YAMLMap = require_YAMLMap();
+    var YAMLMap2 = require_YAMLMap();
     var YAMLSeq = require_YAMLSeq();
     var cst = require_cst();
     var lexer = require_lexer();
@@ -7344,7 +7344,7 @@ var require_dist = __commonJS({
     exports.isSeq = identity.isSeq;
     exports.Pair = Pair.Pair;
     exports.Scalar = Scalar.Scalar;
-    exports.YAMLMap = YAMLMap.YAMLMap;
+    exports.YAMLMap = YAMLMap2.YAMLMap;
     exports.YAMLSeq = YAMLSeq.YAMLSeq;
     exports.CST = cst;
     exports.Lexer = lexer.Lexer;
@@ -8010,14 +8010,46 @@ function readControlDocument(source) {
       uniqueKeys: true
     });
     const problems = document.errors.map(({ message }) => yamlProblem(message));
+    const resolvedKeys = /* @__PURE__ */ new Map();
+    const mappings = [];
+    const orderedMaps = [];
     (0, import_yaml2.visit)(document, {
       Pair(_key, pair) {
         const key = (0, import_yaml2.isAlias)(pair.key) ? pair.key.resolve(document) : pair.key;
         if (!(0, import_yaml2.isScalar)(key)) {
           problems.push("YAML mapping keys must be scalar values.");
-        }
+        } else resolvedKeys.set(pair, key);
+      },
+      Map(_key, map) {
+        mappings.push(map);
+      },
+      Seq(_key, sequence) {
+        if (sequence.tag === "tag:yaml.org,2002:omap")
+          orderedMaps.push(sequence.items.filter(import_yaml2.isPair));
       }
     });
+    if (problems.length > 0) return { problems };
+    const mappingKeys = mappings.map((map) => ({
+      map,
+      keys: declaredMappingKeys(map.items, resolvedKeys, document.schema)
+    }));
+    for (const { map, keys } of mappingKeys) {
+      problems.push(
+        ...declaredKeyProblems(keys, map.tag !== "tag:yaml.org,2002:set")
+      );
+    }
+    for (const pairs of orderedMaps)
+      problems.push(
+        ...declaredKeyProblems(
+          declaredMappingKeys(pairs, resolvedKeys, void 0),
+          false
+        )
+      );
+    if (problems.length > 0) return { problems };
+    for (const { map, keys } of mappingKeys) {
+      if (map.tag !== "tag:yaml.org,2002:set" && keys.some(({ kind }) => kind === "merge"))
+        problems.push(...mergedKeyProblems(keys, document));
+    }
     if (problems.length > 0) return { problems };
     const value = document.toJS();
     if (hasCircularValues(value)) {
@@ -8031,6 +8063,66 @@ function readControlDocument(source) {
       ]
     };
   }
+}
+function declaredMappingKeys(pairs, resolvedKeys, mergeSchema) {
+  return pairs.flatMap((pair) => {
+    if (mergeSchema && isMergeInstruction(pair.key, mergeSchema))
+      return [{ kind: "merge", pair }];
+    const key = resolvedKeys.get(pair);
+    if (key === void 0) return [];
+    const nativeKey = key.value;
+    const propertyKey = nativeKey === null ? "" : typeof nativeKey === "object" ? String(pair.key) : String(nativeKey);
+    return [{ kind: "entry", nativeKey, propertyKey }];
+  });
+}
+function isMergeInstruction(key, schema) {
+  return (0, import_yaml2.isScalar)(key) && (Boolean(key.addToJSMap) || (!key.type || key.type === "PLAIN") && (key.value === "<<" || typeof key.value === "symbol" && key.value.description === "<<") && schema.tags.some(
+    (tag) => tag.tag === "tag:yaml.org,2002:merge" && tag.default
+  ));
+}
+function declaredKeyProblems(keys, objectProperties) {
+  const nativeKeys = /* @__PURE__ */ new Set();
+  const propertyKeys = /* @__PURE__ */ new Set();
+  for (const key of keys) {
+    if (key.kind === "merge") continue;
+    if (nativeKeys.has(key.nativeKey))
+      return ["YAML mapping keys must retain distinct native identities."];
+    nativeKeys.add(key.nativeKey);
+    if (objectProperties && propertyKeys.has(key.propertyKey))
+      return [
+        `YAML mapping keys normalize to the same property ${JSON.stringify(key.propertyKey)}.`
+      ];
+    propertyKeys.add(key.propertyKey);
+  }
+  return [];
+}
+function mergedKeyProblems(keys, document) {
+  const nativeKeys = /* @__PURE__ */ new Set();
+  const propertyOrigins = /* @__PURE__ */ new Map();
+  for (const key of keys) {
+    if (key.kind === "entry") {
+      nativeKeys.add(key.nativeKey);
+      propertyOrigins.set(key.propertyKey, key.nativeKey);
+      continue;
+    }
+    const projection = new import_yaml2.YAMLMap(document.schema);
+    projection.items = [key.pair];
+    const merged = projection.toJS(document, { mapAsMap: true });
+    if (!(merged instanceof Map))
+      throw new Error("YAML merge did not produce a mapping.");
+    for (const nativeKey of merged.keys()) {
+      if (typeof nativeKey === "symbol")
+        return [
+          "YAML mapping keys must not create symbol properties through merging."
+        ];
+      nativeKeys.add(nativeKey);
+      const propertyKey = String(nativeKey);
+      if (!propertyOrigins.has(propertyKey))
+        propertyOrigins.set(propertyKey, nativeKey);
+    }
+  }
+  const survivingKeys = new Set(propertyOrigins.values());
+  return [...nativeKeys].every((key) => survivingKeys.has(key)) ? [] : ["YAML mapping keys normalize to the same property after merging."];
 }
 function yamlProblem(message) {
   return `YAML parser reported: ${message.replace(/\s+/gu, " ").trim()}`;
@@ -8055,7 +8147,8 @@ function hasCircularValues(value) {
     if (completed.has(object)) continue;
     ancestors.add(object);
     pending.push({ value: object, exiting: true });
-    for (const child of Object.values(object)) {
+    const children = object instanceof Map ? [...object.keys(), ...object.values()] : object instanceof Set ? object.values() : Object.values(object);
+    for (const child of children) {
       pending.push({ value: child, exiting: false });
     }
   }
@@ -8083,7 +8176,9 @@ function citesImporterInterior(citation, importerRoots) {
 
 // src/conformance/value-shape.ts
 function isRecord(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  if (typeof value !== "object" || value === null) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
 }
 function nonEmptyString(value) {
   return typeof value === "string" && value.trim() !== "";

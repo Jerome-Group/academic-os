@@ -154,7 +154,8 @@ controls are reported instead of silently overlooking an additional tutorial sit
 The default maximum age is 36 hours. It is measured from the complete attempt's `finishedAt`,
 with the exact boundary still current. Running, partial and failed attempts never become current
 because an earlier successful attempt was recent. The report retains that earlier success for
-diagnosis. Exit 0 means all current; 1 means attention; 2 means invalid or unreadable input.
+diagnosis. Exit 0 means at least one Module was examined and all roots are current; 1 means
+attention; 2 means invalid or unreadable evidence, including an empty active Module cohort.
 
 The [shared interface](import-status-contract.md) defines fields and rollout. Deploying either
 repository independently is supported; missing receipts do not change Module conformance. The
@@ -204,8 +205,9 @@ reports missing paths, non-files, empty units and the tutorial blocks' explicit 
 Partial inventory leaves an unseen path `unavailable`; it does not establish absence. A broken
 Module retains the results of readable siblings.
 
-Exit 0 means all assessed material is available, 1 means gaps, and 2 means invalid or incomplete
-evidence. Availability checks paths, not the contents' correctness, a student's understanding or
+Exit 0 means at least one Module was examined and all assessed material is available, 1 means
+gaps, and 2 means invalid or incomplete evidence, including an empty active Module cohort.
+Availability checks paths, not the contents' correctness, a student's understanding or
 learning completion. Use the existing Source Map and Curation routes to reconcile evidence. This
 command writes no control, history, Task or Calendar entry and runs no teaching session.
 

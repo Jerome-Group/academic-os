@@ -84,14 +84,16 @@ Missing receipts mean `missing`; malformed, unsupported, future-dated or unreada
 means `invalid`. One broken target retains its siblings' results. Missing or invalid Module
 Definitions cannot silently hide additional importer roots.
 
-Exit 0 means every observed root is current and all active targets were resolved; 1 means
-attention is needed; 2 means invalid or unreadable input. Human and JSON reports describe the
-same observation. The command authenticates nowhere and writes nothing.
+Exit 0 means at least one Module was examined, every observed root is current and all active
+targets were resolved; 1 means attention is needed; 2 means invalid or unreadable evidence,
+including an empty active Module cohort. Human and JSON reports describe the same observation.
+The command authenticates nowhere and writes nothing.
 
 The morning routine uses this same assessment with a 24-hour freshness window. A non-current
 root raises attention independently of the LLM result and defers withdrawal decisions; other
 maintenance continues. This window detects old evidence, not whether a particular scheduled
 invocation ran. The standalone command retains its 36-hour default.
+An intentionally empty, fully resolved morning cohort has no import work and remains current.
 
 A receipt records the result the importer observed. It proves neither exhaustive upstream
 visibility nor the current bytes of every file. A complete receipt is not permission to withdraw

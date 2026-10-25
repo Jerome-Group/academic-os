@@ -195,6 +195,41 @@ it("reports every declared root with matching human and JSON evidence", async ()
   ]);
 });
 
+it("refuses to certify current imports for an empty active cohort", async () => {
+  const target = await fixture();
+  const config = JSON.parse(await readFile(target.configPath, "utf8"));
+  config.semesters.Y2S1.modules = [];
+  await writeFile(target.configPath, JSON.stringify(config));
+  const before = await treeSnapshot(target.root);
+  const json = await runCli(
+    "imports",
+    "status",
+    "--config",
+    target.configPath,
+    "--json",
+  );
+  const human = await runCli(
+    "imports",
+    "status",
+    "--config",
+    target.configPath,
+  );
+
+  assert.equal(json.exitCode, 2, json.stdout);
+  assert.equal(human.exitCode, 2, human.stdout);
+  const report = JSON.parse(json.stdout);
+  assert.equal(report.outcome, "invalid");
+  assert.deepEqual(report.modules, []);
+  assert.deepEqual(report.selection, {
+    included: [],
+    excluded: [{ semester: "Y1S2", module: "MH1100", reason: "past" }],
+    unresolved: [],
+  });
+  assert.match(human.stdout, /Import status Y2S1: invalid/u);
+  assert.match(human.stdout, /Included: none/u);
+  assert.deepEqual(await treeSnapshot(target.root), before);
+});
+
 it("classifies extended v1 counts while preserving a partial transfer result", async () => {
   const target = await fixture(["NTULearn", "NTULearn_Tutorial"]);
   const sourceCounts = {

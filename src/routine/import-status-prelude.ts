@@ -5,12 +5,18 @@ export function importStatusPrelude(
   report: ImportStatusReport,
 ): PreludeStepReport {
   const unresolved = report.selection.unresolved;
+  const outcome =
+    report.selection.included.length === 0 &&
+    unresolved.length === 0 &&
+    report.modules.length === 0
+      ? "current"
+      : report.outcome;
   const unhealthy = report.modules.flatMap(({ roots }) =>
     roots.filter(({ status }) => status !== "current"),
   );
   return {
     step: "import-status",
-    outcome: report.outcome,
+    outcome,
     parked: unhealthy.length + unresolved.length,
     detail: [
       `Observed ${report.observedAt}; maximum age ${report.maxAgeHours} hours`,
@@ -27,13 +33,13 @@ export function importStatusPrelude(
         ({ semester, module, reason }) =>
           `Unresolved ${semester}/${module}: ${reason}`,
       ),
-      ...(report.outcome === "current"
+      ...(outcome === "current"
         ? []
         : [
             "Inspect the named roots and the NTULearn run report; continue other module maintenance and defer source-withdrawal decisions.",
           ]),
     ],
-    ...(report.outcome !== "invalid"
+    ...(outcome !== "invalid"
       ? {}
       : {
           failure: {

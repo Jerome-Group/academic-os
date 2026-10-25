@@ -5,6 +5,29 @@ import { join } from "node:path";
 import { it } from "node:test";
 import { createCohortPrelude } from "../../src/routine/index.js";
 import type { AcademicConfig } from "../../src/config/index.js";
+import { reportCohort } from "../fixtures/report-cohort.js";
+
+it("keeps an intentionally empty resolved morning cohort current", async (context) => {
+  const config = await reportCohort(context);
+  const active = config.semesters.Y2S1;
+  assert.ok(active);
+  active.modules = [];
+  const empty = await createCohortPrelude(config).inspectImports();
+  assert.equal(empty.outcome, "current");
+  assert.equal(empty.failure, undefined);
+  assert.equal(empty.parked, 0);
+
+  active.modules = ["MH2100"];
+  config.semesters.Y2S2 = {
+    root: "Future",
+    status: "future",
+    modules: ["MH2100"],
+  };
+  const unresolved = await createCohortPrelude(config).inspectImports();
+  assert.equal(unresolved.outcome, "invalid");
+  assert.equal(unresolved.failure?.code, "import-status-invalid");
+  assert.equal(unresolved.parked, 2);
+});
 
 it("modules-only excludes Research providers and shared shelf writes before target construction", async () => {
   const root = await mkdtemp(join(tmpdir(), "academic-os-scoped-prelude-"));

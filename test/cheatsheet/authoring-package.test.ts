@@ -26,7 +26,7 @@ import { recordBehaviorEvidence } from "../support/rule-evidence.js";
 const run = promisify(execFile);
 let latexAvailable = true;
 try {
-  await run("latexmk", ["-version"]);
+  await run("latexmk", ["-norc", "-version"]);
   await run("pdftoppm", ["-v"]);
 } catch {
   latexAvailable = false;
@@ -98,7 +98,13 @@ it("validates coupled evidence and packages exact independently compiled bytes",
     ]);
     await run(
       "latexmk",
-      ["-pdf", "-interaction=nonstopmode", "-halt-on-error", "Final Aid.tex"],
+      [
+        "-norc",
+        "-pdf",
+        "-interaction=nonstopmode",
+        "-halt-on-error",
+        "Final Aid.tex",
+      ],
       { cwd: personal },
     );
     const pdf = await readFile(join(personal, "Final Aid.pdf"));

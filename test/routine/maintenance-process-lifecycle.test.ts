@@ -12,6 +12,71 @@ test("repository check envelope permits the declared full-check budget", async (
 });
 
 for (const runner of ["repository", "module"] as const) {
+  test(`${runner} bounds slow log queues and retains both output streams`, async (t) => {
+    const fixture = await maintenanceProcessFixture(t, {
+      runner,
+      behavior: "volume",
+      logFault: "slow",
+      timeoutMs: 1500,
+    });
+    assert.ok(
+      fixture.report.maxBuffered <= 131072,
+      `queued ${fixture.report.maxBuffered} bytes behind a slow log`,
+    );
+    assert.ok(fixture.report.backpressureEvents > 0);
+    const log = await readFile(
+      runner === "repository"
+        ? fixture.log
+        : `${fixture.report.result.artifacts}/session.log`,
+    );
+    assert.equal(log.length, 8388644);
+    assert.equal(log.filter((byte) => byte === 120).length, 4194304);
+    assert.equal(log.filter((byte) => byte === 121).length, 4194304);
+    assert.deepEqual(fixture.report.streams, [
+      { closed: true, destroyed: true, writableFinished: true, length: 0 },
+    ]);
+    if (runner === "repository") assert.equal(fixture.report.result.code, 0);
+    else assert.deepEqual(fixture.report.result.failures, []);
+  });
+  for (const logFault of [
+    "paused-write",
+    "paused-close",
+    "paused-stall",
+    "finish-stall",
+  ] as const) {
+    test(`${runner} closes ${logFault} without waiting past its deadline`, async (t) => {
+      const fixture = await maintenanceProcessFixture(t, {
+        runner,
+        behavior: logFault === "finish-stall" ? "success" : "volume",
+        logFault,
+      });
+      assert.ok(fixture.report.elapsedMs < 1000);
+      assert.ok(fixture.report.streams.every((stream) => stream.closed));
+      if (logFault !== "finish-stall") {
+        assert.ok(fixture.report.backpressureEvents > 0);
+        assert.ok(fixture.report.maxBuffered <= 131072);
+      }
+      if (logFault === "paused-write" || logFault === "paused-close") {
+        const expectedCode =
+          logFault === "paused-write" ? "ENOSPC" : "ERR_STREAM_PREMATURE_CLOSE";
+        if (runner === "repository")
+          assert.equal(fixture.report.result.error?.code, expectedCode);
+        else
+          assert.ok(
+            fixture.report.result.failures?.some(
+              ({ code }) => code === expectedCode,
+            ),
+          );
+      } else if (runner === "repository")
+        assert.notEqual(fixture.report.result.code, 0);
+      else
+        assert.ok(
+          fixture.report.result.failures?.some(
+            ({ code }) => code === "session-runner-failed",
+          ),
+        );
+    });
+  }
   test(`${runner} refuses bad log before child work`, async (t) => {
     const fixture = await maintenanceProcessFixture(t, {
       runner,

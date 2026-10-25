@@ -38,6 +38,7 @@ it("refuses distinct scalar identities lost at object conversion in either order
 it("refuses repeated native identities before Map or Set conversion", () => {
   for (const source of [
     "{ .nan: first, .NaN: second }",
+    "{ &key .nan: first, *key : second }",
     "{ &key 1: first, *key : second }",
     "{ &key !!timestamp 2026-01-01: first, *key : second }",
     "!!set { &key !!timestamp 2026-01-01: null, *key : null }",
@@ -80,6 +81,7 @@ it("checks final merge property provenance rather than cardinality or presumed k
     "{ <<: [{ null: A }, { 'null': B }] }",
     "{ <<: [{ 'null': B }, { null: A }] }",
     "{ '1': A, <<: { 1: B } }",
+    "anchor: &merge !!merge '<<'\nsource: &source { *merge : A }\ntarget: { <<: *source }",
   ]) {
     const yaml = `%YAML 1.1\n---\n${source}`;
     assert.ok("problems" in readControlDocument(yaml), yaml);
@@ -99,6 +101,8 @@ it("preserves native values, aliases, collection tags and legitimate merge prece
     "%YAML 1.1\n---\n{ <<: { null: A }, null: C }",
     "%YAML 1.1\n---\n{ One: C, <<: { One: A } }",
     "%YAML 1.1\n---\n{ <<: { One: A }, One: C }",
+    "%YAML 1.1\n---\n{ <<: { 1: A }, 1: C }",
+    "%YAML 1.1\n---\n{ <<: { .nan: A }, .nan: C }",
     "%YAML 1.1\n---\n{ <<: [{ One: A, Two: B }, { One: C, Three: D }] }",
     "%YAML 1.1\n---\n{ <<: { One: A }, <<: { Two: B } }",
     "%YAML 1.1\n---\nfirst: &first { One: A }\nsecond: &second { <<: *first, Two: B }\nthird: { <<: [*first, *second], Three: C }",

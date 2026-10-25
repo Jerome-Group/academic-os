@@ -3,7 +3,11 @@ import { describe, it } from "node:test";
 
 import type { Inventory } from "../../src/conformance/index.js";
 import { assessLearningMaterials } from "../../src/learning-materials/index.js";
-import { collidingSourceMaps } from "../fixtures/source-map-identity.js";
+import {
+  collidingSourceMaps,
+  orderedSourceMap,
+  orderedUnits,
+} from "../fixtures/source-map-identity.js";
 
 const sourceMap = `units:
   Week 02:
@@ -74,6 +78,52 @@ function inventory(completeness: "complete" | "partial"): Inventory {
 }
 
 describe("learning-material availability", () => {
+  it("preserves complete numeric, named and aliased unit payload correspondence", () => {
+    const observed = inventory("complete");
+    observed.entries = orderedUnits.flatMap(([, label]) => [
+      { path: `${label}.md`, kind: "file" },
+      { path: `${label}-tutorial.md`, kind: "file" },
+    ]);
+    const assessed = assessLearningMaterials(orderedSourceMap, observed);
+    assert.deepEqual(assessed.problems, []);
+    assert.deepEqual(
+      assessed.units.map(({ unit, topics, lectures, tutorials }) => ({
+        unit,
+        topics,
+        lectures,
+        tutorials,
+      })),
+      orderedUnits.map(([unit, label]) => ({
+        unit,
+        topics: [label],
+        lectures: [
+          {
+            category: "lectures",
+            file: `${label}.md`,
+            availability: "available",
+          },
+        ],
+        tutorials: [
+          {
+            kind: "block",
+            block: label,
+            exercises: `${label}-exercises`,
+            sources: [
+              {
+                category: "tutorials",
+                file: `${label}-tutorial.md`,
+                locator: `${label}-locator`,
+                role: `${label}-role`,
+                declaredMissing: [`${label}-missing`],
+                availability: "available",
+              },
+            ],
+          },
+        ],
+      })),
+    );
+  });
+
   it("rejects colliding Source Map identities without exposing replacement units", () => {
     for (const source of collidingSourceMaps) {
       const assessed = assessLearningMaterials(source, inventory("complete"));

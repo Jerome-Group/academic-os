@@ -7,11 +7,13 @@ import {
   firstDirectTableRows,
   sectionBody,
 } from "../conformance/markdown-control-helpers.js";
-import { validateSourceMap } from "../conformance/validate-source-map.js";
+import {
+  readSourceMap,
+  type SourceMapUnitEntry,
+} from "../conformance/source-map.js";
 import { validateDefinition } from "../conformance/validate-definition.js";
 import { validateProfile } from "../conformance/validate-profile.js";
 import { isRecord } from "../conformance/value-shape.js";
-import { sourceMapUnitOrder } from "../conformance/source-map-unit-order.js";
 import { resolveModuleFile } from "./module-path.js";
 
 export interface CheatsheetCandidate {
@@ -68,55 +70,9 @@ export async function prepareCheatsheet(input: {
   ];
   const sourceMap =
     controls.find(({ kind }) => kind === "sourceMap")?.text ?? "";
-  const validation = validateSourceMap(sourceMap);
-  if (validation.status !== "pass") throw new Error(validation.evidence);
-  const parsed = readControlDocument(sourceMap);
-  if (
-    !("value" in parsed) ||
-    !isRecord(parsed.value) ||
-    !isRecord(parsed.value.units)
-  )
-    throw new Error("Unreadable Source Map.");
-  const candidates: CheatsheetCandidate[] = [];
-  for (const unit of sourceMapUnitOrder(sourceMap)) {
-    const raw = parsed.value.units[unit];
-    if (!isRecord(raw)) continue;
-    const topics = raw.topics as string[];
-    for (const [role, entries] of Object.entries(raw)) {
-      if (
-        role === "topics" ||
-        role === "teaching_weeks" ||
-        !Array.isArray(entries)
-      )
-        continue;
-      for (const entry of entries) {
-        if (typeof entry === "string") {
-          candidates.push({
-            unit,
-            topics,
-            path: entry,
-            locator: "whole file",
-            role,
-            missing: [],
-            availability: "unavailable",
-          });
-        } else if (isRecord(entry) && Array.isArray(entry.sources)) {
-          for (const source of entry.sources) {
-            if (!isRecord(source)) continue;
-            candidates.push({
-              unit,
-              topics,
-              path: source.file as string,
-              locator: source.locator as string,
-              role: source.role as string,
-              missing: (source.missing as string[] | undefined) ?? [],
-              availability: "unavailable",
-            });
-          }
-        }
-      }
-    }
-  }
+  const read = readSourceMap(sourceMap);
+  if (read.kind === "invalid") throw new Error(read.finding.evidence);
+  const candidates = read.units.flatMap(declaredCandidates);
   for (const candidate of candidates) {
     try {
       candidate.sha256 = sha256Bytes(
@@ -191,4 +147,54 @@ export async function prepareCheatsheet(input: {
       "Read cited assessment evidence to establish page, font, permitted-content and exam constraints; mathematical and visual review remain semantic work.",
     ],
   };
+}
+
+function declaredCandidates({
+  unit,
+  source,
+}: SourceMapUnitEntry): CheatsheetCandidate[] {
+  const candidate = {
+    unit,
+    topics: [...source.topics],
+    availability: "unavailable" as const,
+  };
+  return Object.keys(source).flatMap((role): CheatsheetCandidate[] => {
+    switch (role) {
+      case "lectures":
+      case "textbook":
+      case "supplementary_materials":
+      case "past_papers":
+      case "practice_tests":
+      case "historical_reference":
+        return (source[role] ?? []).map((path) => ({
+          ...candidate,
+          path,
+          locator: "whole file",
+          role,
+          missing: [],
+        }));
+      case "tutorials":
+        return source.tutorials.flatMap((tutorial) =>
+          typeof tutorial === "string"
+            ? [
+                {
+                  ...candidate,
+                  path: tutorial,
+                  locator: "whole file",
+                  role,
+                  missing: [],
+                },
+              ]
+            : tutorial.sources.map((entry) => ({
+                ...candidate,
+                path: entry.file,
+                locator: entry.locator,
+                role: entry.role,
+                missing: [...(entry.missing ?? [])],
+              })),
+        );
+      default:
+        return [];
+    }
+  });
 }

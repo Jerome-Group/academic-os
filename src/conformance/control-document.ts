@@ -8,15 +8,25 @@ import {
   visit,
   YAMLMap,
 } from "yaml";
+import { isRecord } from "./value-shape.js";
 
 type ControlDocument = ReturnType<typeof parseDocument>;
 type MappingKey =
   | { kind: "merge"; pair: Pair }
   | { kind: "entry"; nativeKey: unknown; propertyKey: string };
+type ControlRead<T> = { problems: string[] } | { value: T };
+type NativeEntries = readonly (readonly [string, unknown])[];
+type EntriesOf = (record: Record<string, unknown>) => NativeEntries;
 
-export function readControlDocument(
+export function readControlDocument(source: string): ControlRead<unknown>;
+export function readControlDocument<T>(
   source: string,
-): { problems: string[] } | { value: unknown } {
+  project: (value: unknown, entriesOf: EntriesOf) => ControlRead<T>,
+): ControlRead<T>;
+export function readControlDocument<T>(
+  source: string,
+  project?: (value: unknown, entriesOf: EntriesOf) => ControlRead<T>,
+): ControlRead<unknown> {
   try {
     const document = parseDocument(source, {
       prettyErrors: false,
@@ -59,19 +69,19 @@ export function readControlDocument(
         ),
       );
     if (problems.length > 0) return { problems };
+    const projections = new Map<YAMLMap, ReadonlyMap<string, unknown>>();
     for (const { map, keys } of mappingKeys) {
-      if (
-        map.tag !== "tag:yaml.org,2002:set" &&
-        keys.some(({ kind }) => kind === "merge")
-      )
-        problems.push(...mergedKeyProblems(keys, document));
+      if (map.tag === "tag:yaml.org,2002:set") continue;
+      const projection = recordProperties(keys, document);
+      if ("problems" in projection) problems.push(...projection.problems);
+      else projections.set(map, projection.value);
     }
     if (problems.length > 0) return { problems };
-    const value: unknown = document.toJS();
+    const { value, entriesOf } = nativeRecords(document, projections);
     if (hasCircularValues(value)) {
       return { problems: ["YAML controls must not contain circular values."] };
     }
-    return { value };
+    return project ? project(value, entriesOf) : { value };
   } catch (error) {
     return {
       problems: [
@@ -138,10 +148,10 @@ function declaredKeyProblems(
   return [];
 }
 
-function mergedKeyProblems(
+function recordProperties(
   keys: readonly MappingKey[],
   document: ControlDocument,
-): string[] {
+): ControlRead<ReadonlyMap<string, unknown>> {
   const nativeKeys = new Set<unknown>();
   const propertyOrigins = new Map<string, unknown>();
   for (const key of keys) {
@@ -157,9 +167,11 @@ function mergedKeyProblems(
       throw new Error("YAML merge did not produce a mapping.");
     for (const nativeKey of merged.keys()) {
       if (typeof nativeKey === "symbol")
-        return [
-          "YAML mapping keys must not create symbol properties through merging.",
-        ];
+        return {
+          problems: [
+            "YAML mapping keys must not create symbol properties through merging.",
+          ],
+        };
       nativeKeys.add(nativeKey);
       const propertyKey = String(nativeKey);
       if (!propertyOrigins.has(propertyKey))
@@ -168,8 +180,60 @@ function mergedKeyProblems(
   }
   const survivingKeys = new Set(propertyOrigins.values());
   return [...nativeKeys].every((key) => survivingKeys.has(key))
-    ? []
-    : ["YAML mapping keys normalize to the same property after merging."];
+    ? { value: propertyOrigins }
+    : {
+        problems: [
+          "YAML mapping keys normalize to the same property after merging.",
+        ],
+      };
+}
+
+function nativeRecords(
+  document: ControlDocument,
+  projections: ReadonlyMap<YAMLMap, ReadonlyMap<string, unknown>>,
+): { value: unknown; entriesOf: EntriesOf } {
+  const entries = new WeakMap<object, NativeEntries>();
+  const restore: Array<() => void> = [];
+  try {
+    for (const [map, properties] of projections) {
+      const previous = Object.getOwnPropertyDescriptor(map, "toJSON");
+      const convert = map.toJSON;
+      map.toJSON = function (...args: Parameters<YAMLMap["toJSON"]>) {
+        const value: unknown = convert.apply(this, args);
+        if (isRecord(value)) {
+          if (
+            properties.size !== Object.keys(value).length ||
+            ![...properties.keys()].every((key) => Object.hasOwn(value, key))
+          ) {
+            throw new Error(
+              "Native YAML record and declared properties disagree.",
+            );
+          }
+          entries.set(
+            value,
+            [...properties.keys()].map((key) => [key, value[key]]),
+          );
+        }
+        return value;
+      };
+      restore.push(() => {
+        if (previous) Object.defineProperty(map, "toJSON", previous);
+        else Reflect.deleteProperty(map, "toJSON");
+      });
+    }
+    const value: unknown = document.toJS();
+    return {
+      value,
+      entriesOf(record) {
+        const ordered = entries.get(record);
+        if (ordered === undefined)
+          throw new Error("Native YAML record has no declared property order.");
+        return ordered;
+      },
+    };
+  } finally {
+    for (const undo of restore) undo();
+  }
 }
 
 function yamlProblem(message: string): string {

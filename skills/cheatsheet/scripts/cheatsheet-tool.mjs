@@ -7240,7 +7240,7 @@ var require_public_api = __commonJS({
         return docs;
       return Object.assign([], { empty: true }, composer$1.streamInfo());
     }
-    function parseDocument4(source, options = {}) {
+    function parseDocument3(source, options = {}) {
       const { lineCounter: lineCounter2, prettyErrors } = parseOptions(options);
       const parser$1 = new parser.Parser(lineCounter2?.addNewLine);
       const composer$1 = new composer.Composer(options);
@@ -7266,7 +7266,7 @@ var require_public_api = __commonJS({
       } else if (options === void 0 && reviver && typeof reviver === "object") {
         options = reviver;
       }
-      const doc = parseDocument4(src, options);
+      const doc = parseDocument3(src, options);
       if (!doc)
         return null;
       doc.warnings.forEach((warning) => log.warn(doc.options.logLevel, warning));
@@ -7302,7 +7302,7 @@ var require_public_api = __commonJS({
     }
     exports.parse = parse2;
     exports.parseAllDocuments = parseAllDocuments;
-    exports.parseDocument = parseDocument4;
+    exports.parseDocument = parseDocument3;
     exports.stringify = stringify;
   }
 });
@@ -8003,7 +8003,22 @@ import { readFile as readFile3 } from "node:fs/promises";
 
 // src/conformance/control-document.ts
 var import_yaml2 = __toESM(require_dist(), 1);
-function readControlDocument(source) {
+
+// src/conformance/value-shape.ts
+function isRecord(value) {
+  if (typeof value !== "object" || value === null) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+function nonEmptyString(value) {
+  return typeof value === "string" && value.trim() !== "";
+}
+function isDirectoryName(value) {
+  return nonEmptyString(value) && value !== "." && value !== ".." && !value.includes("/") && !value.includes("\\");
+}
+
+// src/conformance/control-document.ts
+function readControlDocument(source, project) {
   try {
     const document = (0, import_yaml2.parseDocument)(source, {
       prettyErrors: false,
@@ -8046,16 +8061,19 @@ function readControlDocument(source) {
         )
       );
     if (problems.length > 0) return { problems };
+    const projections = /* @__PURE__ */ new Map();
     for (const { map, keys } of mappingKeys) {
-      if (map.tag !== "tag:yaml.org,2002:set" && keys.some(({ kind }) => kind === "merge"))
-        problems.push(...mergedKeyProblems(keys, document));
+      if (map.tag === "tag:yaml.org,2002:set") continue;
+      const projection = recordProperties(keys, document);
+      if ("problems" in projection) problems.push(...projection.problems);
+      else projections.set(map, projection.value);
     }
     if (problems.length > 0) return { problems };
-    const value = document.toJS();
+    const { value, entriesOf } = nativeRecords(document, projections);
     if (hasCircularValues(value)) {
       return { problems: ["YAML controls must not contain circular values."] };
     }
-    return { value };
+    return project ? project(value, entriesOf) : { value };
   } catch (error) {
     return {
       problems: [
@@ -8096,7 +8114,7 @@ function declaredKeyProblems(keys, objectProperties) {
   }
   return [];
 }
-function mergedKeyProblems(keys, document) {
+function recordProperties(keys, document) {
   const nativeKeys = /* @__PURE__ */ new Set();
   const propertyOrigins = /* @__PURE__ */ new Map();
   for (const key of keys) {
@@ -8112,9 +8130,11 @@ function mergedKeyProblems(keys, document) {
       throw new Error("YAML merge did not produce a mapping.");
     for (const nativeKey of merged.keys()) {
       if (typeof nativeKey === "symbol")
-        return [
-          "YAML mapping keys must not create symbol properties through merging."
-        ];
+        return {
+          problems: [
+            "YAML mapping keys must not create symbol properties through merging."
+          ]
+        };
       nativeKeys.add(nativeKey);
       const propertyKey = String(nativeKey);
       if (!propertyOrigins.has(propertyKey))
@@ -8122,7 +8142,52 @@ function mergedKeyProblems(keys, document) {
     }
   }
   const survivingKeys = new Set(propertyOrigins.values());
-  return [...nativeKeys].every((key) => survivingKeys.has(key)) ? [] : ["YAML mapping keys normalize to the same property after merging."];
+  return [...nativeKeys].every((key) => survivingKeys.has(key)) ? { value: propertyOrigins } : {
+    problems: [
+      "YAML mapping keys normalize to the same property after merging."
+    ]
+  };
+}
+function nativeRecords(document, projections) {
+  const entries = /* @__PURE__ */ new WeakMap();
+  const restore = [];
+  try {
+    for (const [map, properties] of projections) {
+      const previous = Object.getOwnPropertyDescriptor(map, "toJSON");
+      const convert = map.toJSON;
+      map.toJSON = function(...args) {
+        const value2 = convert.apply(this, args);
+        if (isRecord(value2)) {
+          if (properties.size !== Object.keys(value2).length || ![...properties.keys()].every((key) => Object.hasOwn(value2, key))) {
+            throw new Error(
+              "Native YAML record and declared properties disagree."
+            );
+          }
+          entries.set(
+            value2,
+            [...properties.keys()].map((key) => [key, value2[key]])
+          );
+        }
+        return value2;
+      };
+      restore.push(() => {
+        if (previous) Object.defineProperty(map, "toJSON", previous);
+        else Reflect.deleteProperty(map, "toJSON");
+      });
+    }
+    const value = document.toJS();
+    return {
+      value,
+      entriesOf(record) {
+        const ordered = entries.get(record);
+        if (ordered === void 0)
+          throw new Error("Native YAML record has no declared property order.");
+        return ordered;
+      }
+    };
+  } finally {
+    for (const undo of restore) undo();
+  }
 }
 function yamlProblem(message) {
   return `YAML parser reported: ${message.replace(/\s+/gu, " ").trim()}`;
@@ -8172,19 +8237,6 @@ function citesImporterInterior(citation, importerRoots) {
   const root = citation.slice(0, separator);
   if (!importerRoots.includes(root)) return false;
   return !importerLandmarks.has(citation.slice(separator + 1));
-}
-
-// src/conformance/value-shape.ts
-function isRecord(value) {
-  if (typeof value !== "object" || value === null) return false;
-  const prototype = Object.getPrototypeOf(value);
-  return prototype === Object.prototype || prototype === null;
-}
-function nonEmptyString(value) {
-  return typeof value === "string" && value.trim() !== "";
-}
-function isDirectoryName(value) {
-  return nonEmptyString(value) && value !== "." && value !== ".." && !value.includes("/") && !value.includes("\\");
 }
 
 // src/contract/universal-structure.ts
@@ -8792,7 +8844,7 @@ function isGovernedControlHome(path) {
   return !path.includes("/") || path.startsWith("00 Module Admin/");
 }
 
-// src/conformance/validate-source-map.ts
+// src/conformance/source-map.ts
 var sourceMapPath = writtenControlPaths.sourceMap;
 var requiredUnitKeys = [
   "topics",
@@ -8811,34 +8863,47 @@ var allowedUnitKeys = [
   ...optionalPathKeys,
   "teaching_weeks"
 ];
-function validateSourceMap(source) {
+function readSourceMap(source) {
+  const invalid = (problems) => ({
+    kind: "invalid",
+    finding: failedControl("MF-LEARNING-002", sourceMapPath, problems)
+  });
   if (source === void 0) {
-    return failedControl("MF-LEARNING-002", sourceMapPath, [
-      `No readable control exists at ${sourceMapPath}.`
-    ]);
+    return invalid([`No readable control exists at ${sourceMapPath}.`]);
   }
-  const parsed = readControlDocument(source);
+  const parsed = readControlDocument(source, (value, entriesOf) => {
+    if (!isRecord(value) || !isRecord(value.units))
+      return {
+        problems: ["Source Map requires a units mapping, empty at seed."]
+      };
+    const problems = [
+      ...undeclaredFields2(value, ["units"], "Source Map"),
+      ...Object.entries(value.units).flatMap(
+        ([key, unit]) => unitProblems(key, unit)
+      )
+    ];
+    if (problems.length > 0) return { problems };
+    const units2 = entriesOf(value.units).map(([unit, source2]) => ({
+      unit,
+      source: source2
+    }));
+    return { value: units2 };
+  });
   if ("problems" in parsed) {
-    return failedControl("MF-LEARNING-002", sourceMapPath, parsed.problems);
+    return invalid(parsed.problems);
   }
-  const value = parsed.value;
-  if (!isRecord(value) || !isRecord(value.units)) {
-    return failedControl("MF-LEARNING-002", sourceMapPath, [
-      "Source Map requires a units mapping, empty at seed."
-    ]);
-  }
-  const units = Object.entries(value.units);
-  const problems = [
-    ...undeclaredFields2(value, ["units"], "Source Map"),
-    ...units.flatMap(([key, unit]) => unitProblems(key, unit))
-  ];
-  return problems.length === 0 ? controlFinding(
-    "MF-LEARNING-002",
-    sourceMapPath,
-    "pass",
-    `Source Map declares ${units.length} Lecture-unit${units.length === 1 ? "" : "s"}.`,
-    "Every declared unit carries the four sequences the workspace reads it for."
-  ) : failedControl("MF-LEARNING-002", sourceMapPath, problems);
+  const units = parsed.value;
+  return {
+    kind: "valid",
+    units,
+    finding: controlFinding(
+      "MF-LEARNING-002",
+      sourceMapPath,
+      "pass",
+      `Source Map declares ${units.length} Lecture-unit${units.length === 1 ? "" : "s"}.`,
+      "Every declared unit carries the four sequences the workspace reads it for."
+    )
+  };
 }
 function unitProblems(key, unit) {
   if (key.trim() === "") return ["A unit key is empty."];
@@ -9368,17 +9433,6 @@ function sameAcademicYear(actual, expected) {
   return normalize(actual) === normalize(expected);
 }
 
-// src/conformance/source-map-unit-order.ts
-var import_yaml3 = __toESM(require_dist(), 1);
-function sourceMapUnitOrder(sourceMap) {
-  const root = (0, import_yaml3.parseDocument)(sourceMap, { uniqueKeys: true }).toJS({
-    mapAsMap: true
-  });
-  if (!(root instanceof Map)) return [];
-  const units = root.get("units");
-  return units instanceof Map ? [...units.keys()].map(String) : [];
-}
-
 // src/cheatsheet/prepare.ts
 async function prepareCheatsheet(input) {
   const paths = {
@@ -9413,47 +9467,9 @@ async function prepareCheatsheet(input) {
     ...validateProfile(profile, identity, definitionValidation.importerRoots)
   ];
   const sourceMap = controls.find(({ kind }) => kind === "sourceMap")?.text ?? "";
-  const validation = validateSourceMap(sourceMap);
-  if (validation.status !== "pass") throw new Error(validation.evidence);
-  const parsed = readControlDocument(sourceMap);
-  if (!("value" in parsed) || !isRecord(parsed.value) || !isRecord(parsed.value.units))
-    throw new Error("Unreadable Source Map.");
-  const candidates = [];
-  for (const unit of sourceMapUnitOrder(sourceMap)) {
-    const raw = parsed.value.units[unit];
-    if (!isRecord(raw)) continue;
-    const topics = raw.topics;
-    for (const [role, entries] of Object.entries(raw)) {
-      if (role === "topics" || role === "teaching_weeks" || !Array.isArray(entries))
-        continue;
-      for (const entry of entries) {
-        if (typeof entry === "string") {
-          candidates.push({
-            unit,
-            topics,
-            path: entry,
-            locator: "whole file",
-            role,
-            missing: [],
-            availability: "unavailable"
-          });
-        } else if (isRecord(entry) && Array.isArray(entry.sources)) {
-          for (const source of entry.sources) {
-            if (!isRecord(source)) continue;
-            candidates.push({
-              unit,
-              topics,
-              path: source.file,
-              locator: source.locator,
-              role: source.role,
-              missing: source.missing ?? [],
-              availability: "unavailable"
-            });
-          }
-        }
-      }
-    }
-  }
+  const read = readSourceMap(sourceMap);
+  if (read.kind === "invalid") throw new Error(read.finding.evidence);
+  const candidates = read.units.flatMap(declaredCandidates);
   for (const candidate of candidates) {
     try {
       candidate.sha256 = sha256Bytes(
@@ -9513,6 +9529,53 @@ async function prepareCheatsheet(input) {
       "Read cited assessment evidence to establish page, font, permitted-content and exam constraints; mathematical and visual review remain semantic work."
     ]
   };
+}
+function declaredCandidates({
+  unit,
+  source
+}) {
+  const candidate = {
+    unit,
+    topics: [...source.topics],
+    availability: "unavailable"
+  };
+  return Object.keys(source).flatMap((role) => {
+    switch (role) {
+      case "lectures":
+      case "textbook":
+      case "supplementary_materials":
+      case "past_papers":
+      case "practice_tests":
+      case "historical_reference":
+        return (source[role] ?? []).map((path) => ({
+          ...candidate,
+          path,
+          locator: "whole file",
+          role,
+          missing: []
+        }));
+      case "tutorials":
+        return source.tutorials.flatMap(
+          (tutorial) => typeof tutorial === "string" ? [
+            {
+              ...candidate,
+              path: tutorial,
+              locator: "whole file",
+              role,
+              missing: []
+            }
+          ] : tutorial.sources.map((entry) => ({
+            ...candidate,
+            path: entry.file,
+            locator: entry.locator,
+            role: entry.role,
+            missing: [...entry.missing ?? []]
+          }))
+        );
+      default:
+        return [];
+    }
+  });
 }
 
 // src/cheatsheet/portable-release.ts
@@ -9911,7 +9974,7 @@ var fixedPaths = new Map(
 );
 
 // src/conformance/research-project-controls/meetings.ts
-var import_yaml4 = __toESM(require_dist(), 1);
+var import_yaml3 = __toESM(require_dist(), 1);
 
 // src/operational-error.ts
 var OperationalError = class extends Error {

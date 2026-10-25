@@ -26,6 +26,10 @@ export async function runMaintenanceProcess(input: {
     failure ??= error;
     stop();
   };
+  const resumeOutput = () => {
+    child?.stdout?.resume();
+    child?.stderr?.resume();
+  };
   const log =
     input.log === undefined
       ? undefined
@@ -34,11 +38,23 @@ export async function runMaintenanceProcess(input: {
           mode: 0o600,
         });
   log?.on("error", fail);
+  log?.on("drain", resumeOutput);
+  log?.on("close", resumeOutput);
+  let timedOut = false;
   const logClosed =
     log === undefined
       ? Promise.resolve()
-      : finished(log, { cleanup: true }).catch(fail);
-  let timeout: NodeJS.Timeout | undefined;
+      : finished(log, { cleanup: true }).catch((error: Error) => {
+          if (!timedOut) fail(error);
+        });
+  const timeout = setTimeout(
+    () => {
+      timedOut = true;
+      stop();
+      log?.destroy();
+    },
+    Math.max(1, deadline - performance.now()),
+  );
   let result: { code: number | null; signal: NodeJS.Signals | null } = {
     code: null,
     signal: "SIGKILL",
@@ -47,9 +63,10 @@ export async function runMaintenanceProcess(input: {
     if (log !== undefined)
       await new Promise<void>((resolve, reject) => {
         log.once("open", () => resolve());
+        log.once("close", () => resolve());
         log.once("error", reject);
       });
-    if (performance.now() < deadline) {
+    if (!timedOut && !log?.destroyed && performance.now() < deadline) {
       const running = spawn(input.executable, input.args, {
         cwd: input.cwd,
         env: input.env,
@@ -65,13 +82,15 @@ export async function runMaintenanceProcess(input: {
               stop();
               return;
             }
-            if (!log?.destroyed) log?.write(chunk);
+            if (log !== undefined && !log.destroyed && !log.write(chunk)) {
+              running.stdout.pause();
+              running.stderr.pause();
+            }
           } catch (error) {
             fail(error instanceof Error ? error : new Error(String(error)));
           }
         });
       }
-      timeout = setTimeout(stop, Math.max(1, deadline - performance.now()));
       running.on("error", fail);
       running.on("exit", stop);
       result = await new Promise((resolve) => {
@@ -81,11 +100,11 @@ export async function runMaintenanceProcess(input: {
   } catch (error) {
     fail(error instanceof Error ? error : new Error(String(error)));
   } finally {
-    clearTimeout(timeout);
     stop();
     log?.end();
     await logClosed;
+    clearTimeout(timeout);
   }
   if (failure !== undefined) throw failure;
-  return result;
+  return timedOut ? { code: null, signal: "SIGKILL" } : result;
 }

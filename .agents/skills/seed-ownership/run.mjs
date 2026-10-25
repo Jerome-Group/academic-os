@@ -15,13 +15,10 @@ import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
+import { preparePinnedTlc, tlcJavaEnvironment } from "./tlc-toolchain.mjs";
 
 const directory = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(directory, "../../..");
-const sha256 =
-  "936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88";
-const url =
-  "https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar";
 const invariants = [
   "ClaimBeforeStageEffect",
   "NoForeignDeletion",
@@ -64,36 +61,32 @@ const results = {
   outcome: "running",
   models: [],
   product: [],
+  commands: [],
   mutation: undefined,
 };
 const started = performance.now();
 process.stdout.write(`Evidence ${evidence}\n`);
 
 try {
+  const tlc = await preparePinnedTlc({
+    evidence,
+    overrideJar: process.env.TLA2TOOLS_JAR,
+  });
+  results.toolchain = tlc;
+  const jar = tlc.jar;
   const java = process.env.JAVA ?? "java";
+  const javaEnvironment = tlcJavaEnvironment(evidence);
   const javaTemporary = `-Djava.io.tmpdir=${evidence}`;
   const version = await command(
     java,
     [javaTemporary, "-version"],
     evidence,
     "java-version",
+    evidence,
+    false,
+    javaEnvironment,
   );
   assert.match(version.output, /version "21\./u, "Java 21 required");
-  let jar = process.env.TLA2TOOLS_JAR;
-  if (jar === undefined) {
-    const response = await fetch(url, { signal: AbortSignal.timeout(60000) });
-    assert.ok(response.ok, `TLC download failed, HTTP ${response.status}`);
-    jar = join(evidence, "tla2tools-1.7.4.jar");
-    await writeFile(jar, new Uint8Array(await response.arrayBuffer()));
-  }
-  jar = resolve(jar);
-  assert.equal(
-    createHash("sha256")
-      .update(await readFile(jar))
-      .digest("hex"),
-    sha256,
-    "TLC 1.7.4 jar checksum",
-  );
   const help = await command(
     java,
     [javaTemporary, "-cp", jar, "tlc2.TLC", "-help"],
@@ -101,10 +94,11 @@ try {
     "tlc-version",
     evidence,
     true,
+    javaEnvironment,
   );
-  assert.match(
-    help.output,
-    /Version 2\.19 of 08 August 2024/u,
+  assert.equal(help.code, 1, "pinned TLC help exit");
+  assert.ok(
+    help.output.split(/\r?\n/u).includes(tlc.identity.helpBanner),
     "pinned TLC version banner",
   );
   const coverage = JSON.parse(
@@ -175,33 +169,57 @@ try {
       name,
       evidence,
       true,
+      javaEnvironment,
     );
+    assert.ok(
+      run.output.split(/\r?\n/u).includes(tlc.identity.banner),
+      `${name} pinned TLC banner`,
+    );
+    const states = [
+      ...run.output.matchAll(
+        /^([\d,]+) states generated, ([\d,]+) distinct states found, ([\d,]+) states left on queue\.$/gmu,
+      ),
+    ].at(-1);
+    assert.ok(states, `${name} requires a final native state summary`);
     if (expected === undefined) {
       assert.equal(run.code, 0, `${name} TLC execution failed`);
       assert.match(
         run.output,
-        /Model checking completed\. No error has been found\./u,
+        /^Model checking completed\. No error has been found\.$/mu,
       );
+      assert.equal(states[3], "0", `${name} must exhaust the BFS queue`);
     } else {
       assert.equal(
         run.code,
         12,
         `${name} requires a TLC invariant counterexample`,
       );
-      assert.ok(
-        run.output.includes(`Invariant ${expected} is violated`),
-        `${name} must fail the predicted invariant ${expected}`,
+      const violations = [
+        ...run.output.matchAll(/^Error: Invariant (\w+) is violated\.$/gmu),
+      ].map((match) => match[1]);
+      assert.deepEqual(
+        violations,
+        [expected],
+        `${name} must fail the predicted invariant`,
+      );
+      assert.match(
+        run.output,
+        /^Error: The behavior up to this point is:\r?\nState 1: /mu,
+        `${name} requires a real counterexample trace`,
       );
     }
-    const states = run.output.match(
-      /([\d,]+) states generated, ([\d,]+) distinct states found/u,
-    );
     results.models.push({
       name,
       outcome: expected ? "expected-counterexample" : "passed",
       expected,
-      generated: states?.[1],
-      distinct: states?.[2],
+      generated: states[1],
+      distinct: states[2],
+      queued: states[3],
+      configSha256: createHash("sha256").update(config).digest("hex"),
+      moduleSha256: createHash("sha256")
+        .update(await readFile(join(verification, module)))
+        .digest("hex"),
+      logSha256: createHash("sha256").update(run.output).digest("hex"),
       log: join(evidence, `${name}.log`),
       durationMs: run.durationMs,
     });
@@ -561,6 +579,23 @@ try {
   results.error = error instanceof Error ? error.message : String(error);
   process.exitCode = 1;
 } finally {
+  results.survivingPids = results.commands
+    .map(({ pid }) => pid)
+    .filter((pid) => {
+      if (pid === undefined) return false;
+      try {
+        process.kill(pid, 0);
+        return true;
+      } catch (error) {
+        if (error.code === "ESRCH") return false;
+        throw error;
+      }
+    });
+  if (results.survivingPids.length > 0) {
+    results.outcome = "failed";
+    results.error = "verification commands left surviving child PIDs";
+    process.exitCode = 1;
+  }
   results.durationMs = Math.round(performance.now() - started);
   await save();
   process.stdout.write(
@@ -641,7 +676,7 @@ async function ownershipProtocols(productRoot, name, pattern, count = 33) {
     name,
     evidence,
     false,
-    { AOS_JOURNAL_EVIDENCE_ROOT: destination },
+    { ...process.env, AOS_JOURNAL_EVIDENCE_ROOT: destination },
   );
   assert.match(run.output, new RegExp(`# tests ${count}\\n`, "u"));
   assert.match(run.output, new RegExp(`# pass ${count}\\n`, "u"));
@@ -672,7 +707,7 @@ async function ownershipMutation(productRoot, mutation) {
     name,
     evidence,
     true,
-    { AOS_JOURNAL_EVIDENCE_ROOT: destination },
+    { ...process.env, AOS_JOURNAL_EVIDENCE_ROOT: destination },
   );
   assert.equal(
     run.code,
@@ -794,13 +829,13 @@ async function command(
   name,
   logs = cwd,
   permitFailure = false,
-  environment = {},
+  environment = process.env,
 ) {
   const started = performance.now();
   const result = await new Promise((done, reject) => {
     const child = spawn(program, args, {
       cwd,
-      env: { ...process.env, ...environment },
+      env: environment,
       stdio: ["ignore", "pipe", "pipe"],
     });
     let output = "";
@@ -813,6 +848,7 @@ async function command(
     child.on("error", reject);
     child.on("close", (code, signal) =>
       done({
+        pid: child.pid,
         code,
         signal,
         output,
@@ -821,6 +857,18 @@ async function command(
     );
   });
   await writeFile(join(logs, `${name}.log`), result.output);
+  results.commands.push({
+    name,
+    program,
+    args,
+    cwd,
+    pid: result.pid,
+    code: result.code,
+    signal: result.signal,
+    log: join(logs, `${name}.log`),
+    logSha256: createHash("sha256").update(result.output).digest("hex"),
+    durationMs: result.durationMs,
+  });
   if (!permitFailure)
     assert.equal(
       result.code,

@@ -16,8 +16,9 @@ The checked product revision and maintenance outcome are in `coverage.json`.
 Use Node 24 or later, installed repository dependencies, and Java 21.
 Set `JAVA` if the Java 21 executable is not `java`.
 On this Mac, it is `/opt/homebrew/opt/openjdk@21/bin/java`.
-The runner downloads the pinned TLC 1.7.4 release and verifies SHA-256 before execution.
-For offline use, set `TLA2TOOLS_JAR` to a copy of that release jar.
+The runner reads its vendored standalone TLC artifact offline and verifies its exact SHA-256.
+`TLA2TOOLS_JAR` may select another copy of those same bytes; other versions refuse.
+[`vendor/README.md`](vendor/README.md) records the exact prerelease provenance and upgrade boundary.
 
 From the repository root, run:
 
@@ -36,7 +37,7 @@ Require bypass and early release each to lose a confirmed curation decision afte
 The runner retains source patches, exact heads, manifests, fixture journals, and TLC traces in a fresh OS temporary directory.
 It uses synthetic Module and Research-project folders only.
 
-To diagnose Java temporary writes in the repository repair sandbox, set `JAVA` and `TLA2TOOLS_JAR`, then run:
+To diagnose native TLC and Java temporary writes in the repository repair sandbox, set `JAVA` if needed, then run:
 
 ```sh
 node .agents/skills/seed-ownership/java-temp-probe.mjs
@@ -44,7 +45,14 @@ node .agents/skills/seed-ownership/java-temp-probe.mjs
 
 The probe uses the actual repository sandbox arguments and retains a fresh owned sibling fixture.
 It requires default and outside-temp extraction refusals, owned-temp TLC execution, and all 19 runner model outcomes.
-An RMI listener refusal records `blocked`, exits nonzero, and leaves model checking unproved even when extraction succeeds.
+It also requires native Java outside-write, TCP listener and outbound connection refusals, and zero surviving child PIDs.
+Its runner result remains `model-only`; passing this diagnostic does not complete the formal runtime and mutation gate.
+The former 1.7.4 RMI listener refusal remains historical blocked evidence and is not a successful model run.
+The diagnostic uses the Java source launcher, so it requires the Java 21 JDK.
+
+For tool admission and manifest-neighbor controls, the JDK's `javac` and `jar` must accompany `JAVA`.
+Run `node --test .agents/skills/seed-ownership/tlc-toolchain.test.mjs`.
+Set `TLC_OLD_JAR` to an existing 1.7.4 artifact to include its real pre-model refusal alongside changed-byte refusal.
 
 ## Read the claim
 

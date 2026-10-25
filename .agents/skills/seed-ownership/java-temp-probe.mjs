@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
 import {
+  copyFile,
   mkdtemp,
   readdir,
   readFile,
@@ -9,14 +9,16 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   repositoryFixtureRoot,
   repositorySandboxArguments,
 } from "../../../src/routine/repository-repair-process.ts";
+import { preparePinnedTlc, tlcJavaEnvironment } from "./tlc-toolchain.mjs";
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+const directory = dirname(fileURLToPath(import.meta.url));
+const root = resolve(directory, "../../..");
 const evidence = await repositoryFixtureRoot(
   root,
   await mkdtemp(join(dirname(root), "fixture-java-temp-")),
@@ -25,19 +27,59 @@ const outside = await realpath(
   await mkdtemp(join(tmpdir(), "seed-java-outside-")),
 );
 const java = process.env.JAVA ?? "java";
-const jar = process.env.TLA2TOOLS_JAR;
 const results = { evidence, outside, outcome: "running", runs: [], pids: [] };
 process.stdout.write(`Evidence ${evidence}\n`);
 
 try {
-  assert.ok(jar, "TLA2TOOLS_JAR must name the pinned local TLC jar");
-  assert.equal(
-    createHash("sha256")
-      .update(await readFile(jar))
-      .digest("hex"),
-    "936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88",
-    "TLC 1.7.4 jar checksum",
+  const tlc = await preparePinnedTlc({
+    evidence,
+    overrideJar: process.env.TLA2TOOLS_JAR,
+  });
+  results.toolchain = tlc;
+  const jar = tlc.jar;
+  const version = await sandbox("java-version", [
+    java,
+    `-Djava.io.tmpdir=${evidence}`,
+    "-version",
+  ]);
+  assert.equal(version.code, 0);
+  assert.match(version.output, /version "21\./u, "Java 21 required");
+  const help = await sandbox("tlc-version", [
+    java,
+    `-Djava.io.tmpdir=${evidence}`,
+    "-cp",
+    jar,
+    "tlc2.TLC",
+    "-help",
+  ]);
+  assert.equal(help.code, 1, "pinned TLC help exit");
+  assert.ok(
+    help.output.split(/\r?\n/u).includes(tlc.identity.helpBanner),
+    "pinned TLC version banner",
   );
+  await copyFile(
+    join(directory, "JavaBoundaryProbe.java"),
+    join(evidence, "JavaBoundaryProbe.java"),
+  );
+  const boundary = await sandbox("java-boundary", [
+    java,
+    `-Djava.io.tmpdir=${evidence}`,
+    join(evidence, "JavaBoundaryProbe.java"),
+    evidence,
+    outside,
+  ]);
+  assert.equal(boundary.code, 0, "native Java boundary controls");
+  for (const marker of [
+    "OWNED_WRITE_PASSED",
+    "OUTSIDE_WRITE_EPERM",
+    "LISTENER_EPERM",
+    "OUTBOUND_EPERM 1.1.1.1",
+    "OUTBOUND_EPERM 192.0.2.1",
+    "BOUNDARY_CONTROLS_PASSED",
+  ])
+    assert.ok(boundary.output.includes(marker), marker);
+  assert.equal(await readFile(join(evidence, "owned-write"), "utf8"), "owned");
+  results.boundaryControls = "passed";
   await writeFile(
     join(evidence, "JavaTemp.tla"),
     "---- MODULE JavaTemp ----\nEXTENDS Integers\nVARIABLE value\nInit == value = 0\nNext == value' = 1\nRange == value \\in {0, 1}\n====\n",
@@ -68,41 +110,37 @@ try {
       join(evidence, "JavaTemp.tla"),
     ]);
     if (name === "owned-temp") {
-      assert.ok(
-        run.output.includes(`Parsing file ${join(evidence, "Integers.tla")}`),
-        "owned-temp control must extract and parse Integers in its owned fixture",
+      results.ownedIntegers = ownedIntegers(run.output, evidence);
+      assert.equal(run.code, 0, "owned Java temp must run native TLC");
+      assert.ok(run.output.split(/\r?\n/u).includes(tlc.identity.banner));
+      assert.match(
+        run.output,
+        /^Model checking completed\. No error has been found\.$/mu,
       );
-      if (
-        run.code === 255 &&
-        run.output.includes("java.rmi.server.ExportException")
-      ) {
-        assert.match(
-          run.output,
-          /java.net.SocketException: Operation not permitted/u,
-        );
-        results.modelChecking = "blocked-local-listener";
-      } else {
-        assert.equal(run.code, 0, "owned Java temp must run TLC");
-        assert.match(
-          run.output,
-          /Model checking completed\. No error has been found\./u,
-        );
-        assert.match(run.output, /2 distinct states found/u);
-        results.modelChecking = "passed";
-      }
-      assert.equal(
-        results.modelChecking,
-        "passed",
-        "native TLC must complete inside the unchanged repository sandbox",
+      assert.match(
+        run.output,
+        /^\d+ states generated, 2 distinct states found, 0 states left on queue\.$/mu,
       );
+      results.modelChecking = "passed";
     } else {
       assert.equal(
         run.code,
         150,
         `${name} must refuse standard-module extraction`,
       );
-      assert.match(run.output, /Operation not permitted|Permission denied/u);
-      assert.match(run.output, /Cannot find source file for module Integers/u);
+      assert.match(
+        run.output,
+        /^java\.nio\.file\.FileSystemException: .+\/tlc-\d+: Operation not permitted$/mu,
+      );
+      assert.ok(
+        run.output.includes(`${temporary ?? tmpdir()}/tlc-`),
+        `${name} refuses extraction into the selected unowned temp`,
+      );
+      assert.match(
+        run.output,
+        /^Error: Parsing or semantic analysis failed\.$/mu,
+      );
+      assert.doesNotMatch(run.output, /^Model checking completed\./mu);
     }
   }
   assert.deepEqual(await readdir(outside), [], "outside temp stays empty");
@@ -128,32 +166,24 @@ try {
     );
   }
   const firstLog = await readFile(join(runnerEvidence, "absent.log"), "utf8");
-  assert.ok(
-    firstLog.includes(`Parsing file ${join(runnerEvidence, "Integers.tla")}`),
-    "runner must extract and parse Integers inside its owned evidence",
-  );
+  results.runnerIntegers = ownedIntegers(firstLog, runnerEvidence);
   assert.doesNotMatch(firstLog, /Cannot find source file for module/u);
   results.runnerTemp = "passed";
-  if (results.modelChecking === "blocked-local-listener") {
-    assert.equal(runner.code, 1);
-    assert.equal(formal.outcome, "failed");
-    assert.match(firstLog, /java.rmi.server.ExportException/u);
-    results.outcome = "blocked";
-    process.exitCode = 1;
-  } else {
-    assert.equal(
-      runner.code,
-      0,
-      "formal runner must complete in its owned temp",
-    );
-    assert.equal(formal.outcome, "model-only");
-    assert.equal(
-      formal.models.length,
-      19,
-      "every pinned model outcome required",
-    );
-    results.outcome = "passed";
-  }
+  assert.equal(runner.code, 0, "formal runner must complete in its owned temp");
+  assert.equal(formal.outcome, "model-only");
+  assert.equal(formal.models.length, 19, "every pinned model outcome required");
+  assert.deepEqual(formal.toolchain.identity, tlc.identity);
+  assert.equal(
+    formal.models.filter(({ outcome }) => outcome === "passed").length,
+    6,
+  );
+  assert.equal(
+    formal.models.filter(({ outcome }) => outcome === "expected-counterexample")
+      .length,
+    13,
+  );
+  results.runnerOutcome = "model-only";
+  results.outcome = "passed";
 } catch (error) {
   results.outcome = "failed";
   results.error = error.stack;
@@ -180,15 +210,28 @@ try {
   process.stdout.write(`${results.outcome}\n`);
 }
 
+function ownedIntegers(output, parent) {
+  const extracted = output.match(
+    /^Parsing file (.+\/Integers\.tla) \(jar:file:.+!\/tla2sany\/StandardModules\/Integers\.tla\)$/mu,
+  )?.[1];
+  assert.ok(extracted, "native standard-module extraction path required");
+  assert.match(
+    relative(parent, extracted),
+    /^tlc-\d+\/Integers\.tla$/u,
+    "standard module must be parsed inside owned Java temp",
+  );
+  return extracted;
+}
+
 async function sandbox(name, command) {
   const args = repositorySandboxArguments(root, command, evidence);
   const run = spawnSync(process.env.CODEX ?? "codex", args, {
     cwd: root,
     env: {
-      ...process.env,
-      TMPDIR: evidence,
-      TMP: evidence,
-      TEMP: evidence,
+      ...tlcJavaEnvironment(evidence),
+      ...(process.env.TLA2TOOLS_JAR === undefined
+        ? {}
+        : { TLA2TOOLS_JAR: process.env.TLA2TOOLS_JAR }),
     },
     encoding: "utf8",
     timeout: 180000,

@@ -90,6 +90,11 @@ try {
         assert.match(run.output, /2 distinct states found/u);
         results.modelChecking = "passed";
       }
+      assert.equal(
+        results.modelChecking,
+        "passed",
+        "native TLC must complete inside the unchanged repository sandbox",
+      );
     } else {
       assert.equal(
         run.code,

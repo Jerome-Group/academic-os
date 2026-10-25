@@ -148,6 +148,43 @@ it("reports study-source gaps in human and JSON output without writing", async (
   assert.deepEqual(await readdir(target.stateRoot), stateBefore);
 });
 
+it("refuses to certify available materials for an empty active cohort", async () => {
+  const target = await fixture();
+  const config = JSON.parse(await readFile(target.configPath, "utf8"));
+  config.semesters.Y2S1.modules = [];
+  await writeFile(target.configPath, JSON.stringify(config));
+  const before = await inventoryDirectory(target.moduleRoot);
+  const stateBefore = await readdir(target.stateRoot);
+  const json = await runCli(
+    "learning",
+    "materials",
+    "--config",
+    target.configPath,
+    "--json",
+  );
+  const human = await runCli(
+    "learning",
+    "materials",
+    "--config",
+    target.configPath,
+  );
+
+  assert.equal(json.exitCode, 2, json.stdout);
+  assert.equal(human.exitCode, 2, human.stdout);
+  const report = JSON.parse(json.stdout);
+  assert.equal(report.outcome, "incomplete");
+  assert.deepEqual(report.modules, []);
+  assert.deepEqual(report.selection, {
+    included: [],
+    excluded: [{ semester: "Y1S2", module: "MH1100", reason: "past" }],
+    unresolved: [],
+  });
+  assert.match(human.stdout, /Learning materials Y2S1: incomplete/u);
+  assert.match(human.stdout, /Included: none/u);
+  assert.deepEqual(await inventoryDirectory(target.moduleRoot), before);
+  assert.deepEqual(await readdir(target.stateRoot), stateBefore);
+});
+
 it("retains a healthy sibling when another target is unavailable", async () => {
   const target = await fixture();
   const sourceMap = await readFile(

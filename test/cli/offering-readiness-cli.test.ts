@@ -24,7 +24,12 @@ import {
   validModuleControls,
 } from "../fixtures/module-controls.js";
 import { runCliWithEnvironment } from "../support/run-cli.js";
-import { collidingSourceMaps } from "../fixtures/source-map-identity.js";
+import {
+  collidingSourceMaps,
+  nativeObjectSourceMap,
+  nativeObjectPaths,
+  nativeObjectLearningUnits,
+} from "../fixtures/source-map-identity.js";
 
 const temporaryRoots: string[] = [];
 
@@ -120,6 +125,28 @@ it("retains invalid learning evidence for colliding identities in readiness", as
         /YAML mapping keys/u,
       );
     }
+  }
+});
+
+it("retains both complete Date-merge and raw-alias payloads in compiled readiness evidence", async () => {
+  const target = await fixture();
+  await writeFile(
+    join(target.moduleRoot(), moduleControlPaths.sourceMap),
+    nativeObjectSourceMap,
+  );
+  for (const path of nativeObjectPaths)
+    await writeFile(join(target.moduleRoot(), path), `synthetic ${path}`);
+  const result = await run(target);
+  assert.equal(result.exitCode, 1, result.stdout + result.stderr);
+  const learning = firstModule(JSON.parse(result.stdout)).checks
+    .learningMaterials;
+  assert.equal(learning.kind, "observed");
+  if (learning.kind === "observed") {
+    assert.equal(learning.evidence.outcome, "gaps");
+    assert.deepEqual(learning.evidence.units, nativeObjectLearningUnits);
+    assert.deepEqual(learning.evidence.missingFiles, []);
+    assert.equal(learning.evidence.summary.references, 14);
+    assert.equal(learning.evidence.summary.declaredMissing, 2);
   }
 });
 

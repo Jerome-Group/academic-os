@@ -1,10 +1,8 @@
-import { readControlDocument } from "../conformance/control-document.js";
+import { type Inventory, type InventoryEntry } from "../conformance/index.js";
 import {
-  type Inventory,
-  type InventoryEntry,
-  validateSourceMap,
-} from "../conformance/index.js";
-import { sourceMapUnitOrder } from "../conformance/source-map-unit-order.js";
+  readSourceMap,
+  type SourceMapUnit,
+} from "../conformance/source-map.js";
 import type {
   DeclaredTutorialGap,
   LearningMaterialsAssessment,
@@ -15,53 +13,20 @@ import type {
   TutorialSourceAssessment,
 } from "./types.js";
 
-interface SourceMapUnit {
-  topics: string[];
-  lectures: string[];
-  textbook: string[];
-  tutorials: Array<string | TutorialBlock>;
-  teaching_weeks?: number[];
-  supplementary_materials?: string[];
-  past_papers?: string[];
-  practice_tests?: string[];
-  historical_reference?: string[];
-}
-
-interface TutorialBlock {
-  block: string;
-  exercises: string;
-  sources: Array<{
-    file: string;
-    locator: string;
-    role: string;
-    missing?: string[];
-  }>;
-}
-
 export function assessLearningMaterials(
   sourceMap: string | undefined,
   inventory: Inventory,
 ): LearningMaterialsAssessment {
   const completeness = inventory.provenance?.completeness ?? "partial";
-  const finding = validateSourceMap(sourceMap);
-  if (finding.status !== "pass" || sourceMap === undefined) {
-    return emptyAssessment("invalid", completeness, [finding.evidence]);
+  const read = readSourceMap(sourceMap);
+  if (read.kind === "invalid") {
+    return emptyAssessment("invalid", completeness, [read.finding.evidence]);
   }
-  const parsed = readControlDocument(sourceMap);
-  if ("problems" in parsed) {
-    return emptyAssessment("invalid", completeness, parsed.problems);
-  }
-  const source = parsed.value as { units: Record<string, SourceMapUnit> };
   const entries = new Map(
     inventory.entries.map((entry) => [entry.path, entry]),
   );
-  const units = sourceMapUnitOrder(sourceMap).map((unit) =>
-    assessUnit(
-      unit,
-      source.units[unit] as SourceMapUnit,
-      entries,
-      completeness,
-    ),
+  const units = read.units.map(({ unit, source }) =>
+    assessUnit(unit, source, entries, completeness),
   );
   const references = units.flatMap(unitReferences);
   const declaredTutorialGaps = units.flatMap(declaredGaps);
@@ -117,7 +82,10 @@ function assessUnit(
   entries: Map<string, InventoryEntry>,
   completeness: "complete" | "partial",
 ): LearningMaterialsUnit {
-  const paths = (category: MaterialCategory, values: string[] | undefined) =>
+  const paths = (
+    category: MaterialCategory,
+    values: readonly string[] | undefined,
+  ) =>
     (values ?? []).map((file) =>
       assessReference(category, file, entries, completeness),
     );

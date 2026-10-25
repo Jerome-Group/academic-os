@@ -14,7 +14,12 @@ import { afterEach, it } from "node:test";
 
 import { inventoryDirectory } from "../../src/mounted/inventory-mounted-module.js";
 import { runCli } from "../support/run-cli.js";
-import { collidingSourceMaps } from "../fixtures/source-map-identity.js";
+import {
+  collidingSourceMaps,
+  nativeObjectSourceMap,
+  nativeObjectPaths,
+  nativeObjectLearningUnits,
+} from "../fixtures/source-map-identity.js";
 
 const temporaryRoots: string[] = [];
 
@@ -128,6 +133,38 @@ it("reports colliding Source Maps as invalid with no units at the compiled CLI",
       /YAML mapping keys/u,
     );
   }
+});
+
+it("retains both complete Date-merge and raw-alias payloads at the compiled learning CLI", async () => {
+  const target = await fixture();
+  await writeFile(
+    join(target.moduleRoot, "00 Module Admin", "40 Source Map.yaml"),
+    nativeObjectSourceMap,
+  );
+  for (const path of nativeObjectPaths)
+    await writeFile(join(target.moduleRoot, path), `synthetic ${path}`);
+  const result = await runCli(
+    "learning",
+    "materials",
+    "--config",
+    target.configPath,
+    "--json",
+  );
+  assert.equal(result.exitCode, 1, result.stdout + result.stderr);
+  const assessment = JSON.parse(result.stdout).modules[0].assessment;
+  assert.equal(assessment.outcome, "gaps");
+  assert.deepEqual(assessment.units, nativeObjectLearningUnits);
+  assert.deepEqual(assessment.missingFiles, []);
+  assert.deepEqual(assessment.summary, {
+    units: 2,
+    references: 14,
+    available: 14,
+    missing: 0,
+    nonFiles: 0,
+    unavailable: 0,
+    declaredMissing: 2,
+    emptyUnits: 0,
+  });
 });
 
 it("reports study-source gaps in human and JSON output without writing", async () => {

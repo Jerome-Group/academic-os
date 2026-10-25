@@ -11,6 +11,13 @@ and a conservative combined view without actionable work. A module-only pass or 
 input cannot establish that result. Retained pending repository identities still require matching
 verification and rollout evidence. A later green baseline does not erase them.
 
+The morning CLI refuses any unresolved configured cohort selection before state creation or routine
+effects, including Module-only recovery. Its error names each unresolved semester, Module, and reason
+so omitted ambiguous targets cannot become complete coverage. An explicitly empty active Module list
+remains supported by the configuration contract. It contributes zero Module targets, while full
+resolution still requires successful prelude and repository evidence. Empty selection caused by
+unresolved mappings always refuses.
+
 An open anchor receives a new immutable resolution review even when its ordinary status is unchanged.
 The close intent binds its exact numeric anchor, publication, observation ticket, observed identities,
 unknown predecessors, and reduced-view digest. The writer rereads those facts immediately before a

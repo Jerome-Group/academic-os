@@ -40,8 +40,18 @@ export async function runRoutineMorningCommand(
 ): Promise<void> {
   const options = parseOptions(arguments_);
   const config = await loadCohortConfig(options.configPath);
+  const selection = planCohortAudit(config).selection;
+  if (selection.unresolved.length > 0)
+    throw new OperationalError(
+      "invalid-config",
+      `Morning cohort selection is unresolved: ${selection.unresolved
+        .map(
+          ({ semester, module, reason }) => `${semester}/${module} (${reason})`,
+        )
+        .join("; ")}.`,
+    );
   const routine = resolveRoutineConfig(config);
-  const modules = planCohortAudit(config).selection.included;
+  const modules = selection.included;
   const stateRoot = await resolveStateRoot(config);
   const artifactStateRoot = options.retainArtifacts
     ? await createRetainedRoutineRoot(stateRoot)

@@ -10,6 +10,12 @@ Discover `routine morning`, `routine repository-repair` and `routine repository-
 Module-only recovery excludes repository repair and shared-shelf writes. It contributes its exact
 coverage scope within the same weekly issue; it cannot resolve a broader observation.
 
+Both morning scopes refuse unresolved configured cohort selection before state creation, prelude,
+Module sessions, repository repair, or publication. Correct the semester and Module mappings named
+with their reasons in the error before retrying. An explicitly empty active Module list remains
+supported and contributes zero Module targets. Full resolution still requires successful prelude
+and repository evidence.
+
 ## Fixed public format
 
 `Weekly maintenance review <Monday date>` has a static introduction and Owner notes. Each immutable

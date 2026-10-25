@@ -285,6 +285,7 @@ export const cliCapabilities: Capability[] = [
         "ordinary expired artifacts removed unless --retain-artifacts",
       ],
       [
+        "fully resolved configured cohort selection; empty active Module lists are supported",
         "Codex executable; gh; scheduled Google read credentials",
         "bundled rg on the session PATH; supported package metadata or flat installation",
         "canonical docs/agents/safe-drive-testing.md in the repository installation",

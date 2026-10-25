@@ -59,6 +59,156 @@ afterEach(async () => {
   );
 });
 
+it("warns for transparent Observed overlap and promotes the fixed event with exact readback", async () => {
+  const available = { ...event("available"), transparency: "transparent" };
+  const fixture = await setup({ observed: [available] });
+  const preview = await propose(fixture, fixed(start, end));
+  assert.equal(preview.report.outcome, "ready", JSON.stringify(preview));
+  assert.equal(preview.exitCode, 0);
+  assert.deepEqual(preview.report.conflicts, []);
+  assert.partialDeepStrictEqual(preview.report.warnings, [
+    { severity: "warning", source: "Observed", eventId: available.id },
+  ]);
+  assert.equal(writes(await provider(fixture)), 0);
+  const pending = JSON.parse(
+    await readFile(
+      join(fixture.calendarRoot, "pending-proposals.json"),
+      "utf8",
+    ),
+  );
+  assert.equal(
+    pending.proposals[0].review.binding,
+    preview.report.proposal.review.binding,
+  );
+  const publication = await promote(fixture, preview.report.proposal.id);
+  assert.equal(
+    publication.report.outcome,
+    "promoted",
+    JSON.stringify(publication),
+  );
+  const state = await provider(fixture);
+  assert.equal(writes(state), 1);
+  assert.deepEqual(state.events.observed, [available]);
+  assert.equal(state.events.academic.length, 1);
+  const created = state.events.academic[0];
+  assert.ok(created?.id);
+  assert.partialDeepStrictEqual(created, {
+    summary: "Synthetic fixed event",
+    transparency: "opaque",
+    visibility: "private",
+    start: point(start),
+    end: point(end),
+  });
+  const mirror = JSON.parse(
+    await readFile(
+      join(fixture.calendarRoot, "mirrors", "academic.json"),
+      "utf8",
+    ),
+  );
+  assert.deepEqual(
+    mirror.items.map((item: { event: CalendarEvent }) => item.event),
+    [created],
+  );
+  assert.ok(
+    state.requests?.some(
+      (request) =>
+        request.method === "GET" &&
+        request.url.endsWith(`/events/${created.id}`),
+    ),
+  );
+});
+
+it("keeps opaque, missing and null Observed transparency busy", async () => {
+  for (const transparency of ["opaque", undefined, null]) {
+    const busy: CalendarEvent = event("busy");
+    if (transparency === undefined) delete busy.transparency;
+    else busy.transparency = transparency;
+    const fixture = await setup({ observed: [busy] });
+    const preview = await propose(fixture, fixed(start, end));
+    assert.equal(preview.report.outcome, "blocked", JSON.stringify(preview));
+    assert.equal(preview.exitCode, 3);
+    assert.partialDeepStrictEqual(preview.report.conflicts, [
+      { severity: "block", source: "Observed", eventId: busy.id },
+    ]);
+    assert.equal(writes(await provider(fixture)), 0);
+    await assert.rejects(
+      readFile(join(fixture.calendarRoot, "pending-proposals.json")),
+    );
+  }
+});
+
+it("rereads transparent Observed availability before promotion and refuses newly busy time", async () => {
+  for (const transparency of ["opaque", undefined]) {
+    const fixture = await setup({
+      observed: [{ ...event("available"), transparency: "transparent" }],
+    });
+    const preview = await propose(fixture, fixed(start, end));
+    assert.equal(preview.report.outcome, "ready", JSON.stringify(preview));
+    await mutate(fixture, (state) => {
+      const available = state.events.observed[0];
+      assert.ok(available);
+      if (transparency === undefined) delete available.transparency;
+      else available.transparency = transparency;
+    });
+    const publication = await promote(fixture, preview.report.proposal.id);
+    assert.equal(
+      publication.report.outcome,
+      "blocked",
+      JSON.stringify(publication),
+    );
+    assert.match(
+      publication.report.reason,
+      /conflicts with Calendar availability/u,
+    );
+    const state = await provider(fixture);
+    assert.equal(state.events.academic.length, 0);
+    assert.equal(state.events.observed[0]?.transparency, transparency);
+    assert.equal(writes(state), 0);
+  }
+});
+
+it("binds transparency changes even when Routine overlap remains a warning", async () => {
+  const fixture = await setup({
+    routine: [{ ...event("routine-overlap"), transparency: "transparent" }],
+  });
+  const preview = await propose(fixture, fixed(start, end));
+  assert.equal(preview.report.outcome, "ready", JSON.stringify(preview));
+  assert.partialDeepStrictEqual(preview.report.warnings, [
+    { severity: "warning", source: "Owned", calendarRole: "Routine" },
+  ]);
+  await mutate(fixture, (state) => {
+    const routine = state.events.routine[0];
+    assert.ok(routine);
+    routine.transparency = "opaque";
+  });
+  const publication = await promote(fixture, preview.report.proposal.id);
+  assert.equal(
+    publication.report.outcome,
+    "stale",
+    JSON.stringify(publication),
+  );
+  assert.equal(writes(await provider(fixture)), 0);
+});
+
+it("refuses malformed transparent Observed geometry before allowing an overlap", async () => {
+  const fixture = await setup({
+    observed: [
+      {
+        ...event(
+          "invalid",
+          "2026-10-05T10:30:00+08:00",
+          "2026-10-05T10:15:00+08:00",
+        ),
+        transparency: "transparent",
+      },
+    ],
+  });
+  const preview = await propose(fixture, fixed(start, end));
+  assert.equal(preview.exitCode, 2, JSON.stringify(preview));
+  assert.match(preview.report.error.message, /end.*start/u);
+  assert.equal(writes(await provider(fixture)), 0);
+});
+
 it("refuses overlapping timetable peers and preserves a nonoverlap/adjacency control", async () => {
   for (const [secondStart, expected] of [
     ["10:30", "blocked"],

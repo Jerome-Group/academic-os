@@ -1,3 +1,4 @@
+import type { IncompleteCurationOutcome } from "./incomplete-curation-outcome.js";
 import type { RecordedChecksum } from "./recorded-checksum.js";
 
 // One curation-decision event, read but never re-derived: a superseding line is this object with
@@ -114,11 +115,12 @@ export interface ModuleCurationIdentityPlan {
 export type CurationIdentityOutcome =
   | "contract-v4"
   | "legacy"
+  | IncompleteCurationOutcome
   | "refused"
   | "partially-migrated";
 
 export interface CurationIdentityPlan {
-  outcome: Extract<CurationIdentityOutcome, "contract-v4" | "legacy">;
+  outcome: Exclude<CurationIdentityOutcome, "refused" | "partially-migrated">;
   counts: CurationIdentityCounts;
   modules: ModuleCurationIdentityPlan[];
 }

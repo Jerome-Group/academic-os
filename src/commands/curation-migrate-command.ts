@@ -110,10 +110,18 @@ function itemsSeen(counts: CurationIdentityReport["counts"]): number {
 }
 
 function closingLine(report: CurationIdentityReport): string {
-  if (report.counts.migrating === 0 && report.appended === 0) {
+  if (report.outcome === "contract-v4" && report.appended === 0) {
     return "Every register line an arrival walk can meet already carries contract-v4 identity.";
   }
-  return report.mode === "preview"
-    ? "Preview only. Re-run with --apply."
-    : `Appended ${quantity(report.appended, "superseding line")}.`;
+  const progress =
+    report.mode === "preview"
+      ? report.counts.migrating > 0
+        ? "Preview only. Re-run with --apply."
+        : "Preview only."
+      : `Appended ${quantity(report.appended, "superseding line")}.`;
+  if (report.outcome === "blocked")
+    return `${progress} Completion is blocked; inspect unresolved modules and register blockers.`;
+  if (report.outcome === "unresolved")
+    return `${progress} Discrepancies remain for the curation walk to decide.`;
+  return progress;
 }

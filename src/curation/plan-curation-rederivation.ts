@@ -1,11 +1,12 @@
 import { sha256 } from "../checksum.js";
 import { validateCurationRegister } from "../conformance/validate-curation-register.js";
-import { curationSplitCandidates } from "./read-curation-splits.js";
+import { incompleteCurationOutcome } from "./incomplete-curation-outcome.js";
 import {
   closedCurationKeys,
   readCurationRegisterEvents,
   walkedCurationItems,
 } from "./read-curation-register.js";
+import { curationSplitCandidates } from "./read-curation-splits.js";
 import { renderChecksum } from "./recorded-checksum.js";
 import type {
   CurationRederivationPlan,
@@ -34,7 +35,9 @@ export function planCurationRederivation(input: {
     for (const state of stateNames) counts[state] += module.counts[state];
   }
   return {
-    outcome: counts.rederiving > 0 ? "split" : "settled",
+    outcome:
+      incompleteCurationOutcome({ modules }) ??
+      (counts.rederiving > 0 ? "split" : "settled"),
     counts,
     modules,
   };

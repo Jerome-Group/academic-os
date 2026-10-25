@@ -1,3 +1,4 @@
+import type { IncompleteCurationOutcome } from "./incomplete-curation-outcome.js";
 import type { CurationRegisterEvent } from "./types.js";
 
 // One `curated` line of an item's standing batch, and what the mount says about the destination it
@@ -112,7 +113,10 @@ export interface ModuleCurationRederivationPlan {
 }
 
 export interface CurationRederivationPlan {
-  outcome: "settled" | "split";
+  outcome: Exclude<
+    CurationRederivationOutcome,
+    "refused" | "partially-corrected"
+  >;
   counts: CurationSplitCounts;
   modules: ModuleCurationRederivationPlan[];
 }
@@ -120,6 +124,7 @@ export interface CurationRederivationPlan {
 export type CurationRederivationOutcome =
   | "settled"
   | "split"
+  | IncompleteCurationOutcome
   | "refused"
   | "partially-corrected";
 

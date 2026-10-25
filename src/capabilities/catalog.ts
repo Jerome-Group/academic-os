@@ -133,6 +133,10 @@ export const cliCapabilities: Capability[] = [
     ],
     [],
     "omit --apply",
+    [
+      "test/cli/curation-migrate-cli.test.ts",
+      "test/cli/curation-completion-cli.test.ts",
+    ],
   ),
   cli(
     "curation rederive",
@@ -142,7 +146,10 @@ export const cliCapabilities: Capability[] = [
     ],
     [],
     "omit --apply",
-    ["test/curation/plan-curation-rederivation.test.ts"],
+    [
+      "test/curation/plan-curation-rederivation.test.ts",
+      "test/cli/curation-completion-cli.test.ts",
+    ],
   ),
   cli(
     "calendar setup",

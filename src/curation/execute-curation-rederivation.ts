@@ -3,6 +3,7 @@ import {
   type PendingRegisterAppend,
 } from "./append-proved-register-lines.js";
 import { openCurationRegisterJournal } from "./curation-register-journal.js";
+import { incompleteCurationOutcome } from "./incomplete-curation-outcome.js";
 import type {
   CohortCurationRederivations,
   CurationRederivationPlan,
@@ -30,7 +31,7 @@ export async function executeCurationRederivation(input: {
   if (input.mode === "preview" || pending.length === 0) {
     return {
       ...summary,
-      outcome: input.plan.outcome,
+      outcome: incompleteCurationOutcome(summary) ?? input.plan.outcome,
       appended: 0,
       refusals: [],
     };
@@ -66,7 +67,7 @@ export async function executeCurationRederivation(input: {
   }
   return {
     ...summary,
-    outcome: "settled",
+    outcome: incompleteCurationOutcome(summary) ?? "settled",
     counts: correctedCounts(input.plan, outcome.written),
     modules: input.plan.modules.map((module) => publicModule(module, true)),
     appended: outcome.appended,

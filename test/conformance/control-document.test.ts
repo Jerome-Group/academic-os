@@ -88,6 +88,64 @@ it("checks final merge property provenance rather than cardinality or presumed k
   }
 });
 
+it("refuses collisions through each native merge dispatch in either order", () => {
+  for (const [version, mergeKeys] of [
+    ["1.1", ["<<", "!!str <<", "!!merge <<", "!!merge '<<'"]],
+    ["1.2", ["!!merge <<", "!!merge '<<'"]],
+  ] as const) {
+    for (const mergeKey of mergeKeys) {
+      for (const body of [
+        `{ ${mergeKey}: { 1: A }, '1': B }`,
+        `{ '1': B, ${mergeKey}: { 1: A } }`,
+        `{ ${mergeKey}: { null: A, 1: B }, null: C, '1': D }`,
+        `{ ${mergeKey}: { null: A, 'null': B }, null: C }`,
+        `{ null: C, ${mergeKey}: { null: A, 'null': B } }`,
+        `{ ${mergeKey}: [{ null: A }, { 'null': B }] }`,
+        `{ ${mergeKey}: [{ 'null': B }, { null: A }] }`,
+      ]) {
+        const source = `%YAML ${version}\n---\n${body}`;
+        const result = readControlDocument(source);
+        assert.ok("problems" in result, JSON.stringify({ source, result }));
+        assert.match(result.problems.join(" "), /YAML mapping keys/u);
+      }
+    }
+  }
+});
+
+it("preserves schema, scalar style and raw alias distinctions in merge dispatch", () => {
+  for (const version of ["1.1", "1.2"]) {
+    const mergeKeys = ["!!merge <<", "!!merge '<<'"];
+    if (version === "1.1") mergeKeys.push("<<", "!!str <<");
+    const bodies = [
+      "{ '<<': literal, other: value }",
+      '{ "<<": literal, other: value }',
+      "{ !!str '<<': literal, other: value }",
+      "{ &key '<<': A, ordinary: { *key : B } }",
+      ...mergeKeys.flatMap((key) => [
+        `{ ${key}: { null: A }, null: C }`,
+        `{ null: C, ${key}: { null: A } }`,
+        `{ ${key}: { One: A }, One: C }`,
+        `{ One: C, ${key}: { One: A } }`,
+        `{ ${key}: [{ One: A, Two: B }, { One: C, Three: D }] }`,
+        `{ &key ${key}: { x: A }, *key : B }`,
+      ]),
+    ];
+    if (version === "1.2")
+      bodies.push(
+        "{ <<: literal, other: value }",
+        "{ !!str <<: literal, other: value }",
+      );
+    for (const body of bodies) {
+      const source = `%YAML ${version}\n---\n${body}`;
+      const native = parseDocument(source);
+      assert.deepEqual(native.errors, [], source);
+      const result = readControlDocument(source);
+      assert.ok("value" in result, JSON.stringify({ source, result }));
+      assert.deepEqual(result.value, native.toJS(), source);
+    }
+  }
+});
+
 it("preserves native values, aliases, collection tags and legitimate merge precedence", () => {
   for (const source of [
     "left: { null: A }\nright: { '': B }",

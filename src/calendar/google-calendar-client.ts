@@ -5,6 +5,7 @@ import { checkedNextPageToken } from "../provider-page-token.js";
 import { OperationalError } from "../operational-error.js";
 
 import { CalendarSyncTokenExpiredError } from "./calendar-refresh-error.js";
+import { CALENDAR_REFRESH_QUERY } from "./calendar-refresh-query.js";
 import {
   isCalendarEvent,
   idempotentExtendedProperties,
@@ -284,8 +285,7 @@ export function createGoogleCalendarRefreshReader(
               url: `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
               method: "GET",
               params: {
-                singleEvents: false,
-                showDeleted: true,
+                ...CALENDAR_REFRESH_QUERY,
                 ...(syncToken === undefined
                   ? { timeMin: managementHorizon }
                   : { syncToken }),

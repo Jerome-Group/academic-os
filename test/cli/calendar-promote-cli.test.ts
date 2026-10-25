@@ -1536,6 +1536,7 @@ async function setupFixture(): Promise<Fixture> {
         lastSuccessfulRefresh: "2026-08-19T21:00:00.000Z",
         freshness: "fresh",
         syncToken,
+        syncQuery: { singleEvents: false, showDeleted: true },
         items: [],
         tombstones: [],
       })}\n`,

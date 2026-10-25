@@ -2652,6 +2652,7 @@ async function setupFixture(
         lastSuccessfulRefresh: "2026-08-19T21:00:00.000Z",
         freshness: "fresh",
         syncToken,
+        syncQuery: { singleEvents: false, showDeleted: true },
         items: eventsByRole[role].map((event) => ({
           actualCalendarRole: role,
           access: "owned",

@@ -1,5 +1,8 @@
 # Google Calendar is the Live calendar authority
 
+Query transitions and displaced recovery evidence are refined by
+[ADR-0043](0043-calendar-refresh-binds-query-scope-and-retains-displaced-evidence.md).
+
 Google Calendar is authoritative for which Calendar items actually exist and their current
 details. Private configured storage holds an agent-managed Calendar workspace: a mirror of that
 live state plus unpromoted Proposals. Humans edit the Live calendar; agents edit the workspace and

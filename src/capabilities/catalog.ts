@@ -149,8 +149,13 @@ export const cliCapabilities: Capability[] = [
   ),
   cli(
     "calendar refresh",
-    ["private calendar mirror"],
+    ["private calendar mirror and retained recovery snapshots"],
     ["Google Calendar read credentials"],
+    null,
+    [
+      "test/cli/calendar-refresh-cli.test.ts",
+      "test/cli/calendar-refresh-binding-cli.test.ts",
+    ],
   ),
   cli(
     "calendar propose",

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import {
   mkdtemp,
   mkdir,
@@ -92,6 +93,7 @@ for (const query of [
     await writeFile(f.mirrorPath, JSON.stringify(previous));
     const before = await readFile(f.mirrorPath, "utf8");
     const proposal = await pending(f);
+    await assertProposalRefused(f);
     f.provider.events.academic = [{ id: "unchanged-newly-visible" }];
     await refresh(f);
     const after = await mirror(f);
@@ -119,8 +121,8 @@ it("keeps failed horizon refetch under its original binding and retries fully", 
   await refresh(f, 2);
   assert.deepEqual(await mirror(f), { ...before, freshness: "stale" });
   assert.equal(await readFile(f.proposalsPath, "utf8"), proposal);
-  await assertProposalRefused(f);
   assertFullRead(f);
+  await assertProposalRefused(f);
   f.provider.eventReadFailures = [];
   f.provider.events.academic = [];
   await refresh(f);
@@ -209,6 +211,21 @@ it("refuses replacement when its recovery snapshot cannot be persisted", async (
   await rm(f.archiveRoot);
   await refresh(f);
   assert.deepEqual(await archives(f), [before]);
+});
+
+it("refuses replacement when an existing recovery snapshot fails byte readback", async () => {
+  const f = await fixture();
+  const before = await readFile(f.mirrorPath);
+  await mkdir(f.archiveRoot);
+  const digest = createHash("sha256").update(before).digest("hex");
+  await writeFile(
+    join(f.archiveRoot, `academic-${digest}.json`),
+    "corrupt snapshot",
+  );
+  await reconfigure(f, "2026-11-01T00:00:00.000Z");
+  const report = await cli(f, "refresh", 2);
+  assert.match(report.error.message, /recovery snapshot failed readback/u);
+  assert.deepEqual(await readFile(f.mirrorPath), before);
 });
 
 for (const expired of [false, true]) {
@@ -381,9 +398,9 @@ function assertFullRead(f: Fixture, oldToken?: string) {
 }
 async function archives(f: Fixture) {
   return await Promise.all(
-    (await readdir(f.archiveRoot)).map((name) =>
-      readFile(join(f.archiveRoot, name), "utf8"),
-    ),
+    (await readdir(f.archiveRoot))
+      .filter((name) => name.startsWith("academic-"))
+      .map((name) => readFile(join(f.archiveRoot, name), "utf8")),
   );
 }
 async function pending(f: Fixture) {

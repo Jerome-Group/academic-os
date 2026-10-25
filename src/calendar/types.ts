@@ -1,4 +1,5 @@
 import type { CalendarAssessmentReview } from "./calendar-occupancy.js";
+import type { CALENDAR_REFRESH_QUERY } from "./calendar-refresh-query.js";
 export type OwnedCalendarRole = "Academic" | "Commitments" | "Routine";
 
 export const OWNED_CALENDAR_ROLES: readonly OwnedCalendarRole[] = [
@@ -134,6 +135,7 @@ export interface OwnedCalendarMirror {
   lastSuccessfulRefresh: string | null;
   freshness: "fresh" | "stale";
   syncToken?: string;
+  syncQuery?: typeof CALENDAR_REFRESH_QUERY;
   items: MirroredCalendarItem[];
   tombstones: CalendarTombstone[];
 }
@@ -159,6 +161,7 @@ export interface CalendarProposalStore {
   markStaleForDeletedItems(
     deletedItems: Array<{
       calendarRole: OwnedCalendarRole;
+      calendarId: string;
       eventId: string;
     }>,
   ): Promise<void>;

@@ -21,6 +21,7 @@ it("retains Calendar state and proposals after cycling pagination and recovers o
         lastSuccessfulRefresh: horizon,
         freshness: "fresh" as const,
         syncToken: "retained",
+        syncQuery: { singleEvents: false, showDeleted: true } as const,
         items: [
           {
             actualCalendarRole: role,

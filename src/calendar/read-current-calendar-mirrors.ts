@@ -1,4 +1,5 @@
 import { OperationalError } from "../operational-error.js";
+import { hasCalendarRefreshBinding } from "./calendar-refresh-query.js";
 import type {
   OwnedCalendarMirror,
   OwnedCalendarMirrorStore,
@@ -17,7 +18,10 @@ export async function readCurrentCalendarMirrors(
     if (
       mirror === undefined ||
       mirror.freshness !== "fresh" ||
-      mirror.calendarId !== workspace.ownedCalendarIds[role] ||
+      !hasCalendarRefreshBinding(mirror, {
+        calendarId: workspace.ownedCalendarIds[role],
+        managementHorizon: workspace.managementHorizon,
+      }) ||
       typeof mirror.syncToken !== "string" ||
       typeof mirror.lastSuccessfulRefresh !== "string"
     ) {

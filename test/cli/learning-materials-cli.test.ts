@@ -14,6 +14,7 @@ import { afterEach, it } from "node:test";
 
 import { inventoryDirectory } from "../../src/mounted/inventory-mounted-module.js";
 import { runCli } from "../support/run-cli.js";
+import { collidingSourceMaps } from "../fixtures/source-map-identity.js";
 
 const temporaryRoots: string[] = [];
 
@@ -102,6 +103,32 @@ async function fixture(): Promise<{
   );
   return { root, configPath, moduleRoot, stateRoot };
 }
+
+it("reports colliding Source Maps as invalid with no units at the compiled CLI", async () => {
+  const target = await fixture();
+  for (const source of collidingSourceMaps) {
+    await writeFile(
+      join(target.moduleRoot, "00 Module Admin", "40 Source Map.yaml"),
+      source,
+    );
+    const result = await runCli(
+      "learning",
+      "materials",
+      "--config",
+      target.configPath,
+      "--json",
+    );
+    assert.notEqual(result.exitCode, 0, result.stdout);
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.outcome, "invalid");
+    assert.equal(report.modules[0]?.assessment.outcome, "invalid");
+    assert.deepEqual(report.modules[0]?.assessment.units, []);
+    assert.match(
+      report.modules[0]?.assessment.problems.join(" "),
+      /YAML mapping keys/u,
+    );
+  }
+});
 
 it("reports study-source gaps in human and JSON output without writing", async () => {
   const target = await fixture();

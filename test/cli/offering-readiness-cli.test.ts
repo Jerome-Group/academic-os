@@ -24,6 +24,7 @@ import {
   validModuleControls,
 } from "../fixtures/module-controls.js";
 import { runCliWithEnvironment } from "../support/run-cli.js";
+import { collidingSourceMaps } from "../fixtures/source-map-identity.js";
 
 const temporaryRoots: string[] = [];
 
@@ -98,6 +99,29 @@ async function fixture(modules = ["MH2100"]) {
   }
   return { root, config, configPath, moduleRoot };
 }
+
+it("retains invalid learning evidence for colliding identities in readiness", async () => {
+  const target = await fixture();
+  for (const source of collidingSourceMaps) {
+    await writeFile(
+      join(target.moduleRoot(), moduleControlPaths.sourceMap),
+      source,
+    );
+    const result = await run(target);
+    assert.notEqual(result.exitCode, 0, result.stdout);
+    const module = firstModule(JSON.parse(result.stdout));
+    assert.notEqual(module.outcome, "ready");
+    assert.equal(module.checks.learningMaterials.kind, "observed");
+    if (module.checks.learningMaterials.kind === "observed") {
+      assert.equal(module.checks.learningMaterials.evidence.outcome, "invalid");
+      assert.deepEqual(module.checks.learningMaterials.evidence.units, []);
+      assert.match(
+        module.checks.learningMaterials.evidence.problems.join(" "),
+        /YAML mapping keys/u,
+      );
+    }
+  }
+});
 
 function receipt(
   status: ImportStatusReceipt["status"] = "complete",

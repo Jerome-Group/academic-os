@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import type { Inventory } from "../../src/conformance/index.js";
 import { assessLearningMaterials } from "../../src/learning-materials/index.js";
+import { collidingSourceMaps } from "../fixtures/source-map-identity.js";
 
 const sourceMap = `units:
   Week 02:
@@ -73,6 +74,15 @@ function inventory(completeness: "complete" | "partial"): Inventory {
 }
 
 describe("learning-material availability", () => {
+  it("rejects colliding Source Map identities without exposing replacement units", () => {
+    for (const source of collidingSourceMaps) {
+      const assessed = assessLearningMaterials(source, inventory("complete"));
+      assert.equal(assessed.outcome, "invalid", source);
+      assert.deepEqual(assessed.units, []);
+      assert.match(assessed.problems.join(" "), /YAML mapping keys/u);
+    }
+  });
+
   it("preserves unit order, typed tutorial evidence, exact gaps, and optional materials", () => {
     const assessed = assessLearningMaterials(sourceMap, inventory("complete"));
 

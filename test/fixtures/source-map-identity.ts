@@ -1,0 +1,21 @@
+export function identityUnit(label: string): string {
+  return `{ topics: [${label}], lectures: [${label}.md], textbook: [], tutorials: [{ block: ${label}, exercises: ${label}-exercises, sources: [{ file: ${label}-tutorial.md, locator: ${label}-locator, role: ${label}-role, missing: [${label}-missing] }] }] }`;
+}
+
+export const collidingSourceMaps = [
+  `units: { 1: ${identityUnit("first")}, '1': ${identityUnit("second")} }`,
+  `units: { '1': ${identityUnit("first")}, 1: ${identityUnit("second")} }`,
+  `%YAML 1.1\n---\nunits: { <<: { 1: ${identityUnit("first")} }, '1': ${identityUnit("second")} }`,
+  `%YAML 1.1\n---\nunits: { <<: [{ '1': ${identityUnit("first")} }, { 1: ${identityUnit("second")} }] }`,
+] as const;
+
+export const orderedSourceMap = `units:\n  Week 02: &first ${identityUnit("first")}\n  2: ${identityUnit("second")}\n  '1': ${identityUnit("third")}\n  '01': ${identityUnit("fourth")}\n  &name Week 03: ${identityUnit("fifth")}\n  Repeat: *first\n`;
+
+export const orderedUnits = [
+  ["Week 02", "first"],
+  ["2", "second"],
+  ["1", "third"],
+  ["01", "fourth"],
+  ["Week 03", "fifth"],
+  ["Repeat", "first"],
+] as const;

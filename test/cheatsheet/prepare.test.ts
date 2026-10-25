@@ -5,6 +5,11 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { it } from "node:test";
 import { validModuleControls } from "../fixtures/module-controls.js";
+import {
+  collidingSourceMaps,
+  orderedSourceMap,
+  orderedUnits,
+} from "../fixtures/source-map-identity.js";
 import { prepareCheatsheet } from "../../src/cheatsheet/index.js";
 import {
   assertCheatsheetReleaseReady,
@@ -27,12 +32,14 @@ for (const mode of ["API", "shipped helper"] as const) {
         join(admin, "10 Module Definition.yaml"),
         controls.definition ?? "",
       );
-      await writeFile(
-        join(admin, "40 Source Map.yaml"),
-        'units:\n  Week 02:\n    topics: [First]\n    lectures: [first.md]\n    textbook: []\n    tutorials: []\n  "1":\n    topics: [Second]\n    lectures: [second.md]\n    textbook: []\n    tutorials: []\n',
-      );
-      await writeFile(join(root, "first.md"), "first declared source");
-      await writeFile(join(root, "second.md"), "second declared source");
+      await writeFile(join(admin, "40 Source Map.yaml"), orderedSourceMap);
+      for (const [, label] of orderedUnits) {
+        await writeFile(join(root, `${label}.md`), `${label} declared source`);
+        await writeFile(
+          join(root, `${label}-tutorial.md`),
+          `${label} tutorial source`,
+        );
+      }
       const input = {
         moduleRoot: root,
         moduleCode: "MH2100",
@@ -59,12 +66,86 @@ for (const mode of ["API", "shipped helper"] as const) {
         result = JSON.parse(child.stdout);
       }
       assert.deepEqual(
-        result.candidates.map(({ unit, path }) => [unit, path]),
-        [
-          ["Week 02", "first.md"],
-          ["1", "second.md"],
-        ],
+        result.candidates.map(
+          ({ unit, topics, path, locator, role, missing }) => ({
+            unit,
+            topics,
+            path,
+            locator,
+            role,
+            missing,
+          }),
+        ),
+        orderedUnits.flatMap(([unit, label]) => [
+          {
+            unit,
+            topics: [label],
+            path: `${label}.md`,
+            locator: "whole file",
+            role: "lectures",
+            missing: [],
+          },
+          {
+            unit,
+            topics: [label],
+            path: `${label}-tutorial.md`,
+            locator: `${label}-locator`,
+            role: `${label}-role`,
+            missing: [`${label}-missing`],
+          },
+        ]),
       );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it(`refuses colliding Source Maps before reading candidate bodies through ${mode}`, async () => {
+    const root = await mkdtemp(join(tmpdir(), "cheatsheet-unit-identity-"));
+    try {
+      const admin = join(root, "00 Module Admin");
+      await mkdir(admin);
+      const controls = validModuleControls();
+      await writeFile(
+        join(admin, "00 Module Profile.md"),
+        controls.profile ?? "",
+      );
+      await writeFile(
+        join(admin, "10 Module Definition.yaml"),
+        controls.definition ?? "",
+      );
+      for (const source of collidingSourceMaps) {
+        await writeFile(join(admin, "40 Source Map.yaml"), source);
+        const input = {
+          moduleRoot: root,
+          moduleCode: "MH2100",
+          assessment: "midterm",
+        };
+        if (mode === "API") {
+          await assert.rejects(prepareCheatsheet(input), /YAML mapping keys/u);
+        } else {
+          const child = spawnSync(
+            process.execPath,
+            [
+              resolve("skills/cheatsheet/scripts/cheatsheet-tool.mjs"),
+              "prepare",
+              "--module-root",
+              root,
+              "--module-code",
+              input.moduleCode,
+              "--assessment",
+              input.assessment,
+            ],
+            { encoding: "utf8" },
+          );
+          assert.equal(child.status, 1, child.stdout + child.stderr);
+          const result = JSON.parse(child.stdout);
+          assert.equal(result.status, "failed");
+          assert.equal(result.error.code, "cheatsheet-operation-failed");
+          assert.match(result.error.message, /YAML mapping keys/u);
+          assert.equal(result.candidates, undefined);
+        }
+      }
     } finally {
       await rm(root, { recursive: true, force: true });
     }

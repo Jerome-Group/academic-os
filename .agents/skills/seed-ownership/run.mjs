@@ -71,7 +71,13 @@ process.stdout.write(`Evidence ${evidence}\n`);
 
 try {
   const java = process.env.JAVA ?? "java";
-  const version = await command(java, ["-version"], evidence, "java-version");
+  const javaTemporary = `-Djava.io.tmpdir=${evidence}`;
+  const version = await command(
+    java,
+    [javaTemporary, "-version"],
+    evidence,
+    "java-version",
+  );
   assert.match(version.output, /version "21\./u, "Java 21 required");
   let jar = process.env.TLA2TOOLS_JAR;
   if (jar === undefined) {
@@ -90,7 +96,7 @@ try {
   );
   const help = await command(
     java,
-    ["-cp", jar, "tlc2.TLC", "-help"],
+    [javaTemporary, "-cp", jar, "tlc2.TLC", "-help"],
     evidence,
     "tlc-version",
     evidence,
@@ -151,6 +157,7 @@ try {
     const run = await command(
       java,
       [
+        javaTemporary,
         "-XX:+UseParallelGC",
         "-Xmx1g",
         "-cp",

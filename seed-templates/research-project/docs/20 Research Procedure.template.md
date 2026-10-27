@@ -97,7 +97,9 @@ After the meeting:
 1. attribute guidance and settle every assignment row;
 2. ensure every learning/exercise invocation has a record;
 3. change Tasks only for work explicitly reported complete and next actions explicitly accepted;
-   use academic-os task tools, verify the provider result, then refresh the register;
+   follow the Tasks protocol in `AGENTS.md`, retaining conflicts and uncertain results. Dated/timed
+   placement uses its separate authorized native UI delegation and evidence gate; task-plan/1
+   refuses those writes. Preserve exact task IDs, manual changes and dismissals;
 4. resolve an exact meeting or deliverable date only through Calendar preview and verified promotion;
 5. perform only promotions whose Owner selection and adoption are already explicit;
 6. obtain Owner confirmation;

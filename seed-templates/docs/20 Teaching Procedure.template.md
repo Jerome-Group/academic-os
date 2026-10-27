@@ -126,9 +126,11 @@ Surface unresolved sources, mathematical uncertainty, uncompiled output, and par
 `REVISIT.md` entry only for confusion, a question the Owner was completely stuck on, or an
 exam-important question the Owner accepts; keep the existing no-date, no-order form.
 
-Reconcile only work explicitly completed and next actions the Owner accepted through the
-authoritative Tasks tools, verify the push, then refresh the Task Register. Resolve authoritative
-assessment dates through Calendar preview and promotion. Preserve task IDs and unrelated fields.
+Reconcile only work explicitly completed and next actions the Owner accepted through the Tasks
+protocol in `AGENTS.md`. Verify API/register success there; a conflict or uncertain result remains
+unresolved. Dated/timed placement follows its separate authorized native UI delegation and evidence
+gate, because task-plan/1 refuses those writes. Resolve authoritative assessment dates through
+Calendar preview and promotion. Preserve task IDs, manual changes, dismissals and unrelated fields.
 Never infer mastery, silently reschedule overdue work, or turn an unaccepted suggestion into a task.
 
 The session is complete when the record exists, durable artifacts and authoritative state are

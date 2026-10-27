@@ -208,7 +208,7 @@ export const cliCapabilities: Capability[] = [
   ),
   cli(
     "tasks refresh",
-    ["mounted task register content"],
+    ["mounted task register content", "private per-target refresh receipts"],
     ["Google Tasks read credentials"],
     null,
     [
@@ -219,9 +219,9 @@ export const cliCapabilities: Capability[] = [
   ...["create", "change", "complete", "cancel"].map((action) =>
     cli(
       `tasks ${action}`,
-      ["Google Tasks", "mounted task register content"],
+      [],
       [
-        "exact Module or Research-project target; Google Tasks write and read credentials",
+        "retired direct-write alias; use tasks apply-plan and a fresh tasks refresh token",
       ],
       null,
       [
@@ -229,6 +229,40 @@ export const cliCapabilities: Capability[] = [
         "test/cli/research-tasks-cli.test.ts",
       ],
     ),
+  ),
+  {
+    ...cli(
+      "tasks apply-plan",
+      [
+        "Google Tasks",
+        "mounted task register content",
+        "private operation/lifecycle journals and refresh receipts",
+      ],
+      [
+        "immutable TaskExecutionPlan v1; fresh snapshot; canonical private state; Google Tasks read/write credentials",
+      ],
+      null,
+      [
+        "test/cli/tasks-apply-plan-cli.test.ts",
+        "test/cli/research-tasks-cli.test.ts",
+      ],
+    ),
+    invocation:
+      "node dist/src/cli.js tasks apply-plan --config <private-config> --plan <private-plan.json> --json",
+  },
+  cli(
+    "tasks record-lifecycle",
+    ["private owner lifecycle evidence"],
+    ["exact terminal owner decision JSON; no provider mutation"],
+    null,
+    ["test/cli/tasks-apply-plan-cli.test.ts"],
+  ),
+  cli(
+    "tasks status",
+    [],
+    ["private refresh receipts; no provider access"],
+    null,
+    ["test/cli/tasks-apply-plan-cli.test.ts"],
   ),
   cli(
     "textbooks catch-up",
@@ -512,7 +546,11 @@ export function capabilityIndex(): object {
         writes:
           operation === "read_register"
             ? ["mounted task register and private freshness evidence"]
-            : ["Google Tasks", "mounted task register"],
+            : [
+                "Google Tasks",
+                "mounted task register",
+                "private operation/lifecycle journals and refresh receipts",
+              ],
         riskFlags:
           operation === "read_register"
             ? ["writes-state", "mounted-write"]
@@ -522,10 +560,12 @@ export function capabilityIndex(): object {
                 "requires-target-authorization",
               ],
         preview: null,
-        implementation: "src/operations/task-tools.ts",
+        implementation: "src/operations/task-plan-tools.ts",
         tests: [
           "test/operations/task-tools.test.ts",
           "test/operations/research-task-tools.test.ts",
+          "test/operations/task-plan-tools.test.ts",
+          "test/cli/tasks-apply-plan-cli.test.ts",
         ],
         status: "supported",
         health: "not-observed",
@@ -533,6 +573,41 @@ export function capabilityIndex(): object {
           "MCP content containing JSON text and isError; transport errors remain distinct.",
       });
     }
+  for (const name of ["tasks_apply_plan", "tasks_sync_capabilities"])
+    actions.push({
+      id: name,
+      surface: "mcp",
+      invocation: `MCP tools/call ${name}`,
+      prerequisites: [
+        "Operations protocol task-plan/1; exact target; fresh snapshot for mutation",
+      ],
+      reads:
+        name === "tasks_apply_plan"
+          ? ["Google Tasks", "private lifecycle/journal"]
+          : [],
+      writes:
+        name === "tasks_apply_plan"
+          ? [
+              "Google Tasks",
+              "mounted register",
+              "private operation/lifecycle journals and refresh receipts",
+            ]
+          : [],
+      riskFlags:
+        name === "tasks_apply_plan"
+          ? ["external-write", "writes-state", "requires-target-authorization"]
+          : [],
+      preview: null,
+      implementation: "src/operations/task-plan-tools.ts",
+      tests: [
+        "test/operations/task-plan-tools.test.ts",
+        "test/tasks/task-execution.test.ts",
+      ],
+      status: "supported",
+      health: "not-observed",
+      result:
+        "MCP content containing JSON text and isError; versioned exact-plan result. Conflicts never silently replan. Native timing unavailable until verified adapter.",
+    });
   for (const name of [
     "calendar-refresh",
     "state-refresh",

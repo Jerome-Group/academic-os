@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
+
+import { taskExecutionSnapshot } from "../../src/tasks/task-execution-plan.js";
 
 import { runCliWithEnvironment } from "../support/run-cli.js";
 
@@ -61,7 +63,33 @@ describe("academic-os tasks refresh", () => {
     assert.equal(report.schemaVersion, 1);
     assert.equal(report.command, "tasks refresh");
     assert.equal(report.outcome, "refreshed");
-    assert.deepEqual(report.modules[0], {
+    const {
+      generation,
+      providerSnapshot,
+      observedAt,
+      receipt,
+      ...legacyReport
+    } = report.modules[0];
+    assert.match(generation, /^[a-f0-9]{64}$/u);
+    assert.equal(
+      providerSnapshot,
+      taskExecutionSnapshot(
+        (await readProvider(fixture)).tasks["first-list"] ?? [],
+      ),
+    );
+    assert.equal(receipt.schemaVersion, 1);
+    assert.deepEqual(receipt.target, {
+      kind: "module",
+      key: "Y2S1/MH2100",
+      title: "MH2100",
+    });
+    assert.equal(receipt.listId, "first-list");
+    assert.equal(receipt.freshness, "fresh");
+    assert.equal(receipt.generation, generation);
+    assert.equal(receipt.providerSnapshot, providerSnapshot);
+    assert.equal(receipt.observedAt, observedAt);
+    assert.equal(receipt.lastSuccess.generation, generation);
+    assert.deepEqual(legacyReport, {
       semester: "Y2S1",
       module: "MH2100",
       freshness: "fresh",

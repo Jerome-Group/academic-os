@@ -4,7 +4,9 @@ The CLI and Operations server read and update target-specific Tasks and Calendar
 
 ## Sub-features
 
-- Task list provisioning, refresh and operations preserve exact Module or Research-project identity.
+- Task list provisioning, verified generation receipts and exact-plan operations preserve Module or Research-project identity.
+- Guarded MCP compatibility names negotiate task-plan/1; current clients obtain read snapshots and retain exact operation IDs.
+- Private lifecycle decisions prevent source-occurrence resurrection; native timing contract fixtures refuse missing/unsupported evidence.
 - Synthetic Calendar setup checks exact owner access, preview and idempotent role binding. Refresh retains per-calendar stale data and tombstones.
 - Proposal and promotion reassess one exact mutation plan, ownership and relevant availability; recovery authorizes only an exact accepted prefix.
 - Calendar proposals cover academic timetables, Routine migration, recurring edits, cancellation and restoration.
@@ -40,7 +42,7 @@ The installer-to-morning-runner PATH journey belongs to maintenance.
 Busy recurrence checks require complete finite supported DAILY/WEEKLY expansion in UTC or Singapore; unsupported rules, zones or exhausted bounds refuse.
 Cancellation, transparent milestones and occupancy-preserving edits are exempt from busy expansion. Routine recurrence warnings cover the anchor only.
 Restore covers the retained writable resource, without unavailable exception replay. Google observation/write races remain possible.
-Synthetic Google state does not establish real authorization, account data or live service availability.
+Synthetic Google state does not establish real authorization, account data or live service availability. Native timing remains an unactivated separate contract; configured dated/timed writes refuse until its adapter is verified. Client tool-schema migration and real native placement acceptance remain deployment prerequisites.
 The temporary HTTP service uses an injected echo tool. Task tools have separate domain tests.
 This does not prove the production resident server against Google.
 In the known TCP-denying repository sandbox, `ACADEMIC_OS_REPOSITORY_FIXTURE_TRANSPORT=unix` selects Unix sockets and asserts default TCP fails with `EPERM`.

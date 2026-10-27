@@ -44,6 +44,12 @@ export interface TaskList {
 
 export interface LiveTask {
   id: string;
+  etag?: string;
+  updated?: string;
+  completed?: string;
+  hidden?: boolean;
+  parent?: string;
+  position?: string;
   title?: string;
   notes?: string;
   due?: string;
@@ -208,6 +214,10 @@ export interface TaskRefreshReport {
 }
 
 export interface TaskRefreshModuleReport extends ConfiguredModuleIdentity {
+  generation?: string;
+  providerSnapshot?: string;
+  observedAt?: string;
+  receipt?: TaskRefreshReceipt;
   freshness: "fresh" | "stale";
   listId: string | null;
   counts: TaskRegisterCounts;
@@ -219,6 +229,10 @@ export interface TaskRefreshModuleReport extends ConfiguredModuleIdentity {
 }
 
 export interface TaskTargetRefreshReport {
+  generation?: string;
+  providerSnapshot?: string;
+  observedAt?: string;
+  receipt?: TaskRefreshReceipt;
   target: TaskTargetIdentity;
   freshness: TaskRefreshModuleReport["freshness"];
   listId: string | null;
@@ -228,6 +242,10 @@ export interface TaskTargetRefreshReport {
 }
 
 export interface TaskRefreshResearchProjectReport {
+  generation?: string;
+  providerSnapshot?: string;
+  observedAt?: string;
+  receipt?: TaskRefreshReceipt;
   researchProject: string;
   freshness: TaskRefreshModuleReport["freshness"];
   listId: string | null;
@@ -242,4 +260,33 @@ export interface TaskRegisterCounts {
   completed: number;
   cancelled: number;
   unpushed: number;
+}
+
+export interface TaskRefreshGeneration {
+  listId: string;
+  observedAt: string;
+  generation: string;
+  providerSnapshot: string;
+  configBinding?: string;
+}
+
+export interface TaskRefreshAttempt {
+  schemaVersion: 1;
+  target: TaskTargetIdentity;
+  listId: string | null;
+  observedAt: string;
+  freshness: "fresh" | "stale";
+  generation?: string;
+  providerSnapshot?: string;
+  configBinding?: string;
+  failure?: { code: string; message: string };
+}
+
+export interface TaskRefreshReceipt extends TaskRefreshAttempt {
+  lastSuccess: TaskRefreshGeneration | null;
+}
+
+export interface TaskRefreshReceiptStore {
+  read(): Promise<TaskRefreshReceipt | undefined>;
+  record(attempt: TaskRefreshAttempt): Promise<TaskRefreshReceipt>;
 }

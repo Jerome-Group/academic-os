@@ -2,7 +2,7 @@
 
 The CLI has `seed`, `audit`, `calendar setup`, pull-only `calendar refresh`, private `calendar
 propose`, explicitly authorised `calendar promote`, `tasks provision`, pull-only `tasks refresh`,
-in-session `tasks create`, `tasks change`, `tasks complete` and `tasks cancel`, additive `textbooks
+in-session exact `tasks apply-plan`, additive `textbooks
 catch-up`, read-only `imports status` and `offering readiness`, the unattended `routine morning`, previewed `pinned refresh`, previewed
 `curation migrate`, previewed `curation rederive` and separately gated `repair` commands. It does
 not orchestrate a week of study or evolve a module's instructions on its own.
@@ -520,63 +520,31 @@ rerun rather than an edit.
 
 ## Tasks operations
 
-Write to one target's live list in session — the pushes an unattended refresh has no authority to
-make:
+Use the exact-plan protocol for Module and Research-project writes. First run a pull and retain the target's providerSnapshot, exact list identity and generation. Stored status reads retained receipts without contacting Google:
 
 ```sh
-node dist/src/cli.js tasks create --config academic-os.config.json \
-  --semester Y2S1 --module MODULE_CODE --title 'Attempt tutorial 3' --do-date 2026-08-27
+node dist/src/cli.js tasks refresh --config academic-os.config.json --json
+node dist/src/cli.js tasks status --config academic-os.config.json --json
+node dist/src/cli.js tasks apply-plan --config academic-os.config.json --plan /private/task-plan.json --json
 ```
+
+TaskExecutionPlan schemaVersion 1 contains operationId, target {kind,key,title}, listId, expectedSnapshot, operation, policyVersion, and a stable sourceOccurrenceId for creates. The operation is create {title,provenance?}, change {taskId,title?}, complete {taskId}, or cancel {taskId}. Descriptions/notes are refused. Dated/timed placement is refused while the separate native timing adapter is unavailable. The plan is exact input from cloud planning; the Mini returns conflicts instead of changing the plan.
+
+Keep the same operationId and identical plan across retries. Provider ambiguity is retained before sending a mutation. A returned ID is saved before verification, preserving provenance through recovery. An unknown-ID create stays uncertain; another operation ID for the same source occurrence is blocked. Inspect and reconcile exact retained evidence rather than clearing locks, changing IDs or matching titles. A newly planned operationId may reclaim only exact prior null-ID prepared or definitively rejected no-effect evidence. Unknown, verified and applied reservations remain fenced.
+
+The outcomes are applied, conflict, uncertain and failed. Applied requires verified provider state and verified local register/receipt publication. Conflicts and unavailable timing cause no provider mutation. An uncertain result may already have changed Google and cannot justify resending. Canonical local ownership serializes cooperating executors; unrelated remote UI edits remain a race without provider conditional writes.
+
+Record an explicit terminal owner decision independently of provider cleanup:
 
 ```sh
-node dist/src/cli.js tasks change --config academic-os.config.json \
-  --semester Y2S1 --module MODULE_CODE --task TASK_ID --do-date 2026-08-28
+node dist/src/cli.js tasks record-lifecycle --config academic-os.config.json --decision /private/owner-decision.json --json
 ```
 
-Every create/change/complete/cancel command may select a Research project instead:
+The private decision is a TaskLifecycleEntry containing exact target/source occurrence, owner-dismissed or completed disposition, recordedAt, evidenceRef and retained canonical provider bindings. Aliases require verifiedAt and evidenceRef. This writes only private lifecycle evidence and never mutates Google or generated mirrors. Private owner identities belong in the decision file, never repository source. Titles alone cannot supply dismissal authority.
 
-```sh
-node dist/src/cli.js tasks create --config academic-os.config.json \
-  --research-project example-project --title 'Read the next core source' --do-date 2026-08-27
-```
+Direct CLI create/change/complete/cancel aliases return exact-plan-required with the migration route. For MCP, existing module/research operation names remain available with plan_json; read-register exposes execution.expectedSnapshot, exact target/list identity and required fields. tasks_sync_capabilities advertises task-plan/1, tasks_apply_plan and the compatibility names. Read fresh state, supply a stable operationId and current cloud policyVersion, then call either the named compatibility operation with matching arguments/plan_json or tasks_apply_plan. Missing plans return explicit guidance with zero provider writes.
 
-`tasks complete` and `tasks cancel` take the same `--task` and nothing more. Every operation
-pushes with the interactive-write credential, reads the live result back, then runs the same pull
-`tasks refresh` runs with the scheduled-read one — so the register only ever mirrors what Google
-accepted, and the Owner's phone has it first.
-
-`create` also takes `--notes` and the additive provenance flags `--assessment`, `--source`,
-`--milestone`, `--claim`, `--meeting` and `--deliverable`; the last three connect Research-project
-work to its own controls without changing the existing Module fields. The returned task ID and that
-provenance are what the new row carries, and provenance never reaches Google. `change` takes any of
-`--title`, `--do-date` and `--notes`. A
-`--do-date` is a date with no time: Google discards a time and a Do-date is not a deadline, so the
-command refuses one rather than truncating it.
-
-`--task` names a task the register already has a row for. A task created on the phone since the
-last pull parks until `tasks refresh` mirrors it — pushing to an ID the register does not know
-would be writing blind — and a row the register holds as `cancelled` parks too, because Google no
-longer has that task and a cancelled task is never re-pushed. `tasks cancel` deletes the task in
-Google, and the refresh behind it marks the row `cancelled`; the register never drops a task it
-tracked.
-
-Three outcomes, and the difference between them is what Google did:
-
-- `applied` — the live push was verified. Failed local recording or refresh can leave the report's
-  register `null` or `stale` and exits nonzero. Run `tasks refresh` before further writes.
-- `parked` — validation blocked the push or Google definitively refused it. The live list is as
-  it was and the register kept no row for work that does not exist. Nothing queues it: Google's
-  own apps are the manual fallback, and the register catches up at the next pull.
-- `unverified` — the write response was lost, or the pushed result could not be verified. The
-  report preserves a known task ID; a create whose response supplied no ID reports `null`.
-  Run `tasks refresh` and inspect Google Tasks before retrying, especially a create: repeating
-  an accepted create can add a duplicate.
-
-Anything but `applied` against a fresh register exits nonzero.
-
-Supervise the first live round-trip: `tasks create` against a real target list, tick the task in
-Google Tasks on the phone, then `tasks refresh`. The row should come back `completed` with its
-provenance intact and no other row moved.
+Before rollout, refresh every client's tool schema and instructions, verify both Module and Research-project complete/change/create callers, then deliberately build/restart the resident runtime. A source checkout change does not update its already loaded process. The existing 30-minute pull job remains the periodic backstop. After authorized rollout, use official refresh/readback and separately verify current native placements and owner constraints.
 
 ## Operations server
 
@@ -603,20 +571,16 @@ reachability on the Tailnet is the whole of the authorisation, and there is no t
 (ADR-0011). Second machines register the URL once at user scope — `machine-setup.md` is their
 whole checklist.
 
-Four Module tools are served: `tasks_create`, `tasks_change`, `tasks_complete` and
-`tasks_read_register`. When Research projects are configured, four parallel tools are also served:
+Four Module compatibility tools are served: `tasks_create`, `tasks_change`, `tasks_complete` and
+`tasks_read_register`. Four parallel Research tools are also declared:
 `research_tasks_create`, `research_tasks_change`, `research_tasks_complete` and
 `research_tasks_read_register`. The Module tools take `semester` and `module`; the Research tools
 take the stable `research_project` key. Research create additionally accepts `claim`, `meeting` and
 `deliverable` provenance beside the shared fields.
 
-The three writes on either surface follow the Promotion pattern exactly as the CLI does; each read
-pulls the live list into the register first and returns rows with their provenance. A target the
-config does not map is refused rather than guessed at. An operation that did not apply comes back as
-an MCP error carrying the same report the CLI prints,
-so a parked push is visible to the calling agent without it having to read the report for the bad
-news. A verified push whose refresh then failed is not one of those: the task is on the phone, the
-report names the stale register, and reporting it as an error is what would invite a second push.
+Both surfaces negotiate task-plan/1 through tasks_sync_capabilities. A read pulls the live list and returns its verified rows, provenance and execution snapshot token. Existing write names accept a matching plan_json envelope; tasks_apply_plan accepts the same plan directly. Target configuration is reloaded for each call; missing targets are refused rather than guessed.
+
+MCP isError marks every non-applied outcome, including uncertain effects or failed local recording. Keep the operationId and exact plan; the retained journal controls recovery, and an error never authorizes a new-ID retry. Applied requires fresh local readback as well as verified provider state. Client schemas and procedures must be migrated before deploying the new runtime.
 
 Inspect the loaded job, watch it serve, and restart it:
 

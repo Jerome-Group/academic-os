@@ -19,9 +19,11 @@ interface FakeTasksState {
   nextId?: number;
   taskPageSizes?: Record<string, number>;
   taskReadFailures?: string[];
+  taskReadbackFailures?: string[];
   taskWriteFailures?: string[];
   taskWritesIgnored?: string[];
   taskCreateIdsMissing?: boolean;
+  taskAfterCreateCorruptFile?: string;
   tasks?: Record<string, FakeTask[]>;
   requests?: Array<{
     body?: unknown;
@@ -106,6 +108,12 @@ prototype.request = async function (options) {
     const taskId = decodeURIComponent(taskMatch[2] ?? "");
     const task = state.tasks?.[listId]?.find(({ id }) => id === taskId);
     if (options.method === "GET") {
+      if (
+        state.taskReadbackFailures?.some(
+          (key) => key === taskId || key === listId,
+        )
+      )
+        throw new Error("Synthetic task readback failed.");
       if (task === undefined) throw missingTask(taskId);
       return { data: task };
     }
@@ -149,6 +157,11 @@ prototype.request = async function (options) {
       [listId]: [...(state.tasks?.[listId] ?? []), task],
     };
     await writeFile(statePath, `${JSON.stringify(state)}\n`);
+    if (state.taskAfterCreateCorruptFile !== undefined)
+      await writeFile(
+        state.taskAfterCreateCorruptFile,
+        "{synthetic lifecycle corruption",
+      );
     return { data: state.taskCreateIdsMissing === true ? {} : task };
   }
   if (

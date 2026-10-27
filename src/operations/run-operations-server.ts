@@ -15,12 +15,15 @@ import {
 } from "./serve-operations.js";
 import { resolveTailnetAddresses } from "./tailnet-address.js";
 import { createTaskTools } from "./task-tools.js";
+import { guardedTaskTools } from "./task-plan-tools.js";
+import { applyConfiguredTaskPlan } from "../tasks/configured-task-executor.js";
+import type { OperationTool } from "./types.js";
 import type { McpServerInfo } from "./types.js";
 
 export const OPERATIONS_SERVER_INFO: McpServerInfo = {
   name: "academic-os",
   title: "academic-os Operations server",
-  version: "1.0.0",
+  version: "2.0.0",
 };
 
 // The mini's half of the boundary: the credentials, the module configuration and the machinery
@@ -30,20 +33,25 @@ export const OPERATIONS_SERVER_INFO: McpServerInfo = {
 export async function runOperationsServer(input: {
   configPath: string;
 }): Promise<OperationsServerHandle> {
-  const { config, tasks } = await loadCohortTasksConfig(input.configPath);
-  const tools = createTaskTools({
-    target: (module) => configuredTaskTarget(config, module),
-    ...(config.research === undefined
-      ? {}
-      : {
-          researchProjectTarget: (key: string) =>
-            configuredResearchProjectTaskTarget(config, key, {
-              requireActive: true,
-            }),
-        }),
-    writer: createGoogleTaskOperationWriter(tasks.credentials.interactiveWrite),
-    reader: createGoogleTaskRefreshReader(tasks.credentials.scheduledRead),
-  });
+  const catalog = await configuredTaskTools(input.configPath);
+  const tools = guardedTaskTools(
+    catalog.map((tool) => ({
+      ...tool,
+      call: async (values) => {
+        const current = await configuredTaskTools(input.configPath);
+        const selected = current.find(
+          (candidate) => candidate.name === tool.name,
+        );
+        if (selected === undefined)
+          throw new Error("Configured task tool is unavailable.");
+        return await selected.call(values);
+      },
+    })),
+    {
+      apply: async (plan) =>
+        await applyConfiguredTaskPlan({ configPath: input.configPath, plan }),
+    },
+  );
   return await startOperationsServer({
     hosts: resolveTailnetAddresses(),
     port: OPERATIONS_PORT,
@@ -51,6 +59,19 @@ export async function runOperationsServer(input: {
       tools,
       serverInfo: OPERATIONS_SERVER_INFO,
     }),
+  });
+}
+
+async function configuredTaskTools(
+  configPath: string,
+): Promise<OperationTool[]> {
+  const { config, tasks } = await loadCohortTasksConfig(configPath);
+  return createTaskTools({
+    target: (module) => configuredTaskTarget(config, module),
+    researchProjectTarget: (key) =>
+      configuredResearchProjectTaskTarget(config, key, { requireActive: true }),
+    writer: createGoogleTaskOperationWriter(tasks.credentials.interactiveWrite),
+    reader: createGoogleTaskRefreshReader(tasks.credentials.scheduledRead),
   });
 }
 

@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { it, type TestContext } from "node:test";
 
+import { createFileTaskRecoveryStore } from "../../src/tasks/file-task-recovery-store.js";
 import { executeTaskPlan } from "../../src/tasks/task-execution.js";
 import {
   parseTaskExecutionPlan,
@@ -544,4 +545,32 @@ it("permits a new operation when prior source intent was prepared but could not 
   );
   assert.equal(f.counts().creates, 1);
   assert.equal((await f.run()).outcome, "conflict");
+});
+
+it("reobserves provider state after a recovery capture before sending an ordinary plan", async (t) => {
+  const f = await fixture(t);
+  const recovery = createFileTaskRecoveryStore({
+    stateRoot: f.stateRoot,
+    excludedRoots: [process.cwd()],
+  });
+  const report = await f.run({
+    target: {
+      ...f.target,
+      recoveryStore: {
+        ...recovery,
+        capture: async (input) => {
+          const snapshot = await recovery.capture(input);
+          f.live.push({
+            id: "manual-intervening",
+            title: "Manual change",
+            status: "needsAction",
+          });
+          return snapshot;
+        },
+      },
+    },
+  });
+  assert.equal(report.code, "stale-snapshot");
+  assert.deepEqual(f.counts(), { creates: 0, patches: 0, deletes: 0 });
+  assert.equal((await recovery.list(f.target.identity)).length, 1);
 });

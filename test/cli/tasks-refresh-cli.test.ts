@@ -430,7 +430,7 @@ async function setupFixture(): Promise<TasksFixture> {
   await Promise.all([
     mkdir(join(semesterRoot, "MH2100", "00 Module Admin"), { recursive: true }),
     mkdir(join(semesterRoot, "MH2101", "00 Module Admin"), { recursive: true }),
-    mkdir(stateRoot),
+    mkdir(stateRoot, { mode: 0o700 }),
   ]);
   const configPath = join(root, "academic-os.config.json");
   const readCredential = join(root, "tasks-read.credentials.json");

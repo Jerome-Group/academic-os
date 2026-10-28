@@ -208,7 +208,11 @@ export const cliCapabilities: Capability[] = [
   ),
   cli(
     "tasks refresh",
-    ["mounted task register content", "private per-target refresh receipts"],
+    [
+      "mounted task register content",
+      "private per-target refresh receipts",
+      "private versioned Task recovery history",
+    ],
     ["Google Tasks read credentials"],
     null,
     [
@@ -236,7 +240,7 @@ export const cliCapabilities: Capability[] = [
       [
         "Google Tasks",
         "mounted task register content",
-        "private operation/lifecycle journals and refresh receipts",
+        "private operation/lifecycle journals, recovery history and refresh receipts",
       ],
       [
         "immutable TaskExecutionPlan v1; fresh snapshot; canonical private state; Google Tasks read/write credentials",
@@ -244,6 +248,7 @@ export const cliCapabilities: Capability[] = [
       null,
       [
         "test/cli/tasks-apply-plan-cli.test.ts",
+        "test/cli/tasks-recovery-cli.test.ts",
         "test/cli/research-tasks-cli.test.ts",
       ],
     ),
@@ -256,6 +261,26 @@ export const cliCapabilities: Capability[] = [
     ["exact terminal owner decision JSON; no provider mutation"],
     null,
     ["test/cli/tasks-apply-plan-cli.test.ts"],
+  ),
+  cli(
+    "tasks recovery",
+    [],
+    ["configured private recovery history; no provider calls"],
+    null,
+    ["test/cli/tasks-recovery-cli.test.ts"],
+  ),
+  cli(
+    "tasks restore",
+    [
+      "Google Tasks with --apply",
+      "task register",
+      "private recovery and lifecycle receipts",
+    ],
+    [
+      "exact task-restore/1 plan; owner approval reference; fresh snapshot; native timing limitation acknowledged",
+    ],
+    "omit --apply",
+    ["test/cli/tasks-recovery-cli.test.ts"],
   ),
   cli(
     "tasks status",
@@ -545,11 +570,13 @@ export function capabilityIndex(): object {
         reads: ["configured target/task state", "Google Tasks provider"],
         writes:
           operation === "read_register"
-            ? ["mounted task register and private freshness evidence"]
+            ? [
+                "mounted task register, private freshness evidence and recovery history",
+              ]
             : [
                 "Google Tasks",
                 "mounted task register",
-                "private operation/lifecycle journals and refresh receipts",
+                "private operation/lifecycle journals, recovery history and refresh receipts",
               ],
         riskFlags:
           operation === "read_register"
@@ -566,6 +593,7 @@ export function capabilityIndex(): object {
           "test/operations/research-task-tools.test.ts",
           "test/operations/task-plan-tools.test.ts",
           "test/cli/tasks-apply-plan-cli.test.ts",
+          "test/cli/tasks-recovery-cli.test.ts",
         ],
         status: "supported",
         health: "not-observed",
@@ -590,7 +618,7 @@ export function capabilityIndex(): object {
           ? [
               "Google Tasks",
               "mounted register",
-              "private operation/lifecycle journals and refresh receipts",
+              "private operation/lifecycle journals, recovery history and refresh receipts",
             ]
           : [],
       riskFlags:

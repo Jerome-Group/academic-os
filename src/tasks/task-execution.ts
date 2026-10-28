@@ -114,6 +114,42 @@ async function executeOwned(
     if (conflict !== undefined) return result(plan, "conflict", null, conflict);
     const checked = await input.checks?.beforeWrite?.({ plan, live, register });
     if (checked !== undefined) return result(plan, "conflict", null, checked);
+    let recoverySnapshotId = await operationRecoveryId(input);
+    if (recoverySnapshotId === undefined) {
+      const recovery = await input.target.recoveryStore?.capture({
+        target: plan.target,
+        listId: plan.listId,
+        register,
+        live,
+        reason: "before-operation",
+        operation: {
+          operationId: plan.operationId,
+          planDigest: digest,
+          phase: "before-send",
+          taskId:
+            plan.operation.name === "create" ? null : plan.operation.taskId,
+          ...(plan.sourceOccurrenceId === undefined
+            ? {}
+            : { sourceOccurrenceId: plan.sourceOccurrenceId }),
+        },
+      });
+      recoverySnapshotId = recovery?.snapshotId;
+    }
+    if (input.target.recoveryStore !== undefined) {
+      if (!isDeepStrictEqual(await input.target.registerStore.read(), register))
+        return result(plan, "conflict", null, "register-changed-during-backup");
+      if (
+        taskExecutionSnapshot(
+          await input.reader.listTasks({ listId: plan.listId }),
+        ) !== plan.expectedSnapshot
+      )
+        return result(plan, "conflict", null, "stale-snapshot");
+    }
+    if (recoverySnapshotId !== undefined)
+      await input.target.recoveryStore?.retain(
+        recoverySnapshotId,
+        `operation:${plan.operationId}`,
+      );
   } catch {
     return result(plan, "conflict", null, "preflight-unavailable");
   }
@@ -138,6 +174,12 @@ async function executeOwned(
     if (definitiveRejection(error)) {
       try {
         await session.write({ ...record, phase: "rejected" });
+        const recoveryId = await operationRecoveryId(input);
+        if (recoveryId !== undefined)
+          await input.target.recoveryStore?.release(
+            recoveryId,
+            `operation:${plan.operationId}`,
+          );
       } catch {
         return result(
           plan,
@@ -282,7 +324,32 @@ async function finish(
     return result(plan, "uncertain", taskId, "lifecycle-recording-failed");
   }
   try {
+    const register = await input.target.registerStore.read();
+    if (register === undefined)
+      throw new Error("Recovery register unavailable.");
+    await input.target.recoveryStore?.capture({
+      target: plan.target,
+      listId: plan.listId,
+      register,
+      live,
+      reason: "after-operation",
+      operation: {
+        operationId: plan.operationId,
+        planDigest: record.planDigest,
+        phase: "applied",
+        taskId,
+        ...(plan.sourceOccurrenceId === undefined
+          ? {}
+          : { sourceOccurrenceId: plan.sourceOccurrenceId }),
+      },
+    });
     await session.write({ ...record, phase: "applied" });
+    const recoveryId = await operationRecoveryId(input);
+    if (recoveryId !== undefined)
+      await input.target.recoveryStore?.release(
+        recoveryId,
+        `operation:${plan.operationId}`,
+      );
   } catch {
     return result(plan, "uncertain", taskId, "journal-completion-failed");
   }
@@ -391,4 +458,27 @@ function result(
     registerFresh: false,
     code,
   };
+}
+
+async function operationRecoveryId(
+  input: TaskExecutionInput,
+): Promise<string | undefined> {
+  const store = input.target.recoveryStore;
+  if (store === undefined) return undefined;
+  const matches = (await store.list(input.plan.target)).filter(
+    (snapshot) =>
+      snapshot.reason === "before-operation" &&
+      snapshot.operation?.operationId === input.plan.operationId,
+  );
+  if (
+    matches.length > 1 ||
+    matches.some(
+      (snapshot) =>
+        snapshot.operation?.planDigest !== taskExecutionPlanDigest(input.plan),
+    )
+  )
+    throw new Error("Conflicting Task operation recovery evidence.");
+  const id = matches[0]?.snapshotId;
+  if (id !== undefined) await store.read(id);
+  return id;
 }

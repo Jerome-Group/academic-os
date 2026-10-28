@@ -1,3 +1,4 @@
+import { configuredTaskRecoveryStore } from "./configured-task-recovery.js";
 import { sha256 } from "../checksum.js";
 import { createFileTaskRefreshReceiptStore } from "./file-task-refresh-receipt-store.js";
 import {
@@ -137,6 +138,7 @@ function refreshEvidence(
   target: { kind: "module" | "research-project"; key: string; title: string },
 ) {
   return {
+    recoveryStore: configuredTaskRecoveryStore(config),
     receiptStore: createFileTaskRefreshReceiptStore({
       stateRoot: config.stateRoot,
       driveMount: config.driveMount,

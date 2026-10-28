@@ -242,7 +242,7 @@ test("configured lifecycle recording failure preserves known remote identity and
   const uncertain = JSON.parse(first.stdout);
   assert.equal(uncertain.outcome, "uncertain");
   assert.equal(uncertain.taskId, "created-1");
-  assert.equal(uncertain.code, "lifecycle-owner-failed");
+  assert.equal(uncertain.code, "local-recording-unverified");
   const accepted = JSON.parse(await readFile(f.providerPath, "utf8"));
   assert.equal(
     accepted.requests.filter(

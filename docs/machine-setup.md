@@ -134,3 +134,5 @@ done
 
 Updating it repeats that command. A machine that already holds the repository may symlink the
 directory instead.
+
+For Task recovery history, coverage inspection, approved recreation or interrupted restore, follow [Task recovery](task-recovery.md). Existing refresh and task-plan/1 clients establish snapshots through the same installed services; no additional job or credential is required.

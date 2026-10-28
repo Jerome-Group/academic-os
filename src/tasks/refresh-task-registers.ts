@@ -1,3 +1,4 @@
+import type { TaskRecoveryStore } from "./task-recovery-types.js";
 import { isDeepStrictEqual } from "node:util";
 
 import { OperationalError } from "../operational-error.js";
@@ -24,6 +25,7 @@ import type {
 export interface TaskRefreshTarget extends ConfiguredModuleIdentity {
   registerStore: TaskRegisterStore;
   receiptStore?: TaskRefreshReceiptStore;
+  recoveryStore?: TaskRecoveryStore;
   configBinding?: string;
 }
 
@@ -31,6 +33,7 @@ export interface TaskRegisterTarget {
   identity: TaskTargetIdentity;
   registerStore: TaskRegisterStore;
   receiptStore?: TaskRefreshReceiptStore;
+  recoveryStore?: TaskRecoveryStore;
   configBinding?: string;
 }
 
@@ -92,6 +95,9 @@ export async function refreshTaskRegister(
         title: target.module,
       },
       registerStore: target.registerStore,
+      ...(target.recoveryStore === undefined
+        ? {}
+        : { recoveryStore: target.recoveryStore }),
       ...(target.receiptStore === undefined
         ? {}
         : { receiptStore: target.receiptStore }),
@@ -131,6 +137,13 @@ export async function refreshTaskTargetSnapshot(
     );
     observedAt = new Date().toISOString();
     const providerSnapshot = taskExecutionSnapshot(live);
+    await target.recoveryStore?.capture({
+      target: target.identity,
+      listId: bound.listId,
+      register: bound.register,
+      live,
+      reason: "refresh",
+    });
     const merged = mergeLiveTasks(bound.register, live);
     await target.registerStore.write(merged.register);
     const readback = structuredClone(await target.registerStore.read());

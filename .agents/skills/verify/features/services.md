@@ -6,6 +6,7 @@ The CLI and Operations server read and update target-specific Tasks and Calendar
 
 - Task list provisioning, verified generation receipts and exact-plan operations preserve Module or Research-project identity.
 - Guarded MCP compatibility names negotiate task-plan/1; current clients obtain read snapshots and retain exact operation IDs.
+- Versioned Task recovery history and preview/apply recreation use isolated provider fixtures; interrupted sends retain exact source claims and snapshot references.
 - Private lifecycle decisions prevent source-occurrence resurrection; native timing contract fixtures refuse missing/unsupported evidence.
 - Synthetic Calendar setup checks exact owner access, preview and idempotent role binding. Refresh retains per-calendar stale data and tombstones.
 - Proposal and promotion reassess one exact mutation plan, ownership and relevant availability; recovery authorizes only an exact accepted prefix.
@@ -50,3 +51,5 @@ Record that narrower transport evidence. Do not use the override on a normal hos
 Real launchd installation, Tailnet reachability and scheduled host PATH require an authorized macOS-host pass.
 Interactive `credentials authorize` and `calendar local setup` have no synthetic journey. `calendar setup` does.
 Live Tasks, disposable Calendar, resident Operations and native scheduler journeys require their own scoped targets, readback and cleanup evidence. Retain dated live observations separately from general fixture coverage.
+
+Task recovery fixtures prove historical capture, retention, guarded recreation, completion preservation and new-ID reconciliation. They prove neither native scheduling recovery nor an independent storage-disaster copy. See [Task recovery](../../../../docs/task-recovery.md) for approved operator conduct.

@@ -105,6 +105,12 @@ The verified pre-repair evidence needed to restore a module: an ID-mapped Drive 
 SHA-256 byte snapshot on separate storage. Read-only and user-immutable is not regulatory WORM.
 _Avoid_: audit observation, Drive Trash
 
+**Task recovery snapshot**:
+A checksummed historical provider observation plus local Task provenance and coverage evidence,
+retained outside the current register. It can support approved recreation under a new provider ID;
+unobserved native timing and Google history remain unavailable.
+_Avoid_: current register, Drive Trash, restored original Task.
+
 **Contract version**:
 The increasing identifier for a distinct set of normative folder requirements. It identifies
 which applicable Folder contract a governed folder was prepared to follow.

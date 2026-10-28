@@ -80,6 +80,18 @@ export function createFileTaskOperationJournal(
         directory,
         keys.map((key) => join(directory, `owner-${sha256(key)}.journal`)),
         async () => {
+          if (sourceKey !== undefined) {
+            const claim = await lstat(
+              join(directory, `restore-source-${sourceKey}.json`),
+            ).catch((error: unknown) => {
+              if (hasCode(error, "ENOENT")) return undefined;
+              throw error;
+            });
+            if (claim !== undefined)
+              throw new TaskOperationOccurrenceError(
+                "A restore already reserves this exact source occurrence; reconcile its original receipt.",
+              );
+          }
           if (sourcePath !== undefined)
             await checkOccurrence(sourcePath, scope.operationId);
           const path = join(directory, `${sha256(scope.operationId)}.json`);
@@ -408,4 +420,52 @@ export async function findTaskCreationSource(
       );
     return found[0];
   });
+}
+
+// Atomic journal publication lets a recovery capture observe source evidence without re-entering
+// the list owner already held by an exact-plan executor.
+export async function readTaskCreationHistory(
+  stateRoot: string,
+  input: { target: Pick<TaskTargetIdentity, "kind" | "key">; listId: string },
+): Promise<TaskOperationJournalRecord[]> {
+  const directory = join(stateRoot, "task-operations");
+  const info = await lstat(directory).catch((error: unknown) => {
+    if (hasCode(error, "ENOENT")) return undefined;
+    throw error;
+  });
+  if (info === undefined) return [];
+  if (
+    !info.isDirectory() ||
+    info.isSymbolicLink() ||
+    info.uid !== process.getuid?.() ||
+    (info.mode & 0o777) !== 0o700
+  )
+    throw new Error("Unsafe task creation history storage.");
+  const records: TaskOperationJournalRecord[] = [];
+  for (const name of (await readdir(directory))
+    .filter((name) => /^[a-f0-9]{64}\.json$/u.test(name))
+    .sort()) {
+    const path = join(directory, name);
+    const metadata = await lstat(path);
+    if (
+      !metadata.isFile() ||
+      metadata.isSymbolicLink() ||
+      metadata.nlink !== 1 ||
+      metadata.uid !== process.getuid?.() ||
+      (metadata.mode & 0o777) !== 0o600 ||
+      metadata.size > 1024 * 1024
+    )
+      throw new Error("Unsafe task creation history file.");
+    const record = parseJournal(JSON.parse(await readFile(path, "utf8")));
+    if (name !== `${sha256(record.plan.operationId)}.json`)
+      throw new Error("Task creation history identity mismatch.");
+    if (
+      record.plan.operation.name === "create" &&
+      record.plan.target.kind === input.target.kind &&
+      record.plan.target.key === input.target.key &&
+      record.plan.listId === input.listId
+    )
+      records.push(record);
+  }
+  return records;
 }

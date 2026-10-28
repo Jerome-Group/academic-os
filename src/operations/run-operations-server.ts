@@ -23,7 +23,7 @@ import type { McpServerInfo } from "./types.js";
 export const OPERATIONS_SERVER_INFO: McpServerInfo = {
   name: "academic-os",
   title: "academic-os Operations server",
-  version: "2.0.0",
+  version: "2.1.0",
 };
 
 // The mini's half of the boundary: the credentials, the module configuration and the machinery

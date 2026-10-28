@@ -55,6 +55,11 @@ export interface LiveTask {
   due?: string;
   status?: "needsAction" | "completed";
   deleted?: boolean;
+  assignmentInfo?: {
+    surfaceType?: string;
+    driveResourceInfo?: { driveFileId?: string };
+    spaceInfo?: { space?: string };
+  };
 }
 
 export interface TaskListReader {

@@ -782,3 +782,18 @@ it("shares source serialization with ordinary operations on another list", async
     await ordinary;
   }
 });
+
+it("retains external assignment source identity but refuses ordinary Task recreation", async (t) => {
+  const f = await fixture(t, {
+    task: {
+      assignmentInfo: {
+        surfaceType: "DOCUMENT",
+        driveResourceInfo: { driveFileId: "fixture-document" },
+      },
+    },
+  });
+  const report = await f.run();
+  assert.equal(report.code, "unsupported-fields");
+  assert.ok(report.unsupportedFields?.includes("assignmentInfo"));
+  assert.equal(f.counts().creates, 0);
+});

@@ -101,6 +101,7 @@ it("publishes immutable private snapshots and deduplicates unchanged projected o
   assert.equal((await stat(test.directory)).mode & 0o777, 0o700);
   assert.equal((await stat(path)).mode & 0o777, 0o600);
   assert.deepEqual(first.coverage, {
+    planningTimeZone: "Asia/Singapore",
     provider: "complete-observation",
     register: "historical-local-state",
     nativeTiming: "unavailable",
@@ -204,6 +205,71 @@ it("projects away raw auth, provider errors and unknown fields without changing 
     /credential-shaped/u,
   );
   assert.equal((await test.store.list(target)).length, 1);
+});
+
+it("preserves assigned Task source identities and empty assignment evidence while projecting away nested extras", async () => {
+  const test = await fixture();
+  const observation = {
+    ...capture(),
+    live: [
+      {
+        id: "task-1",
+        title: "Assigned synthetic task",
+        assignmentInfo: {
+          surfaceType: "DOCUMENT",
+          access_token: `Bearer ${"x".repeat(32)}`,
+          linkToTask: "discarded-assignment-link",
+          driveResourceInfo: {
+            driveFileId: "synthetic-drive-file-1",
+            resourceKey: "discarded-resource-key",
+            authorization: "discarded-resource-auth",
+          },
+          spaceInfo: {
+            space: "spaces/synthetic-1",
+            token: "discarded-space-auth",
+            raw: { error: "discarded-space-error" },
+          },
+        },
+      },
+      {
+        id: "task-2",
+        title: "Assigned task with unavailable source details",
+        assignmentInfo: {},
+      },
+    ],
+  };
+  const snapshot = await test.store.capture(observation);
+  const reopened = await createFileTaskRecoveryStore(test.input).read(
+    snapshot.snapshotId,
+  );
+  assert.deepEqual(reopened.live[0]?.assignmentInfo, {
+    surfaceType: "DOCUMENT",
+    driveResourceInfo: { driveFileId: "synthetic-drive-file-1" },
+    spaceInfo: { space: "spaces/synthetic-1" },
+  });
+  assert.deepEqual(reopened.live[1]?.assignmentInfo, {});
+  const bytes = await readFile(
+    join(test.directory, `${snapshot.snapshotId}.json`),
+    "utf8",
+  );
+  assert.equal(bytes.includes("discarded-"), false);
+  assert.equal(bytes.includes("Bearer"), false);
+  assert.equal(
+    (await test.store.capture(observation)).snapshotId,
+    snapshot.snapshotId,
+  );
+  await assert.rejects(
+    test.store.capture({
+      ...capture(),
+      live: [
+        {
+          id: "task-1",
+          assignmentInfo: { surfaceType: `Bearer ${"x".repeat(32)}` },
+        },
+      ],
+    }),
+    /credential-shaped/u,
+  );
 });
 
 it("validates checksums and rejects unsafe files without pruning or repairing them", async () => {

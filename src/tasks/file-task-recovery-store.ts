@@ -138,6 +138,7 @@ export function createFileTaskRecoveryStore(input: {
         capturedAt,
         nativeTiming: captured.nativeTiming,
         coverage: {
+          planningTimeZone: "Asia/Singapore",
           provider: "complete-observation",
           register: "historical-local-state",
           nativeTiming:
@@ -389,6 +390,7 @@ async function readSnapshot(
     capturedAt: instant(raw.capturedAt),
     nativeTiming: projected.nativeTiming,
     coverage: {
+      planningTimeZone: "Asia/Singapore",
       provider: "complete-observation",
       register: "historical-local-state",
       nativeTiming:
@@ -787,6 +789,27 @@ function projectLive(value: unknown): LiveTask {
     if (item.status !== "needsAction" && item.status !== "completed")
       throw new Error("Invalid Task recovery provider status.");
     result.status = item.status;
+  }
+  if (item.assignmentInfo !== undefined) {
+    const assignment = record(item.assignmentInfo);
+    result.assignmentInfo = {};
+    if (assignment.surfaceType !== undefined)
+      result.assignmentInfo.surfaceType = text(assignment.surfaceType, true);
+    if (assignment.driveResourceInfo !== undefined) {
+      const resource = record(assignment.driveResourceInfo);
+      result.assignmentInfo.driveResourceInfo = {};
+      if (resource.driveFileId !== undefined)
+        result.assignmentInfo.driveResourceInfo.driveFileId = text(
+          resource.driveFileId,
+          true,
+        );
+    }
+    if (assignment.spaceInfo !== undefined) {
+      const space = record(assignment.spaceInfo);
+      result.assignmentInfo.spaceInfo = {};
+      if (space.space !== undefined)
+        result.assignmentInfo.spaceInfo.space = text(space.space, true);
+    }
   }
   return result;
 }

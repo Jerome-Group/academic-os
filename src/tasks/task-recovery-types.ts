@@ -30,6 +30,7 @@ export interface TaskRecoveryCapture {
 }
 
 export interface TaskRecoveryCoverage {
+  planningTimeZone: "Asia/Singapore";
   provider: "complete-observation";
   register: "historical-local-state";
   nativeTiming: "unavailable" | "observed";

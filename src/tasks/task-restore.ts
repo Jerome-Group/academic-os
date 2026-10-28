@@ -457,6 +457,7 @@ function restoreSource(
   )
     refuse("completed-lifecycle-evidence-conflict");
   const unsupported = [
+    ...(task.assignmentInfo === undefined ? [] : ["assignmentInfo"]),
     ...((task.notes !== undefined && task.notes !== "") ||
     (row?.notes !== undefined && row.notes !== "")
       ? ["notes"]

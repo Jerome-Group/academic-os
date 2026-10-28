@@ -25,10 +25,8 @@ import {
 } from "./commands/tasks-operate-command.js";
 import { runTasksRecordLifecycleCommand } from "./commands/tasks-record-lifecycle-command.js";
 import { runTasksApplyPlanCommand } from "./commands/tasks-apply-plan-command.js";
-import {
-  runTasksRecoveryCommand,
-  runTasksRestoreCommand,
-} from "./commands/tasks-recovery-command.js";
+import { runTasksRecoveryCommand } from "./commands/tasks-recovery-command.js";
+import { runTasksRestoreCommand } from "./commands/tasks-restore-command.js";
 import { runTasksStatusCommand } from "./commands/tasks-status-command.js";
 import { runTasksProvisionCommand } from "./commands/tasks-provision-command.js";
 import { runTasksRefreshCommand } from "./commands/tasks-refresh-command.js";

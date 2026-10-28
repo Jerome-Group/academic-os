@@ -1,5 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -207,6 +214,7 @@ test("compiled recovery captures pre-edit history, survives source deletion and 
 test("compiled configured write fails before sending when its independent recovery capture is unsafe", async (t) => {
   const f = await fixture(t);
   await mkdir(join(f.stateRoot, "task-recovery"), { mode: 0o755 });
+  await chmod(join(f.stateRoot, "task-recovery"), 0o755);
   const path = join(f.root, "create.json");
   await writeFile(
     path,

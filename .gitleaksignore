@@ -1,0 +1,4 @@
+# Exact historical findings: both values are the synthetic module identity FIXTURE/MOD1.
+# Neither is a credential. Preserve prerequisite commits without a broad rule/path exclusion.
+0a7c23d4c2bae5551c41ca58079a2f6fcdc456dd:test/operations/task-plan-tools.test.ts:generic-api-key:87
+257d101d8c1328748075cfd44a31212e835871a7:test/operations/task-client-instructions.test.ts:generic-api-key:234

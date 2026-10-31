@@ -66,3 +66,23 @@ export type {
   TaskTargetRegisterReadReport,
   TaskTargetRefreshReport,
 } from "./types.js";
+
+export {
+  taskExecutionSnapshot,
+  parseTaskExecutionPlan,
+} from "./task-execution-plan.js";
+export { executeTaskPlan } from "./task-execution.js";
+export { createFileTaskOperationJournal } from "./task-operation-journal-file.js";
+export { createFileTaskRefreshReceiptStore } from "./file-task-refresh-receipt-store.js";
+export { createFileTaskLifecycleStore } from "./file-task-lifecycle-store.js";
+export {
+  taskLifecycleDecision,
+  recordTaskLifecycle,
+  emptyTaskLifecycleState,
+} from "./task-lifecycle.js";
+export type {
+  TaskExecutionPlan,
+  TaskExecutionReport,
+} from "./task-execution-types.js";
+export type { TaskRefreshReceipt, TaskRefreshReceiptStore } from "./types.js";
+export * from "./native-task-timing.js";

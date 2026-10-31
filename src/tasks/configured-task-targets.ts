@@ -1,3 +1,6 @@
+import { configuredTaskRecoveryStore } from "./configured-task-recovery.js";
+import { sha256 } from "../checksum.js";
+import { createFileTaskRefreshReceiptStore } from "./file-task-refresh-receipt-store.js";
 import {
   planCohortAudit,
   resolveConfiguredAuditTarget,
@@ -77,6 +80,11 @@ function taskTarget(target: LocalConfig): TaskRefreshTarget {
     semester: target.semester,
     module: target.module,
     registerStore: createDeferredTaskRegisterStore(target),
+    ...refreshEvidence(target, {
+      kind: "module",
+      key: `${target.semester}/${target.module}`,
+      title: target.module,
+    }),
   };
 }
 
@@ -88,6 +96,11 @@ function taskRegisterTarget(target: LocalConfig): TaskRegisterTarget {
       title: target.module,
     },
     registerStore: createDeferredTaskRegisterStore(target),
+    ...refreshEvidence(target, {
+      kind: "module",
+      key: `${target.semester}/${target.module}`,
+      title: target.module,
+    }),
   };
 }
 
@@ -101,6 +114,11 @@ function researchTaskTarget(
       key: project.key,
       title: project.taskListTitle ?? project.folder,
     },
+    ...refreshEvidence(config, {
+      kind: "research-project",
+      key: project.key,
+      title: project.taskListTitle ?? project.folder,
+    }),
     registerStore: createDeferredPathTaskRegisterStore({
       resolveRoot: async () =>
         (
@@ -112,5 +130,20 @@ function researchTaskTarget(
       stateRoot: config.stateRoot,
       provenanceKeys: researchTaskProvenanceKeys,
     }),
+  };
+}
+
+function refreshEvidence(
+  config: { stateRoot: string; driveMount: string },
+  target: { kind: "module" | "research-project"; key: string; title: string },
+) {
+  return {
+    recoveryStore: configuredTaskRecoveryStore(config),
+    receiptStore: createFileTaskRefreshReceiptStore({
+      stateRoot: config.stateRoot,
+      driveMount: config.driveMount,
+      target,
+    }),
+    configBinding: sha256(JSON.stringify(config)),
   };
 }

@@ -18,8 +18,27 @@ Two items. Nothing else travels — no Node, no clone of this repository, no cre
 
    Any other MCP client registers the same URL in whatever way it registers an HTTP server.
 
-The MagicDNS name is the mini's. Confirm the registration by listing the tools: four `tasks_*`
-tools mean the machine is done.
+The MagicDNS name is the mini's. Refresh the client's tool catalog after connecting or upgrading;
+the server does not push catalog changes. Call `tasks_sync_capabilities` with no arguments and
+require `task-plan/1`, the read tools `tasks_read_register` and `research_tasks_read_register`,
+the apply tool `tasks_apply_plan`, and the advertised `plan_json` compatibility argument. An old
+server or cached schema is a migration requirement, never permission for a fallback write.
+
+Both target types retain their create/change/complete names, but writes now require an immutable
+plan from a fresh register read. Module calls name `semester` and `module`; Research calls name
+`research_project`. The read returns exact target/list identity and `expectedSnapshot`. Cloud
+planning supplies intent and `policyVersion`; the caller persists `operationId` and, for creation,
+`sourceOccurrenceId` before dispatch. See the folder router's Tasks protocol and the Operations
+section of `operator-guide.md`. Verify all six compatibility names against their refreshed schemas
+using isolated fixtures before enabling writes. Real provider acceptance needs scoped authority.
+
+API writes support undated creation, title changes and explicit completion/cancellation. New
+notes/descriptions and plans containing `doDate` or `timing` are refused. Owner-authorized native
+date/time placement may be delegated only to an already authorized UI executor with fresh complete
+preflight, exact account/list/task IDs or verified aliases, surface/timezone/time observations and
+same-ID Task saved-field readback. Contradictory observations or unavailable support park that work;
+date-only API results cannot prove timing, infer an offset or justify an ordinary-event replacement.
+API success and native acceptance remain separate. This setup grants no UI execution authority.
 
 Reachability on the Tailnet is the whole of the authorisation, which is why there is no third
 item: a machine signed in to Tailscale is one of the Owner's, and one that is not reaches nothing
@@ -27,9 +46,10 @@ item: a machine signed in to Tailscale is one of the Owner's, and one that is no
 
 ## When the mini is unreachable
 
-Task operations fail visibly and park. There is no offline queue and no local fallback: the live
-list is the authority, and a machine that cannot reach it has nothing true to say about the
-module's tasks. Park the operation, say so, and let the next reachable session make it.
+Before dispatch, an unreachable operation parks visibly. There is no offline queue or local
+fallback. After dispatch, a lost response may conceal a provider mutation: retain the identical
+plan, operation ID and uncertain evidence. The next reachable session reconciles that operation
+before any resend or replacement. It never treats lost connectivity as proof that nothing happened.
 
 ## Optional: make the machine teaching-capable
 
@@ -114,3 +134,5 @@ done
 
 Updating it repeats that command. A machine that already holds the repository may symlink the
 directory instead.
+
+For Task recovery history, coverage inspection, approved recreation or interrupted restore, follow [Task recovery](task-recovery.md). Existing refresh and task-plan/1 clients establish snapshots through the same installed services; no additional job or credential is required.

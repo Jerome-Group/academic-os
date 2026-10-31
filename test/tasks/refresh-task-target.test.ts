@@ -43,7 +43,12 @@ describe("Task-register refresh", () => {
       },
     );
 
-    assert.deepEqual(report, {
+    const { generation, providerSnapshot, observedAt, ...legacyReport } =
+      report;
+    assert.match(generation ?? "", /^[a-f0-9]{64}$/u);
+    assert.match(providerSnapshot ?? "", /^[a-f0-9]{64}$/u);
+    assert.ok(observedAt);
+    assert.deepEqual(legacyReport, {
       target: {
         kind: "research-project",
         key: "ureca-y2",

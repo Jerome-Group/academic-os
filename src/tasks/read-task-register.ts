@@ -1,13 +1,11 @@
 import {
-  refreshTaskTarget,
-  type TaskRegisterTarget,
+  refreshTaskTargetSnapshot,
   type TaskRefreshTarget,
+  type TaskRegisterTarget,
 } from "./refresh-task-registers.js";
 import type {
   TaskRefreshReader,
-  TaskRegisterEntry,
   TaskRegisterReadReport,
-  TaskRegisterStore,
   TaskTargetRegisterReadReport,
 } from "./types.js";
 
@@ -26,6 +24,12 @@ export async function readTaskRegister(input: {
         title: input.target.module,
       },
       registerStore: input.target.registerStore,
+      ...(input.target.receiptStore === undefined
+        ? {}
+        : { receiptStore: input.target.receiptStore }),
+      ...(input.target.configBinding === undefined
+        ? {}
+        : { configBinding: input.target.configBinding }),
     },
     reader: input.reader,
   });
@@ -49,25 +53,16 @@ export async function readTaskTargetRegister(input: {
   target: TaskRegisterTarget;
   reader: TaskRefreshReader;
 }): Promise<TaskTargetRegisterReadReport> {
-  const register = await refreshTaskTarget(input.target, input.reader);
+  const { report: register, tasks } = await refreshTaskTargetSnapshot(
+    input.target,
+    input.reader,
+  );
   return {
     schemaVersion: 1,
     command: "tasks read-register",
     outcome: register.freshness === "fresh" ? "read" : "stale",
     target: input.target.identity,
     register,
-    tasks: await readRows(input.target.registerStore),
+    tasks,
   };
-}
-
-// A register the pull could not read is already reported stale with the reason it failed, so the
-// rows come back empty rather than as a second copy of the same failure.
-async function readRows(
-  store: TaskRegisterStore,
-): Promise<TaskRegisterEntry[]> {
-  try {
-    return (await store.read())?.tasks ?? [];
-  } catch {
-    return [];
-  }
 }

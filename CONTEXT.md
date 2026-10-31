@@ -105,6 +105,12 @@ The verified pre-repair evidence needed to restore a module: an ID-mapped Drive 
 SHA-256 byte snapshot on separate storage. Read-only and user-immutable is not regulatory WORM.
 _Avoid_: audit observation, Drive Trash
 
+**Task recovery snapshot**:
+A checksummed historical provider observation plus local Task provenance and coverage evidence,
+retained outside the current register. It can support approved recreation under a new provider ID;
+unobserved native timing and Google history remain unavailable.
+_Avoid_: current register, Drive Trash, restored original Task.
+
 **Contract version**:
 The increasing identifier for a distinct set of normative folder requirements. It identifies
 which applicable Folder contract a governed folder was prepared to follow.
@@ -391,13 +397,17 @@ _Avoid_: task list — that is the live authority the register mirrors; task his
 is current state, not an append-only record like the Curation register.
 
 **Task operation**:
-An in-session create, change, complete or cancel that pushes to an academic target's live task list, verifies
-the live result, then refreshes the Task register. It carries the Promotion pattern without a
-Proposal — the Owner asked for the change in session, so nothing stages it for approval — and a
-push Google does not take parks, leaving the register with no row for it; one Google takes but
-records as something else is unverified rather than parked, and a pull settles it.
-_Avoid_: task sync — every operation here is asked for in session; Promotion — that word belongs to
-the Calendar, whose Proposals a register can never be a source for.
+An exact versioned in-session create, change, complete or cancel. Cloud planning supplies the immutable operation and policy version; the Mini checks fresh provider state and retained lifecycle evidence before applying it. Durable intent retains unknown outcomes and provenance; a conflict returns to planning without silently changing the request. Verified provider state and local generation readback precede an applied result.
+_Avoid_: task sync; Calendar Promotion.
+
+**Source occurrence**:
+One stable logical piece of work under a configured target. It is separate from provider task identity, title and generated register row, so dismissal or completion still applies if a replacement provider ID appears.
+
+**Owner dismissal**:
+An explicit terminal decision with cited owner evidence, exact source occurrence and retained canonical/verified alias identities. It prevents regeneration independently of whether a historical provider task remains open. A renamed title supplies no dismissal evidence.
+
+**Task generation receipt**:
+Private per-target evidence pairing one verified register generation and provider snapshot with observation time and configuration binding. It retains last success through a failed attempt; a past receipt does not prove current native timing or cross-device Drive convergence.
 
 **Operations server**:
 The MCP server this repository builds and runs on the mini, exposing its operations — task

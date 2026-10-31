@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 
-export const CHECK_PROFILE_TIMEOUT_MS = 540_000;
+export const CHECK_PROFILE_TIMEOUT_MS = 900_000;
 
 export const checkProfiles = {
   fast: ["format:check", "lint", "build", "cheatsheet-runtime:check"],

@@ -77,6 +77,29 @@ export function createModuleCompletionTools(
         schemaVersion: 1,
         status: port === undefined ? "unavailable" : "configured",
         reason: port === undefined ? "completion-producer-unconfigured" : null,
+        attestation: {
+          kind: "module-agent-attestation",
+          statement: "owner-explicitly-finished",
+          required: [
+            "schemaVersion",
+            "kind",
+            "attestationId",
+            "agentRef",
+            "ownerInstructionRef",
+            "reportedAt",
+            "statement",
+            "target",
+            "listId",
+            "taskId",
+            "sourceVersion",
+            "sourceOccurrenceId",
+            "sourceRange",
+          ],
+          scope: "one exact task and discovered source context",
+          assurance: "module-agent relay; Owner chat not authenticated",
+          retry:
+            "persist the original attestation and returned plan; never create a replacement identity for uncertain work",
+        },
         tools:
           port === undefined
             ? []
@@ -109,6 +132,7 @@ export function createModuleCompletionTools(
             ]
           : fields,
         call: async (values) => {
+          let observedSelector: ModuleCompletionSelector | undefined;
           try {
             const semester = required(values, "semester");
             const module = required(values, "module");
@@ -178,6 +202,7 @@ export function createModuleCompletionTools(
               listId,
               taskId,
             };
+            observedSelector = selector;
             const attestationJson = values.get("completion_attestation_json");
             const catalog =
               prepare &&
@@ -308,7 +333,14 @@ export function createModuleCompletionTools(
               )
                 ? error.message
                 : "completion-source-unavailable";
-            return refusal(code);
+            const result = refusal(code);
+            return result.report.clarification === undefined ||
+              observedSelector === undefined
+              ? result
+              : {
+                  ...result,
+                  report: { ...result.report, selector: observedSelector },
+                };
           }
         },
       }),

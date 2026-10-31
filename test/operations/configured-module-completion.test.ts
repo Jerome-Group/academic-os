@@ -737,10 +737,26 @@ test("serialized module attestation resolves standing source with no prelisted a
   const retained = await f.preparedStore.read(plan.operationId);
   assert.ok(retained?.acquisitionEvidenceJson);
   assert.match(retained.acquisitionEvidenceJson, /module-agent-attestation/u);
-  assert.match(retained.acquisitionEvidenceJson, /chat not authenticated/u);
+  const acquiredEvidence = object(JSON.parse(retained.acquisitionEvidenceJson));
+  const sourceEvidence = object(
+    JSON.parse(
+      Buffer.from(
+        String(object(acquiredEvidence.source).acquisitionBase64),
+        "base64",
+      ).toString("utf8"),
+    ),
+  );
+  assert.equal(
+    object(sourceEvidence.attestation).ownerInstructionRef,
+    attestation.ownerInstructionRef,
+  );
+  assert.match(String(sourceEvidence.assurance), /chat not authenticated/u);
   const first = await f.call("tasks_apply_plan", { plan_json: planJson });
   assert.equal(first.report.outcome, "uncertain");
   assert.equal(mutations(await f.provider()).length, 1);
+  const availableProvider = await f.provider();
+  delete availableProvider.taskReadbackFailures;
+  await f.saveProvider(availableProvider);
   await writeFile(
     f.configPath,
     JSON.stringify({
@@ -867,3 +883,78 @@ async function installStanding(
     "standing-source-installed",
   );
 }
+
+test("attested resolution preserves producer prerequisite, owner-policy and original-evidence-age refusals", async (t) => {
+  for (const scenario of [
+    "prerequisite",
+    "owner-policy",
+    "stale-evidence",
+  ] as const) {
+    await t.test(scenario, async (child) => {
+      const f = await fixture(child);
+      const policy = structuredClone(object(f.catalogInput.policy));
+      const occurrences = objects(policy.occurrences);
+      const occurrence = occurrences[0];
+      assert.ok(occurrence);
+      if (scenario === "prerequisite") {
+        const prior = {
+          ...occurrence,
+          id: "synthetic-unfinished-prerequisite",
+          predecessors: [],
+        };
+        policy.occurrences = [
+          { ...occurrence, predecessors: [prior.id] },
+          prior,
+        ];
+      } else if (scenario === "owner-policy") {
+        const binding = objects(policy.bindings)[0];
+        assert.ok(binding);
+        policy.ownerRules = [
+          {
+            id: "synthetic-owner-protection",
+            identity: binding.identity,
+            occurrenceId: occurrence.id,
+            changes: { completed: false },
+            observedAt: occurrence.observedAt,
+            evidenceRef: "synthetic-retained-owner-rule",
+            supersedes: null,
+          },
+        ];
+      } else {
+        policy.assignments = objects(policy.assignments).map((row) => ({
+          ...row,
+          observedAt: "2020-01-01T00:00:00.000Z",
+        }));
+      }
+      await installStanding(
+        f,
+        { ...f.catalogInput, policy, authorizations: [] },
+        null,
+      );
+      const context = object(
+        (await f.call("tasks_discover_completion")).report.sourceContext,
+      );
+      const result = await f.call("tasks_prepare_completion", {
+        ...selector,
+        completion_attestation_json: JSON.stringify({
+          schemaVersion: 1,
+          kind: "module-agent-attestation",
+          attestationId: `synthetic-${scenario}`,
+          agentRef: "synthetic-session",
+          ownerInstructionRef: "synthetic-explicit-finished-message",
+          reportedAt: new Date().toISOString(),
+          statement: "owner-explicitly-finished",
+          target,
+          listId: context.listId,
+          taskId: originalId,
+          sourceVersion: context.sourceVersion,
+          sourceOccurrenceId: context.sourceOccurrenceId,
+          sourceRange: context.sourceRange,
+        }),
+      });
+      assert.equal(result.isError, true);
+      assert.equal(result.report.code, "producer-rejected");
+      assert.equal(mutations(await f.provider()).length, 0);
+    });
+  }
+});

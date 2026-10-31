@@ -48,10 +48,18 @@ Read the route's procedure before acting in its area.
 2. When the Owner explicitly reports finished work, match the exact open task ID from that read.
    For Module completion, call `tasks_completion_capabilities`, then
    `tasks_discover_completion` and `tasks_prepare_completion` with the same `semester`, `module`
-   and `task_id`. Require one exact eligible completion and `status: prepared`. Retain the returned
-   original packet and `call.arguments.plan_json`; use that unchanged call in step 4. The service
-   acquires policy and intent from its configured private source. Unavailable, missing, stale or
-   ambiguous authority parks completion; ask for the reported source issue to be resolved.
+   and `task_id`. Discovery may return `attestation-required` with exact `sourceContext`. Only
+   after the Owner explicitly reports that exact task finished, the module agent constructs
+   `completion_attestation_json`: `schemaVersion: 1`, `kind: module-agent-attestation`, a stable
+   `attestationId`, attributable `agentRef`, the actual `ownerInstructionRef` and UTC `reportedAt`,
+   `statement: owner-explicitly-finished`, plus the unchanged context's `target`, `listId`, `taskId`,
+   `sourceVersion`, `sourceOccurrenceId` and `sourceRange`. Pass it to `tasks_prepare_completion`.
+   This is an agent attestation of the instruction, not authenticated chat or inferred completion.
+   Persist the original attestation across retries. Require `status: prepared`; retain the original
+   packet and unchanged `call.arguments.plan_json` for step 4. The producer independently validates
+   source bindings, prerequisites, Owner policy and freshness. Missing legacy bindings need the
+   specific source/version/range clarification reported by the service through the native source
+   coordinator. Never invent a policy, infer bindings from titles, or ask the Owner to build JSON.
 3. For creation and title changes, retain cloud planning's exact intent and current
    `policyVersion`. Persist an immutable plan
    with `schemaVersion: 1`, a stable `operationId`, the observed target/list/snapshot and the

@@ -88,7 +88,7 @@ async function executeOwned(
   session: TaskOperationJournalSession,
 ): Promise<TaskExecutionResult> {
   const { plan } = input;
-  let record = await session.read();
+  const record = await session.read();
   const digest = taskExecutionPlanDigest(plan);
   if (record !== undefined && record.planDigest !== digest)
     return result(plan, "conflict", record.taskId, "operation-id-reused");
@@ -101,8 +101,22 @@ async function executeOwned(
       return result(plan, "uncertain", null, "unknown-create-outcome");
     return verifyAndFinish(input, session, record);
   }
+  const run = () => executeFirstSend(input, session, record, digest);
+  return input.checks?.withFirstSendOwner === undefined
+    ? run()
+    : input.checks.withFirstSendOwner(run);
+}
+
+async function executeFirstSend(
+  input: TaskExecutionInput,
+  session: TaskOperationJournalSession,
+  record: TaskOperationJournalRecord | undefined,
+  digest: string,
+): Promise<TaskExecutionResult> {
+  const { plan } = input;
   let register: TaskRegister | undefined;
   let live: LiveTask[];
+  let recoverySnapshotId: string | undefined;
   try {
     register = await input.target.registerStore.read();
     if (register?.listId !== plan.listId)
@@ -112,9 +126,11 @@ async function executeOwned(
       return result(plan, "conflict", null, "stale-snapshot");
     const conflict = existingTaskConflict(plan, register, live);
     if (conflict !== undefined) return result(plan, "conflict", null, conflict);
-    const checked = await input.checks?.beforeWrite?.({ plan, live, register });
+    const checked = await input.checks?.beforeWrite?.(
+      structuredClone({ plan, live, register }),
+    );
     if (checked !== undefined) return result(plan, "conflict", null, checked);
-    let recoverySnapshotId = await operationRecoveryId(input);
+    recoverySnapshotId = await operationRecoveryId(input);
     if (recoverySnapshotId === undefined) {
       const recovery = await input.target.recoveryStore?.capture({
         target: plan.target,
@@ -138,11 +154,8 @@ async function executeOwned(
     if (input.target.recoveryStore !== undefined) {
       if (!isDeepStrictEqual(await input.target.registerStore.read(), register))
         return result(plan, "conflict", null, "register-changed-during-backup");
-      if (
-        taskExecutionSnapshot(
-          await input.reader.listTasks({ listId: plan.listId }),
-        ) !== plan.expectedSnapshot
-      )
+      live = await input.reader.listTasks({ listId: plan.listId });
+      if (taskExecutionSnapshot(live) !== plan.expectedSnapshot)
         return result(plan, "conflict", null, "stale-snapshot");
     }
     if (recoverySnapshotId !== undefined)
@@ -162,6 +175,35 @@ async function executeOwned(
   };
   try {
     await session.write(record);
+  } catch {
+    return result(plan, "failed", record.taskId, "journal-before-send-failed");
+  }
+  let refusal: string | undefined;
+  try {
+    refusal = await input.checks?.beforeSend?.(
+      structuredClone({ plan, live, register }),
+    );
+  } catch {
+    refusal = "execution-check-unavailable";
+  }
+  if (refusal !== undefined) {
+    try {
+      if (recoverySnapshotId !== undefined)
+        await input.target.recoveryStore?.release(
+          recoverySnapshotId,
+          `operation:${plan.operationId}`,
+        );
+    } catch {
+      return result(
+        plan,
+        "conflict",
+        null,
+        "execution-check-recovery-release-failed",
+      );
+    }
+    return result(plan, "conflict", null, refusal);
+  }
+  try {
     record = { ...record, phase: "uncertain" };
     await session.write(record);
   } catch {

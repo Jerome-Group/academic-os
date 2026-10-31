@@ -428,6 +428,37 @@ export async function readTaskCreationHistory(
   stateRoot: string,
   input: { target: Pick<TaskTargetIdentity, "kind" | "key">; listId: string },
 ): Promise<TaskOperationJournalRecord[]> {
+  return (await readTaskOperationHistory(stateRoot, input)).filter(
+    (record) => record.plan.operation.name === "create",
+  );
+}
+
+// Called while the exact-plan executor already holds the list owner. Older completion journals
+// predate effect-key reservations; a changed operation ID cannot evade their uncertain send.
+export async function hasOtherSentTaskCompletion(
+  stateRoot: string,
+  plan: TaskOperationJournalRecord["plan"],
+): Promise<boolean> {
+  if (plan.operation.name !== "complete") return false;
+  const taskId = plan.operation.taskId;
+  return (
+    await readTaskOperationHistory(stateRoot, {
+      target: plan.target,
+      listId: plan.listId,
+    })
+  ).some(
+    (record) =>
+      record.plan.operationId !== plan.operationId &&
+      record.plan.operation.name === "complete" &&
+      record.plan.operation.taskId === taskId &&
+      ["uncertain", "verified", "applied"].includes(record.phase),
+  );
+}
+
+async function readTaskOperationHistory(
+  stateRoot: string,
+  input: { target: Pick<TaskTargetIdentity, "kind" | "key">; listId: string },
+): Promise<TaskOperationJournalRecord[]> {
   const directory = join(stateRoot, "task-operations");
   const info = await lstat(directory).catch((error: unknown) => {
     if (hasCode(error, "ENOENT")) return undefined;
@@ -460,7 +491,6 @@ export async function readTaskCreationHistory(
     if (name !== `${sha256(record.plan.operationId)}.json`)
       throw new Error("Task creation history identity mismatch.");
     if (
-      record.plan.operation.name === "create" &&
       record.plan.target.kind === input.target.kind &&
       record.plan.target.key === input.target.key &&
       record.plan.listId === input.listId

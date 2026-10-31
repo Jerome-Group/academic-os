@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { findTaskCreationSource } from "../../src/tasks/task-operation-journal-file.js";
 import {
   mkdir,
   mkdtemp,
@@ -283,19 +286,57 @@ test("known-ID create recovery retains its source when another client completes 
   const current = JSON.parse(await readFile(f.providerPath, "utf8"));
   delete current.taskReadbackFailures;
   await writeFile(f.providerPath, JSON.stringify(current));
+  // A separate native client completes the exact provider ID and records its terminal source
+  // receipt. This proves original-create recovery, independent of the completion producer.
+  const native = await promisify(execFile)(
+    process.execPath,
+    [
+      "--import",
+      preload,
+      "--input-type=module",
+      "--eval",
+      `
+      import { createGoogleTaskOperationWriter } from ${JSON.stringify(new URL("../../src/tasks/google-tasks-client.js", import.meta.url).href)};
+      const writer = createGoogleTaskOperationWriter(process.argv[1]);
+      await writer.patchTask({listId:"fixture-list",taskId:"created-1",patch:{status:"completed"}});
+      process.stdout.write(JSON.stringify(await writer.readTask({listId:"fixture-list",taskId:"created-1"})));`,
+      join(f.root, "write-fixture.json"),
+    ],
+    {
+      env: {
+        ...process.env,
+        NODE_OPTIONS: "",
+        ACADEMIC_OS_FAKE_TASKS_STATE: f.providerPath,
+      },
+    },
+  );
+  assert.equal(JSON.parse(native.stdout).status, "completed");
+  const source = await findTaskCreationSource(f.stateRoot, {
+    target: { kind: "module", key: f.plan.target.key },
+    listId: f.plan.listId,
+    taskId: "created-1",
+  });
+  assert.equal(source?.sourceOccurrenceId, "fixture-occurrence");
+  const decisionPath = join(f.root, "native-completion-receipt.json");
   await writeFile(
-    f.planPath,
+    decisionPath,
     JSON.stringify({
-      ...f.plan,
-      operationId: "fixture-complete",
-      expectedSnapshot: taskExecutionSnapshot(current.tasks["fixture-list"]),
-      sourceOccurrenceId: undefined,
-      operation: { name: "complete", taskId: "created-1" },
+      target: { kind: f.plan.target.kind, key: f.plan.target.key },
+      occurrenceId: source?.sourceOccurrenceId,
+      source: { kind: "source-occurrence", id: source?.sourceOccurrenceId },
+      disposition: "completed",
+      recordedAt: new Date().toISOString(),
+      evidenceRef: "fixture-external-native-same-id-readback",
+      providers: [
+        {
+          canonical: { listId: "fixture-list", taskId: "created-1" },
+          aliases: [],
+        },
+      ],
     }),
   );
-  const completed = await f.run("apply-plan", "--plan", f.planPath);
+  const completed = await f.run("record-lifecycle", "--decision", decisionPath);
   assert.equal(completed.exitCode, 0, completed.stdout + completed.stderr);
-  await writeFile(f.planPath, JSON.stringify(f.plan));
   const recovered = await f.run("apply-plan", "--plan", f.planPath);
   assert.equal(recovered.exitCode, 0, recovered.stdout + recovered.stderr);
   const state = JSON.parse(

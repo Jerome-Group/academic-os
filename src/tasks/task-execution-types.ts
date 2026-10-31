@@ -31,7 +31,15 @@ export interface TaskExecutionResult {
 }
 
 export interface TaskExecutionChecks {
+  withFirstSendOwner?(
+    run: () => Promise<TaskExecutionResult>,
+  ): Promise<TaskExecutionResult>;
   beforeWrite?(input: {
+    plan: TaskExecutionPlan;
+    live: LiveTask[];
+    register: TaskRegister;
+  }): Promise<undefined | string>;
+  beforeSend?(input: {
     plan: TaskExecutionPlan;
     live: LiveTask[];
     register: TaskRegister;

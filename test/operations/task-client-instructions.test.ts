@@ -9,6 +9,7 @@ import {
   createMcpDispatcher,
   createTaskTools,
 } from "../../src/operations/index.js";
+import { createModuleCompletionTools } from "../../src/operations/module-completion-tools.js";
 import { guardedTaskTools } from "../../src/operations/task-plan-tools.js";
 import { createTaskLifecycleExecutionChecks } from "../../src/tasks/configured-task-executor.js";
 import type { TaskOperationJournalRecord } from "../../src/tasks/task-execution-types.js";
@@ -50,7 +51,27 @@ test("shipped routers and settlement procedures reach the served task-plan proto
     researchRouter?.evidence ?? "Missing Research router finding",
   );
   const fixture = taskClientFixture(false);
-  const names = new Set(fixture.tools.map((tool) => tool.name));
+  const readRegister = fixture.tools.find(
+    (tool) => tool.name === "tasks_read_register",
+  );
+  assert.ok(readRegister);
+  const completionTools = createModuleCompletionTools({
+    readRegister,
+    producer: {
+      catalog: async () => {
+        throw new Error("Inventory fixture only");
+      },
+      discover: async () => {
+        throw new Error("Inventory fixture only");
+      },
+      acquire: async () => {
+        throw new Error("Inventory fixture only");
+      },
+    },
+  });
+  const names = new Set(
+    [...fixture.tools, ...completionTools].map((tool) => tool.name),
+  );
   for (const text of [
     module.pinnedDocuments.agents,
     research.seedFiles["AGENTS.md"],

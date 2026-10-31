@@ -24,6 +24,7 @@ import {
   runTasksOperateCommand,
 } from "./commands/tasks-operate-command.js";
 import { runTasksRecordLifecycleCommand } from "./commands/tasks-record-lifecycle-command.js";
+import { runTasksPublishCompletionCatalogCommand } from "./commands/tasks-publish-completion-catalog-command.js";
 import { runTasksApplyPlanCommand } from "./commands/tasks-apply-plan-command.js";
 import { runTasksRecoveryCommand } from "./commands/tasks-recovery-command.js";
 import { runTasksRestoreCommand } from "./commands/tasks-restore-command.js";
@@ -71,6 +72,11 @@ try {
     arguments_[1] === "record-lifecycle"
   ) {
     await runTasksRecordLifecycleCommand(arguments_.slice(1), json);
+  } else if (
+    arguments_[0] === "tasks" &&
+    arguments_[1] === "publish-completion-catalog"
+  ) {
+    await runTasksPublishCompletionCatalogCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "tasks" && arguments_[1] === "apply-plan") {
     await runTasksApplyPlanCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "tasks" && arguments_[1] === "recovery") {

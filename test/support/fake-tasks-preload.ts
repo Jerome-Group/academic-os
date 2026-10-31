@@ -1,4 +1,4 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, rename, writeFile } from "node:fs/promises";
 
 import { GoogleAuth } from "google-auth-library";
 
@@ -24,6 +24,7 @@ interface FakeTasksState {
   taskWritesIgnored?: string[];
   taskCreateIdsMissing?: boolean;
   taskAfterCreateCorruptFile?: string;
+  taskAfterPatchRenameDirectory?: string;
   tasks?: Record<string, FakeTask[]>;
   requests?: Array<{
     body?: unknown;
@@ -124,6 +125,11 @@ prototype.request = async function (options) {
         Object.assign(task, options.data);
       }
       await writeFile(statePath, `${JSON.stringify(state)}\n`);
+      if (state.taskAfterPatchRenameDirectory !== undefined)
+        await rename(
+          state.taskAfterPatchRenameDirectory,
+          `${state.taskAfterPatchRenameDirectory}-moved`,
+        );
       return { data: task };
     }
     if (options.method === "DELETE") {

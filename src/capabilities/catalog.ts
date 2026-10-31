@@ -256,6 +256,15 @@ export const cliCapabilities: Capability[] = [
       "node dist/src/cli.js tasks apply-plan --config <private-config> --plan <private-plan.json> --json",
   },
   cli(
+    "tasks publish-completion-catalog",
+    ["private completion catalog and original source acquisition evidence"],
+    [
+      "configured private source file; pinned producer; exact environment/account/source identity; no provider calls",
+    ],
+    null,
+    ["test/operations/configured-module-completion.test.ts"],
+  ),
+  cli(
     "tasks record-lifecycle",
     ["private owner lifecycle evidence"],
     ["exact terminal owner decision JSON; no provider mutation"],
@@ -636,6 +645,50 @@ export function capabilityIndex(): object {
       result:
         "MCP content containing JSON text and isError; versioned exact-plan result. Conflicts never silently replan. Native timing unavailable until verified adapter.",
     });
+  for (const name of [
+    "tasks_completion_capabilities",
+    "tasks_discover_completion",
+    "tasks_prepare_completion",
+  ]) {
+    const observes = name !== "tasks_completion_capabilities";
+    actions.push({
+      id: name,
+      surface: "mcp",
+      invocation: `MCP tools/call ${name}`,
+      prerequisites: [
+        "configured Operations server",
+        ...(observes
+          ? [
+              "configured private catalog; pinned producer; exact module/list/task; original current authority",
+            ]
+          : []),
+      ],
+      reads: observes
+        ? ["Google Tasks", "configured private source catalog"]
+        : [],
+      writes: observes
+        ? [
+            "mounted register, private recovery snapshots and refresh receipt",
+            ...(name === "tasks_prepare_completion"
+              ? ["private immutable prepared packet and acquisition evidence"]
+              : []),
+          ]
+        : [],
+      riskFlags: observes
+        ? ["writes-state", "requires-target-authorization"]
+        : [],
+      preview: null,
+      implementation: "src/operations/module-completion-tools.ts",
+      tests: [
+        "test/operations/module-completion-tools.test.ts",
+        "test/operations/configured-module-completion.test.ts",
+      ],
+      status: "supported",
+      health: "not-observed",
+      result:
+        "MCP content containing JSON text and isError; status, code or retained original producer call; optional source integration availability; no task mutation.",
+    });
+  }
   for (const name of [
     "calendar-refresh",
     "state-refresh",

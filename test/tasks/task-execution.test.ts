@@ -15,6 +15,7 @@ import {
 import { createFileTaskOperationJournal } from "../../src/tasks/task-operation-journal-file.js";
 import type {
   TaskExecutionPlan,
+  TaskExecutionChecks,
   TaskOperationJournal,
 } from "../../src/tasks/task-execution-types.js";
 import type {
@@ -574,3 +575,292 @@ it("reobserves provider state after a recovery capture before sending an ordinar
   assert.deepEqual(f.counts(), { creates: 0, patches: 0, deletes: 0 });
   assert.equal((await recovery.list(f.target.identity)).length, 1);
 });
+
+it("rechecks current policy after actual recovery capture and the final provider snapshot", async (t) => {
+  const f = await fixture(t);
+  const recovery = createFileTaskRecoveryStore({
+    stateRoot: f.stateRoot,
+    excludedRoots: [process.cwd()],
+  });
+  let policyVersion = f.plan.policyVersion;
+  let snapshots = 0;
+  const checks = {
+    beforeWrite: async () => {
+      assert.equal(policyVersion, f.plan.policyVersion);
+      return undefined;
+    },
+    beforeSend: async () => {
+      assert.equal(snapshots, 2);
+      assert.equal((await recovery.list(f.target.identity)).length, 1);
+      return policyVersion === f.plan.policyVersion
+        ? undefined
+        : "policy-revision-changed";
+    },
+  };
+  const target = {
+    ...f.target,
+    recoveryStore: {
+      ...recovery,
+      capture: async (input: Parameters<typeof recovery.capture>[0]) => {
+        const snapshot = await recovery.capture(input);
+        policyVersion = "fixture-policy-v2";
+        return snapshot;
+      },
+    },
+  };
+  const report = await f.run({
+    target,
+    checks,
+    reader: {
+      listTasks: async () => {
+        snapshots++;
+        return f.reader.listTasks();
+      },
+    },
+  });
+  assert.equal(report.outcome, "conflict");
+  assert.equal(report.code, "policy-revision-changed");
+  assert.equal(report.operationId, f.plan.operationId);
+  assert.deepEqual(f.counts(), { creates: 0, patches: 0, deletes: 0 });
+  await f.journal.withOwner(
+    { operationId: f.plan.operationId, listId: f.plan.listId },
+    async (session) => {
+      assert.equal((await session.read())?.phase, "prepared");
+    },
+  );
+  policyVersion = f.plan.policyVersion;
+  const retryChecks = {
+    beforeWrite: async () => undefined,
+    beforeSend: async () => {
+      assert.equal(policyVersion, f.plan.policyVersion);
+      return undefined;
+    },
+  };
+  assert.equal(
+    (await f.run({ target, checks: retryChecks })).outcome,
+    "applied",
+  );
+  assert.equal(f.counts().creates, 1);
+});
+
+it("keeps an unavailable execution check known-unsent and retries the same operation", async (t) => {
+  const f = await fixture(t);
+  let checksRun = 0;
+  const checks = {
+    beforeWrite: async () => undefined,
+    beforeSend: async () => {
+      checksRun++;
+      throw new Error("Policy service unavailable");
+    },
+  };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const report = await f.run({
+      checks,
+      journal: createFileTaskOperationJournal(f.stateRoot),
+    });
+    assert.equal(report.outcome, "conflict");
+    assert.equal(report.code, "execution-check-unavailable");
+    assert.equal(report.operationId, f.plan.operationId);
+    await f.journal.withOwner(
+      { operationId: f.plan.operationId, listId: f.plan.listId },
+      async (session) => {
+        assert.equal((await session.read())?.phase, "prepared");
+      },
+    );
+  }
+  assert.equal(checksRun, 2);
+  assert.deepEqual(f.counts(), { creates: 0, patches: 0, deletes: 0 });
+  const retryChecks = {
+    beforeWrite: async () => undefined,
+    beforeSend: async () => {
+      checksRun++;
+      return undefined;
+    },
+  };
+  assert.equal((await f.run({ checks: retryChecks })).outcome, "applied");
+  assert.equal(checksRun, 3);
+  assert.equal(f.counts().creates, 1);
+});
+
+for (const phase of [
+  "uncertain",
+  "unknown-create",
+  "verified",
+  "applied",
+] as const) {
+  it(`reconciles ${phase} replay without reauthorizing or resending`, async (t) => {
+    const f = await fixture(t);
+    if (phase === "uncertain") f.failReadback(true);
+    if (phase === "unknown-create") f.loseResponse();
+    if (phase === "verified") f.failLocalWrite(true);
+    let checksRun = 0;
+    const checks = {
+      beforeWrite: async () => undefined,
+      beforeSend: async () => {
+        checksRun++;
+        return undefined;
+      },
+    };
+    const first = await f.run({ checks });
+    assert.equal(first.outcome, phase === "applied" ? "applied" : "uncertain");
+    f.failReadback(false);
+    f.failLocalWrite(false);
+    const replayChecks = {
+      beforeWrite: async () => undefined,
+      beforeSend: async () => {
+        assert.fail("Replay must not reauthorize an already sent operation.");
+      },
+    };
+    const replay = await f.run({
+      checks: replayChecks,
+      journal: createFileTaskOperationJournal(f.stateRoot),
+    });
+    assert.equal(
+      replay.outcome,
+      phase === "unknown-create" ? "uncertain" : "applied",
+    );
+    assert.equal(checksRun, 1);
+    assert.equal(f.counts().creates, 1);
+  });
+}
+
+it("releases refused-operation retention so bounded recovery permits the next operation", async (t) => {
+  const f = await fixture(t);
+  const recovery = createFileTaskRecoveryStore({
+    stateRoot: f.stateRoot,
+    excludedRoots: [process.cwd()],
+    retention: { maxSnapshots: 2, maxAgeDays: 90, maxBytes: 1_000_000 },
+  });
+  const target = { ...f.target, recoveryStore: recovery };
+  const checks = { beforeSend: async () => "policy-revision-changed" };
+  for (const operationId of ["first-refused", "second-refused"]) {
+    const refused = await f.run({
+      target,
+      checks,
+      plan: { ...f.plan, operationId },
+    });
+    assert.equal(refused.code, "policy-revision-changed");
+  }
+  assert.equal(f.counts().creates, 0);
+  const report = await f.run({ target });
+  assert.equal(report.outcome, "applied");
+  assert.equal(f.counts().creates, 1);
+  assert.ok((await recovery.list(f.target.identity)).length <= 2);
+});
+
+it("preserves known-unsent intent and retained recovery when refusal cleanup fails", async (t) => {
+  const f = await fixture(t);
+  const recovery = createFileTaskRecoveryStore({
+    stateRoot: f.stateRoot,
+    excludedRoots: [process.cwd()],
+  });
+  const target = {
+    ...f.target,
+    recoveryStore: {
+      ...recovery,
+      release: async () => {
+        throw new Error("Release unavailable");
+      },
+    },
+  };
+  const checks = { beforeSend: async () => "policy-revision-changed" };
+  const refused = await f.run({ target, checks });
+  assert.equal(refused.outcome, "conflict");
+  assert.equal(refused.code, "execution-check-recovery-release-failed");
+  assert.equal(refused.operationId, f.plan.operationId);
+  assert.equal(f.counts().creates, 0);
+  const snapshots = await recovery.list(f.target.identity);
+  assert.equal(snapshots.length, 1);
+  await f.journal.withOwner(
+    { operationId: f.plan.operationId, listId: f.plan.listId },
+    async (session) => {
+      assert.equal((await session.read())?.phase, "prepared");
+    },
+  );
+  assert.equal(
+    (await f.run({ target: { ...f.target, recoveryStore: recovery } })).outcome,
+    "applied",
+  );
+  assert.equal(f.counts().creates, 1);
+});
+
+for (const hook of ["beforeWrite", "beforeSend"] as const) {
+  it(`isolates ${hook} mutations from a prepared retry and its provider send`, async (t) => {
+    const f = await fixture(t);
+    const expected = structuredClone(f.plan);
+    assert.equal(
+      (
+        await f.run({
+          checks: { beforeSend: async () => "policy-unavailable" },
+        })
+      ).outcome,
+      "conflict",
+    );
+    const sends: Parameters<TaskOperationWriter["createTask"]>[0][] = [];
+    const mutate: NonNullable<TaskExecutionChecks[typeof hook]> = async ({
+      plan,
+      live,
+      register,
+    }) => {
+      plan.listId = "callback-list";
+      plan.target.key = "callback-target";
+      plan.sourceOccurrenceId = "callback-occurrence";
+      plan.policyVersion = "callback-policy";
+      if (plan.operation.name === "create") {
+        plan.operation.title = "Callback task";
+        if (plan.operation.provenance !== undefined)
+          plan.operation.provenance.source = "callback-source";
+      }
+      live.push({ id: "callback-live", title: "Callback live task" });
+      register.listId = "callback-register";
+      register.tasks.push({
+        taskId: "callback-local",
+        title: "Callback local task",
+        status: "open",
+      });
+      return undefined;
+    };
+    const checks: TaskExecutionChecks =
+      hook === "beforeWrite"
+        ? {
+            beforeWrite: mutate,
+            beforeSend: async ({ plan, live, register }) => {
+              assert.deepEqual(plan, expected);
+              assert.deepEqual(live, []);
+              assert.deepEqual(register, {
+                listId: expected.listId,
+                tasks: [],
+              });
+              return undefined;
+            },
+          }
+        : { beforeSend: mutate };
+    const report = await f.run({
+      checks,
+      journal: createFileTaskOperationJournal(f.stateRoot),
+      writer: {
+        ...f.writer,
+        createTask: async (input) => {
+          sends.push(structuredClone(input));
+          return f.writer.createTask(input);
+        },
+      },
+    });
+    assert.equal(report.outcome, "applied");
+    assert.deepEqual(sends, [
+      { listId: expected.listId, task: { title: "Fixture task" } },
+    ]);
+    assert.deepEqual(f.plan, expected);
+    assert.equal(f.register().tasks[0]?.provenance?.source, "fixture-source");
+    await f.journal.withOwner(
+      { operationId: expected.operationId, listId: expected.listId },
+      async (session) => {
+        const record = await session.read();
+        assert.equal(record?.phase, "applied");
+        assert.deepEqual(record?.plan, expected);
+      },
+    );
+    assert.equal((await f.run()).outcome, "applied");
+    assert.equal(f.counts().creates, 1);
+  });
+}

@@ -23,6 +23,13 @@ import {
   findTaskCreationSource,
 } from "./task-operation-journal-file.js";
 import { parseTaskExecutionPlan } from "./task-execution-plan.js";
+import { configuredTaskTools } from "../operations/configured-task-tools.js";
+import { guardedTaskTools } from "../operations/task-plan-tools.js";
+import {
+  createConfiguredCompletionPlanning,
+  refused,
+  safeCompletionCode,
+} from "../operations/configured-completion-planning.js";
 import { executeTaskPlan } from "./task-execution.js";
 import type {
   TaskExecutionChecks,
@@ -73,6 +80,66 @@ export async function applyConfiguredTaskPlan(input: {
               listId: plan.listId,
               taskId: plan.operation.taskId,
             });
+      const lifecycleChecks = await createTaskLifecycleExecutionChecks(
+        session,
+        plan,
+        undefined,
+        knownCreation?.sourceOccurrenceId,
+      );
+      let completionChecks: TaskExecutionChecks | undefined;
+      const checks: TaskExecutionChecks =
+        plan.target.kind === "module" && plan.operation.name === "complete"
+          ? {
+              ...lifecycleChecks,
+              withFirstSendOwner: async (run) => {
+                let completed: TaskExecutionReport | undefined;
+                try {
+                  const guarded = guardedTaskTools(
+                    await configuredTaskTools(input.configPath),
+                    {
+                      apply: async () => {
+                        throw new Error("Read-only register seam.");
+                      },
+                    },
+                  );
+                  const readRegister = guarded.find(
+                    (tool) => tool.name === "tasks_read_register",
+                  );
+                  if (readRegister === undefined)
+                    return refused(plan, "completion-register-unavailable");
+                  const completion = createConfiguredCompletionPlanning(
+                    config,
+                    readRegister,
+                  );
+                  if (completion === undefined)
+                    return refused(plan, "completion-producer-unconfigured");
+                  completionChecks = completion.executionChecks(
+                    plan,
+                    stateRoot,
+                  );
+                  return completionChecks.withFirstSendOwner === undefined
+                    ? refused(plan, "completion-owner-required")
+                    : await completionChecks.withFirstSendOwner(async () => {
+                        completed = await run();
+                        return completed;
+                      });
+                } catch (error) {
+                  return completed === undefined
+                    ? refused(plan, safeCompletionCode(error))
+                    : {
+                        ...completed,
+                        outcome: "uncertain",
+                        registerFresh: false,
+                        code: "completion-owner-failed",
+                      };
+                }
+              },
+              beforeSend: async (value) =>
+                completionChecks?.beforeSend === undefined
+                  ? "completion-owner-required"
+                  : completionChecks.beforeSend(value),
+            }
+          : lifecycleChecks;
       executed = await executeTaskPlan({
         plan,
         target,
@@ -81,12 +148,7 @@ export async function applyConfiguredTaskPlan(input: {
         writer: createGoogleTaskOperationWriter(
           tasks.credentials.interactiveWrite,
         ),
-        checks: await createTaskLifecycleExecutionChecks(
-          session,
-          plan,
-          undefined,
-          knownCreation?.sourceOccurrenceId,
-        ),
+        checks,
       });
       return executed;
     });

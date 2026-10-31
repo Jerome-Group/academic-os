@@ -1,24 +1,19 @@
 import { fileURLToPath } from "node:url";
 
-import { loadCohortTasksConfig } from "../commands/load-cohort-tasks-config.js";
-import {
-  configuredResearchProjectTaskTarget,
-  configuredTaskTarget,
-  createGoogleTaskOperationWriter,
-  createGoogleTaskRefreshReader,
-} from "../tasks/index.js";
+import { applyConfiguredTaskPlan } from "../tasks/configured-task-executor.js";
 import { createMcpDispatcher } from "./dispatch-mcp-message.js";
 import {
   OPERATIONS_PORT,
-  startOperationsServer,
   type OperationsServerHandle,
+  startOperationsServer,
 } from "./serve-operations.js";
 import { resolveTailnetAddresses } from "./tailnet-address.js";
-import { createTaskTools } from "./task-tools.js";
 import { guardedTaskTools } from "./task-plan-tools.js";
-import { applyConfiguredTaskPlan } from "../tasks/configured-task-executor.js";
-import type { OperationTool } from "./types.js";
-import type { McpServerInfo } from "./types.js";
+import { configuredTaskTools } from "./configured-task-tools.js";
+import { createConfiguredCompletionPlanning } from "./configured-completion-planning.js";
+import { createModuleCompletionTools } from "./module-completion-tools.js";
+import { loadCohortTasksConfig } from "../commands/load-cohort-tasks-config.js";
+import type { McpServerInfo, OperationTool } from "./types.js";
 
 export const OPERATIONS_SERVER_INFO: McpServerInfo = {
   name: "academic-os",
@@ -33,25 +28,7 @@ export const OPERATIONS_SERVER_INFO: McpServerInfo = {
 export async function runOperationsServer(input: {
   configPath: string;
 }): Promise<OperationsServerHandle> {
-  const catalog = await configuredTaskTools(input.configPath);
-  const tools = guardedTaskTools(
-    catalog.map((tool) => ({
-      ...tool,
-      call: async (values) => {
-        const current = await configuredTaskTools(input.configPath);
-        const selected = current.find(
-          (candidate) => candidate.name === tool.name,
-        );
-        if (selected === undefined)
-          throw new Error("Configured task tool is unavailable.");
-        return await selected.call(values);
-      },
-    })),
-    {
-      apply: async (plan) =>
-        await applyConfiguredTaskPlan({ configPath: input.configPath, plan }),
-    },
-  );
+  const tools = await createConfiguredOperationsTools(input.configPath);
   return await startOperationsServer({
     hosts: resolveTailnetAddresses(),
     port: OPERATIONS_PORT,
@@ -62,17 +39,36 @@ export async function runOperationsServer(input: {
   });
 }
 
-async function configuredTaskTools(
+export async function createConfiguredOperationsTools(
   configPath: string,
 ): Promise<OperationTool[]> {
-  const { config, tasks } = await loadCohortTasksConfig(configPath);
-  return createTaskTools({
-    target: (module) => configuredTaskTarget(config, module),
-    researchProjectTarget: (key) =>
-      configuredResearchProjectTaskTarget(config, key, { requireActive: true }),
-    writer: createGoogleTaskOperationWriter(tasks.credentials.interactiveWrite),
-    reader: createGoogleTaskRefreshReader(tasks.credentials.scheduledRead),
-  });
+  const catalog = await configuredTaskTools(configPath);
+  const guarded = guardedTaskTools(
+    catalog.map((tool) => ({
+      ...tool,
+      call: async (values) => {
+        const current = await configuredTaskTools(configPath);
+        const selected = current.find(
+          (candidate) => candidate.name === tool.name,
+        );
+        if (selected === undefined)
+          throw new Error("Configured task tool is unavailable.");
+        return await selected.call(values);
+      },
+    })),
+    {
+      apply: async (plan) =>
+        await applyConfiguredTaskPlan({ configPath, plan }),
+    },
+  );
+  const readRegister = guarded.find(
+    (tool) => tool.name === "tasks_read_register",
+  );
+  if (readRegister === undefined)
+    throw new Error("Official module register tool unavailable.");
+  const { config } = await loadCohortTasksConfig(configPath);
+  const completion = createConfiguredCompletionPlanning(config, readRegister);
+  return [...guarded, ...createModuleCompletionTools(completion?.port)];
 }
 
 async function runFromCommandLine(): Promise<void> {

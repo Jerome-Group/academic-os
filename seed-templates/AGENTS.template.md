@@ -45,7 +45,15 @@ Read the route's procedure before acting in its area.
    Call `tasks_read_register` with the exact configured `semester` and `module`. A successful
    fresh read supplies `execution.target`, `execution.listId` and `execution.expectedSnapshot`. A
    stale read supplies no new execution token. Select existing work by its returned `taskId`.
-2. Retain cloud planning's exact intent and current `policyVersion`. Persist an immutable plan
+2. When the Owner explicitly reports finished work, match the exact open task ID from that read.
+   For Module completion, call `tasks_completion_capabilities`, then
+   `tasks_discover_completion` and `tasks_prepare_completion` with the same `semester`, `module`
+   and `task_id`. Require one exact eligible completion and `status: prepared`. Retain the returned
+   original packet and `call.arguments.plan_json`; use that unchanged call in step 4. The service
+   acquires policy and intent from its configured private source. Unavailable, missing, stale or
+   ambiguous authority parks completion; ask for the reported source issue to be resolved.
+3. For creation and title changes, retain cloud planning's exact intent and current
+   `policyVersion`. Persist an immutable plan
    with `schemaVersion: 1`, a stable `operationId`, the observed target/list/snapshot and the
    exact `operation`. Missing intent or policy parks the mutation; the executor never invents or
    replans them. Creation additionally requires exact source identity as a stable
@@ -53,15 +61,17 @@ Read the route's procedure before acting in its area.
    local metadata:
    `assessment`, `source` and `milestone`. Preserve what was supplied rather than inventing
    provenance or descriptions.
-3. Call `tasks_apply_plan` with string `plan_json`, or `tasks_create`, `tasks_change` or
+4. Call `tasks_apply_plan` with string `plan_json`, or `tasks_create`, `tasks_change` or
    `tasks_complete` with that same plan and matching legacy arguments. Parse the MCP text JSON;
    require `isError: false`, `outcome: applied`, the matching `operationId`, a nonempty returned
    `taskId` and `registerFresh: true`. For change/complete/cancel, also require that returned ID to
    equal `plan.operation.taskId`. These establish API/register success.
    Read fresh state before each new operation. Return conflicts to planning; retain the identical
-   plan and operation ID for reconciliation after errors or uncertain effects. An unknown-ID
+   plan and operation ID for reconciliation after errors or uncertain effects. Module completion
+   retries apply the retained original call directly: reacquisition, another operation ID or
+   replacement policy cannot authorize resending an uncertain effect. An unknown-ID
    create stays fenced. Another ID or a title match never authorizes a replacement create.
-4. Supported API writes are undated creation, title changes and explicit completion; cancellation
+5. Supported API writes are undated creation, title changes and explicit completion; cancellation
    through the generic apply tool requires explicit Owner intent. New notes/descriptions are
    refused. Plans containing `doDate` or `timing` are refused while the native adapter is
    unavailable; existing tool names do not promise the former date/notes behavior.

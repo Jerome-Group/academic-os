@@ -18,6 +18,15 @@ export interface ModuleCompletionSelector {
 
 // Adapter contract only. The producer's transport and wire schema belong to its adapter.
 export interface ModuleCompletionProducer {
+  context?(
+    catalog: unknown,
+    selector: ModuleCompletionSelector,
+  ): Promise<unknown | undefined>;
+  resolve?(
+    selector: ModuleCompletionSelector,
+    observation: OperationToolResult,
+    attestation: unknown,
+  ): Promise<unknown>;
   catalog(): Promise<unknown>;
   discover(
     catalog: unknown,
@@ -89,7 +98,16 @@ export function createModuleCompletionTools(
           : "Discover a module completion",
         description:
           "Read the live module register, then discover producer authorization for the exact task. Preparation retains the original producer packet and exact apply call before exposing them; sends no task mutation.",
-        fields,
+        fields: prepare
+          ? [
+              ...fields,
+              {
+                name: "completion_attestation_json",
+                description:
+                  "Labelled module-agent attestation of the Owner's explicit finished instruction, bound to exact task and discovered source context; no authenticated-chat claim.",
+              },
+            ]
+          : fields,
         call: async (values) => {
           try {
             const semester = required(values, "semester");
@@ -160,7 +178,35 @@ export function createModuleCompletionTools(
               listId,
               taskId,
             };
-            const catalog = await configured.producer.catalog();
+            const attestationJson = values.get("completion_attestation_json");
+            const catalog =
+              prepare &&
+              attestationJson !== undefined &&
+              configured.producer.resolve !== undefined
+                ? await configured.producer.resolve(
+                    selector,
+                    observation,
+                    JSON.parse(attestationJson),
+                  )
+                : await configured.producer.catalog();
+            const sourceContext = await configured.producer.context?.(
+              catalog,
+              selector,
+            );
+            if (sourceContext !== undefined)
+              return {
+                failed: prepare,
+                report: {
+                  schemaVersion: 1,
+                  status: "attestation-required",
+                  code: "completion-explicit-owner-attestation-required",
+                  sourceContext,
+                  attestationKind: "module-agent-attestation",
+                  statement: "owner-explicitly-finished",
+                  assurance:
+                    "module-agent relay of explicit Owner instruction; chat not authenticated",
+                },
+              };
             const operations = await configured.producer.discover(
               catalog,
               selector,
@@ -273,7 +319,20 @@ export function createModuleCompletionTools(
 function refusal(code: string) {
   return {
     failed: true,
-    report: { schemaVersion: 1, status: "refused", code },
+    report: {
+      schemaVersion: 1,
+      status: "refused",
+      code,
+      ...([
+        "completion-source-projection-required",
+        "completion-source-binding-clarification-required",
+      ].includes(code)
+        ? {
+            clarification:
+              "The native source coordinator must resolve this exact task to its versioned assignment, occurrence and unit range, including prerequisite and Owner-policy evidence. Clarify the source identity/range; do not construct policy from the task title or infer completion.",
+          }
+        : {}),
+    },
   };
 }
 

@@ -248,7 +248,7 @@ async function fixture(t: TestContext, ignored = false) {
 test("serialized real producer completion retains exact packet, refuses stale/revised plans, recovers same ID without source", async (t) => {
   const f = await fixture(t);
   const missing = await f.call("tasks_prepare_completion");
-  assert.equal(missing.report.code, "completion-catalog-missing");
+  assert.equal(missing.report.code, "completion-source-projection-required");
   const catalog = await f.publish();
   const { plan, planJson, packet } = await f.prepare();
   const repeated = await f.prepare();
@@ -672,4 +672,198 @@ function objects(value: unknown): Record<string, unknown>[] {
 }
 function mutations(value: Record<string, unknown>) {
   return objects(value.requests).filter((row) => row.method !== "GET");
+}
+
+test("serialized module attestation resolves standing source with no prelisted authorization and preserves uncertain recovery", async (t) => {
+  const f = await fixture(t);
+  const source: Record<string, unknown> = {
+    ...f.catalogInput,
+    authorizations: [],
+  };
+  await installStanding(f, source, null);
+  const contextReply = await f.call("tasks_discover_completion");
+  assert.equal(contextReply.isError, false);
+  assert.equal(contextReply.report.status, "attestation-required");
+  const context = object(contextReply.report.sourceContext);
+  const attestation = {
+    schemaVersion: 1,
+    kind: "module-agent-attestation",
+    attestationId: "synthetic-explicit-instruction-one",
+    agentRef: "synthetic-module-session",
+    ownerInstructionRef: "synthetic-owner-message-one",
+    reportedAt: new Date().toISOString(),
+    statement: "owner-explicitly-finished",
+    target,
+    listId: context.listId,
+    taskId: originalId,
+    sourceVersion: context.sourceVersion,
+    sourceOccurrenceId: context.sourceOccurrenceId,
+    sourceRange: context.sourceRange,
+  };
+  const prepare = (value: unknown) =>
+    f.call("tasks_prepare_completion", {
+      ...selector,
+      completion_attestation_json: JSON.stringify(value),
+    });
+  assert.equal(
+    (await prepare({ ...attestation, statement: "inferred-from-study" })).report
+      .code,
+    "completion-explicit-owner-attestation-required",
+  );
+  assert.equal(
+    (await prepare({ ...attestation, taskId: decoyId })).report.code,
+    "completion-attestation-scope-mismatch",
+  );
+  assert.equal(
+    (await prepare({ ...attestation, sourceRange: "unrelated range" })).report
+      .code,
+    "completion-attestation-scope-mismatch",
+  );
+  assert.equal(
+    (await prepare({ ...attestation, reportedAt: "2020-01-01T00:00:00.000Z" }))
+      .report.code,
+    "completion-attestation-stale",
+  );
+  assert.equal(mutations(await f.provider()).length, 0);
+  const ready = await prepare(attestation);
+  assert.equal(ready.isError, false, JSON.stringify(ready));
+  assert.equal(ready.report.status, "prepared");
+  const repeated = await prepare(attestation);
+  assert.deepEqual(repeated.report.prepared, ready.report.prepared);
+  const planJson = String(
+    object(object(ready.report.call).arguments).plan_json,
+  );
+  const plan = parseTaskExecutionPlan(JSON.parse(planJson));
+  const retained = await f.preparedStore.read(plan.operationId);
+  assert.ok(retained?.acquisitionEvidenceJson);
+  assert.match(retained.acquisitionEvidenceJson, /module-agent-attestation/u);
+  assert.match(retained.acquisitionEvidenceJson, /chat not authenticated/u);
+  const first = await f.call("tasks_apply_plan", { plan_json: planJson });
+  assert.equal(first.report.outcome, "uncertain");
+  assert.equal(mutations(await f.provider()).length, 1);
+  await writeFile(
+    f.configPath,
+    JSON.stringify({
+      ...f.config,
+      tasks: { credentials: f.config.tasks.credentials },
+    }),
+  );
+  const recovered = await f.call("tasks_apply_plan", { plan_json: planJson });
+  assert.equal(recovered.report.outcome, "applied");
+  assert.equal(recovered.report.taskId, originalId);
+  assert.equal(mutations(await f.provider()).length, 1);
+  assert.equal(
+    (await f.call("tasks_apply_plan", { plan_json: planJson })).report.outcome,
+    "applied",
+  );
+  assert.equal(mutations(await f.provider()).length, 1);
+  const provider = await f.provider();
+  const rows = objects(object(provider.tasks)["list-one"]);
+  assert.equal(rows.find((row) => row.id === decoyId)?.status, "needsAction");
+});
+
+test("attested preparation refuses missing bindings and changed standing policy before send", async (t) => {
+  const f = await fixture(t);
+  const source: Record<string, unknown> = {
+    ...f.catalogInput,
+    authorizations: [],
+  };
+  await installStanding(
+    f,
+    { ...source, policy: { ...object(source.policy), bindings: [] } },
+    null,
+  );
+  assert.equal(
+    (await f.call("tasks_discover_completion")).report.code,
+    "completion-source-binding-clarification-required",
+  );
+  const prior = await currentCatalogDigest(f);
+  const revised = { ...source, issuedAt: new Date().toISOString() };
+  await installStanding(f, revised, prior);
+  const context = object(
+    (await f.call("tasks_discover_completion")).report.sourceContext,
+  );
+  const ready = await f.call("tasks_prepare_completion", {
+    ...selector,
+    completion_attestation_json: JSON.stringify({
+      schemaVersion: 1,
+      kind: "module-agent-attestation",
+      attestationId: "synthetic-policy-race",
+      agentRef: "synthetic-session",
+      ownerInstructionRef: "synthetic-message",
+      reportedAt: new Date().toISOString(),
+      statement: "owner-explicitly-finished",
+      target,
+      listId: context.listId,
+      taskId: originalId,
+      sourceVersion: context.sourceVersion,
+      sourceOccurrenceId: context.sourceOccurrenceId,
+      sourceRange: context.sourceRange,
+    }),
+  });
+  assert.equal(ready.isError, false, JSON.stringify(ready));
+  const planJson = String(
+    object(object(ready.report.call).arguments).plan_json,
+  );
+  await installStanding(
+    f,
+    {
+      ...revised,
+      issuedAt: new Date().toISOString(),
+      coordinationDefinitionHash: "9".repeat(64),
+    },
+    await currentCatalogDigest(f),
+  );
+  const refused = await f.call("tasks_apply_plan", { plan_json: planJson });
+  assert.equal(refused.report.outcome, "conflict");
+  assert.equal(
+    refused.report.code,
+    "completion-explicit-owner-attestation-required",
+  );
+  assert.equal(mutations(await f.provider()).length, 0);
+});
+
+async function currentCatalogDigest(f: Awaited<ReturnType<typeof fixture>>) {
+  const result = await f.catalogStore.withOwner((owner) => owner.read());
+  assert.equal(result.kind, "owned");
+  if (result.kind !== "owned" || !result.value)
+    throw new Error("Missing synthetic source");
+  return sha256Bytes(result.value.rawJson);
+}
+
+async function installStanding(
+  f: Awaited<ReturnType<typeof fixture>>,
+  catalog: unknown,
+  expectedPriorDigest: string | null,
+) {
+  await writeFile(
+    f.planning.catalogSourcePath,
+    JSON.stringify({
+      schemaVersion: 1,
+      expectedPriorDigest,
+      catalog,
+      acquisitionEvidence: {
+        kind: "synthetic-native-source-acquisition",
+        sourceVersion: "synthetic-original-version",
+        sourceRef: "synthetic-original-source",
+      },
+    }),
+    { mode: 0o600 },
+  );
+  const result = await execute(
+    process.execPath,
+    [
+      new URL("../../src/cli.js", import.meta.url).pathname,
+      "tasks",
+      "publish-completion-catalog",
+      "--config",
+      f.configPath,
+      "--json",
+    ],
+    { timeout: 30_000 },
+  );
+  assert.equal(
+    object(JSON.parse(result.stdout)).status,
+    "standing-source-installed",
+  );
 }

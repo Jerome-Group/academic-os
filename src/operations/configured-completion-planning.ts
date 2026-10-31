@@ -21,6 +21,11 @@ import {
   type EmmyPlanningRequest,
 } from "./emmy-planning-process.js";
 import { isJsonObject } from "./json-object.js";
+import {
+  attestedCompletionCatalog,
+  completionSourceContext,
+  standingCompletionSource,
+} from "./completion-attestation.js";
 import type {
   ModuleCompletionPort,
   ModuleCompletionSelector,
@@ -51,9 +56,10 @@ export function createConfiguredCompletionPlanning(
       throw new Error("completion-policy-refused");
     return result.data;
   };
-  const current = async (owner: CompletionCatalogOwner) => {
+  const available = async (owner: CompletionCatalogOwner) => {
     const snapshot = await owner.read();
-    if (snapshot === undefined) throw new Error("completion-catalog-missing");
+    if (snapshot === undefined)
+      throw new Error("completion-source-projection-required");
     const catalog: unknown = JSON.parse(snapshot.rawJson.toString("utf8"));
     if (
       snapshot.sourceIdentity !== planning.sourceIdentity ||
@@ -64,12 +70,14 @@ export function createConfiguredCompletionPlanning(
       catalog.scope.accountId !== planning.accountId
     )
       throw new Error("completion-source-mismatch");
-    await run(
-      { schemaVersion: 1, stage: "validate", catalog },
-      "planning-catalog-valid",
-    );
+    if (!standingCompletionSource(catalog))
+      await run(
+        { schemaVersion: 1, stage: "validate", catalog },
+        "planning-catalog-valid",
+      );
     return {
       catalog,
+      snapshot,
       evidence: {
         sourceIdentity: snapshot.sourceIdentity,
         catalogSha256: sha256Bytes(snapshot.rawJson),
@@ -77,6 +85,12 @@ export function createConfiguredCompletionPlanning(
         acquisitionBase64: snapshot.acquisitionJson.toString("base64"),
       },
     };
+  };
+  const current = async (owner: CompletionCatalogOwner) => {
+    const value = await available(owner);
+    if (standingCompletionSource(value.catalog))
+      throw new Error("completion-explicit-owner-attestation-required");
+    return value;
   };
   const withCatalog = async <T>(
     action: (value: Awaited<ReturnType<typeof current>>) => Promise<T>,
@@ -98,7 +112,112 @@ export function createConfiguredCompletionPlanning(
   const port: ModuleCompletionPort = {
     readRegister,
     producer: {
-      catalog: () => withCatalog(async (value) => value.catalog),
+      catalog: async () => {
+        const owned = await catalogs.withOwner(
+          async (owner) => (await available(owner)).catalog,
+        );
+        if (owned.kind !== "owned")
+          throw new Error("completion-catalog-unavailable");
+        return owned.value;
+      },
+      context: async (catalog, selector) => {
+        if (standingCompletionSource(catalog))
+          return completionSourceContext(catalog, selector);
+        if (
+          isJsonObject(catalog) &&
+          Array.isArray(catalog.authorizations) &&
+          catalog.authorizations.some(
+            (row) => isJsonObject(row) && row.taskId === selector.taskId,
+          )
+        )
+          return undefined;
+        const owned = await catalogs.withOwner(async (owner) => {
+          const value = await available(owner);
+          const acquisition: unknown = JSON.parse(
+            value.snapshot.acquisitionJson.toString("utf8"),
+          );
+          return isJsonObject(acquisition) &&
+            acquisition.kind === "module-agent-attested-completion"
+            ? completionSourceContext(acquisition.standingSource, selector)
+            : undefined;
+        });
+        if (owned.kind !== "owned")
+          throw new Error("completion-catalog-unavailable");
+        return owned.value;
+      },
+      resolve: async (selector, official, attestation) => {
+        const owned = await catalogs.withOwner(async (owner) => {
+          const previous = await available(owner);
+          const acquisition: unknown = JSON.parse(
+            previous.snapshot.acquisitionJson.toString("utf8"),
+          );
+          const source = standingCompletionSource(previous.catalog)
+            ? previous.catalog
+            : isJsonObject(acquisition) &&
+                acquisition.kind === "module-agent-attested-completion"
+              ? acquisition.standingSource
+              : undefined;
+          const resolved = attestedCompletionCatalog(
+            source,
+            selector,
+            official,
+            attestation,
+          );
+          if (
+            isJsonObject(acquisition) &&
+            acquisition.kind === "module-agent-attested-completion" &&
+            acquisition.operationId === resolved.operationId
+          ) {
+            if (
+              !isDeepStrictEqual(acquisition.attestation, attestation) ||
+              !isDeepStrictEqual(acquisition.standingSource, source)
+            )
+              throw new Error("completion-original-attestation-mismatch");
+            return previous.catalog;
+          }
+          const result = await run(
+            {
+              schemaVersion: 1,
+              stage: "publish",
+              catalog: resolved.catalogInput,
+            },
+            "planning-catalog-ready",
+          );
+          await run(
+            { schemaVersion: 1, stage: "validate", catalog: result.catalog },
+            "planning-catalog-valid",
+          );
+          await owner.publish(
+            {
+              rawJson: Buffer.from(JSON.stringify(result.catalog)),
+              sourceIdentity: planning.sourceIdentity,
+              acquisitionJson: Buffer.from(
+                JSON.stringify({
+                  schemaVersion: 1,
+                  kind: "module-agent-attested-completion",
+                  standingSource: source,
+                  originalSourceAcquisition:
+                    isJsonObject(acquisition) &&
+                    acquisition.kind === "module-agent-attested-completion"
+                      ? acquisition.originalSourceAcquisition
+                      : acquisition,
+                  attestation: resolved.attestation,
+                  operationId: resolved.operationId,
+                  assurance: "module-agent attestation; chat not authenticated",
+                }),
+              ),
+            },
+            async (_candidate, latest) => {
+              if (!latest?.rawJson.equals(previous.snapshot.rawJson))
+                throw new Error("completion-source-changed");
+            },
+          );
+          return result.catalog;
+        });
+        if (owned.kind !== "owned")
+          throw new Error("completion-catalog-unavailable");
+        return owned.value;
+      },
       discover: async (catalog, selector) => {
         const discovered = await run(
           { schemaVersion: 1, stage: "discover", catalog, selector },

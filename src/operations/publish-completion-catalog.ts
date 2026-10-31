@@ -10,6 +10,10 @@ import { createPrivateCompletionCatalogStore } from "../tasks/private-completion
 import { createEmmyPlanningProcess } from "./emmy-planning-process.js";
 import { isJsonObject } from "./json-object.js";
 import { safeCompletionCode } from "./configured-completion-planning.js";
+import {
+  standingCompletionSource,
+  validateStandingCompletionSource,
+} from "./completion-attestation.js";
 
 /** Explicit local installation step. Configured file attribution does not prove cloud authorship. */
 export async function publishConfiguredCompletionCatalog(configPath: string) {
@@ -57,17 +61,28 @@ export async function publishConfiguredCompletionCatalog(configPath: string) {
       )
         throw new Error("completion-publication-stage-invalid");
       const source: unknown = staged.catalog;
+      const standing = standingCompletionSource(source);
+      if (standing) validateStandingCompletionSource(source);
       const hasVersion =
         isJsonObject(source) && typeof source.policyVersion === "string";
-      const result = await producer.run({
-        schemaVersion: 1,
-        stage: hasVersion ? "validate" : "publish",
-        catalog: source,
-      });
+      const result = standing
+        ? {
+            kind: "reported" as const,
+            data: { status: "standing-source-staged", catalog: source },
+          }
+        : await producer.run({
+            schemaVersion: 1,
+            stage: hasVersion ? "validate" : "publish",
+            catalog: source,
+          });
       if (result.kind !== "reported") throw new Error(result.code);
       if (
         result.data.status !==
-        (hasVersion ? "planning-catalog-valid" : "planning-catalog-ready")
+        (standing
+          ? "standing-source-staged"
+          : hasVersion
+            ? "planning-catalog-valid"
+            : "planning-catalog-ready")
       )
         throw new Error("completion-publication-producer-refused");
       const catalog = hasVersion ? source : result.data.catalog;
@@ -77,19 +92,21 @@ export async function publishConfiguredCompletionCatalog(configPath: string) {
         catalog.sourceRef !== planning.sourceIdentity ||
         catalog.scope.environment !== planning.environment ||
         catalog.scope.accountId !== planning.accountId ||
-        typeof catalog.policyVersion !== "string"
+        (!standing && typeof catalog.policyVersion !== "string")
       )
         throw new Error("completion-source-mismatch");
-      const validated = await producer.run({
-        schemaVersion: 1,
-        stage: "validate",
-        catalog,
-      });
-      if (
-        validated.kind !== "reported" ||
-        validated.data.status !== "planning-catalog-valid"
-      )
-        throw new Error("completion-publication-producer-refused");
+      if (!standing) {
+        const validated = await producer.run({
+          schemaVersion: 1,
+          stage: "validate",
+          catalog,
+        });
+        if (
+          validated.kind !== "reported" ||
+          validated.data.status !== "planning-catalog-valid"
+        )
+          throw new Error("completion-publication-producer-refused");
+      }
       const bytes = Buffer.from(JSON.stringify(catalog));
       await owner.publish(
         {
@@ -135,7 +152,7 @@ export async function publishConfiguredCompletionCatalog(configPath: string) {
             !isJsonObject(previous) ||
             typeof previous.issuedAt !== "string" ||
             typeof catalog.issuedAt !== "string" ||
-            (previous.policyVersion !== catalog.policyVersion &&
+            (!current.rawJson.equals(bytes) &&
               Date.parse(previous.issuedAt) >= Date.parse(catalog.issuedAt))
           )
             throw new Error("completion-publication-revision-conflict");
@@ -143,11 +160,13 @@ export async function publishConfiguredCompletionCatalog(configPath: string) {
       );
       return {
         schemaVersion: 1,
-        status: "published",
+        status: standing ? "standing-source-installed" : "published",
         sourceIdentity: planning.sourceIdentity,
         policyVersion: catalog.policyVersion,
         catalogDigest: sha256Bytes(bytes),
-        assurance: "configured-local-file; cloud authorship not authenticated",
+        assurance: standing
+          ? "non-executable source projection; full producer validation required for every particular completion"
+          : "configured-local-file; cloud authorship not authenticated",
       };
     });
     if (owned.kind !== "owned")

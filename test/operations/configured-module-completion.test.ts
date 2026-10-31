@@ -958,3 +958,127 @@ test("attested resolution preserves producer prerequisite, owner-policy and orig
     });
   }
 });
+
+test("producer occurrence must agree with preserved creation or lifecycle source before first send", async (t) => {
+  for (const scenario of [
+    "creation-mismatch",
+    "lifecycle-mismatch",
+    "matching-creation",
+    "provider-placeholder",
+    "restored-provider-placeholder",
+  ] as const) {
+    await t.test(scenario, async (child) => {
+      const f = await fixture(child);
+      await installStanding(f, { ...f.catalogInput, authorizations: [] }, null);
+      const context = object(
+        (await f.call("tasks_discover_completion")).report.sourceContext,
+      );
+      const ready = await f.call("tasks_prepare_completion", {
+        ...selector,
+        completion_attestation_json: JSON.stringify({
+          schemaVersion: 1,
+          kind: "module-agent-attestation",
+          attestationId: `synthetic-binding-${scenario}`,
+          agentRef: "synthetic-session",
+          ownerInstructionRef: "synthetic-finished-instruction",
+          reportedAt: new Date().toISOString(),
+          statement: "owner-explicitly-finished",
+          target,
+          listId: context.listId,
+          taskId: originalId,
+          sourceVersion: context.sourceVersion,
+          sourceOccurrenceId: context.sourceOccurrenceId,
+          sourceRange: context.sourceRange,
+        }),
+      });
+      assert.equal(ready.isError, false, JSON.stringify(ready));
+      const planJson = String(
+        object(object(ready.report.call).arguments).plan_json,
+      );
+      const plan = parseTaskExecutionPlan(JSON.parse(planJson));
+      const sourceId =
+        scenario === "matching-creation"
+          ? String(context.sourceOccurrenceId)
+          : scenario === "provider-placeholder" ||
+              scenario === "restored-provider-placeholder"
+            ? `provider:${JSON.stringify([plan.listId, scenario === "restored-provider-placeholder" ? "synthetic-original-before-restore" : originalId])}`
+            : "synthetic-preserved-other-occurrence";
+      if (
+        scenario === "creation-mismatch" ||
+        scenario === "matching-creation"
+      ) {
+        const creation = parseTaskExecutionPlan({
+          ...plan,
+          operationId: `synthetic-prior-${scenario}`,
+          sourceOccurrenceId: sourceId,
+          operation: { name: "create", title },
+        });
+        const directory = join(f.stateRoot, "task-operations");
+        await mkdir(directory, { mode: 0o700 });
+        await writeFile(
+          join(directory, `${sha256(creation.operationId)}.json`),
+          JSON.stringify({
+            schemaVersion: 1,
+            plan: creation,
+            planDigest: taskExecutionPlanDigest(creation),
+            phase: "applied",
+            taskId: originalId,
+          }),
+          { mode: 0o600 },
+        );
+      } else {
+        await writeFile(
+          join(f.stateRoot, "task-lifecycle.json"),
+          JSON.stringify({
+            schemaVersion: 1,
+            revision: 1,
+            entries: [
+              {
+                target: { kind: target.kind, key: target.key },
+                occurrenceId: sourceId,
+                source: { kind: "source-occurrence", id: sourceId },
+                disposition: "active",
+                recordedAt: new Date().toISOString(),
+                evidenceRef: "synthetic-preserved-lifecycle-binding",
+                providers: [
+                  ...(scenario === "restored-provider-placeholder"
+                    ? [
+                        {
+                          canonical: {
+                            listId: plan.listId,
+                            taskId: "synthetic-original-before-restore",
+                          },
+                          aliases: [],
+                        },
+                      ]
+                    : []),
+                  {
+                    canonical: { listId: plan.listId, taskId: originalId },
+                    aliases: [],
+                  },
+                ],
+              },
+            ],
+          }),
+          { mode: 0o600 },
+        );
+      }
+      const state = await f.provider();
+      delete state.taskReadbackFailures;
+      await f.saveProvider(state);
+      const result = await f.call("tasks_apply_plan", { plan_json: planJson });
+      if (scenario.endsWith("mismatch")) {
+        assert.equal(result.report.outcome, "conflict");
+        assert.equal(
+          result.report.code,
+          "completion-retained-source-binding-mismatch",
+        );
+        assert.equal(mutations(await f.provider()).length, 0);
+      } else {
+        assert.equal(result.report.outcome, "applied", JSON.stringify(result));
+        assert.equal(result.report.taskId, originalId);
+        assert.equal(mutations(await f.provider()).length, 1);
+      }
+    });
+  }
+});

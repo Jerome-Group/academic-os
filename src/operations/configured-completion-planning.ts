@@ -321,6 +321,7 @@ export function createConfiguredCompletionPlanning(
   const executionChecks = (
     plan: TaskExecutionPlan,
     operationStateRoot: string,
+    preservedSourceOccurrenceId?: string,
   ): TaskExecutionChecks => {
     let activeOwner: CompletionCatalogOwner | undefined;
     return {
@@ -358,6 +359,12 @@ export function createConfiguredCompletionPlanning(
             !/^[a-f0-9]{64}$/u.test(packet.intent.effectKey)
           )
             return "completion-original-packet-invalid";
+          if (
+            preservedSourceOccurrenceId !== undefined &&
+            (!isJsonObject(packet.intent.source) ||
+              packet.intent.source.occurrenceId !== preservedSourceOccurrenceId)
+          )
+            return "completion-retained-source-binding-mismatch";
           const source = await current(owner);
           const selector = moduleSelector(plan);
           const official = await readRegister.call(

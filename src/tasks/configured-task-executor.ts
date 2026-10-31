@@ -116,6 +116,7 @@ export async function applyConfiguredTaskPlan(input: {
                   completionChecks = completion.executionChecks(
                     plan,
                     stateRoot,
+                    lifecycleChecks.preservedSourceOccurrenceId,
                   );
                   return completionChecks.withFirstSendOwner === undefined
                     ? refused(plan, "completion-owner-required")
@@ -190,7 +191,7 @@ export async function createTaskLifecycleExecutionChecks(
   plan: TaskExecutionPlan,
   now: () => string = () => new Date().toISOString(),
   knownSourceOccurrenceId?: string,
-): Promise<TaskExecutionChecks> {
+): Promise<TaskExecutionChecks & { preservedSourceOccurrenceId?: string }> {
   const state = await session.read();
   const entries = state.entries.filter(
     (entry) =>
@@ -229,7 +230,20 @@ export async function createTaskLifecycleExecutionChecks(
       : "");
   const previous =
     bound ?? entries.find((entry) => entry.occurrenceId === occurrenceId);
+  const boundIsProviderPlaceholder = bound?.providers.some((binding) =>
+    [binding.canonical, ...binding.aliases.map((alias) => alias.identity)].some(
+      (identity) =>
+        bound.occurrenceId ===
+        `provider:${JSON.stringify([identity.listId, identity.taskId])}`,
+    ),
+  );
+  const preservedSourceOccurrenceId = boundIsProviderPlaceholder
+    ? knownSourceOccurrenceId
+    : (bound?.occurrenceId ?? knownSourceOccurrenceId);
   return {
+    ...(preservedSourceOccurrenceId === undefined
+      ? {}
+      : { preservedSourceOccurrenceId }),
     beforeWrite: async () => {
       if (bindingConflict) return "source-occurrence-mismatch";
       if (

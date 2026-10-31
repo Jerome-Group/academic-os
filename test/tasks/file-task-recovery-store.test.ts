@@ -562,7 +562,7 @@ it("keeps a killed publisher's partial capture unavailable and a killed restore'
     fs.promises.rename = async (...args) => { process.kill(process.pid, 'SIGKILL'); return original(...args); };
     syncBuiltinESMExports();
     const { createFileTaskRecoveryStore } = await import(${JSON.stringify(moduleUrl)});
-    await createFileTaskRecoveryStore(${JSON.stringify(input)}).capture(${JSON.stringify(capture())});
+    await createFileTaskRecoveryStore({ ...${JSON.stringify(input)}, now: () => ${JSON.stringify(initialTime)} }).capture(${JSON.stringify(capture())});
   `);
   assert.equal(interrupted.signal, "SIGKILL", interrupted.stderr);
   assert.deepEqual(await test.store.list(target), []);
@@ -583,7 +583,7 @@ it("keeps a killed publisher's partial capture unavailable and a killed restore'
   const snapshot = await test.store.capture(capture());
   const killedRestore = await child(`
     const { createFileTaskRecoveryStore } = await import(${JSON.stringify(moduleUrl)});
-    await createFileTaskRecoveryStore(${JSON.stringify(input)}).withSnapshot(${JSON.stringify(snapshot.snapshotId)}, async () => { process.kill(process.pid, 'SIGKILL'); });
+    await createFileTaskRecoveryStore({ ...${JSON.stringify(input)}, now: () => ${JSON.stringify(initialTime)} }).withSnapshot(${JSON.stringify(snapshot.snapshotId)}, async () => { process.kill(process.pid, 'SIGKILL'); });
   `);
   assert.equal(killedRestore.signal, "SIGKILL", killedRestore.stderr);
   assert.equal(

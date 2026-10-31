@@ -26,6 +26,7 @@ Start here: `README.md`, then `AGENTS.md`.
 | Operations server | The MCP surface the mini serves on the Tailnet — the served task tools, the Streamable-HTTP entry point bound to the tailnet address, and its resident LaunchAgent | `src/operations/`, `scripts/install-operations-server-launchd.mjs`, `docs/machine-setup.md` |
 | Scheduling | The one LaunchAgent installer every scheduled job goes through — a job description in, a timezone-pinned plist and an atomic bootout-first install out | `src/launchd/` |
 | Morning routine | The 06:00 pass on the mini — import/shelf/task prelude, nine-domain Module maintenance, bounded repository repair, private daily evidence and one weekly review including merged fixes | `src/routine/`, `scripts/install-morning-routine-launchd.mjs`, `docs/agents/weekly-maintenance.md`, `docs/operator-guide.md` |
+| Reviewed dependencies | Byte-exact producer runtime and upstream license used by synthetic verification | `vendor/emmy-planning/9235befe/UPSTREAM.md` |
 | Tests | Public-seam tests using synthetic temporary Module and Research-project trees, plus checks over the documents this repository ships | `test/` |
 | The boundary | Why the folders it describes are not in this repository, and what keeps them out | `docs/adr/0002-…`, `.gitignore` |
 | Issue tracker | The semester's work and this repository's own — GitHub Issues, not a file | the issue tracker |

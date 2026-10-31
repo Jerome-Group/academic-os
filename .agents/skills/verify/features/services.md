@@ -32,13 +32,16 @@ node dist/src/cli.js capabilities verify --workflow services --json --log "$aos_
 
 Require a passed outcome. CLI journeys preload fake Google providers at the production adapter boundary and assert stored provider state and refreshed files.
 They cover task mutations, Calendar proposal/promotion and failure handling.
-The real-producer Module completion cases require both `ACADEMIC_OS_TEST_EMMY_RELEASE` and
-`ACADEMIC_OS_TEST_EMMY_FIXTURES`, pointing to the reviewed private producer release and synthetic
-fixtures. Without both, those cases skip: a passed services workflow alone does not prove the
-producer handoff. With both configured, run the compiled completion suite and require zero skips:
+The real-producer suites default to the reviewed runtime in `vendor/emmy-planning/9235befe/runtime`
+and byte-pinned synthetic helpers in `test/support/emmy-planning-fixtures/verification`.
+They run in normal CI without private paths, credentials or provider access; missing or changed
+bundled inputs fail rather than skip. Exact provenance and the sibling MIT notice are recorded in
+[`UPSTREAM.md`](../../../../vendor/emmy-planning/9235befe/UPSTREAM.md).
+`ACADEMIC_OS_TEST_EMMY_RELEASE` and `ACADEMIC_OS_TEST_EMMY_FIXTURES` preserve explicit private
+path overrides for the same reviewed pins. Run both compiled suites and require zero skips:
 
 ```sh
-node --test dist/test/operations/configured-module-completion.test.js
+node --test dist/test/operations/emmy-planning-process.test.js dist/test/operations/configured-module-completion.test.js
 ```
 
 Retain the producer revision and manifest digest with the evidence. Check publication refusal,

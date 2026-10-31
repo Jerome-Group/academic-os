@@ -5,7 +5,6 @@ import {
   cp,
   mkdir,
   mkdtemp,
-  readFile,
   readdir,
   realpath,
   rm,
@@ -22,6 +21,7 @@ import {
   type EmmyPlanningProcessResult,
 } from "../../src/operations/emmy-planning-process.js";
 import { isJsonObject } from "../../src/operations/json-object.js";
+import { emmyPlanningTestSources } from "../support/emmy-planning-source.js";
 
 function reported(result: EmmyPlanningProcessResult, status: string) {
   assert.equal(result.kind, "reported");
@@ -30,13 +30,9 @@ function reported(result: EmmyPlanningProcessResult, status: string) {
   return result.data;
 }
 
-const releasePath = process.env.ACADEMIC_OS_TEST_EMMY_RELEASE;
-const fixturesPath = process.env.ACADEMIC_OS_TEST_EMMY_FIXTURES;
-
-test("pinned real Emmy subprocess publishes, discovers, acquires and revalidates synthetic authority", {
-  skip: !releasePath || !fixturesPath,
-}, async () => {
-  assert.ok(releasePath && fixturesPath);
+test("pinned real Emmy subprocess publishes, discovers, acquires and revalidates synthetic authority", async () => {
+  const { releasePath, fixturesPath, sourceCommit, manifestSha256 } =
+    await emmyPlanningTestSources();
   const scratch = await realpath(
     await mkdtemp(join(tmpdir(), "aos-emmy-process-")),
   );
@@ -46,14 +42,11 @@ test("pinned real Emmy subprocess publishes, discovers, acquires and revalidates
     await cp(releasePath, releaseRoot, { recursive: true });
     await mkdir(privateRoot, { mode: 0o700 });
     await chmod(scratch, 0o700);
-    const manifest = await readFile(
-      join(releaseRoot, "planning-source-manifest.json"),
-    );
     const adapter = createEmmyPlanningProcess({
       releaseRoot,
       privateRoot,
-      manifestSha256: createHash("sha256").update(manifest).digest("hex"),
-      sourceCommit: "9235befe03916b776ba40c6234d9e83716667b3f",
+      manifestSha256,
+      sourceCommit,
     });
     const fixtureModule: unknown = await import(
       pathToFileURL(
@@ -159,6 +152,49 @@ test("pinned real Emmy subprocess publishes, discovers, acquires and revalidates
   } finally {
     await rm(scratch, { recursive: true, force: true });
   }
+});
+
+test("test producer source defaults and explicit overrides resolve the same reviewed bundle", async () => {
+  const bundled = await emmyPlanningTestSources({});
+  const explicit = await emmyPlanningTestSources({
+    ACADEMIC_OS_TEST_EMMY_RELEASE: bundled.releasePath,
+    ACADEMIC_OS_TEST_EMMY_FIXTURES: bundled.fixturesPath,
+  });
+  assert.deepEqual(explicit, bundled);
+});
+
+test("missing or changed producer test inputs fail instead of skipping", async (t) => {
+  const bundled = await emmyPlanningTestSources({});
+  const root = await realpath(
+    await mkdtemp(join(tmpdir(), "aos-emmy-inputs-")),
+  );
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await assert.rejects(
+    emmyPlanningTestSources({
+      ACADEMIC_OS_TEST_EMMY_RELEASE: join(root, "missing"),
+    }),
+  );
+  const releaseRoot = join(root, "release");
+  await cp(bundled.releasePath, releaseRoot, { recursive: true });
+  await writeFile(join(releaseRoot, "planning-source-manifest.json"), "{}\n");
+  await assert.rejects(
+    emmyPlanningTestSources({ ACADEMIC_OS_TEST_EMMY_RELEASE: releaseRoot }),
+    /does not match its pin/u,
+  );
+  await assert.rejects(
+    emmyPlanningTestSources({ ACADEMIC_OS_TEST_EMMY_FIXTURES: root }),
+  );
+  await cp(bundled.fixturesPath, join(root, "fixtures"), { recursive: true });
+  await writeFile(
+    join(root, "fixtures/verification/academic-os-plan-fixtures.mjs"),
+    "export const changed = true;\n",
+  );
+  await assert.rejects(
+    emmyPlanningTestSources({
+      ACADEMIC_OS_TEST_EMMY_FIXTURES: join(root, "fixtures"),
+    }),
+    /does not match its pin/u,
+  );
 });
 
 async function scopedProducer(script: string) {

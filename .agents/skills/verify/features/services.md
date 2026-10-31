@@ -6,6 +6,7 @@ The CLI and Operations server read and update target-specific Tasks and Calendar
 
 - Task list provisioning, verified generation receipts and exact-plan operations preserve Module or Research-project identity.
 - Guarded MCP compatibility names negotiate task-plan/1; current clients obtain read snapshots and retain exact operation IDs.
+- Module completion discovers and prepares an exact producer-authorized task plan. The local catalog publisher shares ownership with the first send; retained packets and effect fences preserve recovery across changed authority.
 - Versioned Task recovery history and preview/apply recreation use isolated provider fixtures; interrupted sends retain exact source claims and snapshot references.
 - Private lifecycle decisions prevent source-occurrence resurrection; native timing contract fixtures refuse missing/unsupported evidence.
 - Synthetic Calendar setup checks exact owner access, preview and idempotent role binding. Refresh retains per-calendar stale data and tombstones.
@@ -31,6 +32,18 @@ node dist/src/cli.js capabilities verify --workflow services --json --log "$aos_
 
 Require a passed outcome. CLI journeys preload fake Google providers at the production adapter boundary and assert stored provider state and refreshed files.
 They cover task mutations, Calendar proposal/promotion and failure handling.
+The real-producer Module completion cases require both `ACADEMIC_OS_TEST_EMMY_RELEASE` and
+`ACADEMIC_OS_TEST_EMMY_FIXTURES`, pointing to the reviewed private producer release and synthetic
+fixtures. Without both, those cases skip: a passed services workflow alone does not prove the
+producer handoff. With both configured, run the compiled completion suite and require zero skips:
+
+```sh
+node --test dist/test/operations/configured-module-completion.test.js
+```
+
+Retain the producer revision and manifest digest with the evidence. Check publication refusal,
+exact identity, original-packet retention and recovery without a second mutation. A configured
+local source and its digest do not authenticate cloud authorship or current cloud selection.
 Calendar journeys also assert nonmutating timetable/Routine previews, later recurrence conflicts, new blockers after preview, owner revalidation and Research-project milestone evidence refusals.
 Accepted writes require exact normalized content and identity; omitted/regular default event types are equivalent, while mismatches still refuse.
 Receipt process fixtures cover competing and killed owners across duplicate-read, append and sync boundaries without PID takeover. This coordinates receipts, not all provider mutations.

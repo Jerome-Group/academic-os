@@ -59,6 +59,19 @@ source review.
 Completion: every input has a locator, digest and authority; every existing unique object and every
 prior content item has an explicit disposition.
 
+A template may itself be a hashed source of an existing release. Before adapting a shared template,
+inspect current/history manifests and construction records for that path. Keep a frozen source and
+its compatible template pair byte-identical, even when they match an older shared seed. Select the
+reviewed versioned upstream pair for the new artifact and stage it separately; never repair an older
+release's fingerprints or silently replace its source path. Report a held template or preexisting
+historical conflict explicitly.
+
+For a new release, snapshot mutable construction/style inputs byte for byte under its existing
+support/content home before declaring their hashes. Retain the original path and digest as
+provenance; cite the immutable snapshot as the release input. Verify the copy, preserve the original,
+and inline required style code in the portable top-level TeX. A provenance snapshot does not create
+a second authoring authority. This lets later shared-template upgrades preserve the earlier release.
+
 ## 3. Declare one authoring authority
 
 Maintain `support/<artifact-id>/manifest.yaml` (schema version 1) and `coverage.csv`. Declare exactly

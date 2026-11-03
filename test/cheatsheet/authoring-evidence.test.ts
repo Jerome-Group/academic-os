@@ -151,6 +151,60 @@ it("audits digested construction without executing it and blocks stale recipe/in
     await rm(f.root, { recursive: true, force: true });
   }
 });
+it("preserves a shared template pinned by a frozen release and permits a separate future snapshot", async () => {
+  const f = await fixture();
+  try {
+    const path = "70 Learning/templates/mathematics-cheatsheet-preamble.tex";
+    const original = Buffer.from("Synthetic original style input.\n");
+    await mkdir(join(f.root, "70 Learning/templates"), { recursive: true });
+    await writeFile(join(f.root, path), original);
+    const manifest = {
+      ...f.manifest,
+      sources: [
+        ...f.manifest.sources,
+        {
+          id: "style-preamble",
+          path,
+          sha256: sha256Bytes(original),
+          authority: "module-derived",
+          locators: ["native style"],
+        },
+      ],
+    };
+    await writeFile(join(f.root, f.manifestPath), JSON.stringify(manifest));
+    const frozenPaths = [
+      f.manifestPath,
+      `${support}/coverage.csv`,
+      `${personal}/Final.tex`,
+      `${personal}/Final.pdf`,
+    ];
+    const frozen = await Promise.all(
+      frozenPaths.map((path) => readFile(join(f.root, path))),
+    );
+    await loadCheatsheetEvidence(f);
+    const upgraded = Buffer.from("Synthetic upgraded style input.\n");
+    await writeFile(join(f.root, path), upgraded);
+    await assert.rejects(
+      loadCheatsheetEvidence(f),
+      /mathematics-cheatsheet-preamble\.tex no longer matches/u,
+    );
+    await writeFile(join(f.root, path), original);
+    const future =
+      "10 Learning Materials/30 Personal Notes/support/future-aid/content/style";
+    await mkdir(join(f.root, future), { recursive: true });
+    await writeFile(join(f.root, future, "preamble.tex"), upgraded);
+    assert.equal(
+      sha256Bytes(await readFile(join(f.root, future, "preamble.tex"))),
+      sha256Bytes(upgraded),
+    );
+    assert.equal((await loadCheatsheetEvidence(f)).manifest.sources.length, 2);
+    for (const [index, path] of frozenPaths.entries())
+      assert.deepEqual(await readFile(join(f.root, path)), frozen[index]);
+    assert.deepEqual(await readFile(join(f.root, path)), original);
+  } finally {
+    await rm(f.root, { recursive: true, force: true });
+  }
+});
 it("checks a fresh proposed recipe through both CLIs while strict audit refuses stale construction", async () => {
   const f = await fixture();
   try {

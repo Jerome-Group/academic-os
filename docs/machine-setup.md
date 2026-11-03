@@ -96,22 +96,60 @@ manifest beside `SKILL.md` if it needs one to know the skill fires only when the
 
 ## Optional: install the `/cheatsheet` skill
 
-`/cheatsheet <module code> <operation>` discovers one synced Module and hands create, revise, audit,
-verify or package-review to its pinned Cheatsheet procedure. Its boundary is
-[ADR-0029](adr/0029-cheatsheet-releases-are-source-led-and-portable.md). Install or update the same
-way as `/learn`. The copied directory includes the Node 24 helper runtime; it does not use a clone or
-Academic OS configuration:
+`/cheatsheet <module code> <operation>` discovers one synced Module and yields to its pinned
+Cheatsheet procedure ([ADR-0029](adr/0029-cheatsheet-releases-are-source-led-and-portable.md)).
+Academic OS owns `skills/cheatsheet/`; distribution is an explicit directory copy. There is no
+machine inventory, background installer or account-wide skill sync in this repository.
+
+Inventory the configured destination machines and installed clients first; retain private host/path
+identities outside this public repository. Current Codex and local Cursor support the shared
+`~/.agents/skills/` user directory. Existing `.codex/skills/` installations remain a compatibility
+surface; Claude Code uses `~/.claude/skills/`. Update the paths actually in use and verify each
+client's discovery. A shared local directory does not establish cloud or remote-session discovery;
+those sessions must discover the skill on their execution host.
+
+Build/check the bundled runtime in the release checkout. The copied directory includes its helper,
+references and client metadata; execution needs Node 24 or later, but no repository clone or
+Academic OS configuration on the target. Copy from the exact merged release:
 
 ```sh
-for harness in .claude .codex; do
-  rsync -a "<clone>/skills/cheatsheet/" \
-    "<machine>:~/$harness/skills/cheatsheet/"
-done
+rsync -an "<merged-clone>/skills/cheatsheet/" \
+  "<machine>:~/.agents/skills/cheatsheet/"
+rsync -a "<merged-clone>/skills/cheatsheet/" \
+  "<machine>:~/.agents/skills/cheatsheet/"
 ```
 
-Verify the installed interface with
-`~/.codex/skills/cheatsheet/scripts/cheatsheet-tool.mjs schema` (and the corresponding `.claude`
-path). The command reports every operation and required input.
+Inspect every destination first. A symlink may lead into a checkout with unrelated local work;
+copying through it would overwrite that checkout. Preserve its state, publish the bundle to stable
+release storage and update the alias deliberately. Keep one authoritative bundle per host and
+use aliases for compatibility clients. Preserve unrelated destination files.
+
+Read back every shipped file's digest against the release checkout. Run the installed helper's
+`schema` operation and `scripts/find-candidates.zsh <module code>`, then refresh the client's skill
+catalog and verify the explicit-only Cheatsheet entry resolves to that installation. Run an isolated
+synthetic release through the installed helper, including build, retained evidence and package
+verification, with TeX and all executables advertised by `schema` available. A schema response alone
+proves neither a complete runtime nor client discovery. Report an unreachable machine as pending
+with its attempted command; a successful copy to another machine cannot establish its installation.
+
+### Propagate procedure changes and preserve editable templates
+
+After merge, run `pinned refresh` from the merged checkout using the private active-cohort
+configuration; review the complete preview before `--apply`. It updates the pinned procedure and
+other shared controls with checksum-verified backups/journals. Run one writer against the configured
+mount, then read back the synced procedure digest on each reachable machine. Follow
+[Drive safety](agents/safe-drive-testing.md) before mounted writes. The procedure governs a Module
+only once that Module's pinned copy has arrived.
+
+The `.tex` files under `70 Learning/templates/` are module-editable. `pinned refresh` does not
+upgrade them, and seeding preserves occupied files. For an existing Module, preserve the exact
+current template and its digest, compare with the new seed and the previous seed version when known,
+then merge the changed interface into a staged copy while retaining local customization. When the
+baseline is unknown, review every difference rather than assuming the file is an unchanged seed.
+Compile a synthetic derivative against the staged pair, inspect its rendered output and only then
+replace the exact intended templates with recoverable originals retained. Verify final digests on
+the configured mount and reachable replicas. Existing self-contained releases keep their own
+preamble until a requested revision deliberately adopts the new interface.
 
 ## Optional: install the `/research-project` skill
 

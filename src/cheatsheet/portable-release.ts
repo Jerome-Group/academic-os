@@ -12,6 +12,8 @@ import { basename, join } from "node:path";
 import { promisify } from "node:util";
 
 import { sha256Bytes } from "../checksum.js";
+import { assertCheatsheetParagraphStructure } from "./structure.js";
+import { retainCheatsheetBuild } from "./retained-build.js";
 import { compilePortableSource } from "./portable-build.js";
 import type {
   CheatsheetConstraints,
@@ -19,19 +21,32 @@ import type {
 } from "./types.js";
 
 const run = promisify(execFile);
-const fontMeasurementZoom = 3;
-const fontMeasurementTolerance = 0.2;
+import {
+  dominantBodyPointSize,
+  fontMeasurementZoom,
+  fontMeasurementTolerance,
+  inspectPdfBoundaries,
+} from "./pdf-inspection.js";
+import {
+  cheatsheetExecutablePath,
+  requireCheatsheetExecutable,
+} from "./toolchain.js";
 
 async function command(
   executable: string,
   arguments_: string[],
   cwd: string,
 ): Promise<string> {
-  const result = await run(executable, arguments_, {
-    cwd,
-    encoding: "utf8",
-    maxBuffer: 16 * 1024 * 1024,
-  });
+  const result = await run(
+    requireCheatsheetExecutable(executable),
+    arguments_,
+    {
+      env: { ...process.env, PATH: cheatsheetExecutablePath() },
+      cwd,
+      encoding: "utf8",
+      maxBuffer: 16 * 1024 * 1024,
+    },
+  );
   return result.stdout;
 }
 
@@ -75,48 +90,6 @@ function fontsAreEmbedded(pdffonts: string): boolean {
   return resources.length > 0 && resources.every((match) => match[1] === "yes");
 }
 
-function visibleCharacterCount(xmlText: string): number {
-  return xmlText
-    .replace(/<[^>]+>/gu, "")
-    .replace(/&(?:#x?[0-9A-Fa-f]+|[A-Za-z]+);/gu, "x")
-    .replace(/\s/gu, "").length;
-}
-
-function dominantBodyPointSize(xml: string): number {
-  const weights = new Map<number, number>();
-  const pages = xml.matchAll(/<page\b[^>]*>([\s\S]*?)<\/page>/gu);
-  for (const pageMatch of pages) {
-    const page = pageMatch[1] ?? "";
-    const sizes = new Map<string, number>();
-    for (const font of page.matchAll(/<fontspec\b([^>]*)\/>/gu)) {
-      const attributes = font[1] ?? "";
-      const id = /\bid="([^"]+)"/u.exec(attributes)?.[1];
-      const scaledSize = Number(/\bsize="([0-9.]+)"/u.exec(attributes)?.[1]);
-      if (id !== undefined && Number.isFinite(scaledSize)) {
-        sizes.set(id, scaledSize / fontMeasurementZoom);
-      }
-    }
-    for (const text of page.matchAll(/<text\b([^>]*)>([\s\S]*?)<\/text>/gu)) {
-      const id = /\bfont="([^"]+)"/u.exec(text[1] ?? "")?.[1];
-      const size = id === undefined ? undefined : sizes.get(id);
-      const weight = visibleCharacterCount(text[2] ?? "");
-      if (size !== undefined && weight > 0) {
-        weights.set(size, (weights.get(size) ?? 0) + weight);
-      }
-    }
-  }
-  const bodySize = [...weights]
-    .sort(
-      ([leftSize, leftWeight], [rightSize, rightWeight]) =>
-        rightWeight - leftWeight || leftSize - rightSize,
-    )
-    .at(0)?.[0];
-  if (bodySize === undefined) {
-    throw new Error("PDF font inspection found no visible text.");
-  }
-  return bodySize;
-}
-
 async function renderedDigests(
   root: string,
   pdf: string,
@@ -137,10 +110,14 @@ export async function verifyPortableCheatsheetRelease(input: {
   filename: string;
   constraints: CheatsheetConstraints;
   requiredLabels?: string[];
+  evidenceDestination?: string;
 }): Promise<CheatsheetReleaseVerification> {
+  assertCheatsheetParagraphStructure(input.source);
   if (/\\(?:resizebox|scalebox)\b/u.test(input.source)) {
     throw new Error("Release source uses hidden geometric scaling.");
   }
+  if (input.evidenceDestination !== undefined)
+    await mkdir(input.evidenceDestination);
   const workspace = await mkdtemp(join(tmpdir(), "cheatsheet-portable-"));
   try {
     const buildRoot = join(workspace, "build");
@@ -188,25 +165,71 @@ export async function verifyPortableCheatsheetRelease(input: {
         "Isolated build reports an overfull box or missing glyph.",
       );
     }
+    if (
+      /undefined references|Reference .+ undefined|pdfTeX warning \(dest\):/u.test(
+        latexLog.replace(/\s+/gu, " "),
+      )
+    )
+      throw new Error(
+        "Isolated build has unresolved references or PDF destinations.",
+      );
     const declaredBodyPointSize =
       /^CHEATSHEET-BODY-PT=([0-9]+(?:\.[0-9]+)?)$/mu.exec(latexLog)?.[1];
     const builtPdf = join(buildRoot, builtPdfName);
-    const bodyPointSize = dominantBodyPointSize(
-      await command(
-        "pdftohtml",
-        [
-          "-xml",
-          "-i",
-          "-q",
-          "-zoom",
-          String(fontMeasurementZoom),
-          "-noroundcoord",
-          "-stdout",
-          builtPdf,
-        ],
-        buildRoot,
-      ),
+    const fontXml = await command(
+      "pdftohtml",
+      [
+        "-xml",
+        "-i",
+        "-q",
+        "-zoom",
+        String(fontMeasurementZoom),
+        "-noroundcoord",
+        "-stdout",
+        builtPdf,
+      ],
+      buildRoot,
     );
+    const bodyPointSize = dominantBodyPointSize(fontXml);
+    const mathFontLines = [
+      ...latexLog.matchAll(
+        /^CHEATSHEET-(TEXT|SCRIPT|SCRIPTSCRIPT)FONT3=(.+)$/gmu,
+      ),
+    ];
+    const mathSizes = mathFontLines
+      .slice(-3)
+      .map((match) =>
+        Number(/ at ([0-9.]+)pt$/u.exec(match[2] ?? "")?.[1] ?? 10),
+      );
+    if (
+      mathFontLines.length > 0 &&
+      (mathSizes.length !== 3 ||
+        Math.abs((mathSizes[0] ?? 0) - bodyPointSize) >
+          fontMeasurementTolerance ||
+        (mathSizes[1] ?? 0) > (mathSizes[0] ?? 0) ||
+        (mathSizes[2] ?? 0) > (mathSizes[1] ?? 0) ||
+        mathSizes.some((size) => !Number.isFinite(size) || size <= 0))
+    )
+      throw new Error(
+        "Reported native mathematics extension fonts do not match body/script sizing.",
+      );
+
+    const fullXml = await command(
+      "pdftohtml",
+      [
+        "-xml",
+        "-hidden",
+        "-i",
+        "-q",
+        "-zoom",
+        String(fontMeasurementZoom),
+        "-noroundcoord",
+        "-stdout",
+        builtPdf,
+      ],
+      buildRoot,
+    );
+    const boundaries = inspectPdfBoundaries(fullXml, input.constraints.layout);
     if (
       declaredBodyPointSize !== undefined &&
       Math.abs(bodyPointSize - Number(declaredBodyPointSize)) >
@@ -252,7 +275,31 @@ export async function verifyPortableCheatsheetRelease(input: {
       throw new Error("Released PDF does not match the isolated source build.");
     }
     const builtPdfBytes = await readFile(builtPdf);
-    return {
+    const renderPaths = async (prefix: string) =>
+      (await readdir(renderRoot))
+        .filter(
+          (name) => name.startsWith(`${prefix}-`) && name.endsWith(".png"),
+        )
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+        .map((name) => join(renderRoot, name));
+    const buildEvidence =
+      input.evidenceDestination === undefined
+        ? undefined
+        : await retainCheatsheetBuild({
+            destination: input.evidenceDestination,
+            source: join(buildRoot, texName),
+            pdf: builtPdf,
+            releasedPdf: referencePdf,
+            aux: join(buildRoot, "aux", texName.replace(/\.tex$/u, ".aux")),
+            log: join(buildRoot, "aux", texName.replace(/\.tex$/u, ".log")),
+            pdfInfo: pdfinfo,
+            fontXml,
+            fullXml,
+            renders: await renderPaths("built"),
+            releasedRenders: await renderPaths("released"),
+          });
+    const verification: CheatsheetReleaseVerification = {
+      ...(buildEvidence === undefined ? {} : { buildEvidence }),
       texSha256: sha256Bytes(Buffer.from(input.source, "utf8")),
       pdfSha256: sha256Bytes(input.releasedPdf),
       pageCount,
@@ -265,6 +312,10 @@ export async function verifyPortableCheatsheetRelease(input: {
         `${recordedInputs} recorded inputs confined to the release workspace and installed TeX distribution`,
         `${pageCount} portrait A4 page${pageCount === 1 ? "" : "s"}`,
         "all fonts embedded",
+        mathFontLines.length === 0
+          ? "Native mathematics extension-font diagnostics absent; requires font/visual inspection"
+          : mathFontLines.map((match) => match[0]).join("; "),
+        `${boundaries.textBoxes} full XML text boxes checked against page bounds; header/footer geometry ${boundaries.furnitureChecked ? "checked" : "not declared, requires visual review"}`,
         `${input.requiredLabels?.length ?? 0} declared included labels checked against compiled auxiliary evidence`,
         declaredBodyPointSize === undefined
           ? `PDF dominant text size ${bodyPointSize}pt (measurement tolerance ${fontMeasurementTolerance}pt)`
@@ -273,6 +324,23 @@ export async function verifyPortableCheatsheetRelease(input: {
         `rebuilt PDF bytes ${sha256Bytes(builtPdfBytes)}`,
       ],
     };
+    if (input.evidenceDestination !== undefined)
+      await writeFile(
+        join(input.evidenceDestination, "verification.json"),
+        `${JSON.stringify(verification, null, 2)}\n`,
+        { flag: "wx" },
+      );
+    return verification;
+  } catch (error) {
+    if (input.evidenceDestination !== undefined)
+      await writeFile(
+        join(input.evidenceDestination, "failure.json"),
+        JSON.stringify({
+          error: error instanceof Error ? error.message : String(error),
+        }),
+        { flag: "wx" },
+      );
+    throw error;
   } finally {
     await rm(workspace, { recursive: true, force: true });
   }

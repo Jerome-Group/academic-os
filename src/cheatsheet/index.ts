@@ -15,3 +15,18 @@ export type {
   CheatsheetMeasurements,
   CheatsheetReleaseVerification,
 } from "./types.js";
+
+export {
+  checkCheatsheetRegenerationCandidate,
+  parseCheatsheetConstruction,
+} from "./construction.js";
+export {
+  formatCheatsheetReferences,
+  parseCheatsheetReferences,
+  renderCheatsheetReference,
+} from "./references.js";
+export {
+  assertCheatsheetMathematicsPreserved,
+  extractCheatsheetMathematics,
+} from "./revision.js";
+export { fitCheatsheetRelease } from "./measurements.js";

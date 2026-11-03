@@ -104,8 +104,10 @@ it("prints accurate orientation and continuation guides at all eight specimen co
               box.left < left + 51.2,
           )
           .sort((a, b) => a.top - b.top || a.left - b.left);
+        const firstTop = body[0]?.top ?? Infinity;
         const start = body
-          .slice(0, 4)
+          .filter(({ top }) => top <= firstTop + 0.7)
+          .sort((a, b) => a.left - b.left)
           .map(({ text }) => text)
           .join(" ");
         assert.match(

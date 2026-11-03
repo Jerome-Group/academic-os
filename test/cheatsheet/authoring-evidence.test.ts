@@ -15,6 +15,29 @@ import { parseCheatsheetManifest } from "../../src/cheatsheet/manifest.js";
 import { createCheatsheetReviewPackage } from "../../src/cheatsheet/review-package.js";
 import { sha256Bytes } from "../../src/checksum.js";
 const run = promisify(execFile);
+let toolchainAvailable = true;
+try {
+  for (const name of [
+    "latexmk",
+    "kpsewhich",
+    "pdfinfo",
+    "pdffonts",
+    "pdftotext",
+    "pdftoppm",
+    "pdftohtml",
+  ])
+    await run(
+      name,
+      name === "latexmk"
+        ? ["-norc", "-version"]
+        : name === "kpsewhich"
+          ? ["--version"]
+          : ["-v"],
+    );
+} catch {
+  toolchainAvailable = false;
+}
+
 const personal = "10 Learning Materials/30 Personal Notes";
 const support = `${personal}/support/final-aid`;
 const tex = String.raw`\documentclass[a4paper]{article}
@@ -304,7 +327,9 @@ it("rejects malformed UTF-8 in manifest, coverage and authoring without replacem
     await rm(f.root, { recursive: true, force: true });
   }
 });
-it("packages exact BOM/CRLF evidence and recipe/input bytes with construction provenance", async () => {
+it("packages exact BOM/CRLF evidence and recipe/input bytes with construction provenance", {
+  skip: !toolchainAvailable,
+}, async () => {
   const f = await fixture();
   try {
     await run(

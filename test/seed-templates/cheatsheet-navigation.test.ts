@@ -7,8 +7,32 @@ import { it } from "node:test";
 import { promisify } from "node:util";
 import { inspectPdfBoundaries } from "../../src/cheatsheet/pdf-inspection.js";
 const run = promisify(execFile);
+let toolchainAvailable = true;
+try {
+  for (const name of [
+    "latexmk",
+    "kpsewhich",
+    "pdfinfo",
+    "pdffonts",
+    "pdftotext",
+    "pdftoppm",
+    "pdftohtml",
+  ])
+    await run(
+      name,
+      name === "latexmk"
+        ? ["-norc", "-version"]
+        : name === "kpsewhich"
+          ? ["--version"]
+          : ["-v"],
+    );
+} catch {
+  toolchainAvailable = false;
+}
 
-it("prints accurate orientation and continuation guides at all eight specimen column starts", async () => {
+it("prints accurate orientation and continuation guides at all eight specimen column starts", {
+  skip: !toolchainAvailable,
+}, async () => {
   const root = await mkdtemp(join(tmpdir(), "cheatsheet-navigation-"));
   try {
     for (const name of [
@@ -52,6 +76,15 @@ it("prints accurate orientation and continuation guides at all eight specimen co
       )
     ).stdout;
     assert.equal(inspectPdfBoundaries(xml).pages, 2);
+    const log = await readFile(
+      join(root, "mathematics-cheatsheet.log"),
+      "utf8",
+    );
+    assert.doesNotMatch(
+      log.replace(/\s+/gu, " "),
+      /undefined references|has been referenced but does not exist/u,
+    );
+
     const expected = [
       [
         /Map:/u,
@@ -86,6 +119,23 @@ it("prints accurate orientation and continuation guides at all eight specimen co
           text: (match[2] ?? "").replace(/<[^>]+>/gu, ""),
         };
       });
+      if (pageIndex === 0) {
+        const heading = texts.find(
+          ({ text }) => text.trim() === "Integral/test",
+        );
+        assert.ok(heading, "the integration table is present");
+        assert.ok(
+          heading.left >= 105.1 && heading.left < 115,
+          `table shifted into adjacent column: x=${heading.left}mm`,
+        );
+        const dimension = texts.find(({ text }) =>
+          text.includes("ALG-B dimension formula"),
+        );
+        assert.ok(
+          dimension && dimension.left >= 53.3 && dimension.left < 54.5,
+          "the full-width dimension block starts inside column two",
+        );
+      }
       assert.match(
         texts
           .filter(({ top }) => top < 5)

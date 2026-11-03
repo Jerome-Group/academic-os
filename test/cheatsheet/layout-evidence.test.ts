@@ -11,6 +11,29 @@ import { assertCheatsheetParagraphStructure } from "../../src/cheatsheet/structu
 import { findCheatsheetExecutable } from "../../src/cheatsheet/toolchain.js";
 
 const run = promisify(execFile);
+let toolchainAvailable = true;
+try {
+  for (const name of [
+    "latexmk",
+    "kpsewhich",
+    "pdfinfo",
+    "pdffonts",
+    "pdftotext",
+    "pdftoppm",
+    "pdftohtml",
+  ])
+    await run(
+      name,
+      name === "latexmk"
+        ? ["-norc", "-version"]
+        : name === "kpsewhich"
+          ? ["--version"]
+          : ["-v"],
+    );
+} catch {
+  toolchainAvailable = false;
+}
+
 const constraints = {
   paper: "A4",
   pages: { exact: 1 },
@@ -74,10 +97,11 @@ it("honors an explicitly incomplete toolchain instead of silently finding host t
     }),
     undefined,
   );
-  assert.ok(findCheatsheetExecutable("pdfinfo"));
 });
 
-it("retains the selected build's AUX, XML, logs and renders exclusively", async () => {
+it("retains the selected build's AUX, XML, logs and renders exclusively", {
+  skip: !toolchainAvailable,
+}, async () => {
   const root = await mkdtemp(join(tmpdir(), "cheatsheet-build-retention-"));
   try {
     await writeFile(join(root, "sheet.tex"), source);
@@ -127,7 +151,9 @@ it("retains the selected build's AUX, XML, logs and renders exclusively", async 
   }
 });
 
-it("rejects fully off-page text from the actual compiled PDF XML", async () => {
+it("rejects fully off-page text from the actual compiled PDF XML", {
+  skip: !toolchainAvailable,
+}, async () => {
   const root = await mkdtemp(join(tmpdir(), "cheatsheet-offpage-"));
   try {
     const offpage = source.replace(
@@ -155,6 +181,66 @@ it("rejects fully off-page text from the actual compiled PDF XML", async () => {
         constraints,
       }),
       /Off-page PDF text/u,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+it("rejects a compiled unresolved reference for its actual destination warning", {
+  skip: !toolchainAvailable,
+}, async () => {
+  const root = await mkdtemp(
+    join(tmpdir(), "cheatsheet-unresolved-reference-"),
+  );
+  try {
+    const changed = source.replace(
+      "\\end{document}",
+      "See \\ref{missing-result}.\\end{document}",
+    );
+    await writeFile(join(root, "sheet.tex"), changed);
+    await run(
+      "latexmk",
+      [
+        "-norc",
+        "-pdf",
+        "-interaction=nonstopmode",
+        "-halt-on-error",
+        "sheet.tex",
+      ],
+      { cwd: root },
+    );
+    await assert.rejects(
+      verifyPortableCheatsheetRelease({
+        source: changed,
+        releasedPdf: await readFile(join(root, "sheet.pdf")),
+        filename: "sheet.tex",
+        constraints,
+      }),
+      /unresolved references or PDF destinations/u,
+    );
+    await writeFile(join(root, "sheet.tex"), source);
+    await run(
+      "latexmk",
+      [
+        "-norc",
+        "-pdf",
+        "-interaction=nonstopmode",
+        "-halt-on-error",
+        "sheet.tex",
+      ],
+      { cwd: root },
+    );
+    assert.equal(
+      (
+        await verifyPortableCheatsheetRelease({
+          source,
+          releasedPdf: await readFile(join(root, "sheet.pdf")),
+          filename: "sheet.tex",
+          constraints,
+        })
+      ).isolatedBuild,
+      true,
     );
   } finally {
     await rm(root, { recursive: true, force: true });

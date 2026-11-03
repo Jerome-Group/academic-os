@@ -18,7 +18,7 @@
 \usepackage[a4paper,left=\SheetLeftMargin,right=\SheetRightMargin,top=\SheetTopMargin,bottom=\SheetBottomMargin]{geometry}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
-\usepackage{amsmath,amssymb,mathtools,xfp}
+\usepackage{amsmath,amssymb,mathtools}
 % lmodern's omxlmex.fd selects lmex10 with sfixed*, which leaves large
 % operators and delimiters at 10pt in a 4pt document. Load that family once,
 % then restore an ordinary scalable shape. This changes font selection only;
@@ -126,7 +126,7 @@
   \par\vspace{0.05pt}%
 }
 \newcommand{\SourceBlock}[2]{%
-  \SheetNeedspace{8pt}\par\vspace{0.1pt}\hypertarget{source:#1}{}%
+  \SheetNeedspace{8pt}\par\vspace{0.1pt}\hypertarget{source:#1}{}\hypertarget{topic:#1}{}%
   {\sffamily #1\enspace\bfseries #2}\par\vspace{-1.45pt}\rule{\linewidth}{0.15pt}\par\vspace{0.05pt}%
 }
 \newcommand{\Topic}[2][]{%
@@ -157,7 +157,7 @@
 \newcommand{\Caution}[1]{\par\textbf{Caution.}\ #1\par}
 \newcommand{\Continuation}[1]{\par\textbf{#1 continued.}\ }
 \newcommand{\ContinueInline}[1]{\textbf{[#1 cont.]}\ }
-\newcommand{\ContinueBlock}[1]{\par\SheetNeedspace{2\baselineskip}\textbf{[#1 cont.]}\ }
+\newcommand{\ContinueBlock}[1]{\par\SheetNeedspace{2\baselineskip}\textbf{[#1 cont.]}\par}
 \newcommand{\Identity}[2]{\par\textbf{#1:}\ $#2$\par}
 \newcommand{\CompactTable}[1]{\par\begingroup\centering\SheetBodyFont\renewcommand{\arraystretch}{0.9}#1\par\endgroup}
 \newcommand{\ColumnEnd}[1]{\par\vspace{0.4pt}\hfill\textsf{\bfseries [column #1 end]}\par}

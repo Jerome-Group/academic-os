@@ -165,6 +165,14 @@ export async function verifyPortableCheatsheetRelease(input: {
         "Isolated build reports an overfull box or missing glyph.",
       );
     }
+    if (
+      /undefined references|Reference .+ undefined|has been referenced but does not exist/u.test(
+        latexLog.replace(/\s+/gu, " "),
+      )
+    )
+      throw new Error(
+        "Isolated build has unresolved references or PDF destinations.",
+      );
     const declaredBodyPointSize =
       /^CHEATSHEET-BODY-PT=([0-9]+(?:\.[0-9]+)?)$/mu.exec(latexLog)?.[1];
     const builtPdf = join(buildRoot, builtPdfName);

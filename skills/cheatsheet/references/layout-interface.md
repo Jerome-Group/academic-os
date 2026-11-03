@@ -2,7 +2,10 @@
 
 The Module's pinned Cheatsheet procedure owns authoring and review. These are the shared template's
 macro signatures; a module-editable preamble may be older or locally adapted. Inspect that copy
-before use. Adopt an upstream change through the preservation workflow in `docs/machine-setup.md`
+before use. A Module-local template may be an immutable source of a frozen release. Keep that copy
+and its compatible pair unchanged; use reviewed versioned upstream assets in the new artifact's
+staging/support tree instead. Snapshot mutable style inputs before hashing them, then inline required
+code into the self-contained release. Adopt an upstream change through the preservation workflow in `docs/machine-setup.md`
 of Academic OS; existing release files do not change merely because the shared seed changed.
 
 Set layout commands before loading the preamble: `SheetLeftMargin`, `SheetRightMargin`,

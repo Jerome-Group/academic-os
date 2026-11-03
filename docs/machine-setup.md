@@ -141,6 +141,19 @@ mount, then read back the synced procedure digest on each reachable machine. Fol
 [Drive safety](agents/safe-drive-testing.md) before mounted writes. The procedure governs a Module
 only once that Module's pinned copy has arrived.
 
+Before upgrading an existing Module, inspect its current and historical cheatsheet manifests and
+construction provenance for every target path. Module-editable does not mean unreferenced: a
+byte-identical old seed can be a digested source of a frozen release. Preserve such a path's exact
+bytes. Hold its compatible template pair together, record the source binding and the adoption
+exception, and verify that the existing release still audits. Do not change a frozen manifest's
+fingerprints to make an upgrade pass. Preexisting incompatible historical bindings remain explicit.
+
+Keep the complete new canonical pair and logo as immutable assets from the same reviewed revision
+in the host's release archive. New authoring can stage that version under the new artifact's existing
+support/content home and inline it into its self-contained TeX. It need not overwrite a path an older
+release owns. Distributing the helper alone does not establish template adoption: read back both the
+versioned assets and each Module's actual adopted or deliberately held pair.
+
 The `.tex` files under `70 Learning/templates/` are module-editable. `pinned refresh` does not
 upgrade them, and seeding preserves occupied files. For an existing Module, preserve the exact
 current template and its digest, compare with the new seed and the previous seed version when known,

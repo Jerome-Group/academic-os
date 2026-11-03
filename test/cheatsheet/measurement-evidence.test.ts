@@ -403,6 +403,9 @@ test("doctor names missing executables under an explicit toolchain path", async 
   );
   assert.equal(result.status, 2, result.stdout + result.stderr);
   assert.match(result.stdout, /"status": "incomplete"/u);
+  assert.ok(result.stdout.includes(process.execPath));
+  assert.ok(result.stdout.includes(process.version));
+  assert.match(result.stdout, /"minimumMajor": 24/u);
   for (const name of [
     "latexmk",
     "kpsewhich",

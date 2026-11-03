@@ -35,6 +35,7 @@ const usage = `Usage:
 
 const inputSchema = {
   runtime: {
+    minimumNodeMajor: 24,
     requiredExecutables: cheatsheetExecutables,
     discovery:
       "PATH plus conventional bundled locations; ACADEMIC_OS_TOOL_PATH overrides discovery",
@@ -106,9 +107,19 @@ async function doctor(): Promise<void> {
       }
     }),
   );
-  const ready = executables.every(({ status }) => status === "available");
+  const nodeReady =
+    Number(process.versions.node.split(".")[0]) >=
+    inputSchema.runtime.minimumNodeMajor;
+  const node = {
+    executable: process.execPath,
+    version: process.version,
+    minimumMajor: inputSchema.runtime.minimumNodeMajor,
+    status: nodeReady ? "available" : "unsupported",
+  };
+  const ready =
+    nodeReady && executables.every(({ status }) => status === "available");
   process.stdout.write(
-    `${JSON.stringify({ schemaVersion: 1, status: ready ? "ready" : "incomplete", executables }, null, 2)}\n`,
+    `${JSON.stringify({ schemaVersion: 1, status: ready ? "ready" : "incomplete", node, executables }, null, 2)}\n`,
   );
   if (!ready) process.exitCode = 2;
 }

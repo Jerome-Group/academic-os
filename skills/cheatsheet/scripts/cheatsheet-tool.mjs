@@ -997,14 +997,14 @@ var require_foldFlowLines = __commonJS({
     var FOLD_FLOW = "flow";
     var FOLD_BLOCK = "block";
     var FOLD_QUOTED = "quoted";
-    function foldFlowLines(text, indent, mode = "flow", { indentAtStart, lineWidth = 80, minContentWidth = 20, onFold, onOverflow } = {}) {
+    function foldFlowLines(text2, indent, mode = "flow", { indentAtStart, lineWidth = 80, minContentWidth = 20, onFold, onOverflow } = {}) {
       if (!lineWidth || lineWidth < 0)
-        return text;
+        return text2;
       if (lineWidth < minContentWidth)
         minContentWidth = 0;
       const endStep = Math.max(1 + minContentWidth, 1 + lineWidth - indent.length);
-      if (text.length <= endStep)
-        return text;
+      if (text2.length <= endStep)
+        return text2;
       const folds = [];
       const escapedFolds = {};
       let end = lineWidth - indent.length;
@@ -1021,14 +1021,14 @@ var require_foldFlowLines = __commonJS({
       let escStart = -1;
       let escEnd = -1;
       if (mode === FOLD_BLOCK) {
-        i = consumeMoreIndentedLines(text, i, indent.length);
+        i = consumeMoreIndentedLines(text2, i, indent.length);
         if (i !== -1)
           end = i + endStep;
       }
-      for (let ch; ch = text[i += 1]; ) {
+      for (let ch; ch = text2[i += 1]; ) {
         if (mode === FOLD_QUOTED && ch === "\\") {
           escStart = i;
-          switch (text[i + 1]) {
+          switch (text2[i + 1]) {
             case "x":
               i += 3;
               break;
@@ -1045,12 +1045,12 @@ var require_foldFlowLines = __commonJS({
         }
         if (ch === "\n") {
           if (mode === FOLD_BLOCK)
-            i = consumeMoreIndentedLines(text, i, indent.length);
+            i = consumeMoreIndentedLines(text2, i, indent.length);
           end = i + indent.length + endStep;
           split = void 0;
         } else {
           if (ch === " " && prev && prev !== " " && prev !== "\n" && prev !== "	") {
-            const next = text[i + 1];
+            const next = text2[i + 1];
             if (next && next !== " " && next !== "\n" && next !== "	")
               split = i;
           }
@@ -1062,12 +1062,12 @@ var require_foldFlowLines = __commonJS({
             } else if (mode === FOLD_QUOTED) {
               while (prev === " " || prev === "	") {
                 prev = ch;
-                ch = text[i += 1];
+                ch = text2[i += 1];
                 overflow = true;
               }
               const j = i > escEnd + 1 ? i - 2 : escStart - 1;
               if (escapedFolds[j])
-                return text;
+                return text2;
               folds.push(j);
               escapedFolds[j] = true;
               end = j + endStep;
@@ -1082,39 +1082,39 @@ var require_foldFlowLines = __commonJS({
       if (overflow && onOverflow)
         onOverflow();
       if (folds.length === 0)
-        return text;
+        return text2;
       if (onFold)
         onFold();
-      let res = text.slice(0, folds[0]);
+      let res = text2.slice(0, folds[0]);
       for (let i2 = 0; i2 < folds.length; ++i2) {
         const fold = folds[i2];
-        const end2 = folds[i2 + 1] || text.length;
+        const end2 = folds[i2 + 1] || text2.length;
         if (fold === 0)
           res = `
-${indent}${text.slice(0, end2)}`;
+${indent}${text2.slice(0, end2)}`;
         else {
           if (mode === FOLD_QUOTED && escapedFolds[fold])
-            res += `${text[fold]}\\`;
+            res += `${text2[fold]}\\`;
           res += `
-${indent}${text.slice(fold + 1, end2)}`;
+${indent}${text2.slice(fold + 1, end2)}`;
         }
       }
       return res;
     }
-    function consumeMoreIndentedLines(text, i, indent) {
+    function consumeMoreIndentedLines(text2, i, indent) {
       let end = i;
       let start = i + 1;
-      let ch = text[start];
+      let ch = text2[start];
       while (ch === " " || ch === "	") {
         if (i < start + indent) {
-          ch = text[++i];
+          ch = text2[++i];
         } else {
           do {
-            ch = text[++i];
+            ch = text2[++i];
           } while (ch && ch !== "\n");
           end = i;
           start = i + 1;
-          ch = text[start];
+          ch = text2[start];
         }
       }
       return end;
@@ -7598,6 +7598,40 @@ function texGroupEnd(source, start) {
   }
   throw new Error("Unbalanced TeX argument.");
 }
+function texArgumentStart(source, start) {
+  let index = start;
+  while (index < source.length) {
+    if (/\s/u.test(source[index] ?? "")) {
+      index++;
+      continue;
+    }
+    if (source[index] === "%" && !texEscaped(source, index)) {
+      const newline = source.indexOf("\n", index);
+      if (newline < 0) return source.length;
+      index = newline + 1;
+      continue;
+    }
+    break;
+  }
+  return index;
+}
+function environmentEnd(source, start, environment) {
+  for (let index = start; index < source.length; index++) {
+    if (source[index] === "%" && !texEscaped(source, index)) {
+      index = source.indexOf("\n", index);
+      if (index < 0) break;
+      continue;
+    }
+    const command2 = /^\\end(?![A-Za-z])/u.exec(source.slice(index));
+    if (command2 === null || texEscaped(source, index)) continue;
+    const argument = texArgumentStart(source, index + command2[0].length);
+    if (source[argument] !== "{")
+      throw new Error("Unsupported end-environment argument.");
+    const end = texGroupEnd(source, argument);
+    if (source.slice(argument + 1, end - 1) === environment) return end;
+  }
+  throw new Error(`Unclosed mathematics environment ${environment}.`);
+}
 function delimiterEnd(source, start, opener, closer) {
   for (let index = start + opener.length; index < source.length; index++) {
     if (source[index] === "%" && !texEscaped(source, index)) {
@@ -7626,25 +7660,23 @@ function extractCheatsheetMathematics(source) {
         continue;
       }
     }
-    const begin = /^\\begin\{([^{}]+)\}/u.exec(source.slice(index));
-    const environment = begin?.[1];
+    const begin = texEscaped(source, index) ? null : /^\\begin(?![A-Za-z])/u.exec(source.slice(index));
+    const beginArgument = begin === null ? void 0 : texArgumentStart(source, index + begin[0].length);
+    const beginEnd = beginArgument === void 0 ? void 0 : texGroupEnd(source, beginArgument);
+    const environment = beginArgument === void 0 || beginEnd === void 0 ? void 0 : source.slice(beginArgument + 1, beginEnd - 1);
     if (begin !== null && environment !== void 0 && !texEscaped(source, index)) {
       if (["verbatim", "verbatim*", "lstlisting", "minted"].includes(environment)) {
-        const end = source.indexOf(
-          `\\end{${environment}}`,
-          index + begin[0].length
-        );
+        const end = source.indexOf(`\\end{${environment}}`, beginEnd);
         if (end < 0)
           throw new Error(`Unclosed verbatim environment ${environment}.`);
         index = end + environment.length + 6;
         continue;
       }
       if (environments.has(environment.replace(/\*$/u, ""))) {
-        const end = delimiterEnd(
+        const end = environmentEnd(
           source,
-          index,
-          begin[0],
-          `\\end{${environment}}`
+          beginEnd ?? index + begin[0].length,
+          environment
         );
         spans.push({
           start: index,
@@ -7667,8 +7699,11 @@ function extractCheatsheetMathematics(source) {
       } else if (source.startsWith("\\[", index)) {
         opener = "\\[";
         closer = "\\]";
-      } else if (source.startsWith("\\ensuremath{", index)) {
-        const end = texGroupEnd(source, index + "\\ensuremath".length);
+      } else if (/^\\ensuremath(?![A-Za-z])/u.test(source.slice(index))) {
+        const end = texGroupEnd(
+          source,
+          texArgumentStart(source, index + "\\ensuremath".length)
+        );
         spans.push({
           start: index,
           end,
@@ -7723,164 +7758,210 @@ function assertCheatsheetMathematicsPreserved(input) {
   };
 }
 
-// src/cheatsheet/coverage.ts
-var columns = [
-  "item_id",
-  "source_id",
-  "locator",
-  "topic_id",
-  "priority",
-  "disposition",
-  "artifact_locator",
-  "note"
-];
-var cheatsheetCoverageHeader = columns.join(",");
-var priorities = /* @__PURE__ */ new Set([
-  "required",
-  "high",
-  "useful",
-  "extension"
-]);
-var dispositions = /* @__PURE__ */ new Set([
-  "verbatim",
-  "condensed",
-  "cross-reference",
-  "excluded",
-  "pending"
-]);
-function csvCells(line) {
-  const cells = [];
-  let cell = "";
-  let quoted = false;
-  for (let index = 0; index < line.length; index += 1) {
-    const character = line[index];
-    if (character === '"' && quoted && line[index + 1] === '"') {
-      cell += '"';
-      index += 1;
-    } else if (character === '"') {
-      quoted = !quoted;
-    } else if (character === "," && !quoted) {
-      cells.push(cell);
-      cell = "";
-    } else {
-      cell += character;
-    }
-  }
-  if (quoted) {
-    throw new Error("coverage contains an unterminated quoted cell.");
-  }
-  cells.push(cell);
-  return cells;
+// src/cheatsheet/references.ts
+var prefixes = {
+  "notes-example": "Eg.",
+  exercise: "Ex.",
+  definition: "Def.",
+  theorem: "Thm.",
+  proposition: "Prop.",
+  lemma: "Lem.",
+  corollary: "Cor.",
+  remark: "Rem."
+};
+function isNumberedKind(value) {
+  return typeof value === "string" && Object.hasOwn(prefixes, value);
 }
-function parseCheatsheetCoverage(input) {
-  const lines = input.csv.split(/\r?\n/u).filter((line) => line.trim() !== "");
-  const header = lines.shift();
-  if (header === void 0 || csvCells(header).join(",") !== cheatsheetCoverageHeader) {
-    throw new Error(`coverage header must be ${cheatsheetCoverageHeader}.`);
+function parseCheatsheetReferences(value) {
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    throw new Error("References must be a mapping of explicit identities.");
+  const references2 = /* @__PURE__ */ Object.create(null);
+  for (const [key, item] of Object.entries(value)) {
+    if (!/^[A-Za-z][A-Za-z0-9_.-]*$/u.test(key) || typeof item !== "object" || item === null || !("kind" in item) || !("id" in item) || typeof item.id !== "string")
+      throw new Error(`Invalid structured reference ${key}.`);
+    if (item.kind === "named-result") {
+      if (!("display" in item) || typeof item.display !== "string")
+        throw new Error(`Named reference ${key} requires explicit display.`);
+      references2[key] = { kind: item.kind, id: item.id, display: item.display };
+    } else if (isNumberedKind(item.kind)) {
+      const display = "display" in item ? item.display : void 0;
+      if (display !== void 0 && typeof display !== "string")
+        throw new Error(`Reference ${key} display must be plain text.`);
+      references2[key] = {
+        kind: item.kind,
+        id: item.id,
+        ...display === void 0 ? {} : { display }
+      };
+    } else
+      throw new Error(`Reference ${key} requires an explicit source kind.`);
+    renderCheatsheetReference(references2[key]);
   }
-  const ids = /* @__PURE__ */ new Set();
-  return lines.map((line, index) => {
-    const cells = csvCells(line);
-    if (cells.length !== columns.length) {
-      throw new Error(`coverage line ${index + 2} has ${cells.length} cells.`);
-    }
-    const [
-      id,
-      sourceId,
-      locator,
-      topicId,
-      priority,
-      disposition,
-      artifact,
-      note
-    ] = cells;
-    if (!id || ids.has(id)) {
-      throw new Error(`coverage line ${index + 2} requires a unique item_id.`);
-    }
-    ids.add(id);
-    if (!sourceId || !input.sourceIds.has(sourceId)) {
-      throw new Error(`coverage item ${id} names an unknown source.`);
-    }
-    if (!locator || !topicId) {
-      throw new Error(`coverage item ${id} requires locator and topic_id.`);
-    }
-    if (!priorities.has(priority)) {
-      throw new Error(`coverage item ${id} has unknown priority.`);
-    }
-    if (!dispositions.has(disposition)) {
-      throw new Error(`coverage item ${id} has unknown disposition.`);
-    }
-    if (priority === "required" && disposition === "excluded") {
-      throw new Error(`required coverage item ${id} cannot be excluded.`);
-    }
-    if (disposition === "excluded" && !note) {
-      throw new Error(`excluded coverage item ${id} requires a reason.`);
-    }
-    if (disposition !== "excluded" && disposition !== "pending" && !artifact) {
-      throw new Error(
-        `included coverage item ${id} requires artifact_locator.`
-      );
-    }
-    return {
-      id,
-      sourceId,
-      locator,
-      topicId,
-      priority,
-      disposition,
-      ...artifact ? { artifactLocator: artifact } : {},
-      ...note ? { note } : {}
-    };
-  });
+  return references2;
 }
-
-// src/cheatsheet/evidence.ts
-import { readFile as readFile3 } from "node:fs/promises";
-
-// src/cheatsheet/authoring.ts
-async function provedText(root, path, digest2) {
-  const read = await readCheatsheetModuleText(root, path);
-  if (read.sha256 !== digest2)
-    throw new Error(`${path} no longer matches its declared SHA-256.`);
-  return read;
-}
-async function buildCheatsheetReleaseSource(input) {
-  if (input.authoring.kind === "self-contained") {
-    const read = await provedText(
-      input.moduleRoot,
-      input.authoring.path,
-      input.authoring.sha256
+function text(value) {
+  if (!value.trim() || /[\\{}$%#&_^~\r\n]/u.test(value))
+    throw new Error(
+      "Reference display must be plain nonempty text without TeX control characters."
     );
-    const construction = constructionFor(input.authoring);
-    if (construction !== void 0) {
-      if (construction.outputTexSha256 !== read.sha256)
-        throw new Error(
-          "Construction output differs from the authoritative release."
-        );
-      await proveCheatsheetConstruction(input.moduleRoot, construction);
-    }
-    return {
-      source: read.text,
-      bytes: read.bytes,
-      sha256: read.sha256,
-      inputs: [input.authoring.path]
-    };
+  return value;
+}
+function renderCheatsheetReference(reference) {
+  if (reference.kind === "named-result") {
+    if (!/^[a-z][a-z0-9-]*$/u.test(reference.id))
+      throw new Error("Named reference id must be a stable identity.");
+    return `\\ConceptRef{${text(reference.display)}}`;
   }
-  const fragments = await Promise.all(
-    input.authoring.fragments.map(async (fragment) => ({
-      path: fragment.path,
-      ...await provedText(input.moduleRoot, fragment.path, fragment.sha256)
-    }))
+  if (!/^\d+(?:\.\d+)*[A-Za-z]?(?:\([a-z0-9]+\))*(?:(?:--|–)\d+(?:\.\d+)*[A-Za-z]?(?:\([a-z0-9]+\))*)?$/u.test(
+    reference.id
+  ))
+    throw new Error(
+      "Numbered reference requires an unambiguous complete id, range and suffix."
+    );
+  return `\\ConceptRef{${text(reference.display ?? prefixes[reference.kind])}~${reference.id}}`;
+}
+var identityArguments = {
+  label: 1,
+  ref: 1,
+  eqref: 1,
+  SourceRef: 1,
+  SourceItemRef: 3,
+  SheetPageRef: 1,
+  SheetMapItem: 1,
+  ConceptRef: 1,
+  Statement: 2,
+  FormalStatement: 4,
+  Example: 1,
+  Question: 2,
+  QuestionPart: 3,
+  Topic: 1,
+  Worked: 2,
+  CE: 2,
+  hypertarget: 1,
+  hyperlink: 1
+};
+function formatCheatsheetReferences(input) {
+  const mathematics = new Map(
+    extractCheatsheetMathematics(input.source).map((span) => [
+      span.start,
+      span
+    ])
   );
-  const source = `${fragments.map(({ text }) => text.trimEnd()).join("\n\n")}
-`;
-  const bytes = Buffer.from(source, "utf8");
-  return {
-    source,
-    bytes,
-    sha256: sha256Bytes(bytes),
-    inputs: fragments.map(({ path }) => path)
-  };
+  let source = "";
+  let formatted = 0;
+  for (let index = 0; index < input.source.length; ) {
+    const math = mathematics.get(index);
+    if (math !== void 0) {
+      source += math.text;
+      index = math.end;
+      continue;
+    }
+    if (input.source[index] === "%" && !texEscaped(input.source, index)) {
+      const newline = input.source.indexOf("\n", index);
+      const end2 = newline < 0 ? input.source.length : newline + 1;
+      source += input.source.slice(index, end2);
+      index = end2;
+      continue;
+    }
+    const match = /^\\([A-Za-z]+)\*?/u.exec(input.source.slice(index));
+    const command2 = match?.[1];
+    if (match === null || command2 === void 0 || texEscaped(input.source, index)) {
+      source += input.source[index];
+      index++;
+      continue;
+    }
+    let end = index + match[0].length;
+    if (command2 === "verb") {
+      const delimiter2 = input.source[end];
+      if (delimiter2 !== void 0 && !/\s/u.test(delimiter2)) {
+        const closing = input.source.indexOf(delimiter2, end + 1);
+        if (closing < 0)
+          throw new Error("Unclosed verbatim reference context.");
+        source += input.source.slice(index, closing + 1);
+        index = closing + 1;
+        continue;
+      }
+    }
+    if ([
+      "newcommand",
+      "renewcommand",
+      "providecommand",
+      "DeclareMathOperator",
+      "def",
+      "gdef",
+      "edef",
+      "xdef"
+    ].includes(command2)) {
+      while (end < input.source.length && input.source[end] !== "{") end++;
+      if (end < input.source.length) {
+        end = texGroupEnd(input.source, end);
+        if ([
+          "newcommand",
+          "renewcommand",
+          "providecommand",
+          "DeclareMathOperator"
+        ].includes(command2)) {
+          while (end < input.source.length && /\s/u.test(input.source[end] ?? ""))
+            end++;
+          while (input.source[end] === "[") {
+            const closing = input.source.indexOf("]", end + 1);
+            if (closing < 0)
+              throw new Error("Unclosed macro argument specification.");
+            end = closing + 1;
+            while (end < input.source.length && /\s/u.test(input.source[end] ?? ""))
+              end++;
+          }
+          if (input.source[end] === "{") end = texGroupEnd(input.source, end);
+        }
+        source += input.source.slice(index, end);
+        index = end;
+        continue;
+      }
+    }
+    if (command2 === "begin") {
+      end = texArgumentStart(input.source, end);
+      const environment = /^\{(verbatim\*?|lstlisting|minted)\}/u.exec(
+        input.source.slice(end)
+      )?.[1];
+      if (environment !== void 0) {
+        const closing = input.source.indexOf(`\\end{${environment}}`, end);
+        if (closing < 0)
+          throw new Error("Unclosed verbatim reference environment.");
+        end = closing + environment.length + 6;
+        source += input.source.slice(index, end);
+        index = end;
+        continue;
+      }
+    }
+    if (command2 === "SheetRef") {
+      end = texArgumentStart(input.source, end);
+      const groupEnd = texGroupEnd(input.source, end);
+      const key = input.source.slice(end + 1, groupEnd - 1);
+      const reference = Object.hasOwn(input.references, key) ? input.references[key] : void 0;
+      if (reference === void 0)
+        throw new Error(`Undeclared structured reference ${key}.`);
+      source += renderCheatsheetReference(reference);
+      formatted++;
+      index = groupEnd;
+      continue;
+    }
+    if (command2 === "Topic") {
+      while (end < input.source.length && /\s/u.test(input.source[end] ?? ""))
+        end++;
+      if (input.source[end] === "[") {
+        const closing = input.source.indexOf("]", end + 1);
+        if (closing < 0) throw new Error("Unclosed topic identity.");
+        end = closing + 1;
+      }
+    }
+    for (let remaining = identityArguments[command2] ?? 0; remaining > 0; remaining--) {
+      end = texArgumentStart(input.source, end);
+      if (input.source[end] !== "{") break;
+      end = texGroupEnd(input.source, end);
+    }
+    source += input.source.slice(index, end);
+    index = end;
+  }
+  return { source, formatted };
 }
 
 // src/cheatsheet/manifest.ts
@@ -8191,6 +8272,166 @@ function parseCheatsheetManifest(yaml) {
       ...pdfSha256 === void 0 ? {} : { pdfSha256 },
       review
     }
+  };
+}
+
+// src/cheatsheet/coverage.ts
+var columns = [
+  "item_id",
+  "source_id",
+  "locator",
+  "topic_id",
+  "priority",
+  "disposition",
+  "artifact_locator",
+  "note"
+];
+var cheatsheetCoverageHeader = columns.join(",");
+var priorities = /* @__PURE__ */ new Set([
+  "required",
+  "high",
+  "useful",
+  "extension"
+]);
+var dispositions = /* @__PURE__ */ new Set([
+  "verbatim",
+  "condensed",
+  "cross-reference",
+  "excluded",
+  "pending"
+]);
+function csvCells(line) {
+  const cells = [];
+  let cell = "";
+  let quoted = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+    if (character === '"' && quoted && line[index + 1] === '"') {
+      cell += '"';
+      index += 1;
+    } else if (character === '"') {
+      quoted = !quoted;
+    } else if (character === "," && !quoted) {
+      cells.push(cell);
+      cell = "";
+    } else {
+      cell += character;
+    }
+  }
+  if (quoted) {
+    throw new Error("coverage contains an unterminated quoted cell.");
+  }
+  cells.push(cell);
+  return cells;
+}
+function parseCheatsheetCoverage(input) {
+  const lines = input.csv.split(/\r?\n/u).filter((line) => line.trim() !== "");
+  const header = lines.shift();
+  if (header === void 0 || csvCells(header).join(",") !== cheatsheetCoverageHeader) {
+    throw new Error(`coverage header must be ${cheatsheetCoverageHeader}.`);
+  }
+  const ids = /* @__PURE__ */ new Set();
+  return lines.map((line, index) => {
+    const cells = csvCells(line);
+    if (cells.length !== columns.length) {
+      throw new Error(`coverage line ${index + 2} has ${cells.length} cells.`);
+    }
+    const [
+      id,
+      sourceId,
+      locator,
+      topicId,
+      priority,
+      disposition,
+      artifact,
+      note
+    ] = cells;
+    if (!id || ids.has(id)) {
+      throw new Error(`coverage line ${index + 2} requires a unique item_id.`);
+    }
+    ids.add(id);
+    if (!sourceId || !input.sourceIds.has(sourceId)) {
+      throw new Error(`coverage item ${id} names an unknown source.`);
+    }
+    if (!locator || !topicId) {
+      throw new Error(`coverage item ${id} requires locator and topic_id.`);
+    }
+    if (!priorities.has(priority)) {
+      throw new Error(`coverage item ${id} has unknown priority.`);
+    }
+    if (!dispositions.has(disposition)) {
+      throw new Error(`coverage item ${id} has unknown disposition.`);
+    }
+    if (priority === "required" && disposition === "excluded") {
+      throw new Error(`required coverage item ${id} cannot be excluded.`);
+    }
+    if (disposition === "excluded" && !note) {
+      throw new Error(`excluded coverage item ${id} requires a reason.`);
+    }
+    if (disposition !== "excluded" && disposition !== "pending" && !artifact) {
+      throw new Error(
+        `included coverage item ${id} requires artifact_locator.`
+      );
+    }
+    return {
+      id,
+      sourceId,
+      locator,
+      topicId,
+      priority,
+      disposition,
+      ...artifact ? { artifactLocator: artifact } : {},
+      ...note ? { note } : {}
+    };
+  });
+}
+
+// src/cheatsheet/evidence.ts
+import { readFile as readFile3 } from "node:fs/promises";
+
+// src/cheatsheet/authoring.ts
+async function provedText(root, path, digest2) {
+  const read = await readCheatsheetModuleText(root, path);
+  if (read.sha256 !== digest2)
+    throw new Error(`${path} no longer matches its declared SHA-256.`);
+  return read;
+}
+async function buildCheatsheetReleaseSource(input) {
+  if (input.authoring.kind === "self-contained") {
+    const read = await provedText(
+      input.moduleRoot,
+      input.authoring.path,
+      input.authoring.sha256
+    );
+    const construction = constructionFor(input.authoring);
+    if (construction !== void 0) {
+      if (construction.outputTexSha256 !== read.sha256)
+        throw new Error(
+          "Construction output differs from the authoritative release."
+        );
+      await proveCheatsheetConstruction(input.moduleRoot, construction);
+    }
+    return {
+      source: read.text,
+      bytes: read.bytes,
+      sha256: read.sha256,
+      inputs: [input.authoring.path]
+    };
+  }
+  const fragments = await Promise.all(
+    input.authoring.fragments.map(async (fragment) => ({
+      path: fragment.path,
+      ...await provedText(input.moduleRoot, fragment.path, fragment.sha256)
+    }))
+  );
+  const source = `${fragments.map(({ text: text2 }) => text2.trimEnd()).join("\n\n")}
+`;
+  const bytes = Buffer.from(source, "utf8");
+  return {
+    source,
+    bytes,
+    sha256: sha256Bytes(bytes),
+    inputs: fragments.map(({ path }) => path)
   };
 }
 
@@ -8700,12 +8941,12 @@ function inspectPdfBoundaries(xml, layout) {
     pages += 1;
     const width = attribute(match[1] ?? "", "width");
     const height = attribute(match[1] ?? "", "height");
-    for (const text of (match[2] ?? "").matchAll(
+    for (const text2 of (match[2] ?? "").matchAll(
       /<text\b([^>]*)>([\s\S]*?)<\/text>/gu
     )) {
-      if (visibleCharacterCount(text[2] ?? "") === 0) continue;
+      if (visibleCharacterCount(text2[2] ?? "") === 0) continue;
       textBoxes += 1;
-      const attributes = text[1] ?? "";
+      const attributes = text2[1] ?? "";
       const left = attribute(attributes, "left");
       const top = attribute(attributes, "top");
       const right = left + attribute(attributes, "width");
@@ -8748,10 +8989,10 @@ function dominantBodyPointSize(xml) {
         sizes.set(id, scaledSize / fontMeasurementZoom);
       }
     }
-    for (const text of page.matchAll(/<text\b([^>]*)>([\s\S]*?)<\/text>/gu)) {
-      const id = /\bfont="([^"]+)"/u.exec(text[1] ?? "")?.[1];
+    for (const text2 of page.matchAll(/<text\b([^>]*)>([\s\S]*?)<\/text>/gu)) {
+      const id = /\bfont="([^"]+)"/u.exec(text2[1] ?? "")?.[1];
       const size = id === void 0 ? void 0 : sizes.get(id);
-      const weight = visibleCharacterCount(text[2] ?? "");
+      const weight = visibleCharacterCount(text2[2] ?? "");
       if (size !== void 0 && weight > 0) {
         weights.set(size, (weights.get(size) ?? 0) + weight);
       }
@@ -8892,14 +9133,14 @@ async function fitCheatsheetRelease(input) {
       );
     }
   }
-  const text = (artifact) => {
+  const text2 = (artifact) => {
     const bytes = files.get(artifact.path);
     if (bytes === void 0)
       throw new Error(`Missing retained evidence ${artifact.path}.`);
     return bytes.toString("utf8");
   };
   const reportedPages = Number(
-    /^Pages:\s+(\d+)$/mu.exec(text(build.pdfInfo))?.[1]
+    /^Pages:\s+(\d+)$/mu.exec(text2(build.pdfInfo))?.[1]
   );
   if (!Number.isInteger(reportedPages) || reportedPages < 1) {
     throw new Error("Retained pdfinfo must report a positive page count.");
@@ -8940,10 +9181,10 @@ async function fitCheatsheetRelease(input) {
   assertReference(metrics.bodyPt, build.fontXml, "Body size");
   assertReference(metrics.overfullBoxes, build.log, "Overfull box count");
   assertReference(metrics.missingGlyphs, build.log, "Missing glyph count");
-  const log = text(build.log);
+  const log = text2(build.log);
   const actualOverfull = [...log.matchAll(/Overfull \\[hv]box/gu)].length;
   const actualMissing = [...log.matchAll(/Missing character:/gu)].length;
-  const actualBodyPt = dominantBodyPointSize(text(build.fontXml));
+  const actualBodyPt = dominantBodyPointSize(text2(build.fontXml));
   if (pages !== void 0 && pages !== reportedPages || bodyPt !== void 0 && (bodyPt <= 0 || Math.abs(bodyPt - actualBodyPt) > fontMeasurementTolerance) || overfullBoxes !== void 0 && overfullBoxes !== actualOverfull || missingGlyphs !== void 0 && missingGlyphs !== actualMissing) {
     throw new Error(
       "Numeric observations contradict the retained compiled PDF/log evidence."
@@ -8954,7 +9195,7 @@ async function fitCheatsheetRelease(input) {
   let maximumColumnUnusedMm = 0;
   const columnIdentities = /* @__PURE__ */ new Set();
   const labels = new Set(
-    [...text(build.aux).matchAll(/\\newlabel\{([^{}]+)\}/gu)].map(
+    [...text2(build.aux).matchAll(/\\newlabel\{([^{}]+)\}/gu)].map(
       (match) => match[1]
     )
   );
@@ -11517,6 +11758,7 @@ var usage = `Usage:
   cheatsheet-tool audit --module-root <absolute-path> --manifest <module-relative-path>
   cheatsheet-tool fit --module-root <absolute-path> --manifest <module-relative-path> --measurements <json-path>
   cheatsheet-tool verify --module-root <absolute-path> --manifest <module-relative-path> [--evidence-directory <new-module-relative-support-directory>]
+  cheatsheet-tool present-references --module-root <absolute-path> --source <module-relative-tex> --references <module-relative-json>
   cheatsheet-tool preservation --module-root <absolute-path> --manifest <module-relative-path> --baseline-tex <module-relative-path> --baseline-sha256 <digest> [--policy exact|preserve-existing]
   cheatsheet-tool regeneration-check --module-root <absolute-path> --manifest <module-relative-path> --candidate <scratch-module-relative-path> --construction <module-relative-json-path>
   cheatsheet-tool package-review --module-root <absolute-path> --manifest <module-relative-path> --destination <absolute-path>`;
@@ -11532,6 +11774,7 @@ var inputSchema = {
     audit: ["--module-root", "--manifest"],
     fit: ["--module-root", "--manifest", "--measurements"],
     verify: ["--module-root", "--manifest", "--evidence-directory"],
+    "present-references": ["--module-root", "--source", "--references"],
     preservation: [
       "--module-root",
       "--manifest",
@@ -11646,7 +11889,7 @@ async function main() {
     await doctor();
     return;
   }
-  if (operation !== "prepare" && operation !== "audit" && operation !== "fit" && operation !== "verify" && operation !== "preservation" && operation !== "regeneration-check" && operation !== "package-review") {
+  if (operation !== "prepare" && operation !== "audit" && operation !== "fit" && operation !== "verify" && operation !== "present-references" && operation !== "preservation" && operation !== "regeneration-check" && operation !== "package-review") {
     throw new Error(usage);
   }
   const parsed = flags(rest);
@@ -11665,6 +11908,25 @@ async function main() {
     process.stdout.write(`${JSON.stringify(result2, null, 2)}
 `);
     if (result2.status === "needs-choice") process.exitCode = 2;
+    return;
+  }
+  if (operation === "present-references") {
+    const source = await readCheatsheetModuleText(
+      moduleRoot,
+      requiredFlag(parsed, "--source")
+    );
+    const references2 = await readCheatsheetModuleText(
+      moduleRoot,
+      requiredFlag(parsed, "--references")
+    );
+    const result2 = formatCheatsheetReferences({
+      source: source.text,
+      references: parseCheatsheetReferences(JSON.parse(references2.text))
+    });
+    process.stdout.write(
+      `${JSON.stringify({ ...result2, sourceSha256: source.sha256, referencesSha256: references2.sha256, candidateSha256: sha256Bytes(Buffer.from(result2.source, "utf8")), published: false }, null, 2)}
+`
+    );
     return;
   }
   const manifestPath = requiredFlag(parsed, "--manifest");
@@ -11688,6 +11950,40 @@ async function main() {
 `);
     if (result2.kind === "blocked" || result2.kind === "user-choice")
       process.exitCode = 2;
+    return;
+  }
+  if (operation === "regeneration-check") {
+    const manifestDocument = await readCheatsheetModuleText(
+      moduleRoot,
+      manifestPath
+    );
+    const manifest = parseCheatsheetManifest(manifestDocument.text);
+    if (manifestPath !== `${manifest.artifact.support}/manifest.yaml`)
+      throw new Error(
+        "Regeneration manifest must be the selected artifact support manifest."
+      );
+    if (manifest.authoring.kind !== "self-contained")
+      throw new Error(
+        "Staged transformed regeneration applies to self-contained authority."
+      );
+    if (manifest.release.texSha256 !== manifest.authoring.sha256)
+      throw new Error(
+        "Regeneration base TeX digest disagrees with its authoring authority."
+      );
+    const receipt = await readCheatsheetModuleText(
+      moduleRoot,
+      requiredFlag(parsed, "--construction")
+    );
+    const result2 = await checkCheatsheetRegenerationCandidate({
+      moduleRoot,
+      authoring: manifest.authoring,
+      candidatePath: requiredFlag(parsed, "--candidate"),
+      construction: parseCheatsheetConstruction(JSON.parse(receipt.text))
+    });
+    process.stdout.write(
+      `${JSON.stringify({ ...result2, scope: "Staged candidate and current authoritative TeX only; full audit and verification are required after promotion." }, null, 2)}
+`
+    );
     return;
   }
   const evidence = await loadCheatsheetEvidence({ moduleRoot, manifestPath });
@@ -11714,25 +12010,6 @@ async function main() {
       `${JSON.stringify({ ...result2, baselineTexSha256: baseline.sha256, candidateTexSha256: sha256Bytes(evidence.releaseBytes), pdfSha256: evidence.manifest.release.pdfSha256 }, null, 2)}
 `
     );
-    return;
-  }
-  if (operation === "regeneration-check") {
-    if (evidence.manifest.authoring.kind !== "self-contained")
-      throw new Error(
-        "Staged transformed regeneration applies to self-contained authority."
-      );
-    const receipt = await readCheatsheetModuleText(
-      moduleRoot,
-      requiredFlag(parsed, "--construction")
-    );
-    const result2 = await checkCheatsheetRegenerationCandidate({
-      moduleRoot,
-      authoring: evidence.manifest.authoring,
-      candidatePath: requiredFlag(parsed, "--candidate"),
-      construction: parseCheatsheetConstruction(JSON.parse(receipt.text))
-    });
-    process.stdout.write(`${JSON.stringify(result2, null, 2)}
-`);
     return;
   }
   if (operation === "audit") {

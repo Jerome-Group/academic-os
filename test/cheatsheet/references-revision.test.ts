@@ -173,3 +173,32 @@ it("cannot bless a changed printed formula by refreshing fingerprints while sele
     /preservation failed/u,
   );
 });
+it("protects mathematics and stable identities with legal whitespace and comments before arguments", () => {
+  for (const baseline of [
+    String.raw`\ensuremath {x+y}`,
+    "\\ensuremath % comment\n{x+y}",
+    String.raw`\begin {equation}x+y=z\end {equation}`,
+    "\\begin % comment\n{equation}x+y=z\\end % comment\n{equation}",
+  ]) {
+    assert.equal(extractCheatsheetMathematics(baseline).length, 1);
+    assert.throws(
+      () =>
+        assertCheatsheetMathematicsPreserved({
+          baseline,
+          candidate: baseline.replace("x+y", "x-y"),
+        }),
+      /preservation failed/u,
+    );
+  }
+  const source =
+    "\\begin % math\n{equation}\\SheetRef{g}\\end {equation}\n\\ensuremath {\\SheetRef{g}}\n\\label % id\n{\\SheetRef{g}}\n\\SheetRef{g} Gaussian";
+  const formatted = formatCheatsheetReferences({
+    source,
+    references: { g: { kind: "named-result", id: "gauss", display: "Gauss" } },
+  });
+  assert.equal(formatted.formatted, 1);
+  assert.equal(
+    formatted.source,
+    source.replace("\\SheetRef{g} Gaussian", "\\ConceptRef{Gauss} Gaussian"),
+  );
+});

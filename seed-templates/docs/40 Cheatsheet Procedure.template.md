@@ -89,8 +89,8 @@ Coverage uses the exact header:
 item_id,source_id,locator,topic_id,priority,disposition,artifact_locator,note
 ```
 
-Declare each source's `required_locators` inventory when available, independently compared with the
-original. Legacy provenance-only locators remain readable; an undeclared or partly declared inventory
+For every new or revised required source, declare its independent `required_locators` inventory,
+compared with the original issued bytes. Legacy provenance-only locators remain readable; an undeclared or partly declared inventory
 leaves completeness unproved. Reconcile coverage with that enumeration and the prior-content inventory.
 Priorities are `required`,
 `high`, `useful`, `extension`; dispositions are `verbatim`, `condensed`, `cross-reference`, `excluded`,
@@ -117,7 +117,11 @@ Label source qualifications/corrections visibly and record their reason/authorit
 source's distinguishable wording where it matters; a corrected claim must not masquerade as a
 verbatim source statement. Keep notation and hypotheses consistent across related items.
 
-Use `Eg.`, `Ex.` and `Pf.` consistently. `SourceItemRef{kind}{display}{stable id}` preserves the
+Use `Eg.`, `Ex.` and `Pf.` consistently. For automated presentation, `present-references` formats
+only explicit `\SheetRef{key}` markers from a JSON identity map (`kind`, complete `id`, optional
+plain-text `display`); write its returned source into staging. It preserves mathematics, identity
+arguments and ordinary words. Resolve note tags to their actual type from the source; never infer a
+type from an ambiguous N prefix. `SourceItemRef{kind}{display}{stable id}` preserves the
 item type as well as its display number. Bold key hypotheses, method pivots, conclusions and
 counterexample/source tags selectively, including a Chinese remainder theorem tag when relevant.
 Keep surrounding exposition regular weight. Short run-in proof stages remain breakable paragraphs;

@@ -516,6 +516,7 @@ export function capabilityIndex(): object {
   for (const operation of [
     "schema",
     "doctor",
+    "present-references",
     "preservation",
     "regeneration-check",
     "prepare",

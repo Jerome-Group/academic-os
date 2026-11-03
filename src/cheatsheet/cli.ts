@@ -10,6 +10,11 @@ import {
   checkCheatsheetRegenerationCandidate,
   parseCheatsheetConstruction,
 } from "./construction.js";
+import {
+  formatCheatsheetReferences,
+  parseCheatsheetReferences,
+} from "./references.js";
+import { parseCheatsheetManifest } from "./manifest.js";
 import { readCheatsheetModuleText } from "./exact-text.js";
 import { assertCheatsheetMathematicsPreserved } from "./revision.js";
 import { cheatsheetCoverageHeader } from "./coverage.js";
@@ -40,6 +45,7 @@ const usage = `Usage:
   cheatsheet-tool audit --module-root <absolute-path> --manifest <module-relative-path>
   cheatsheet-tool fit --module-root <absolute-path> --manifest <module-relative-path> --measurements <json-path>
   cheatsheet-tool verify --module-root <absolute-path> --manifest <module-relative-path> [--evidence-directory <new-module-relative-support-directory>]
+  cheatsheet-tool present-references --module-root <absolute-path> --source <module-relative-tex> --references <module-relative-json>
   cheatsheet-tool preservation --module-root <absolute-path> --manifest <module-relative-path> --baseline-tex <module-relative-path> --baseline-sha256 <digest> [--policy exact|preserve-existing]
   cheatsheet-tool regeneration-check --module-root <absolute-path> --manifest <module-relative-path> --candidate <scratch-module-relative-path> --construction <module-relative-json-path>
   cheatsheet-tool package-review --module-root <absolute-path> --manifest <module-relative-path> --destination <absolute-path>`;
@@ -57,6 +63,7 @@ const inputSchema = {
     audit: ["--module-root", "--manifest"],
     fit: ["--module-root", "--manifest", "--measurements"],
     verify: ["--module-root", "--manifest", "--evidence-directory"],
+    "present-references": ["--module-root", "--source", "--references"],
     preservation: [
       "--module-root",
       "--manifest",
@@ -185,6 +192,7 @@ async function main(): Promise<void> {
     operation !== "audit" &&
     operation !== "fit" &&
     operation !== "verify" &&
+    operation !== "present-references" &&
     operation !== "preservation" &&
     operation !== "regeneration-check" &&
     operation !== "package-review"
@@ -208,6 +216,24 @@ async function main(): Promise<void> {
     if (result.status === "needs-choice") process.exitCode = 2;
     return;
   }
+  if (operation === "present-references") {
+    const source = await readCheatsheetModuleText(
+      moduleRoot,
+      requiredFlag(parsed, "--source"),
+    );
+    const references = await readCheatsheetModuleText(
+      moduleRoot,
+      requiredFlag(parsed, "--references"),
+    );
+    const result = formatCheatsheetReferences({
+      source: source.text,
+      references: parseCheatsheetReferences(JSON.parse(references.text)),
+    });
+    process.stdout.write(
+      `${JSON.stringify({ ...result, sourceSha256: source.sha256, referencesSha256: references.sha256, candidateSha256: sha256Bytes(Buffer.from(result.source, "utf8")), published: false }, null, 2)}\n`,
+    );
+    return;
+  }
   const manifestPath = requiredFlag(parsed, "--manifest");
   if (operation === "package-review") {
     const result = await createCheatsheetReviewPackage({
@@ -227,6 +253,39 @@ async function main(): Promise<void> {
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     if (result.kind === "blocked" || result.kind === "user-choice")
       process.exitCode = 2;
+    return;
+  }
+  if (operation === "regeneration-check") {
+    const manifestDocument = await readCheatsheetModuleText(
+      moduleRoot,
+      manifestPath,
+    );
+    const manifest = parseCheatsheetManifest(manifestDocument.text);
+    if (manifestPath !== `${manifest.artifact.support}/manifest.yaml`)
+      throw new Error(
+        "Regeneration manifest must be the selected artifact support manifest.",
+      );
+    if (manifest.authoring.kind !== "self-contained")
+      throw new Error(
+        "Staged transformed regeneration applies to self-contained authority.",
+      );
+    if (manifest.release.texSha256 !== manifest.authoring.sha256)
+      throw new Error(
+        "Regeneration base TeX digest disagrees with its authoring authority.",
+      );
+    const receipt = await readCheatsheetModuleText(
+      moduleRoot,
+      requiredFlag(parsed, "--construction"),
+    );
+    const result = await checkCheatsheetRegenerationCandidate({
+      moduleRoot,
+      authoring: manifest.authoring,
+      candidatePath: requiredFlag(parsed, "--candidate"),
+      construction: parseCheatsheetConstruction(JSON.parse(receipt.text)),
+    });
+    process.stdout.write(
+      `${JSON.stringify({ ...result, scope: "Staged candidate and current authoritative TeX only; full audit and verification are required after promotion." }, null, 2)}\n`,
+    );
     return;
   }
   const evidence = await loadCheatsheetEvidence({ moduleRoot, manifestPath });
@@ -252,24 +311,6 @@ async function main(): Promise<void> {
     process.stdout.write(
       `${JSON.stringify({ ...result, baselineTexSha256: baseline.sha256, candidateTexSha256: sha256Bytes(evidence.releaseBytes), pdfSha256: evidence.manifest.release.pdfSha256 }, null, 2)}\n`,
     );
-    return;
-  }
-  if (operation === "regeneration-check") {
-    if (evidence.manifest.authoring.kind !== "self-contained")
-      throw new Error(
-        "Staged transformed regeneration applies to self-contained authority.",
-      );
-    const receipt = await readCheatsheetModuleText(
-      moduleRoot,
-      requiredFlag(parsed, "--construction"),
-    );
-    const result = await checkCheatsheetRegenerationCandidate({
-      moduleRoot,
-      authoring: evidence.manifest.authoring,
-      candidatePath: requiredFlag(parsed, "--candidate"),
-      construction: parseCheatsheetConstruction(JSON.parse(receipt.text)),
-    });
-    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     return;
   }
   if (operation === "audit") {

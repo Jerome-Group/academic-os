@@ -283,6 +283,28 @@ const regeneration = command("regeneration-check", [
 ]);
 if (regeneration.published !== false)
   throw new Error("Regeneration check unexpectedly published a release.");
+await writeFile(
+  join(root, scratch, "references.tex"),
+  String.raw`See \SheetRef{chain}. Gaussian and $x^2$ remain unchanged.`,
+);
+await writeFile(
+  join(root, support, "references.json"),
+  JSON.stringify({
+    chain: { kind: "named-result", id: "chain-rule", display: "Chain rule" },
+  }),
+);
+const references = command("present-references", [
+  "--source",
+  `${scratch}/references.tex`,
+  "--references",
+  `${support}/references.json`,
+]);
+if (
+  references.formatted !== 1 ||
+  references.published !== false ||
+  !references.source.includes("Gaussian")
+)
+  throw new Error("Structured reference presentation failed.");
 const observed = (value, method, evidence, kind = "measured") => ({
   kind,
   value,
@@ -482,6 +504,7 @@ console.log(
       fit,
       preservation,
       regeneration,
+      references,
       verify,
       packageFiles: packaged.files,
       review: "unreviewed",

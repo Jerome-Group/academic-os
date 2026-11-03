@@ -55,6 +55,44 @@ export function texGroupEnd(source: string, start: number): number {
   }
   throw new Error("Unbalanced TeX argument.");
 }
+export function texArgumentStart(source: string, start: number): number {
+  let index = start;
+  while (index < source.length) {
+    if (/\s/u.test(source[index] ?? "")) {
+      index++;
+      continue;
+    }
+    if (source[index] === "%" && !texEscaped(source, index)) {
+      const newline = source.indexOf("\n", index);
+      if (newline < 0) return source.length;
+      index = newline + 1;
+      continue;
+    }
+    break;
+  }
+  return index;
+}
+function environmentEnd(
+  source: string,
+  start: number,
+  environment: string,
+): number {
+  for (let index = start; index < source.length; index++) {
+    if (source[index] === "%" && !texEscaped(source, index)) {
+      index = source.indexOf("\n", index);
+      if (index < 0) break;
+      continue;
+    }
+    const command = /^\\end(?![A-Za-z])/u.exec(source.slice(index));
+    if (command === null || texEscaped(source, index)) continue;
+    const argument = texArgumentStart(source, index + command[0].length);
+    if (source[argument] !== "{")
+      throw new Error("Unsupported end-environment argument.");
+    const end = texGroupEnd(source, argument);
+    if (source.slice(argument + 1, end - 1) === environment) return end;
+  }
+  throw new Error(`Unclosed mathematics environment ${environment}.`);
+}
 function delimiterEnd(
   source: string,
   start: number,
@@ -91,8 +129,21 @@ export function extractCheatsheetMathematics(
         continue;
       }
     }
-    const begin = /^\\begin\{([^{}]+)\}/u.exec(source.slice(index));
-    const environment = begin?.[1];
+    const begin = texEscaped(source, index)
+      ? null
+      : /^\\begin(?![A-Za-z])/u.exec(source.slice(index));
+    const beginArgument =
+      begin === null
+        ? undefined
+        : texArgumentStart(source, index + begin[0].length);
+    const beginEnd =
+      beginArgument === undefined
+        ? undefined
+        : texGroupEnd(source, beginArgument);
+    const environment =
+      beginArgument === undefined || beginEnd === undefined
+        ? undefined
+        : source.slice(beginArgument + 1, beginEnd - 1);
     if (
       begin !== null &&
       environment !== undefined &&
@@ -101,21 +152,17 @@ export function extractCheatsheetMathematics(
       if (
         ["verbatim", "verbatim*", "lstlisting", "minted"].includes(environment)
       ) {
-        const end = source.indexOf(
-          `\\end{${environment}}`,
-          index + begin[0].length,
-        );
+        const end = source.indexOf(`\\end{${environment}}`, beginEnd);
         if (end < 0)
           throw new Error(`Unclosed verbatim environment ${environment}.`);
         index = end + environment.length + 6;
         continue;
       }
       if (environments.has(environment.replace(/\*$/u, ""))) {
-        const end = delimiterEnd(
+        const end = environmentEnd(
           source,
-          index,
-          begin[0],
-          `\\end{${environment}}`,
+          beginEnd ?? index + begin[0].length,
+          environment,
         );
         spans.push({
           start: index,
@@ -138,8 +185,11 @@ export function extractCheatsheetMathematics(
       } else if (source.startsWith("\\[", index)) {
         opener = "\\[";
         closer = "\\]";
-      } else if (source.startsWith("\\ensuremath{", index)) {
-        const end = texGroupEnd(source, index + "\\ensuremath".length);
+      } else if (/^\\ensuremath(?![A-Za-z])/u.test(source.slice(index))) {
+        const end = texGroupEnd(
+          source,
+          texArgumentStart(source, index + "\\ensuremath".length),
+        );
         spans.push({
           start: index,
           end,

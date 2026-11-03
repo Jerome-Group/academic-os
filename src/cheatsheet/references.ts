@@ -1,6 +1,7 @@
 import {
   extractCheatsheetMathematics,
   texEscaped,
+  texArgumentStart,
   texGroupEnd,
 } from "./revision.js";
 
@@ -71,7 +72,7 @@ export function renderCheatsheetReference(
     return `\\ConceptRef{${text(reference.display)}}`;
   }
   if (
-    !/^\d+(?:\.\d+)*(?:\([a-z0-9]+\))*(?:(?:--|–)\d+(?:\.\d+)*(?:\([a-z0-9]+\))*)?$/u.test(
+    !/^\d+(?:\.\d+)*[A-Za-z]?(?:\([a-z0-9]+\))*(?:(?:--|–)\d+(?:\.\d+)*[A-Za-z]?(?:\([a-z0-9]+\))*)?$/u.test(
       reference.id,
     )
   )
@@ -85,6 +86,9 @@ const identityArguments: Record<string, number> = {
   ref: 1,
   eqref: 1,
   SourceRef: 1,
+  SourceItemRef: 3,
+  SheetPageRef: 1,
+  SheetMapItem: 1,
   ConceptRef: 1,
   Statement: 2,
   FormalStatement: 4,
@@ -196,6 +200,7 @@ export function formatCheatsheetReferences(input: {
       }
     }
     if (command === "begin") {
+      end = texArgumentStart(input.source, end);
       const environment = /^\{(verbatim\*?|lstlisting|minted)\}/u.exec(
         input.source.slice(end),
       )?.[1];
@@ -211,8 +216,7 @@ export function formatCheatsheetReferences(input: {
     }
 
     if (command === "SheetRef") {
-      while (/\s/u.test(input.source[end] ?? "") && end < input.source.length)
-        end++;
+      end = texArgumentStart(input.source, end);
       const groupEnd = texGroupEnd(input.source, end);
       const key = input.source.slice(end + 1, groupEnd - 1);
       const reference = Object.hasOwn(input.references, key)
@@ -239,8 +243,7 @@ export function formatCheatsheetReferences(input: {
       remaining > 0;
       remaining--
     ) {
-      while (/\s/u.test(input.source[end] ?? "") && end < input.source.length)
-        end++;
+      end = texArgumentStart(input.source, end);
       if (input.source[end] !== "{") break;
       end = texGroupEnd(input.source, end);
     }

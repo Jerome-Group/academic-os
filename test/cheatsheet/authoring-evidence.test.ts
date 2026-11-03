@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { it } from "node:test";
 import { promisify } from "node:util";
 import { buildCheatsheetReleaseSource } from "../../src/cheatsheet/authoring.js";
@@ -124,6 +124,70 @@ it("audits digested construction without executing it and blocks stale recipe/in
       "raise SystemExit('must never execute')",
     );
     await assert.rejects(loadCheatsheetEvidence(f), /Construction input/u);
+  } finally {
+    await rm(f.root, { recursive: true, force: true });
+  }
+});
+it("checks a fresh proposed recipe through both CLIs while strict audit refuses stale construction", async () => {
+  const f = await fixture();
+  try {
+    const candidatePath = ".scratch/cheatsheets/final-aid/run/candidate.tex";
+    await mkdir(join(f.root, ".scratch/cheatsheets/final-aid/run"), {
+      recursive: true,
+    });
+    const candidate = `${tex}% staged new recipe\n`;
+    const recipe = "# changed construction, never executed\n";
+    await writeFile(join(f.root, candidatePath), candidate);
+    await writeFile(join(f.root, support, "assemble.py"), recipe);
+    const receipt = {
+      ...f.manifest.authoring.construction,
+      recipe: {
+        path: `${support}/assemble.py`,
+        sha256: sha256Bytes(Buffer.from(recipe)),
+      },
+      base_tex_sha256: f.manifest.authoring.sha256,
+      output_tex_sha256: sha256Bytes(Buffer.from(candidate)),
+    };
+    await writeFile(
+      join(f.root, support, "proposed.json"),
+      JSON.stringify(receipt),
+    );
+    await assert.rejects(loadCheatsheetEvidence(f), /Construction input/u);
+    for (const cli of [
+      "dist/src/cheatsheet/cli.js",
+      "skills/cheatsheet/scripts/cheatsheet-tool.mjs",
+    ]) {
+      const args = [
+        resolve(cli),
+        "regeneration-check",
+        "--module-root",
+        f.root,
+        "--manifest",
+        f.manifestPath,
+        "--candidate",
+        candidatePath,
+        "--construction",
+        `${support}/proposed.json`,
+      ];
+      const result = JSON.parse((await run(process.execPath, args)).stdout);
+      assert.equal(result.published, false);
+      assert.equal(result.review, "unreviewed");
+      assert.equal(result.candidateTexSha256, receipt.output_tex_sha256);
+      assert.equal(
+        await readFile(join(f.root, personal, "Final.tex"), "utf8"),
+        tex,
+      );
+      await writeFile(
+        join(f.root, personal, "Final.tex"),
+        `${tex}% direct authoritative edit`,
+      );
+      await assert.rejects(run(process.execPath, args), (error: unknown) => {
+        assert.ok(error instanceof Error && "stdout" in error);
+        assert.match(String(error.stdout), /Authoritative release changed/u);
+        return true;
+      });
+      await writeFile(join(f.root, personal, "Final.tex"), tex);
+    }
   } finally {
     await rm(f.root, { recursive: true, force: true });
   }

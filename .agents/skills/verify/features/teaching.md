@@ -29,7 +29,10 @@ Learning-material tests and preparation API/shipped-helper fixtures assert Sourc
 Portable-build fixtures reject host-local inputs and caller search-path dependencies and ignore user latexmk configuration; recorded inputs remain bound to the release and trusted TeX distribution.
 CLI journeys assert gap reporting, human/JSON output, read-only behavior, sibling retention and symlink refusal.
 The subprocess journey invokes the shipped cheatsheet runtime through preparation, audit, fitting, verification and review packaging.
-It checks stale sources, interrupted authoring and package retries.
+It checks stale sources, interrupted authoring, staged regeneration, explicit reference presentation, frozen mathematics preservation and package retries.
+Run the helper doctor through the same executable discovery as verify/package-review.
+The navigation fixture compiles the complete shared specimen and checks all eight actual column starts
+against the printed orientation/continuation guides; full-page and enlarged-column review remains separate.
 Require retained build identity, AUX/log, visible-font XML, full XML including hidden/off-page text and page renders
 from a fresh module-relative evidence directory. Every inspected artifact must name the current
 TeX/PDF hash; inspect a targeted mutation's actual semantic failure, restore, then require a pass.

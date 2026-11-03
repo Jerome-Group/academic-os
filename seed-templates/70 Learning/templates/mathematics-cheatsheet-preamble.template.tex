@@ -130,7 +130,7 @@
   {\sffamily #1\enspace\bfseries #2}\par\vspace{-1.45pt}\rule{\linewidth}{0.15pt}\par\vspace{0.05pt}%
 }
 \newcommand{\Topic}[2][]{%
-  \SheetNeedspace{11pt}\par\vspace{0.15pt}%
+  \SheetNeedspace{11pt}\par\vspace{0.15pt}\phantomsection%
   \if\relax\detokenize{#1}\relax\else\hypertarget{topic:#1}{}\fi%
   {\sffamily\bfseries\if\relax\detokenize{#1}\relax\else #1\enspace\fi #2}\par\vspace{-1.55pt}\rule{\linewidth}{0.2pt}\par\vspace{0.05pt}%
 }

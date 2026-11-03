@@ -1,6 +1,6 @@
 ---
 name: cheatsheet
-description: Prepare a module assessment cheatsheet, or revise, audit, verify and package its release.
+description: Prepare or revise a cheatsheet with source coverage, bound build evidence and portable review.
 disable-model-invocation: true
 argument-hint: "<module code> <create|revise|audit|verify|package-review> [artifact or constraints]"
 ---

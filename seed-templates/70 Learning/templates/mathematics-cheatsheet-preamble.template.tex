@@ -6,10 +6,10 @@
 \providecommand{\SheetColumns}{4}
 \providecommand{\SheetBodyPointSize}{4}
 \providecommand{\SheetBodyLeading}{4.1}
-\providecommand{\SheetMathScriptPointSize}{3}
-\providecommand{\SheetMathScriptScriptPointSize}{2.4}
+\providecommand{\SheetMathScriptPointSize}{\fpeval{0.75*\SheetBodyPointSize}}
+\providecommand{\SheetMathScriptScriptPointSize}{\fpeval{0.6*\SheetBodyPointSize}}
 \providecommand{\SheetColumnGap}{0.6mm}
-\providecommand{\SheetHeaderBaseline}{3.15mm}
+\providecommand{\SheetHeaderBaseline}{2mm}
 \providecommand{\SheetFooterBaseline}{1.6mm}
 \providecommand{\SheetNavigationGap}{1.5mm}
 \providecommand{\SheetNavigationPointSize}{\SheetBodyPointSize}
@@ -18,7 +18,7 @@
 \usepackage[a4paper,left=\SheetLeftMargin,right=\SheetRightMargin,top=\SheetTopMargin,bottom=\SheetBottomMargin]{geometry}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
-\usepackage{amsmath,amssymb,mathtools}
+\usepackage{amsmath,amssymb,mathtools,xfp}
 % lmodern's omxlmex.fd selects lmex10 with sfixed*, which leaves large
 % operators and delimiters at 10pt in a 4pt document. Load that family once,
 % then restore an ordinary scalable shape. This changes font selection only;
@@ -95,11 +95,11 @@
   \AddToShipoutPictureFG{%
     \AtPageUpperLeft{\put(\LenToUnit{\SheetLeftMargin},\LenToUnit{-\SheetHeaderBaseline}){\makebox[0pt][l]{\SheetNavigationFont\bfseries\sheet@title}}}%
     \AtPageUpperLeft{\put(\LenToUnit{\dimexpr\paperwidth-\SheetRightMargin\relax},\LenToUnit{-\SheetHeaderBaseline}){\makebox[0pt][r]{\SheetNavigationFont\raisebox{.45ex}[0pt][0pt]{\sheet@logo}\kern.7mm\sheet@credit}}}%
-    \AtPageUpperLeft{\put(\LenToUnit{\SheetLeftMargin},\LenToUnit{\dimexpr-\SheetHeaderBaseline-\SheetNavigationGap\relax}){\makebox[0pt][l]{\SheetNavigationFont\sheet@topnavigation}}}%
+    \AtPageUpperLeft{\put(\LenToUnit{\SheetLeftMargin},\LenToUnit{\dimexpr-\SheetHeaderBaseline-\SheetNavigationGap\relax}){\makebox[0pt][l]{\SheetNavigationFont\sffamily\bfseries\sheet@topnavigation}}}%
     \AtPageLowerLeft{\put(\LenToUnit{\SheetLeftMargin},\LenToUnit{\SheetFooterBaseline}){\makebox[0pt][l]{\SheetNavigationFont\sheet@disclaimer}}}%
     \AtPageLowerLeft{\put(\LenToUnit{\dimexpr\paperwidth/2\relax},\LenToUnit{\SheetFooterBaseline}){\makebox[0pt][c]{\SheetNavigationFont\thepage}}}%
     \AtPageLowerLeft{\put(\LenToUnit{\dimexpr\paperwidth-\SheetRightMargin\relax},\LenToUnit{\SheetFooterBaseline}){\makebox[0pt][r]{\SheetNavigationFont\sheet@publisher}}}%
-    \AtPageLowerLeft{\put(\LenToUnit{\SheetLeftMargin},\LenToUnit{\dimexpr\SheetFooterBaseline+\SheetNavigationGap\relax}){\makebox[0pt][l]{\SheetNavigationFont\sheet@bottomnavigation}}}%
+    \AtPageLowerLeft{\put(\LenToUnit{\SheetLeftMargin},\LenToUnit{\dimexpr\SheetFooterBaseline+\SheetNavigationGap\relax}){\makebox[0pt][l]{\SheetNavigationFont\itshape\sheet@bottomnavigation}}}%
   }%
   \fi
 }
@@ -167,10 +167,11 @@
   \setlength{\abovedisplayshortskip}{0.2pt}\setlength{\belowdisplayshortskip}{0.2pt}%
   \typeout{CHEATSHEET-BODY-PT=\SheetBodyPointSize}%
   \typeout{CHEATSHEET-COLUMNS=\SheetColumns}%
+  \ReportMathFonts%
   \begin{multicols}{\SheetColumns}}{\end{multicols}}
 
 \newcommand{\ReportMathFonts}{%
-  \begingroup$\displaystyle\sum_{i=1}^{n}x_i$%
+  \begingroup\setbox0=\hbox{$\displaystyle\sum_{i=1}^{n}x_i$}%
   \typeout{CHEATSHEET-TEXTFONT3=\fontname\textfont3}%
   \typeout{CHEATSHEET-SCRIPTFONT3=\fontname\scriptfont3}%
   \typeout{CHEATSHEET-SCRIPTSCRIPTFONT3=\fontname\scriptscriptfont3}%

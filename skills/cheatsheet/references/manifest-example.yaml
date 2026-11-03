@@ -15,15 +15,24 @@ constraints:
   pages: {exact: 2}
   color: monochrome
   columns: 4
-  body_pt: {preferred: 4.2, floor: 3.9}
+  body_pt: {preferred: 4, floor: 3.8}
+  layout:
+    margins_mm: {left: 2, right: 2, top: 6, bottom: 6}
+    header_bottom_mm: 5
+    footer_top_mm: 292
 sources:
   - id: issued-1
     path: NTULearn/assessment.pdf
     sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
     authority: issued-current
-    locators: [questions 1-4]
+    locators: [definition 1, question 1(a), question 1(b), solution 1(a), solution 1(b)]
+    required_locators: [definition 1, question 1(a), question 1(b), solution 1(a), solution 1(b)]
 coverage: 10 Learning Materials/30 Personal Notes/support/final-aid/coverage.csv
 release:
   tex_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
   pdf_sha256: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
   review: {status: unreviewed}
+# For an actual passed review only:
+# review: {status: passed, reviewed_pdf_sha256: <exact current PDF SHA-256>}
+# Optional self-contained construction records the recipe/inputs and base_tex_sha256/output_tex_sha256.
+# It supplies provenance; the top-level TeX remains the only authoring authority.

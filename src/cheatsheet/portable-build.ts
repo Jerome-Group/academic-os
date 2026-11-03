@@ -3,6 +3,11 @@ import { readFile, realpath } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 
+import {
+  cheatsheetExecutablePath,
+  requireCheatsheetExecutable,
+} from "./toolchain.js";
+
 const run = promisify(execFile);
 
 export async function compilePortableSource(
@@ -11,7 +16,7 @@ export async function compilePortableSource(
 ): Promise<number> {
   const workspace = dirname(root);
   const env: NodeJS.ProcessEnv = {
-    PATH: process.env.PATH,
+    PATH: cheatsheetExecutablePath(),
     HOME: workspace,
     TMPDIR: workspace,
     TEXMFHOME: join(workspace, "texmf-home"),
@@ -23,7 +28,7 @@ export async function compilePortableSource(
   };
   const command = async (executable: string, args: string[]) =>
     (
-      await run(executable, args, {
+      await run(requireCheatsheetExecutable(executable), args, {
         cwd: root,
         env,
         encoding: "utf8",

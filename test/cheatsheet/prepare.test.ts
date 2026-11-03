@@ -14,11 +14,72 @@ import {
   nativeObjectCandidates,
 } from "../fixtures/source-map-identity.js";
 import { prepareCheatsheet } from "../../src/cheatsheet/index.js";
+import { sha256Bytes } from "../../src/checksum.js";
 import {
   assertCheatsheetReleaseReady,
   validateCoverageCorrespondence,
 } from "../../src/cheatsheet/evidence.js";
 import type { CheatsheetManifest } from "../../src/cheatsheet/types.js";
+
+it("binds valid Unicode control bytes and refuses malformed Profile bytes through API and helper", async () => {
+  const root = await mkdtemp(join(tmpdir(), "cheatsheet-profile-utf8-"));
+  try {
+    const admin = join(root, "00 Module Admin");
+    await mkdir(admin);
+    const controls = validModuleControls();
+    const profile = Buffer.from(
+      `${controls.profile ?? ""}\n<!-- Unicode: α ∀ é -->\n`,
+      "utf8",
+    );
+    await writeFile(join(admin, "00 Module Profile.md"), profile);
+    await writeFile(
+      join(admin, "10 Module Definition.yaml"),
+      controls.definition ?? "",
+    );
+    await writeFile(
+      join(admin, "40 Source Map.yaml"),
+      "units:\n  Unit 1:\n    topics: [Synthetic]\n    lectures: [synthetic.txt]\n    textbook: []\n    tutorials: []\n",
+    );
+    await writeFile(join(root, "synthetic.txt"), "Synthetic source only.");
+    const input = {
+      moduleRoot: root,
+      moduleCode: "MH2100",
+      assessment: "midterm",
+    };
+    const invoke = () =>
+      spawnSync(
+        process.execPath,
+        [
+          resolve("skills/cheatsheet/scripts/cheatsheet-tool.mjs"),
+          "prepare",
+          "--module-root",
+          root,
+          "--module-code",
+          input.moduleCode,
+          "--assessment",
+          input.assessment,
+        ],
+        { encoding: "utf8" },
+      );
+    const valid = await prepareCheatsheet(input);
+    assert.equal(
+      valid.controls.find(({ path }) => path.endsWith("00 Module Profile.md"))
+        ?.sha256,
+      sha256Bytes(profile),
+    );
+    assert.equal(invoke().status, 0);
+    await writeFile(
+      join(admin, "00 Module Profile.md"),
+      Buffer.concat([profile, Buffer.from([0xff])]),
+    );
+    await assert.rejects(prepareCheatsheet(input), /UTF-8/u);
+    const rejected = invoke();
+    assert.equal(rejected.status, 1);
+    assert.match(rejected.stdout, /UTF-8/u);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 for (const mode of ["API", "shipped helper"] as const) {
   it(`retains both complete Date-merge and raw-alias payloads through ${mode}`, async () => {

@@ -89,10 +89,9 @@ await writeFile(
   join(root, "00 Module Admin/40 Source Map.yaml"),
   "units:\n  Unit 1:\n    topics: [Derivative, Chain rule]\n    lectures: [NTULearn/synthetic-notice.md]\n    textbook: []\n    tutorials: []\n",
 );
-const runtime = join(
-  process.cwd(),
-  "skills/cheatsheet/scripts/cheatsheet-tool.mjs",
-);
+const runtime =
+  process.env.CHEATSHEET_RUNTIME_PATH ??
+  join(process.cwd(), "skills/cheatsheet/scripts/cheatsheet-tool.mjs");
 const manifestPath = `${support}/manifest.yaml`;
 const command = (operation, flags = []) =>
   JSON.parse(
@@ -122,6 +121,7 @@ const tex = String.raw`\documentclass[a4paper,10pt]{article}
 \newcommand{\SheetColumns}{2}
 \newcommand{\SheetLeftMargin}{15mm}\newcommand{\SheetRightMargin}{15mm}
 \newcommand{\SheetTopMargin}{15mm}\newcommand{\SheetBottomMargin}{15mm}
+\newcommand{\SheetHeaderBaseline}{5mm}\newcommand{\SheetFooterBaseline}{5mm}
 ${logo}
 ${preamble}
 \SheetSetup{title={Synthetic MH2100 acceptance},credit={},disclaimer={Synthetic only},publisher={},logo={}}
@@ -220,6 +220,7 @@ sources:
     sha256: ${hash(source)}
     authority: issued-current
     locators: [Q1, Q2, Q3]
+    required_locators: [Q1, Q2, Q3]
 coverage: ${support}/coverage.csv
 release:
   tex_sha256: ${hash(tex)}
@@ -240,14 +241,134 @@ const repeated = command("prepare", [
 if (JSON.stringify(prepare) !== JSON.stringify(repeated))
   throw new Error("Repeated context differs without input changes.");
 const audit = command("audit", ["--manifest", manifestPath]);
+const verify = command("verify", [
+  "--manifest",
+  manifestPath,
+  "--evidence-directory",
+  `${support}/build-evidence`,
+]);
+const build = verify.buildEvidence;
+if (build === undefined)
+  throw new Error("Selected build evidence was not retained.");
+const preservation = command("preservation", [
+  "--manifest",
+  manifestPath,
+  "--baseline-tex",
+  build.source.path,
+  "--baseline-sha256",
+  hash(tex),
+]);
+const scratch = ".scratch/cheatsheets/midterm-aid/synthetic";
+await mkdir(join(root, scratch), { recursive: true });
+await writeFile(join(root, scratch, "candidate.tex"), tex);
+const recipe =
+  "# Synthetic composition provenance; not executed by the helper.\n";
+await writeFile(join(root, support, "assemble.py"), recipe);
+await writeFile(
+  join(root, support, "construction.json"),
+  JSON.stringify({
+    recipe: { path: `${support}/assemble.py`, sha256: hash(recipe) },
+    inputs: [{ path: "NTULearn/synthetic-notice.md", sha256: hash(source) }],
+    base_tex_sha256: hash(tex),
+    output_tex_sha256: hash(tex),
+  }),
+);
+const regeneration = command("regeneration-check", [
+  "--manifest",
+  manifestPath,
+  "--candidate",
+  `${scratch}/candidate.tex`,
+  "--construction",
+  `${support}/construction.json`,
+]);
+if (regeneration.published !== false)
+  throw new Error("Regeneration check unexpectedly published a release.");
+const observed = (value, method, evidence, kind = "measured") => ({
+  kind,
+  value,
+  method,
+  evidence,
+});
+const xml = await readFile(join(root, build.fullXml.path), "utf8");
+const boxes = [...xml.matchAll(/<text\b([^>]*)>[\s\S]*?<\/text>/gu)].map(
+  (match) => {
+    const attr = (key) =>
+      ((Number(new RegExp(`\\b${key}="(-?[0-9.]+)"`, "u").exec(match[1])?.[1]) /
+        3) *
+        25.4) /
+      72;
+    return {
+      left: attr("left"),
+      top: attr("top"),
+      bottom: attr("top") + attr("height"),
+    };
+  },
+);
+const columns = [1, 2].map((column) => {
+  const lines = boxes
+    .filter(
+      (box) =>
+        box.top >= 15 &&
+        box.bottom <= 282 &&
+        (column === 1 ? box.left < 105 : box.left >= 105),
+    )
+    .sort((a, b) => a.top - b.top);
+  if (lines.length === 0)
+    throw new Error(`No inspected text in synthetic column ${column}.`);
+  let end = lines[0].bottom;
+  let gap = 0;
+  for (const line of lines.slice(1)) {
+    gap = Math.max(gap, line.top - end);
+    end = Math.max(end, line.bottom);
+  }
+  return {
+    page: 1,
+    column,
+    geometry: observed(
+      {
+        topMm: 15,
+        bottomMm: 282,
+        contentTopMm: lines[0].top,
+        contentBottomMm: end,
+        largestInternalGapBaselines: gap / ((12 * 25.4) / 72),
+      },
+      "Full XML text bounding boxes classified by physical column; text-box gaps only.",
+      [build.fullXml, build.releasedRenders[0]],
+    ),
+    continuation: observed(
+      { status: "none" },
+      "Synthetic Q1 is deliberately in column 1; Q2 and Q3 begin and end in column 2. Frozen-column review remains separate.",
+      [build.releasedRenders[0]],
+      "manual",
+    ),
+  };
+});
 const measurement = {
-  pages: 1,
-  bodyPt: 10,
-  overfullBoxes: 0,
-  missingGlyphs: 0,
-  unidentifiedContinuations: 0,
-  internalVoidBaselines: 0,
-  finalColumnUnusedMm: 100,
+  schemaVersion: 2,
+  release: {
+    artifactId: "midterm-aid",
+    manifestSha256: hash(manifest),
+    texSha256: hash(tex),
+    pdfSha256: hash(pdf),
+  },
+  build,
+  metrics: {
+    pages: observed(1, "pdfinfo selected isolated build", [build.pdfInfo]),
+    bodyPt: observed(10, "Visible XML dominant native text at zoom 3", [
+      build.fontXml,
+    ]),
+    overfullBoxes: observed(
+      0,
+      "Selected build log contains no overfull boxes",
+      [build.log],
+    ),
+    missingGlyphs: observed(
+      0,
+      "Selected build log contains no missing-character diagnostics",
+      [build.log],
+    ),
+  },
+  columns,
 };
 await writeFile(
   join(workspace, "measurements.json"),
@@ -259,7 +380,6 @@ const fit = command("fit", [
   "--measurements",
   join(workspace, "measurements.json"),
 ]);
-const verify = command("verify", ["--manifest", manifestPath]);
 const packaged = command("package-review", [
   "--manifest",
   manifestPath,
@@ -324,6 +444,7 @@ console.log(
   JSON.stringify(
     {
       status: "passed",
+      runtime: { path: runtime, sha256: hash(await readFile(runtime)) },
       root,
       workspace,
       seeded: {
@@ -346,7 +467,7 @@ console.log(
       },
       fitInput: {
         provenance:
-          "fixture-provided planning input; semantic clearances and whitespace are not computed by this driver",
+          "Build metrics and per-column XML text-box geometry are measured; continuation is an explicit fixture observation, independent visual/semantic review remains separate",
         measurement,
       },
       semanticExpectations: {
@@ -359,6 +480,8 @@ console.log(
           "Independent mathematical and rendered-page review required for this exact PDF hash; this script is deterministic workflow verification, not a model evaluation.",
       },
       fit,
+      preservation,
+      regeneration,
       verify,
       packageFiles: packaged.files,
       review: "unreviewed",

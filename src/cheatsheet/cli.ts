@@ -1,8 +1,17 @@
 #!/usr/bin/env node
 
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
+import { sha256Bytes } from "../checksum.js";
+import {
+  checkCheatsheetRegenerationCandidate,
+  parseCheatsheetConstruction,
+} from "./construction.js";
+import { readCheatsheetModuleText } from "./exact-text.js";
+import { assertCheatsheetMathematicsPreserved } from "./revision.js";
 import { cheatsheetCoverageHeader } from "./coverage.js";
 import {
   assertCheatsheetReleaseReady,
@@ -31,6 +40,8 @@ const usage = `Usage:
   cheatsheet-tool audit --module-root <absolute-path> --manifest <module-relative-path>
   cheatsheet-tool fit --module-root <absolute-path> --manifest <module-relative-path> --measurements <json-path>
   cheatsheet-tool verify --module-root <absolute-path> --manifest <module-relative-path> [--evidence-directory <new-module-relative-support-directory>]
+  cheatsheet-tool preservation --module-root <absolute-path> --manifest <module-relative-path> --baseline-tex <module-relative-path> --baseline-sha256 <digest> [--policy exact|preserve-existing]
+  cheatsheet-tool regeneration-check --module-root <absolute-path> --manifest <module-relative-path> --candidate <scratch-module-relative-path> --construction <module-relative-json-path>
   cheatsheet-tool package-review --module-root <absolute-path> --manifest <module-relative-path> --destination <absolute-path>`;
 
 const inputSchema = {
@@ -46,6 +57,19 @@ const inputSchema = {
     audit: ["--module-root", "--manifest"],
     fit: ["--module-root", "--manifest", "--measurements"],
     verify: ["--module-root", "--manifest", "--evidence-directory"],
+    preservation: [
+      "--module-root",
+      "--manifest",
+      "--baseline-tex",
+      "--baseline-sha256",
+      "--policy",
+    ],
+    "regeneration-check": [
+      "--module-root",
+      "--manifest",
+      "--candidate",
+      "--construction",
+    ],
     "package-review": ["--module-root", "--manifest", "--destination"],
   },
   manifest: {
@@ -119,7 +143,7 @@ async function doctor(): Promise<void> {
   const ready =
     nodeReady && executables.every(({ status }) => status === "available");
   process.stdout.write(
-    `${JSON.stringify({ schemaVersion: 1, status: ready ? "ready" : "incomplete", node, executables }, null, 2)}\n`,
+    `${JSON.stringify({ schemaVersion: 1, status: ready ? "ready" : "incomplete", entrypointSha256: sha256Bytes(await readFile(fileURLToPath(import.meta.url))), node, executables }, null, 2)}\n`,
   );
   if (!ready) process.exitCode = 2;
 }
@@ -147,7 +171,9 @@ function requiredFlag(parsed: Map<string, string>, name: string): string {
 async function main(): Promise<void> {
   const [operation, ...rest] = process.argv.slice(2);
   if (operation === "schema" && rest.length === 0) {
-    process.stdout.write(`${JSON.stringify(inputSchema, null, 2)}\n`);
+    process.stdout.write(
+      `${JSON.stringify({ ...inputSchema, entrypointSha256: sha256Bytes(await readFile(fileURLToPath(import.meta.url))) }, null, 2)}\n`,
+    );
     return;
   }
   if (operation === "doctor" && rest.length === 0) {
@@ -159,6 +185,8 @@ async function main(): Promise<void> {
     operation !== "audit" &&
     operation !== "fit" &&
     operation !== "verify" &&
+    operation !== "preservation" &&
+    operation !== "regeneration-check" &&
     operation !== "package-review"
   ) {
     throw new Error(usage);
@@ -202,6 +230,48 @@ async function main(): Promise<void> {
     return;
   }
   const evidence = await loadCheatsheetEvidence({ moduleRoot, manifestPath });
+  if (operation === "preservation") {
+    const baseline = await readCheatsheetModuleText(
+      moduleRoot,
+      requiredFlag(parsed, "--baseline-tex"),
+    );
+    if (baseline.sha256 !== requiredFlag(parsed, "--baseline-sha256"))
+      throw new Error(
+        "Typography baseline no longer matches its frozen SHA-256.",
+      );
+    const policy = parsed.get("--policy") ?? "exact";
+    if (policy !== "exact" && policy !== "preserve-existing")
+      throw new Error(
+        "Preservation policy must be exact or preserve-existing.",
+      );
+    const result = assertCheatsheetMathematicsPreserved({
+      baseline: baseline.text,
+      candidate: evidence.releaseSource,
+      policy,
+    });
+    process.stdout.write(
+      `${JSON.stringify({ ...result, baselineTexSha256: baseline.sha256, candidateTexSha256: sha256Bytes(evidence.releaseBytes), pdfSha256: evidence.manifest.release.pdfSha256 }, null, 2)}\n`,
+    );
+    return;
+  }
+  if (operation === "regeneration-check") {
+    if (evidence.manifest.authoring.kind !== "self-contained")
+      throw new Error(
+        "Staged transformed regeneration applies to self-contained authority.",
+      );
+    const receipt = await readCheatsheetModuleText(
+      moduleRoot,
+      requiredFlag(parsed, "--construction"),
+    );
+    const result = await checkCheatsheetRegenerationCandidate({
+      moduleRoot,
+      authoring: evidence.manifest.authoring,
+      candidatePath: requiredFlag(parsed, "--candidate"),
+      construction: parseCheatsheetConstruction(JSON.parse(receipt.text)),
+    });
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    return;
+  }
   if (operation === "audit") {
     process.stdout.write(
       `${JSON.stringify(

@@ -515,6 +515,9 @@ export function capabilityIndex(): object {
   const actions = [...cliCapabilities];
   for (const operation of [
     "schema",
+    "doctor",
+    "preservation",
+    "regeneration-check",
     "prepare",
     "audit",
     "fit",
@@ -535,24 +538,24 @@ export function capabilityIndex(): object {
             ]
           : []),
       ],
-      reads:
-        operation === "schema"
-          ? []
-          : ["Module context, sources, manifest and release evidence"],
+      reads: ["schema", "doctor"].includes(operation)
+        ? []
+        : ["Module context, sources, manifest and release evidence"],
       writes: ["package-review"].includes(operation)
         ? [
             "explicit local destination; retained claim/partial evidence after interrupted publication",
             "isolated temporary compilation/rendering",
           ]
         : operation === "verify"
-          ? ["isolated temporary compilation/rendering"]
+          ? [
+              "isolated temporary compilation/rendering; optional exclusive retained build-evidence directory",
+            ]
           : [],
-      riskFlags:
-        operation === "schema"
-          ? []
-          : operation === "package-review"
-            ? ["academic-content", "requires-destination-authorization"]
-            : ["academic-content"],
+      riskFlags: ["schema", "doctor"].includes(operation)
+        ? []
+        : operation === "package-review"
+          ? ["academic-content", "requires-destination-authorization"]
+          : ["academic-content"],
       preview: null,
       implementation: "src/cheatsheet/cli.ts",
       tests: [
@@ -560,6 +563,10 @@ export function capabilityIndex(): object {
         "test/cheatsheet/portable-release.test.ts",
         "test/cheatsheet/package-publication.test.ts",
         "test/cheatsheet/prepare.test.ts",
+        "test/cheatsheet/measurement-evidence.test.ts",
+        "test/cheatsheet/layout-evidence.test.ts",
+        "test/cheatsheet/authoring-evidence.test.ts",
+        "test/cheatsheet/references-revision.test.ts",
       ],
       status: "supported",
       health: "not-observed",

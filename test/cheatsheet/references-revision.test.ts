@@ -150,15 +150,22 @@ it("preserves hypothesis math and complete formulas through text wrappers, rejec
 it("cannot bless a changed printed formula by refreshing fingerprints while selected arithmetic code stays green", () => {
   const baseline = String.raw`\[(a^2+b^2)(c^2+d^2)=(ac-bd)^2+(ad+bc)^2\]`;
   const changed = baseline.replace("+(ad+bc)", "-(ad+bc)");
-  const selectedCheck = (a: number, b: number, c: number, d: number) =>
+  const selectedCheck = (a: bigint, b: bigint, c: bigint, d: bigint) =>
     (a * a + b * b) * (c * c + d * d) ===
-    (a * c - b * d) ** 2 + (a * d + b * c) ** 2;
-  assert.equal(selectedCheck(1, 1, 1, 1), true);
+    (a * c - b * d) ** 2n + (a * d + b * c) ** 2n;
+  let tuples = 0;
+  for (const a of [-2n, -1n, 0n, 1n, 2n])
+    for (const b of [-2n, -1n, 0n, 1n, 2n])
+      for (const c of [-2n, -1n, 0n, 1n, 2n])
+        for (const d of [-2n, -1n, 0n, 1n, 2n]) {
+          assert.equal(selectedCheck(a, b, c, d), true);
+          tuples++;
+        }
+  assert.equal(tuples, 625);
   const refreshedFingerprint = sha256(changed);
-  assert.equal(refreshedFingerprint, sha256(changed));
   assert.notEqual(refreshedFingerprint, sha256(baseline));
-  const left = (1 ** 2 + 1 ** 2) * (1 ** 2 + 1 ** 2);
-  const printedWrong = (1 * 1 - 1 * 1) ** 2 - (1 * 1 + 1 * 1) ** 2;
+  const left = (1n ** 2n + 1n ** 2n) * (1n ** 2n + 1n ** 2n);
+  const printedWrong = (1n * 1n - 1n * 1n) ** 2n - (1n * 1n + 1n * 1n) ** 2n;
   assert.notEqual(left, printedWrong);
   assert.throws(
     () =>

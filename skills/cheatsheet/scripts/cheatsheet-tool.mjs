@@ -7360,7 +7360,368 @@ var require_dist = __commonJS({
 });
 
 // src/cheatsheet/cli.ts
-import { readFile as readFile9 } from "node:fs/promises";
+import { readFile as readFile12 } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import { execFile as execFile4 } from "node:child_process";
+import { promisify as promisify4 } from "node:util";
+
+// src/checksum.ts
+import { createHash } from "node:crypto";
+function sha256(contents) {
+  return createHash("sha256").update(contents, "utf8").digest("hex");
+}
+function sha256Bytes(bytes) {
+  return createHash("sha256").update(bytes).digest("hex");
+}
+
+// src/cheatsheet/construction.ts
+import { readFile as readFile2 } from "node:fs/promises";
+
+// src/cheatsheet/exact-text.ts
+import { readFile } from "node:fs/promises";
+
+// src/cheatsheet/module-path.ts
+import { lstat, realpath } from "node:fs/promises";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
+function isOutside(root, target) {
+  const child = relative(root, target);
+  return child === "" || child === ".." || child.startsWith(`..${sep}`) || isAbsolute(child);
+}
+async function resolveModuleFile(moduleRoot, path) {
+  const root = resolve(moduleRoot);
+  const target = resolve(root, path);
+  if (isOutside(root, target)) {
+    throw new Error(`${path} does not name a file inside the module folder.`);
+  }
+  const canonicalRoot = await realpath(root);
+  const segments = relative(root, target).split(sep);
+  let candidate = canonicalRoot;
+  for (const [index, segment] of segments.entries()) {
+    candidate = join(candidate, segment);
+    const metadata = await lstat(candidate);
+    if (metadata.isSymbolicLink()) {
+      throw new Error(`${path} traverses a symbolic link.`);
+    }
+    if (index === segments.length - 1 && !metadata.isFile()) {
+      throw new Error(`${path} does not name an ordinary file.`);
+    }
+  }
+  const canonicalTarget = await realpath(candidate);
+  if (isOutside(canonicalRoot, canonicalTarget)) {
+    throw new Error(`${path} resolves outside the module folder.`);
+  }
+  return canonicalTarget;
+}
+async function resolveNewModuleDirectory(moduleRoot, path) {
+  if (isAbsolute(path) || path.includes("\\") || path.split("/").some((part) => part === "" || part === "." || part === ".."))
+    throw new Error(
+      "Evidence directory must be a normalized module-relative path."
+    );
+  let candidate = await realpath(moduleRoot);
+  const segments = path.split("/");
+  for (const segment of segments.slice(0, -1)) {
+    candidate = join(candidate, segment);
+    const metadata = await lstat(candidate);
+    if (metadata.isSymbolicLink() || !metadata.isDirectory())
+      throw new Error(
+        "Evidence directory traverses a symbolic link or non-directory."
+      );
+  }
+  return join(candidate, segments.at(-1) ?? "");
+}
+
+// src/cheatsheet/exact-text.ts
+function decodeCheatsheetText(bytes, name) {
+  try {
+    return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(
+      bytes
+    );
+  } catch {
+    throw new Error(
+      `${name} must contain valid UTF-8; replacement decoding is forbidden.`
+    );
+  }
+}
+async function readCheatsheetModuleText(moduleRoot, path) {
+  const bytes = await readFile(await resolveModuleFile(moduleRoot, path));
+  return {
+    bytes,
+    text: decodeCheatsheetText(bytes, path),
+    sha256: sha256Bytes(bytes)
+  };
+}
+
+// src/cheatsheet/construction.ts
+function mapping(value, name) {
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    throw new Error(`${name} must be a mapping.`);
+  return value;
+}
+function digest(value, name) {
+  if (typeof value !== "string" || !/^[a-f0-9]{64}$/u.test(value))
+    throw new Error(`${name} must be a lowercase SHA-256 digest.`);
+  return value;
+}
+function file(value, name) {
+  const item = mapping(value, name);
+  if (typeof item.path !== "string" || item.path.includes("\\") || item.path.split("/").some((segment) => segment === "" || segment === "." || segment === ".."))
+    throw new Error(`${name}.path must be a normalized module-relative path.`);
+  return { path: item.path, sha256: digest(item.sha256, `${name}.sha256`) };
+}
+function parseCheatsheetConstruction(value) {
+  const construction = mapping(value, "authoring.construction");
+  const recipe = file(construction.recipe, "authoring.construction.recipe");
+  if (!Array.isArray(construction.inputs) || construction.inputs.length === 0)
+    throw new Error("authoring.construction.inputs must name ordered inputs.");
+  const paths = /* @__PURE__ */ new Set([recipe.path]);
+  const inputs = construction.inputs.map((input, index) => {
+    const parsed = file(input, `authoring.construction.inputs[${index}]`);
+    if (paths.has(parsed.path))
+      throw new Error(`Construction repeats ${parsed.path}.`);
+    paths.add(parsed.path);
+    return parsed;
+  });
+  return {
+    recipe,
+    inputs,
+    baseTexSha256: digest(
+      construction.base_tex_sha256,
+      "authoring.construction.base_tex_sha256"
+    ),
+    outputTexSha256: digest(
+      construction.output_tex_sha256,
+      "authoring.construction.output_tex_sha256"
+    )
+  };
+}
+function constructionFor(authoring) {
+  if (!("construction" in authoring) || authoring.construction === void 0)
+    return void 0;
+  if (authoring.kind !== "self-contained")
+    throw new Error(
+      "Construction provenance is only valid for self-contained authority."
+    );
+  const candidate = mapping(authoring.construction, "authoring.construction");
+  return parseCheatsheetConstruction({
+    ...candidate,
+    base_tex_sha256: candidate.baseTexSha256,
+    output_tex_sha256: candidate.outputTexSha256
+  });
+}
+async function proveCheatsheetConstruction(moduleRoot, construction) {
+  for (const input of [construction.recipe, ...construction.inputs]) {
+    const bytes = await readFile2(
+      await resolveModuleFile(moduleRoot, input.path)
+    );
+    if (sha256Bytes(bytes) !== input.sha256)
+      throw new Error(
+        `Construction input ${input.path} no longer matches its declared SHA-256.`
+      );
+  }
+}
+async function checkCheatsheetRegenerationCandidate(input) {
+  if (!input.candidatePath.startsWith(".scratch/cheatsheets/") || input.candidatePath.split("/").some(
+    (segment) => segment === "" || segment === "." || segment === ".."
+  ) || input.candidatePath === input.authoring.path)
+    throw new Error(
+      "Regeneration candidate must be staged under .scratch/cheatsheets/; the authoritative release is never overwritten."
+    );
+  const release = await readFile2(
+    await resolveModuleFile(input.moduleRoot, input.authoring.path)
+  );
+  const baseTexSha256 = sha256Bytes(release);
+  if (baseTexSha256 !== input.authoring.sha256 || baseTexSha256 !== input.construction.baseTexSha256)
+    throw new Error(
+      "Authoritative release changed; reconcile its exact bytes before regeneration."
+    );
+  await proveCheatsheetConstruction(input.moduleRoot, input.construction);
+  const candidate = await readFile2(
+    await resolveModuleFile(input.moduleRoot, input.candidatePath)
+  );
+  decodeCheatsheetText(candidate, input.candidatePath);
+  const candidateTexSha256 = sha256Bytes(candidate);
+  if (candidateTexSha256 !== input.construction.outputTexSha256)
+    throw new Error(
+      "Staged candidate does not match construction output identity."
+    );
+  return {
+    baseTexSha256,
+    candidateTexSha256,
+    review: "unreviewed",
+    published: false
+  };
+}
+
+// src/cheatsheet/revision.ts
+var environments = /* @__PURE__ */ new Set([
+  "math",
+  "displaymath",
+  "equation",
+  "align",
+  "alignat",
+  "gather",
+  "multline",
+  "eqnarray",
+  "flalign",
+  "split",
+  "aligned",
+  "alignedat",
+  "gathered",
+  "cases",
+  "matrix",
+  "pmatrix",
+  "bmatrix",
+  "Bmatrix",
+  "vmatrix",
+  "Vmatrix",
+  "smallmatrix"
+]);
+function texEscaped(source, index) {
+  let slashes = 0;
+  for (let previous = index - 1; previous >= 0 && source[previous] === "\\"; previous--)
+    slashes++;
+  return slashes % 2 === 1;
+}
+function texGroupEnd(source, start) {
+  if (source[start] !== "{")
+    throw new Error("Expected a balanced TeX argument.");
+  let depth = 1;
+  for (let index = start + 1; index < source.length; index++) {
+    if (source[index] === "%" && !texEscaped(source, index)) {
+      index = source.indexOf("\n", index);
+      if (index < 0) break;
+    }
+    if (!texEscaped(source, index)) {
+      if (source[index] === "{") depth++;
+      if (source[index] === "}" && --depth === 0) return index + 1;
+    }
+  }
+  throw new Error("Unbalanced TeX argument.");
+}
+function delimiterEnd(source, start, opener, closer) {
+  for (let index = start + opener.length; index < source.length; index++) {
+    if (source[index] === "%" && !texEscaped(source, index)) {
+      index = source.indexOf("\n", index);
+      if (index < 0) break;
+    }
+    if (source.startsWith(closer, index) && !texEscaped(source, index))
+      return index + closer.length;
+  }
+  throw new Error(`Unclosed mathematics delimiter ${opener}.`);
+}
+function extractCheatsheetMathematics(source) {
+  const spans = [];
+  for (let index = 0; index < source.length; ) {
+    if (source[index] === "%" && !texEscaped(source, index)) {
+      const newline = source.indexOf("\n", index);
+      index = newline < 0 ? source.length : newline + 1;
+      continue;
+    }
+    if (source.startsWith("\\verb", index) && !texEscaped(source, index)) {
+      const match = /^\\verb\*?([^A-Za-z\s])/u.exec(source.slice(index));
+      if (match?.[1]) {
+        const end = source.indexOf(match[1], index + match[0].length);
+        if (end < 0) throw new Error("Unclosed TeX verbatim token.");
+        index = end + 1;
+        continue;
+      }
+    }
+    const begin = /^\\begin\{([^{}]+)\}/u.exec(source.slice(index));
+    const environment = begin?.[1];
+    if (begin !== null && environment !== void 0 && !texEscaped(source, index)) {
+      if (["verbatim", "verbatim*", "lstlisting", "minted"].includes(environment)) {
+        const end = source.indexOf(
+          `\\end{${environment}}`,
+          index + begin[0].length
+        );
+        if (end < 0)
+          throw new Error(`Unclosed verbatim environment ${environment}.`);
+        index = end + environment.length + 6;
+        continue;
+      }
+      if (environments.has(environment.replace(/\*$/u, ""))) {
+        const end = delimiterEnd(
+          source,
+          index,
+          begin[0],
+          `\\end{${environment}}`
+        );
+        spans.push({
+          start: index,
+          end,
+          text: source.slice(index, end),
+          kind: "environment"
+        });
+        index = end;
+        continue;
+      }
+    }
+    let opener;
+    let closer;
+    if (!texEscaped(source, index)) {
+      if (source[index] === "$")
+        opener = closer = source.startsWith("$$", index) ? "$$" : "$";
+      else if (source.startsWith("\\(", index)) {
+        opener = "\\(";
+        closer = "\\)";
+      } else if (source.startsWith("\\[", index)) {
+        opener = "\\[";
+        closer = "\\]";
+      } else if (source.startsWith("\\ensuremath{", index)) {
+        const end = texGroupEnd(source, index + "\\ensuremath".length);
+        spans.push({
+          start: index,
+          end,
+          text: source.slice(index, end),
+          kind: "expression"
+        });
+        index = end;
+        continue;
+      }
+    }
+    if (opener !== void 0 && closer !== void 0) {
+      const end = delimiterEnd(source, index, opener, closer);
+      spans.push({
+        start: index,
+        end,
+        text: source.slice(index, end),
+        kind: "expression"
+      });
+      index = end;
+    } else index++;
+  }
+  return spans;
+}
+function assertCheatsheetMathematicsPreserved(input) {
+  const baseline = extractCheatsheetMathematics(input.baseline).map(
+    (span) => span.text
+  );
+  const candidate = extractCheatsheetMathematics(input.candidate).map(
+    (span) => span.text
+  );
+  let position = 0;
+  for (const [index, expression] of baseline.entries()) {
+    if (input.policy === "preserve-existing") {
+      while (position < candidate.length && candidate[position] !== expression)
+        position++;
+    }
+    if (candidate[position] !== expression)
+      throw new Error(
+        `Mathematics preservation failed at expression ${index + 1}: a complete source expression changed, disappeared or moved.`
+      );
+    position++;
+  }
+  if (input.policy !== "preserve-existing" && position !== candidate.length)
+    throw new Error(
+      "Mathematics preservation failed: candidate adds source expressions under the exact policy."
+    );
+  return {
+    expressions: baseline.length,
+    candidateExpressions: candidate.length,
+    mathematicsSha256: sha256(JSON.stringify(baseline)),
+    scope: "Exact ordered source mathematics only; macro meanings, hypotheses and semantic proof validity require independent review. Selected solver fingerprints do not repair semantic drift."
+  };
+}
 
 // src/cheatsheet/coverage.ts
 var columns = [
@@ -7474,85 +7835,50 @@ function parseCheatsheetCoverage(input) {
 }
 
 // src/cheatsheet/evidence.ts
-import { readFile as readFile2 } from "node:fs/promises";
-
-// src/checksum.ts
-import { createHash } from "node:crypto";
-function sha256(contents) {
-  return createHash("sha256").update(contents, "utf8").digest("hex");
-}
-function sha256Bytes(bytes) {
-  return createHash("sha256").update(bytes).digest("hex");
-}
+import { readFile as readFile3 } from "node:fs/promises";
 
 // src/cheatsheet/authoring.ts
-import { readFile } from "node:fs/promises";
-
-// src/cheatsheet/module-path.ts
-import { lstat, realpath } from "node:fs/promises";
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
-function isOutside(root, target) {
-  const child = relative(root, target);
-  return child === "" || child === ".." || child.startsWith(`..${sep}`) || isAbsolute(child);
-}
-async function resolveModuleFile(moduleRoot, path) {
-  const root = resolve(moduleRoot);
-  const target = resolve(root, path);
-  if (isOutside(root, target)) {
-    throw new Error(`${path} does not name a file inside the module folder.`);
-  }
-  const canonicalRoot = await realpath(root);
-  const segments = relative(root, target).split(sep);
-  let candidate = canonicalRoot;
-  for (const [index, segment] of segments.entries()) {
-    candidate = join(candidate, segment);
-    const metadata = await lstat(candidate);
-    if (metadata.isSymbolicLink()) {
-      throw new Error(`${path} traverses a symbolic link.`);
-    }
-    if (index === segments.length - 1 && !metadata.isFile()) {
-      throw new Error(`${path} does not name an ordinary file.`);
-    }
-  }
-  const canonicalTarget = await realpath(candidate);
-  if (isOutside(canonicalRoot, canonicalTarget)) {
-    throw new Error(`${path} resolves outside the module folder.`);
-  }
-  return canonicalTarget;
-}
-
-// src/cheatsheet/authoring.ts
-async function provedText(root, path, digest) {
-  const body = await readFile(await resolveModuleFile(root, path), "utf8");
-  if (sha256(body) !== digest) {
+async function provedText(root, path, digest2) {
+  const read = await readCheatsheetModuleText(root, path);
+  if (read.sha256 !== digest2)
     throw new Error(`${path} no longer matches its declared SHA-256.`);
-  }
-  return body;
+  return read;
 }
 async function buildCheatsheetReleaseSource(input) {
   if (input.authoring.kind === "self-contained") {
-    const source2 = await provedText(
+    const read = await provedText(
       input.moduleRoot,
       input.authoring.path,
       input.authoring.sha256
     );
+    const construction = constructionFor(input.authoring);
+    if (construction !== void 0) {
+      if (construction.outputTexSha256 !== read.sha256)
+        throw new Error(
+          "Construction output differs from the authoritative release."
+        );
+      await proveCheatsheetConstruction(input.moduleRoot, construction);
+    }
     return {
-      source: source2,
-      sha256: sha256(source2),
+      source: read.text,
+      bytes: read.bytes,
+      sha256: read.sha256,
       inputs: [input.authoring.path]
     };
   }
   const fragments = await Promise.all(
     input.authoring.fragments.map(async (fragment) => ({
       path: fragment.path,
-      body: await provedText(input.moduleRoot, fragment.path, fragment.sha256)
+      ...await provedText(input.moduleRoot, fragment.path, fragment.sha256)
     }))
   );
-  const source = `${fragments.map(({ body }) => body.trimEnd()).join("\n\n")}
+  const source = `${fragments.map(({ text }) => text.trimEnd()).join("\n\n")}
 `;
+  const bytes = Buffer.from(source, "utf8");
   return {
     source,
-    sha256: sha256(source),
+    bytes,
+    sha256: sha256Bytes(bytes),
     inputs: fragments.map(({ path }) => path)
   };
 }
@@ -7594,11 +7920,11 @@ function numberAt(value, path) {
   return value;
 }
 function sha256At(value, path) {
-  const digest = stringAt(value, path);
-  if (!sha256Pattern.test(digest)) {
+  const digest2 = stringAt(value, path);
+  if (!sha256Pattern.test(digest2)) {
     throw new Error(`${path} must be a lowercase SHA-256 digest.`);
   }
-  return digest;
+  return digest2;
 }
 function relativePathAt(value, path) {
   const candidate = stringAt(value, path);
@@ -7616,9 +7942,16 @@ function authoringAt(value) {
     return {
       kind: "self-contained",
       path: relativePathAt(authoring.path, "authoring.path"),
-      sha256: sha256At(authoring.sha256, "authoring.sha256")
+      sha256: sha256At(authoring.sha256, "authoring.sha256"),
+      ...authoring.construction === void 0 ? {} : {
+        construction: parseCheatsheetConstruction(authoring.construction)
+      }
     };
   }
+  if (authoring.construction !== void 0)
+    throw new Error(
+      "Construction provenance requires self-contained authority."
+    );
   if (authoring.kind !== "fragments") {
     throw new Error("authoring.kind must be self-contained or fragments.");
   }
@@ -7672,12 +8005,51 @@ function constraintsAt(value) {
       "preferred body size must be at or above its positive floor."
     );
   }
+  let layout;
+  if (constraints.layout !== void 0) {
+    const raw = objectAt(constraints.layout, "constraints.layout");
+    const rawMargins = objectAt(
+      raw.margins_mm,
+      "constraints.layout.margins_mm"
+    );
+    const nonnegative = (value2, name) => {
+      const number = numberAt(value2, name);
+      if (number < 0) throw new Error(`${name} must be nonnegative.`);
+      return number;
+    };
+    const marginsMm = {
+      left: nonnegative(rawMargins.left, "constraints.layout.margins_mm.left"),
+      right: nonnegative(
+        rawMargins.right,
+        "constraints.layout.margins_mm.right"
+      ),
+      top: nonnegative(rawMargins.top, "constraints.layout.margins_mm.top"),
+      bottom: nonnegative(
+        rawMargins.bottom,
+        "constraints.layout.margins_mm.bottom"
+      )
+    };
+    const headerBottomMm = nonnegative(
+      raw.header_bottom_mm,
+      "constraints.layout.header_bottom_mm"
+    );
+    const footerTopMm = nonnegative(
+      raw.footer_top_mm,
+      "constraints.layout.footer_top_mm"
+    );
+    if (marginsMm.left + marginsMm.right >= 210 || marginsMm.top + marginsMm.bottom >= 297 || headerBottomMm > marginsMm.top || 297 - marginsMm.bottom > footerTopMm || footerTopMm > 297 || headerBottomMm >= footerTopMm)
+      throw new Error(
+        "Declared A4 body margins overlap furniture bands or leave no body area."
+      );
+    layout = { marginsMm, headerBottomMm, footerTopMm };
+  }
   return {
     paper: "A4",
     pages: exact === void 0 ? { maximum: pageLimit2 } : { exact: pageLimit2 },
     color: "monochrome",
     columns: columns2,
-    bodyPt: { preferred, floor }
+    bodyPt: { preferred, floor },
+    ...layout === void 0 ? {} : { layout }
   };
 }
 function sourcesAt(value) {
@@ -7700,14 +8072,35 @@ function sourcesAt(value) {
     if (!Array.isArray(source.locators) || source.locators.length === 0) {
       throw new Error(`sources[${index}].locators must not be empty.`);
     }
+    const locators = source.locators.map(
+      (locator, locatorIndex) => stringAt(locator, `sources[${index}].locators[${locatorIndex}]`)
+    );
+    if (new Set(locators).size !== locators.length)
+      throw new Error(`sources[${index}].locators must be unique.`);
+    let requiredLocators;
+    if (source.required_locators !== void 0) {
+      if (!Array.isArray(source.required_locators) || source.required_locators.length === 0)
+        throw new Error(
+          `sources[${index}].required_locators must enumerate source items and subparts.`
+        );
+      requiredLocators = source.required_locators.map(
+        (locator, locatorIndex) => stringAt(
+          locator,
+          `sources[${index}].required_locators[${locatorIndex}]`
+        )
+      );
+      if (new Set(requiredLocators).size !== requiredLocators.length || requiredLocators.some((locator) => !locators.includes(locator)))
+        throw new Error(
+          `sources[${index}].required_locators must be unique members of locators.`
+        );
+    }
     return {
       id,
       path: relativePathAt(source.path, `sources[${index}].path`),
       sha256: sha256At(source.sha256, `sources[${index}].sha256`),
       authority: source.authority,
-      locators: source.locators.map(
-        (locator, locatorIndex) => stringAt(locator, `sources[${index}].locators[${locatorIndex}]`)
-      )
+      locators,
+      ...requiredLocators === void 0 ? {} : { requiredLocators }
     };
   });
 }
@@ -7803,25 +8196,27 @@ function parseCheatsheetManifest(yaml) {
 
 // src/cheatsheet/evidence.ts
 async function loadCheatsheetEvidence(input) {
-  const manifestText = await readFile2(
-    await resolveModuleFile(input.moduleRoot, input.manifestPath),
-    "utf8"
+  const manifestRead = await readCheatsheetModuleText(
+    input.moduleRoot,
+    input.manifestPath
   );
+  const manifestText = manifestRead.text;
   const manifest = parseCheatsheetManifest(manifestText);
   const expectedManifestPath = `${manifest.artifact.support}/manifest.yaml`;
   if (input.manifestPath !== expectedManifestPath) {
     throw new Error(`Manifest path must be ${expectedManifestPath}.`);
   }
-  const coverageText = await readFile2(
-    await resolveModuleFile(input.moduleRoot, manifest.coverage),
-    "utf8"
+  const coverageRead = await readCheatsheetModuleText(
+    input.moduleRoot,
+    manifest.coverage
   );
+  const coverageText = coverageRead.text;
   const coverage = parseCheatsheetCoverage({
-    csv: coverageText,
+    csv: coverageText.replace(/^\uFEFF/u, ""),
     sourceIds: new Set(manifest.sources.map(({ id }) => id))
   });
   for (const source of manifest.sources) {
-    const bytes = await readFile2(
+    const bytes = await readFile3(
       await resolveModuleFile(input.moduleRoot, source.path)
     );
     if (sha256Bytes(bytes) !== source.sha256) {
@@ -7832,11 +8227,12 @@ async function loadCheatsheetEvidence(input) {
     moduleRoot: input.moduleRoot,
     authoring: manifest.authoring
   });
-  const releaseSource = await readFile2(
-    await resolveModuleFile(input.moduleRoot, manifest.artifact.releaseTex),
-    "utf8"
+  const releaseRead = await readCheatsheetModuleText(
+    input.moduleRoot,
+    manifest.artifact.releaseTex
   );
-  if (releaseSource !== built.source) {
+  const releaseSource = releaseRead.text;
+  if (!Buffer.from(releaseRead.bytes).equals(built.bytes)) {
     throw new Error(
       "Release TeX is stale against its declared authoring authority."
     );
@@ -7845,7 +8241,7 @@ async function loadCheatsheetEvidence(input) {
   if (manifest.release.texSha256 !== built.sha256) {
     throw new Error("Release TeX digest does not describe the current source.");
   }
-  const releasedPdf = await readFile2(
+  const releasedPdf = await readFile3(
     await resolveModuleFile(input.moduleRoot, manifest.artifact.releasePdf)
   );
   if (manifest.release.pdfSha256 !== sha256Bytes(releasedPdf)) {
@@ -7855,6 +8251,11 @@ async function loadCheatsheetEvidence(input) {
     manifest,
     coverage,
     manifestText,
+    manifestBytes: manifestRead.bytes,
+    manifestSha256: manifestRead.sha256,
+    coverageSha256: coverageRead.sha256,
+    coverageBytes: coverageRead.bytes,
+    releaseBytes: releaseRead.bytes,
     coverageText,
     releaseSource,
     releasedPdf
@@ -7866,6 +8267,28 @@ function validateCoverageCorrespondence(manifest, coverage, source) {
       ...source.replace(/(?<!\\)%[^\n]*/gu, "").matchAll(/\\label\s*\{([^{}]+)\}/gu)
     ].map((match) => match[1])
   );
+  for (const source2 of manifest.sources) {
+    if (!("requiredLocators" in source2) || source2.requiredLocators === void 0)
+      continue;
+    const required = source2.requiredLocators;
+    if (!Array.isArray(required) || !required.every(
+      (locator) => typeof locator === "string"
+    ))
+      throw new Error(
+        "Required source inventory must contain locator strings."
+      );
+    for (const locator of required) {
+      if (!coverage.some(
+        (item) => item.sourceId === source2.id && item.locator === locator && item.priority === "required" && ["verbatim", "condensed", "cross-reference"].includes(
+          item.disposition
+        )
+      )) {
+        throw new Error(
+          `Required source ${source2.id} locator ${locator} is absent from included required coverage.`
+        );
+      }
+    }
+  }
   for (const item of coverage) {
     const declared = manifest.sources.find(({ id }) => id === item.sourceId);
     if (!declared?.locators.includes(item.locator)) {
@@ -7890,6 +8313,263 @@ function assertCheatsheetReleaseReady(evidence) {
     );
   }
 }
+
+// src/cheatsheet/measurement-schema.ts
+function isMapping(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function objectAt2(value, path) {
+  if (!isMapping(value)) throw new Error(`${path} must be an object.`);
+  return value;
+}
+function stringAt2(value, path) {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error(`${path} must be a nonempty string.`);
+  }
+  return value;
+}
+function numberAt2(value, path) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    throw new Error(`${path} must be a finite nonnegative number.`);
+  }
+  return value;
+}
+function positiveIntegerAt(value, path) {
+  const number = numberAt2(value, path);
+  if (!Number.isInteger(number) || number < 1) {
+    throw new Error(`${path} must be a positive integer.`);
+  }
+  return number;
+}
+function sha256At2(value, path) {
+  const digest2 = stringAt2(value, path);
+  if (!/^[a-f0-9]{64}$/u.test(digest2)) {
+    throw new Error(`${path} must be a lowercase SHA-256 digest.`);
+  }
+  return digest2;
+}
+function artifactAt(value, path) {
+  const object = objectAt2(value, path);
+  const candidate = stringAt2(object.path, `${path}.path`);
+  if (candidate.startsWith("/") || candidate.includes("\\") || candidate.split("/").some((part) => ["", ".", ".."].includes(part))) {
+    throw new Error(`${path}.path must be a normalized module-relative path.`);
+  }
+  return {
+    path: candidate,
+    sha256: sha256At2(object.sha256, `${path}.sha256`)
+  };
+}
+function artifactsAt(value, path) {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error(`${path} must contain retained evidence.`);
+  }
+  return value.map(
+    (entry, index) => artifactAt(entry, `${path}[${index}]`)
+  );
+}
+function rendersAt(value, path) {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error(`${path} must contain one render per page.`);
+  }
+  return value.map((entry, index) => ({
+    ...artifactAt(entry, `${path}[${index}]`),
+    page: positiveIntegerAt(
+      objectAt2(entry, path).page,
+      `${path}[${index}].page`
+    )
+  }));
+}
+function buildAt(value) {
+  const build = objectAt2(value, "measurements.build");
+  return {
+    id: sha256At2(build.id, "measurements.build.id"),
+    source: artifactAt(build.source, "measurements.build.source"),
+    pdf: artifactAt(build.pdf, "measurements.build.pdf"),
+    releasedPdf: artifactAt(
+      build.releasedPdf,
+      "measurements.build.releasedPdf"
+    ),
+    aux: artifactAt(build.aux, "measurements.build.aux"),
+    log: artifactAt(build.log, "measurements.build.log"),
+    pdfInfo: artifactAt(build.pdfInfo, "measurements.build.pdfInfo"),
+    fontXml: artifactAt(build.fontXml, "measurements.build.fontXml"),
+    fullXml: artifactAt(build.fullXml, "measurements.build.fullXml"),
+    renders: rendersAt(build.renders, "measurements.build.renders"),
+    releasedRenders: rendersAt(
+      build.releasedRenders,
+      "measurements.build.releasedRenders"
+    )
+  };
+}
+function observationAt(value, path, parseValue) {
+  const object = objectAt2(value, path);
+  if (object.kind === "unknown") {
+    if ("value" in object || "method" in object || "evidence" in object) {
+      throw new Error(
+        `${path}: unknown observations cannot carry a value or claim evidence.`
+      );
+    }
+    return {
+      kind: "unknown",
+      reason: stringAt2(object.reason, `${path}.reason`)
+    };
+  }
+  if (object.kind !== "measured" && object.kind !== "manual") {
+    throw new Error(`${path}.kind must be measured, manual or unknown.`);
+  }
+  return {
+    kind: object.kind,
+    value: parseValue(object.value, `${path}.value`),
+    method: stringAt2(object.method, `${path}.method`),
+    evidence: artifactsAt(object.evidence, `${path}.evidence`)
+  };
+}
+function geometryAt(value, path) {
+  const object = objectAt2(value, path);
+  const geometry = {
+    topMm: numberAt2(object.topMm, `${path}.topMm`),
+    bottomMm: numberAt2(object.bottomMm, `${path}.bottomMm`),
+    contentTopMm: numberAt2(object.contentTopMm, `${path}.contentTopMm`),
+    contentBottomMm: numberAt2(
+      object.contentBottomMm,
+      `${path}.contentBottomMm`
+    ),
+    largestInternalGapBaselines: numberAt2(
+      object.largestInternalGapBaselines,
+      `${path}.largestInternalGapBaselines`
+    )
+  };
+  if (geometry.bottomMm <= geometry.topMm || geometry.bottomMm > 297 || geometry.contentTopMm < geometry.topMm || geometry.contentBottomMm < geometry.contentTopMm || geometry.contentBottomMm > geometry.bottomMm) {
+    throw new Error(
+      `${path} must describe ordered content bounds within an A4 column.`
+    );
+  }
+  return geometry;
+}
+function continuationAt(value, path) {
+  const object = objectAt2(value, path);
+  if (object.status === "none" || object.status === "unidentified") {
+    return { status: object.status };
+  }
+  if (object.status === "identified") {
+    return {
+      status: "identified",
+      label: stringAt2(object.label, `${path}.label`)
+    };
+  }
+  throw new Error(`${path}.status must be none, identified or unidentified.`);
+}
+function parseCheatsheetMeasurementEvidence(value) {
+  const root = objectAt2(value, "measurements");
+  if (root.schemaVersion !== 2) {
+    throw new Error(
+      "measurements.schemaVersion must be 2; unsupported numeric-only measurements cannot establish release fitness."
+    );
+  }
+  const release = objectAt2(root.release, "measurements.release");
+  const metrics = objectAt2(root.metrics, "measurements.metrics");
+  if (!Array.isArray(root.columns) || root.columns.length === 0) {
+    throw new Error(
+      "measurements.columns must describe every page and column."
+    );
+  }
+  return {
+    schemaVersion: 2,
+    release: {
+      artifactId: stringAt2(
+        release.artifactId,
+        "measurements.release.artifactId"
+      ),
+      manifestSha256: sha256At2(
+        release.manifestSha256,
+        "measurements.release.manifestSha256"
+      ),
+      texSha256: sha256At2(release.texSha256, "measurements.release.texSha256"),
+      pdfSha256: sha256At2(release.pdfSha256, "measurements.release.pdfSha256")
+    },
+    build: buildAt(root.build),
+    metrics: {
+      pages: observationAt(
+        metrics.pages,
+        "measurements.metrics.pages",
+        positiveIntegerAt
+      ),
+      bodyPt: observationAt(
+        metrics.bodyPt,
+        "measurements.metrics.bodyPt",
+        numberAt2
+      ),
+      overfullBoxes: observationAt(
+        metrics.overfullBoxes,
+        "measurements.metrics.overfullBoxes",
+        numberAt2
+      ),
+      missingGlyphs: observationAt(
+        metrics.missingGlyphs,
+        "measurements.metrics.missingGlyphs",
+        numberAt2
+      )
+    },
+    columns: root.columns.map((entry, index) => {
+      const path = `measurements.columns[${index}]`;
+      const column = objectAt2(entry, path);
+      return {
+        page: positiveIntegerAt(column.page, `${path}.page`),
+        column: positiveIntegerAt(column.column, `${path}.column`),
+        geometry: observationAt(
+          column.geometry,
+          `${path}.geometry`,
+          geometryAt
+        ),
+        continuation: observationAt(
+          column.continuation,
+          `${path}.continuation`,
+          continuationAt
+        )
+      };
+    })
+  };
+}
+var cheatsheetMeasurementSchema = {
+  format: "JSON",
+  schemaVersion: 2,
+  release: ["artifactId", "manifestSha256", "texSha256", "pdfSha256"],
+  build: {
+    id: "SHA-256 of canonical build evidence digests; paths excluded",
+    artifacts: [
+      "source",
+      "pdf",
+      "releasedPdf",
+      "aux",
+      "log",
+      "pdfInfo",
+      "fontXml",
+      "fullXml"
+    ],
+    renders: "renders and releasedRenders: [{page, path, sha256}], sequential page order"
+  },
+  observation: {
+    known: "{kind: measured|manual, value, method, evidence: [{path, sha256}]}",
+    unknown: "{kind: unknown, reason}; no value; blocks fitting"
+  },
+  metrics: ["pages", "bodyPt", "overfullBoxes", "missingGlyphs"],
+  columns: {
+    identity: ["page", "column"],
+    geometryValue: [
+      "topMm",
+      "bottomMm",
+      "contentTopMm",
+      "contentBottomMm",
+      "largestInternalGapBaselines"
+    ],
+    continuationValue: "{status: none|unidentified} or {status: identified, label}",
+    evidence: "Geometry and continuation observations reference this page's retained released render; identified continuations also reference compiled AUX"
+  },
+  evidence: "Normalized module-relative paths beneath artifact.support; every file and SHA-256 checked. Numeric metrics corroborated by retained pdfinfo, font XML and log. Manual layout observations remain manual, not machine proof."
+};
+
+// src/cheatsheet/measurements.ts
+import { readFile as readFile4 } from "node:fs/promises";
 
 // src/cheatsheet/fit.ts
 var priorityRank = {
@@ -7995,11 +8675,359 @@ function planCheatsheetFit(input) {
       reason: "No sourced candidate remains; recorded whitespace does not license filler."
     };
   }
-  return { kind: "accept", reason: "Coverage and measured constraints pass." };
+  return {
+    kind: "accept",
+    reason: "Coverage and supplied fit constraints pass."
+  };
+}
+
+// src/cheatsheet/pdf-inspection.ts
+var fontMeasurementZoom = 3;
+var fontMeasurementTolerance = 0.2;
+function attribute(attributes, name) {
+  const value = Number(
+    new RegExp(`\\b${name}="(-?[0-9.]+)"`, "u").exec(attributes)?.[1]
+  );
+  if (!Number.isFinite(value)) throw new Error(`PDF XML lacks finite ${name}.`);
+  return value / fontMeasurementZoom;
+}
+function inspectPdfBoundaries(xml, layout) {
+  let pages = 0;
+  let textBoxes = 0;
+  const mm = 72 / 25.4;
+  const tolerance = 0.5;
+  for (const match of xml.matchAll(/<page\b([^>]*)>([\s\S]*?)<\/page>/gu)) {
+    pages += 1;
+    const width = attribute(match[1] ?? "", "width");
+    const height = attribute(match[1] ?? "", "height");
+    for (const text of (match[2] ?? "").matchAll(
+      /<text\b([^>]*)>([\s\S]*?)<\/text>/gu
+    )) {
+      if (visibleCharacterCount(text[2] ?? "") === 0) continue;
+      textBoxes += 1;
+      const attributes = text[1] ?? "";
+      const left = attribute(attributes, "left");
+      const top = attribute(attributes, "top");
+      const right = left + attribute(attributes, "width");
+      const bottom = top + attribute(attributes, "height");
+      if (left < -tolerance || top < -tolerance || right > width + tolerance || bottom > height + tolerance)
+        throw new Error(
+          `Off-page PDF text on page ${pages}: ${[left, top, right, bottom].join(",")}.`
+        );
+      if (layout === void 0) continue;
+      const headerBottom = layout.headerBottomMm * mm;
+      const footerTop = layout.footerTopMm * mm;
+      if (top < headerBottom - tolerance && bottom > headerBottom + tolerance || top < footerTop - tolerance && bottom > footerTop + tolerance)
+        throw new Error(
+          `PDF text crosses a header/footer clearance on page ${pages}.`
+        );
+      if (top >= headerBottom - tolerance && bottom <= footerTop + tolerance && (left < layout.marginsMm.left * mm - tolerance || right > width - layout.marginsMm.right * mm + tolerance || top < layout.marginsMm.top * mm - tolerance || bottom > height - layout.marginsMm.bottom * mm + tolerance))
+        throw new Error(
+          `PDF body text crosses its declared boundary on page ${pages}.`
+        );
+    }
+  }
+  if (pages === 0 || textBoxes === 0)
+    throw new Error("PDF XML contains no inspectable pages/text.");
+  return { pages, textBoxes, furnitureChecked: layout !== void 0 };
+}
+function visibleCharacterCount(xmlText) {
+  return xmlText.replace(/<[^>]+>/gu, "").replace(/&(?:#x?[0-9A-Fa-f]+|[A-Za-z]+);/gu, "x").replace(/\s/gu, "").length;
+}
+function dominantBodyPointSize(xml) {
+  const weights = /* @__PURE__ */ new Map();
+  const pages = xml.matchAll(/<page\b[^>]*>([\s\S]*?)<\/page>/gu);
+  for (const pageMatch of pages) {
+    const page = pageMatch[1] ?? "";
+    const sizes = /* @__PURE__ */ new Map();
+    for (const font of page.matchAll(/<fontspec\b([^>]*)\/>/gu)) {
+      const attributes = font[1] ?? "";
+      const id = /\bid="([^"]+)"/u.exec(attributes)?.[1];
+      const scaledSize = Number(/\bsize="([0-9.]+)"/u.exec(attributes)?.[1]);
+      if (id !== void 0 && Number.isFinite(scaledSize)) {
+        sizes.set(id, scaledSize / fontMeasurementZoom);
+      }
+    }
+    for (const text of page.matchAll(/<text\b([^>]*)>([\s\S]*?)<\/text>/gu)) {
+      const id = /\bfont="([^"]+)"/u.exec(text[1] ?? "")?.[1];
+      const size = id === void 0 ? void 0 : sizes.get(id);
+      const weight = visibleCharacterCount(text[2] ?? "");
+      if (size !== void 0 && weight > 0) {
+        weights.set(size, (weights.get(size) ?? 0) + weight);
+      }
+    }
+  }
+  const bodySize = [...weights].sort(
+    ([leftSize, leftWeight], [rightSize, rightWeight]) => rightWeight - leftWeight || leftSize - rightSize
+  ).at(0)?.[0];
+  if (bodySize === void 0) {
+    throw new Error("PDF font inspection found no visible text.");
+  }
+  return bodySize;
+}
+
+// src/cheatsheet/measurements.ts
+function cheatsheetBuildEvidenceId(build) {
+  return sha256Bytes(
+    Buffer.from(
+      JSON.stringify({
+        source: build.source.sha256,
+        pdf: build.pdf.sha256,
+        releasedPdf: build.releasedPdf.sha256,
+        aux: build.aux.sha256,
+        log: build.log.sha256,
+        pdfInfo: build.pdfInfo.sha256,
+        fontXml: build.fontXml.sha256,
+        fullXml: build.fullXml.sha256,
+        renders: build.renders.map(({ page, sha256: sha2562 }) => ({ page, sha256: sha2562 })),
+        releasedRenders: build.releasedRenders.map(({ page, sha256: sha2562 }) => ({
+          page,
+          sha256: sha2562
+        }))
+      }),
+      "utf8"
+    )
+  );
+}
+function rebaseCheatsheetBuildEvidence(build, directory) {
+  const rebase = (artifact) => ({
+    ...artifact,
+    path: `${directory}/${artifact.path}`
+  });
+  return {
+    id: build.id,
+    source: rebase(build.source),
+    pdf: rebase(build.pdf),
+    releasedPdf: rebase(build.releasedPdf),
+    aux: rebase(build.aux),
+    log: rebase(build.log),
+    pdfInfo: rebase(build.pdfInfo),
+    fontXml: rebase(build.fontXml),
+    fullXml: rebase(build.fullXml),
+    renders: build.renders.map((render) => ({
+      ...rebase(render),
+      page: render.page
+    })),
+    releasedRenders: build.releasedRenders.map((render) => ({
+      ...rebase(render),
+      page: render.page
+    }))
+  };
+}
+function references(observation) {
+  return observation.kind === "unknown" ? [] : observation.evidence;
+}
+function assertReference(observation, artifact, description) {
+  if (observation.kind !== "unknown" && !observation.evidence.some(
+    ({ path, sha256: sha2562 }) => path === artifact.path && sha2562 === artifact.sha256
+  )) {
+    throw new Error(`${description} must reference ${artifact.path}.`);
+  }
+}
+function valueOrUnknown(observation, description, reasons) {
+  if (observation.kind === "unknown") {
+    reasons.push(`${description} is unknown: ${observation.reason}`);
+    return void 0;
+  }
+  return observation.value;
+}
+function assertReleaseIdentity(measurement, release) {
+  const identity = measurement.release;
+  if (identity.artifactId !== release.manifest.artifact.id || identity.manifestSha256 !== sha256Bytes(Buffer.from(release.manifestText, "utf8")) || identity.texSha256 !== release.manifest.release.texSha256 || identity.pdfSha256 !== release.manifest.release.pdfSha256) {
+    throw new Error(
+      "Measurements are stale or describe a different manifest/release TeX/PDF."
+    );
+  }
+  if (measurement.build.id !== cheatsheetBuildEvidenceId(measurement.build) || measurement.build.source.sha256 !== identity.texSha256 || measurement.build.releasedPdf.sha256 !== identity.pdfSha256) {
+    throw new Error(
+      "Build evidence identity is stale or does not describe this release."
+    );
+  }
+}
+async function fitCheatsheetRelease(input) {
+  const release = await loadCheatsheetEvidence(input);
+  const measurement = parseCheatsheetMeasurementEvidence(
+    JSON.parse(
+      new TextDecoder("utf-8", { fatal: true }).decode(
+        await readFile4(input.measurementsPath)
+      )
+    )
+  );
+  assertReleaseIdentity(measurement, release);
+  const { build, metrics } = measurement;
+  const artifacts = [
+    build.source,
+    build.pdf,
+    build.releasedPdf,
+    build.aux,
+    build.log,
+    build.pdfInfo,
+    build.fontXml,
+    build.fullXml,
+    ...build.renders,
+    ...build.releasedRenders,
+    ...Object.values(metrics).flatMap(references),
+    ...measurement.columns.flatMap((column) => [
+      ...references(column.geometry),
+      ...references(column.continuation)
+    ])
+  ];
+  const files = /* @__PURE__ */ new Map();
+  for (const artifact of artifacts) {
+    if (!artifact.path.startsWith(`${release.manifest.artifact.support}/`)) {
+      throw new Error(
+        `Retained evidence ${artifact.path} must be beneath artifact.support.`
+      );
+    }
+    let bytes = files.get(artifact.path);
+    if (bytes === void 0) {
+      bytes = await readFile4(
+        await resolveModuleFile(input.moduleRoot, artifact.path)
+      );
+      files.set(artifact.path, bytes);
+    }
+    if (bytes.length === 0 || sha256Bytes(bytes) !== artifact.sha256) {
+      throw new Error(
+        `Retained evidence ${artifact.path} is empty, stale or has the wrong SHA-256.`
+      );
+    }
+  }
+  const text = (artifact) => {
+    const bytes = files.get(artifact.path);
+    if (bytes === void 0)
+      throw new Error(`Missing retained evidence ${artifact.path}.`);
+    return bytes.toString("utf8");
+  };
+  const reportedPages = Number(
+    /^Pages:\s+(\d+)$/mu.exec(text(build.pdfInfo))?.[1]
+  );
+  if (!Number.isInteger(reportedPages) || reportedPages < 1) {
+    throw new Error("Retained pdfinfo must report a positive page count.");
+  }
+  for (const [index, render] of build.renders.entries()) {
+    const released = build.releasedRenders[index];
+    if (render.page !== index + 1 || released?.page !== index + 1 || render.sha256 !== released.sha256) {
+      throw new Error(
+        "Fresh build and released renders must match for every sequential page."
+      );
+    }
+  }
+  if (build.renders.length !== reportedPages || build.releasedRenders.length !== reportedPages) {
+    throw new Error(
+      "Retained renders do not cover exactly the compiled pages."
+    );
+  }
+  const expectedColumns = reportedPages * release.manifest.constraints.columns;
+  if (measurement.columns.length !== expectedColumns) {
+    throw new Error(
+      "Measurements must describe every compiled page and column exactly once."
+    );
+  }
+  const reasons = [];
+  const pages = valueOrUnknown(metrics.pages, "Page count", reasons);
+  const bodyPt = valueOrUnknown(metrics.bodyPt, "Body size", reasons);
+  const overfullBoxes = valueOrUnknown(
+    metrics.overfullBoxes,
+    "Overfull box count",
+    reasons
+  );
+  const missingGlyphs = valueOrUnknown(
+    metrics.missingGlyphs,
+    "Missing glyph count",
+    reasons
+  );
+  assertReference(metrics.pages, build.pdfInfo, "Page count");
+  assertReference(metrics.bodyPt, build.fontXml, "Body size");
+  assertReference(metrics.overfullBoxes, build.log, "Overfull box count");
+  assertReference(metrics.missingGlyphs, build.log, "Missing glyph count");
+  const log = text(build.log);
+  const actualOverfull = [...log.matchAll(/Overfull \\[hv]box/gu)].length;
+  const actualMissing = [...log.matchAll(/Missing character:/gu)].length;
+  const actualBodyPt = dominantBodyPointSize(text(build.fontXml));
+  if (pages !== void 0 && pages !== reportedPages || bodyPt !== void 0 && (bodyPt <= 0 || Math.abs(bodyPt - actualBodyPt) > fontMeasurementTolerance) || overfullBoxes !== void 0 && overfullBoxes !== actualOverfull || missingGlyphs !== void 0 && missingGlyphs !== actualMissing) {
+    throw new Error(
+      "Numeric observations contradict the retained compiled PDF/log evidence."
+    );
+  }
+  let unidentifiedContinuations = 0;
+  let internalVoidBaselines = 0;
+  let maximumColumnUnusedMm = 0;
+  const columnIdentities = /* @__PURE__ */ new Set();
+  const labels = new Set(
+    [...text(build.aux).matchAll(/\\newlabel\{([^{}]+)\}/gu)].map(
+      (match) => match[1]
+    )
+  );
+  for (const column of measurement.columns) {
+    const identity = `page ${column.page}, column ${column.column}`;
+    if (column.page > reportedPages || column.column > release.manifest.constraints.columns || columnIdentities.has(identity)) {
+      throw new Error(`Invalid or duplicate ${identity}.`);
+    }
+    columnIdentities.add(identity);
+    const render = build.releasedRenders[column.page - 1];
+    if (render === void 0)
+      throw new Error(`Missing render for ${identity}.`);
+    assertReference(column.geometry, render, `Geometry for ${identity}`);
+    assertReference(
+      column.continuation,
+      render,
+      `Continuation for ${identity}`
+    );
+    const geometry = valueOrUnknown(
+      column.geometry,
+      `Geometry for ${identity}`,
+      reasons
+    );
+    const continuation = valueOrUnknown(
+      column.continuation,
+      `Continuation for ${identity}`,
+      reasons
+    );
+    if (geometry !== void 0) {
+      internalVoidBaselines = Math.max(
+        internalVoidBaselines,
+        geometry.largestInternalGapBaselines
+      );
+      maximumColumnUnusedMm = Math.max(
+        maximumColumnUnusedMm,
+        geometry.bottomMm - geometry.contentBottomMm
+      );
+    }
+    if (continuation?.status === "unidentified") unidentifiedContinuations += 1;
+    if (continuation?.status === "identified") {
+      assertReference(
+        column.continuation,
+        build.aux,
+        `Identified continuation for ${identity}`
+      );
+      if (!labels.has(continuation.label))
+        throw new Error(
+          `Continuation label ${continuation.label} is absent from compiled AUX.`
+        );
+    }
+  }
+  const decision = pages === void 0 || bodyPt === void 0 || overfullBoxes === void 0 || missingGlyphs === void 0 || reasons.length > 0 ? { kind: "blocked", reasons } : planCheatsheetFit({
+    constraints: release.manifest.constraints,
+    coverage: release.coverage,
+    measurements: {
+      pages,
+      bodyPt,
+      overfullBoxes,
+      missingGlyphs,
+      unidentifiedContinuations,
+      internalVoidBaselines,
+      finalColumnUnusedMm: maximumColumnUnusedMm
+    }
+  });
+  return {
+    ...decision,
+    measurementEvidence: measurement,
+    evidenceBoundary: "Artifact identities and numeric corroboration checked; retained manual/measured layout observations keep their declared method and do not establish machine measurement or semantic proof."
+  };
 }
 
 // src/cheatsheet/prepare.ts
-import { readFile as readFile3 } from "node:fs/promises";
+import { readFile as readFile5 } from "node:fs/promises";
 
 // src/conformance/control-document.ts
 var import_yaml2 = __toESM(require_dist(), 1);
@@ -9444,10 +10472,7 @@ async function prepareCheatsheet(input) {
     Object.entries(paths).map(async ([kind, path]) => ({
       kind,
       path,
-      text: await readFile3(
-        await resolveModuleFile(input.moduleRoot, path),
-        "utf8"
-      )
+      ...await readCheatsheetModuleText(input.moduleRoot, path)
     }))
   );
   const profile = controls.find(({ kind }) => kind === "profile")?.text ?? "";
@@ -9473,7 +10498,7 @@ async function prepareCheatsheet(input) {
   for (const candidate of candidates) {
     try {
       candidate.sha256 = sha256Bytes(
-        await readFile3(
+        await readFile5(
           await resolveModuleFile(input.moduleRoot, candidate.path)
         )
       );
@@ -9513,9 +10538,9 @@ async function prepareCheatsheet(input) {
     assessmentRequest: input.assessment,
     assessments,
     controlFindings,
-    controls: controls.map(({ path, text }) => ({
+    controls: controls.map(({ path, sha256: sha2562 }) => ({
       path,
-      sha256: sha256(text)
+      sha256: sha2562
     })),
     context: {
       scope: sectionBody(profile, "Scope"),
@@ -9583,35 +10608,155 @@ import { execFile as execFile2 } from "node:child_process";
 import {
   mkdtemp,
   mkdir,
-  readFile as readFile5,
+  readFile as readFile8,
   readdir,
   rm,
-  writeFile
+  writeFile as writeFile2
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { basename, join as join3 } from "node:path";
+import { basename, join as join5 } from "node:path";
 import { promisify as promisify2 } from "node:util";
+
+// src/cheatsheet/structure.ts
+function assertCheatsheetParagraphStructure(source) {
+  const definition = /\\(?:re)?newcommand\s*\{\\KeepBlock\}\s*\[1\]\s*\{\s*\\par\s*\\noindent\b/u;
+  if (!definition.test(source)) return;
+  for (const match of source.matchAll(/\\KeepBlock\s*\{/gu)) {
+    let depth = 1;
+    const start = (match.index ?? 0) + match[0].length;
+    for (let index = start; index < source.length && depth > 0; index += 1) {
+      if (source[index] === "\\") {
+        index += 1;
+        continue;
+      }
+      if (source[index] === "{") depth += 1;
+      if (source[index] === "}") depth -= 1;
+      if (depth === 0 && /\\KeepBlock\s*\{/u.test(source.slice(start, index)))
+        throw new Error(
+          "Nested KeepBlock uses a paragraph-opening noindent. Remove that wrapper's empty paragraph before fitting or reducing font size."
+        );
+    }
+  }
+}
+
+// src/cheatsheet/retained-build.ts
+import { copyFile, readFile as readFile6, writeFile } from "node:fs/promises";
+import { join as join2 } from "node:path";
+async function retainCheatsheetBuild(input) {
+  const copy = async (from, path) => {
+    await copyFile(from, join2(input.destination, path));
+    return {
+      path,
+      sha256: sha256Bytes(await readFile6(join2(input.destination, path)))
+    };
+  };
+  const save = async (body, path) => {
+    await writeFile(join2(input.destination, path), body, { flag: "wx" });
+    return { path, sha256: sha256Bytes(Buffer.from(body, "utf8")) };
+  };
+  const artifacts = {
+    source: await copy(input.source, "source.tex"),
+    pdf: await copy(input.pdf, "built.pdf"),
+    releasedPdf: await copy(input.releasedPdf, "released.pdf"),
+    aux: await copy(input.aux, "build.aux"),
+    log: await copy(input.log, "build.log"),
+    pdfInfo: await save(input.pdfInfo, "pdfinfo.txt"),
+    fontXml: await save(input.fontXml, "fonts.xml"),
+    fullXml: await save(input.fullXml, "full.xml"),
+    renders: await Promise.all(
+      input.renders.map(async (path, index) => ({
+        ...await copy(path, `built-page-${index + 1}.png`),
+        page: index + 1
+      }))
+    ),
+    releasedRenders: await Promise.all(
+      input.releasedRenders.map(async (path, index) => ({
+        ...await copy(path, `released-page-${index + 1}.png`),
+        page: index + 1
+      }))
+    )
+  };
+  const build = { id: cheatsheetBuildEvidenceId(artifacts), ...artifacts };
+  await save(`${JSON.stringify(build, null, 2)}
+`, "build-identity.json");
+  return build;
+}
 
 // src/cheatsheet/portable-build.ts
 import { execFile } from "node:child_process";
-import { readFile as readFile4, realpath as realpath2 } from "node:fs/promises";
-import { dirname, isAbsolute as isAbsolute3, join as join2, relative as relative2, resolve as resolve2, sep as sep2 } from "node:path";
+import { readFile as readFile7, realpath as realpath2 } from "node:fs/promises";
+import { dirname, isAbsolute as isAbsolute3, join as join4, relative as relative2, resolve as resolve2, sep as sep2 } from "node:path";
 import { promisify } from "node:util";
+
+// src/cheatsheet/toolchain.ts
+import { accessSync, constants } from "node:fs";
+import { homedir } from "node:os";
+import { delimiter, join as join3 } from "node:path";
+var cheatsheetExecutables = [
+  "latexmk",
+  "kpsewhich",
+  "pdfinfo",
+  "pdffonts",
+  "pdftotext",
+  "pdftoppm",
+  "pdftohtml"
+];
+function cheatsheetExecutablePath(env = process.env) {
+  if (env.ACADEMIC_OS_TOOL_PATH !== void 0) return env.ACADEMIC_OS_TOOL_PATH;
+  const dependencies = join3(
+    homedir(),
+    ".cache/codex-runtimes/codex-primary-runtime/dependencies"
+  );
+  return [
+    ...new Set(
+      [
+        ...(env.PATH ?? "").split(delimiter),
+        ...process.platform === "darwin" ? ["/Library/TeX/texbin", "/opt/homebrew/bin", "/usr/local/bin"] : [],
+        join3(dependencies, "bin/override"),
+        join3(dependencies, "bin/fallback"),
+        join3(dependencies, "native/poppler/poppler/bin"),
+        join3(homedir(), "Library/TinyTeX/bin/universal-darwin"),
+        join3(homedir(), ".TinyTeX/bin/universal-darwin")
+      ].filter(Boolean)
+    )
+  ].join(delimiter);
+}
+function findCheatsheetExecutable(executable, env = process.env) {
+  for (const directory of cheatsheetExecutablePath(env).split(delimiter).filter(Boolean)) {
+    const path = join3(directory, executable);
+    try {
+      accessSync(path, constants.X_OK);
+      return path;
+    } catch {
+    }
+  }
+  return void 0;
+}
+function requireCheatsheetExecutable(executable) {
+  const path = findCheatsheetExecutable(executable);
+  if (path === void 0)
+    throw new Error(
+      `Missing cheatsheet executable: ${executable}. Set PATH or ACADEMIC_OS_TOOL_PATH to the complete TeX/Poppler toolchain.`
+    );
+  return path;
+}
+
+// src/cheatsheet/portable-build.ts
 var run = promisify(execFile);
 async function compilePortableSource(root, filename) {
   const workspace = dirname(root);
   const env = {
-    PATH: process.env.PATH,
+    PATH: cheatsheetExecutablePath(),
     HOME: workspace,
     TMPDIR: workspace,
-    TEXMFHOME: join2(workspace, "texmf-home"),
-    TEXMFCONFIG: join2(workspace, "texmf-config"),
-    TEXMFVAR: join2(workspace, "texmf-var"),
+    TEXMFHOME: join4(workspace, "texmf-home"),
+    TEXMFCONFIG: join4(workspace, "texmf-config"),
+    TEXMFVAR: join4(workspace, "texmf-var"),
     openin_any: "p",
     openout_any: "p",
     shell_escape: "f"
   };
-  const command2 = async (executable, args) => (await run(executable, args, {
+  const command2 = async (executable, args) => (await run(requireCheatsheetExecutable(executable), args, {
     cwd: root,
     env,
     encoding: "utf8",
@@ -9659,12 +10804,12 @@ async function compilePortableSource(root, filename) {
     "-auxdir=aux",
     `./${filename}`
   ]);
-  const recorder = await readFile4(
-    join2(root, "aux", filename.replace(/\.tex$/u, ".fls")),
+  const recorder = await readFile7(
+    join4(root, "aux", filename.replace(/\.tex$/u, ".fls")),
     "utf8"
   );
   const buildRoot = await realpath2(root);
-  const source = await realpath2(join2(root, filename));
+  const source = await realpath2(join4(root, filename));
   const inputs = /* @__PURE__ */ new Set();
   for (const line of recorder.split(/\r?\n/u)) {
     if (!line.startsWith("INPUT ")) continue;
@@ -9686,14 +10831,17 @@ function within(directory, path) {
 
 // src/cheatsheet/portable-release.ts
 var run2 = promisify2(execFile2);
-var fontMeasurementZoom = 3;
-var fontMeasurementTolerance = 0.2;
 async function command(executable, arguments_, cwd) {
-  const result = await run2(executable, arguments_, {
-    cwd,
-    encoding: "utf8",
-    maxBuffer: 16 * 1024 * 1024
-  });
+  const result = await run2(
+    requireCheatsheetExecutable(executable),
+    arguments_,
+    {
+      env: { ...process.env, PATH: cheatsheetExecutablePath() },
+      cwd,
+      encoding: "utf8",
+      maxBuffer: 16 * 1024 * 1024
+    }
+  );
   return result.stdout;
 }
 function pagesFrom(pdfinfo) {
@@ -9721,79 +10869,48 @@ function fontsAreEmbedded(pdffonts) {
   ).filter((match) => match !== null);
   return resources.length > 0 && resources.every((match) => match[1] === "yes");
 }
-function visibleCharacterCount(xmlText) {
-  return xmlText.replace(/<[^>]+>/gu, "").replace(/&(?:#x?[0-9A-Fa-f]+|[A-Za-z]+);/gu, "x").replace(/\s/gu, "").length;
-}
-function dominantBodyPointSize(xml) {
-  const weights = /* @__PURE__ */ new Map();
-  const pages = xml.matchAll(/<page\b[^>]*>([\s\S]*?)<\/page>/gu);
-  for (const pageMatch of pages) {
-    const page = pageMatch[1] ?? "";
-    const sizes = /* @__PURE__ */ new Map();
-    for (const font of page.matchAll(/<fontspec\b([^>]*)\/>/gu)) {
-      const attributes = font[1] ?? "";
-      const id = /\bid="([^"]+)"/u.exec(attributes)?.[1];
-      const scaledSize = Number(/\bsize="([0-9.]+)"/u.exec(attributes)?.[1]);
-      if (id !== void 0 && Number.isFinite(scaledSize)) {
-        sizes.set(id, scaledSize / fontMeasurementZoom);
-      }
-    }
-    for (const text of page.matchAll(/<text\b([^>]*)>([\s\S]*?)<\/text>/gu)) {
-      const id = /\bfont="([^"]+)"/u.exec(text[1] ?? "")?.[1];
-      const size = id === void 0 ? void 0 : sizes.get(id);
-      const weight = visibleCharacterCount(text[2] ?? "");
-      if (size !== void 0 && weight > 0) {
-        weights.set(size, (weights.get(size) ?? 0) + weight);
-      }
-    }
-  }
-  const bodySize = [...weights].sort(
-    ([leftSize, leftWeight], [rightSize, rightWeight]) => rightWeight - leftWeight || leftSize - rightSize
-  ).at(0)?.[0];
-  if (bodySize === void 0) {
-    throw new Error("PDF font inspection found no visible text.");
-  }
-  return bodySize;
-}
 async function renderedDigests(root, pdf, prefix) {
   await command("pdftoppm", ["-png", "-r", "180", pdf, prefix], root);
   const names = (await readdir(root)).filter((name) => name.startsWith(`${prefix}-`) && name.endsWith(".png")).sort();
   return Promise.all(
-    names.map(async (name) => sha256Bytes(await readFile5(join3(root, name))))
+    names.map(async (name) => sha256Bytes(await readFile8(join5(root, name))))
   );
 }
 async function verifyPortableCheatsheetRelease(input) {
+  assertCheatsheetParagraphStructure(input.source);
   if (/\\(?:resizebox|scalebox)\b/u.test(input.source)) {
     throw new Error("Release source uses hidden geometric scaling.");
   }
-  const workspace = await mkdtemp(join3(tmpdir(), "cheatsheet-portable-"));
+  if (input.evidenceDestination !== void 0)
+    await mkdir(input.evidenceDestination);
+  const workspace = await mkdtemp(join5(tmpdir(), "cheatsheet-portable-"));
   try {
-    const buildRoot = join3(workspace, "build");
-    const referenceRoot = join3(workspace, "reference");
-    const renderRoot = join3(workspace, "renders");
+    const buildRoot = join5(workspace, "build");
+    const referenceRoot = join5(workspace, "reference");
+    const renderRoot = join5(workspace, "renders");
     const texName = basename(input.filename);
     if (!texName.endsWith(".tex")) {
       throw new Error("Release filename must end in .tex.");
     }
     const builtPdfName = texName.replace(/\.tex$/u, ".pdf");
     await Promise.all([
-      mkdir(join3(buildRoot, "aux"), { recursive: true }),
+      mkdir(join5(buildRoot, "aux"), { recursive: true }),
       mkdir(referenceRoot),
       mkdir(renderRoot)
     ]);
-    const referencePdf = join3(referenceRoot, "released.pdf");
+    const referencePdf = join5(referenceRoot, "released.pdf");
     await Promise.all([
-      writeFile(join3(buildRoot, texName), input.source, "utf8"),
-      writeFile(referencePdf, input.releasedPdf)
+      writeFile2(join5(buildRoot, texName), input.source, "utf8"),
+      writeFile2(referencePdf, input.releasedPdf)
     ]);
     const recordedInputs = await compilePortableSource(buildRoot, texName);
-    const latexLog = await readFile5(
-      join3(buildRoot, "aux", texName.replace(/\.tex$/u, ".log")),
+    const latexLog = await readFile8(
+      join5(buildRoot, "aux", texName.replace(/\.tex$/u, ".log")),
       "utf8"
     );
     if ((input.requiredLabels?.length ?? 0) > 0) {
-      const auxiliary = await readFile5(
-        join3(buildRoot, "aux", texName.replace(/\.tex$/u, ".aux")),
+      const auxiliary = await readFile8(
+        join5(buildRoot, "aux", texName.replace(/\.tex$/u, ".aux")),
         "utf8"
       );
       const compiledLabels = new Set(
@@ -9814,23 +10931,50 @@ async function verifyPortableCheatsheetRelease(input) {
       );
     }
     const declaredBodyPointSize = /^CHEATSHEET-BODY-PT=([0-9]+(?:\.[0-9]+)?)$/mu.exec(latexLog)?.[1];
-    const builtPdf = join3(buildRoot, builtPdfName);
-    const bodyPointSize = dominantBodyPointSize(
-      await command(
-        "pdftohtml",
-        [
-          "-xml",
-          "-i",
-          "-q",
-          "-zoom",
-          String(fontMeasurementZoom),
-          "-noroundcoord",
-          "-stdout",
-          builtPdf
-        ],
-        buildRoot
-      )
+    const builtPdf = join5(buildRoot, builtPdfName);
+    const fontXml = await command(
+      "pdftohtml",
+      [
+        "-xml",
+        "-i",
+        "-q",
+        "-zoom",
+        String(fontMeasurementZoom),
+        "-noroundcoord",
+        "-stdout",
+        builtPdf
+      ],
+      buildRoot
     );
+    const bodyPointSize = dominantBodyPointSize(fontXml);
+    const mathFontLines = [
+      ...latexLog.matchAll(
+        /^CHEATSHEET-(TEXT|SCRIPT|SCRIPTSCRIPT)FONT3=(.+)$/gmu
+      )
+    ];
+    const mathSizes = mathFontLines.slice(-3).map(
+      (match) => Number(/ at ([0-9.]+)pt$/u.exec(match[2] ?? "")?.[1] ?? 10)
+    );
+    if (mathFontLines.length > 0 && (mathSizes.length !== 3 || Math.abs((mathSizes[0] ?? 0) - bodyPointSize) > fontMeasurementTolerance || (mathSizes[1] ?? 0) > (mathSizes[0] ?? 0) || (mathSizes[2] ?? 0) > (mathSizes[1] ?? 0) || mathSizes.some((size) => !Number.isFinite(size) || size <= 0)))
+      throw new Error(
+        "Reported native mathematics extension fonts do not match body/script sizing."
+      );
+    const fullXml = await command(
+      "pdftohtml",
+      [
+        "-xml",
+        "-hidden",
+        "-i",
+        "-q",
+        "-zoom",
+        String(fontMeasurementZoom),
+        "-noroundcoord",
+        "-stdout",
+        builtPdf
+      ],
+      buildRoot
+    );
+    const boundaries = inspectPdfBoundaries(fullXml, input.constraints.layout);
     if (declaredBodyPointSize !== void 0 && Math.abs(bodyPointSize - Number(declaredBodyPointSize)) > fontMeasurementTolerance) {
       throw new Error(
         `Declared body size ${declaredBodyPointSize}pt does not match the PDF's dominant text size ${bodyPointSize}pt.`
@@ -9862,12 +11006,29 @@ async function verifyPortableCheatsheetRelease(input) {
       renderedDigests(renderRoot, referencePdf, "released")
     ]);
     const textMatches = builtText === releasedText;
-    const rendersMatch = builtRenders.length === releasedRenders.length && builtRenders.every((digest, index) => digest === releasedRenders[index]);
+    const rendersMatch = builtRenders.length === releasedRenders.length && builtRenders.every((digest2, index) => digest2 === releasedRenders[index]);
     if (!textMatches || !rendersMatch) {
       throw new Error("Released PDF does not match the isolated source build.");
     }
-    const builtPdfBytes = await readFile5(builtPdf);
-    return {
+    const builtPdfBytes = await readFile8(builtPdf);
+    const renderPaths = async (prefix) => (await readdir(renderRoot)).filter(
+      (name) => name.startsWith(`${prefix}-`) && name.endsWith(".png")
+    ).sort((a, b) => a.localeCompare(b, void 0, { numeric: true })).map((name) => join5(renderRoot, name));
+    const buildEvidence = input.evidenceDestination === void 0 ? void 0 : await retainCheatsheetBuild({
+      destination: input.evidenceDestination,
+      source: join5(buildRoot, texName),
+      pdf: builtPdf,
+      releasedPdf: referencePdf,
+      aux: join5(buildRoot, "aux", texName.replace(/\.tex$/u, ".aux")),
+      log: join5(buildRoot, "aux", texName.replace(/\.tex$/u, ".log")),
+      pdfInfo: pdfinfo,
+      fontXml,
+      fullXml,
+      renders: await renderPaths("built"),
+      releasedRenders: await renderPaths("released")
+    });
+    const verification = {
+      ...buildEvidence === void 0 ? {} : { buildEvidence },
       texSha256: sha256Bytes(Buffer.from(input.source, "utf8")),
       pdfSha256: sha256Bytes(input.releasedPdf),
       pageCount,
@@ -9880,12 +11041,32 @@ async function verifyPortableCheatsheetRelease(input) {
         `${recordedInputs} recorded inputs confined to the release workspace and installed TeX distribution`,
         `${pageCount} portrait A4 page${pageCount === 1 ? "" : "s"}`,
         "all fonts embedded",
+        mathFontLines.length === 0 ? "Native mathematics extension-font diagnostics absent; requires font/visual inspection" : mathFontLines.map((match) => match[0]).join("; "),
+        `${boundaries.textBoxes} full XML text boxes checked against page bounds; header/footer geometry ${boundaries.furnitureChecked ? "checked" : "not declared, requires visual review"}`,
         `${input.requiredLabels?.length ?? 0} declared included labels checked against compiled auxiliary evidence`,
         declaredBodyPointSize === void 0 ? `PDF dominant text size ${bodyPointSize}pt (measurement tolerance ${fontMeasurementTolerance}pt)` : `PDF dominant text size ${bodyPointSize}pt corroborates declared body size ${declaredBodyPointSize}pt`,
         "extracted text and 180 dpi renders match released PDF",
         `rebuilt PDF bytes ${sha256Bytes(builtPdfBytes)}`
       ]
     };
+    if (input.evidenceDestination !== void 0)
+      await writeFile2(
+        join5(input.evidenceDestination, "verification.json"),
+        `${JSON.stringify(verification, null, 2)}
+`,
+        { flag: "wx" }
+      );
+    return verification;
+  } catch (error) {
+    if (input.evidenceDestination !== void 0)
+      await writeFile2(
+        join5(input.evidenceDestination, "failure.json"),
+        JSON.stringify({
+          error: error instanceof Error ? error.message : String(error)
+        }),
+        { flag: "wx" }
+      );
+    throw error;
   } finally {
     await rm(workspace, { recursive: true, force: true });
   }
@@ -9893,16 +11074,16 @@ async function verifyPortableCheatsheetRelease(input) {
 
 // src/cheatsheet/review-package.ts
 import { randomUUID } from "node:crypto";
-import { lstat as lstat3, mkdir as mkdir4, readFile as readFile8, rm as rm2, writeFile as writeFile3 } from "node:fs/promises";
-import { basename as basename3, dirname as dirname4, join as join6 } from "node:path";
+import { lstat as lstat3, mkdir as mkdir4, readFile as readFile11, rm as rm2, writeFile as writeFile4 } from "node:fs/promises";
+import { basename as basename3, dirname as dirname4, join as join8 } from "node:path";
 
 // src/cheatsheet/package-publication.ts
-import { mkdir as mkdir3, readFile as readFile7, readdir as readdir3, realpath as realpath3 } from "node:fs/promises";
-import { basename as basename2, dirname as dirname3, join as join5, resolve as resolve4 } from "node:path";
+import { mkdir as mkdir3, readFile as readFile10, readdir as readdir3, realpath as realpath3 } from "node:fs/promises";
+import { basename as basename2, dirname as dirname3, join as join7, resolve as resolve4 } from "node:path";
 
 // src/mounted/seed-target-state.ts
-import { lstat as lstat2, mkdir as mkdir2, readFile as readFile6, readdir as readdir2, writeFile as writeFile2 } from "node:fs/promises";
-import { dirname as dirname2, isAbsolute as isAbsolute4, join as join4, relative as relative3, resolve as resolve3 } from "node:path";
+import { lstat as lstat2, mkdir as mkdir2, readFile as readFile9, readdir as readdir2, writeFile as writeFile3 } from "node:fs/promises";
+import { dirname as dirname2, isAbsolute as isAbsolute4, join as join6, relative as relative3, resolve as resolve3 } from "node:path";
 
 // src/contract/learning-workspace.ts
 var learningWorkspacePaths = [
@@ -10026,7 +11207,7 @@ async function createSeedOperation(root, operation) {
     return;
   }
   await mkdir2(dirname2(path), { recursive: true });
-  await writeFile2(path, seedFileBytes(operation), { flag: "wx" });
+  await writeFile3(path, seedFileBytes(operation), { flag: "wx" });
 }
 async function optionalLstat(path) {
   try {
@@ -10054,7 +11235,7 @@ function isNodeError(error) {
 // src/cheatsheet/package-publication.ts
 async function publishCheatsheetPackage(staging, destination, checkpoint) {
   const requested = resolve4(destination);
-  const root = join5(await realpath3(dirname3(requested)), basename2(requested));
+  const root = join7(await realpath3(dirname3(requested)), basename2(requested));
   await mkdir3(root);
   const identities = /* @__PURE__ */ new Map();
   try {
@@ -10081,7 +11262,7 @@ async function publishCheatsheetPackage(staging, destination, checkpoint) {
   }
 }
 async function copyTree(staging, destination, path, identities) {
-  for (const entry of (await readdir3(join5(staging, path), { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name))) {
+  for (const entry of (await readdir3(join7(staging, path), { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name))) {
     const child = path === "" ? entry.name : `${path}/${entry.name}`;
     await verifyDirectories(identities);
     let operation;
@@ -10090,7 +11271,7 @@ async function copyTree(staging, destination, path, identities) {
       operation = {
         kind: "file",
         path: child,
-        contentsBase64: (await readFile7(join5(staging, child))).toString(
+        contentsBase64: (await readFile10(join7(staging, child))).toString(
           "base64"
         )
       };
@@ -10099,7 +11280,7 @@ async function copyTree(staging, destination, path, identities) {
     await verifyDirectories(identities);
     await createSeedOperation(destination, operation);
     if (operation.kind === "directory") {
-      await recordDirectoryIdentity(join5(destination, child), identities);
+      await recordDirectoryIdentity(join7(destination, child), identities);
       await copyTree(staging, destination, child, identities);
     }
     await verifyDirectories(identities);
@@ -10127,11 +11308,11 @@ async function verifyDirectories(identities) {
 
 // src/cheatsheet/review-package.ts
 async function addFile(input) {
-  const destination = join6(input.root, input.path);
+  const destination = join8(input.root, input.path);
   await mkdir4(dirname4(destination), { recursive: true });
-  await writeFile3(destination, input.bytes);
+  await writeFile4(destination, input.bytes);
   input.checksums.push(
-    `${sha256Bytes(await readFile8(destination))}  ${input.path}`
+    `${sha256Bytes(await readFile11(destination))}  ${input.path}`
   );
 }
 async function verifyChecksums(root, checksums) {
@@ -10139,7 +11320,7 @@ async function verifyChecksums(root, checksums) {
     const separator = line.indexOf("  ");
     const expected = line.slice(0, separator);
     const path = line.slice(separator + 2);
-    if (sha256Bytes(await readFile8(join6(root, path))) !== expected) {
+    if (sha256Bytes(await readFile11(join8(root, path))) !== expected) {
       throw new Error(`Packaged checksum failed for ${path}.`);
     }
   }
@@ -10155,7 +11336,7 @@ async function createCheatsheetReviewPackage(input) {
   }
   const parent = dirname4(input.destination);
   await mkdir4(parent, { recursive: true });
-  const staging = join6(parent, `.cheatsheet-review-${randomUUID()}`);
+  const staging = join8(parent, `.cheatsheet-review-${randomUUID()}`);
   await mkdir4(staging);
   try {
     const checksums = [];
@@ -10164,7 +11345,7 @@ async function createCheatsheetReviewPackage(input) {
     await addFile({
       root: staging,
       path: texName,
-      bytes: evidence.releaseSource,
+      bytes: evidence.releaseBytes,
       checksums
     });
     await addFile({
@@ -10176,20 +11357,20 @@ async function createCheatsheetReviewPackage(input) {
     await addFile({
       root: staging,
       path: "evidence/manifest.yaml",
-      bytes: evidence.manifestText,
+      bytes: evidence.manifestBytes,
       checksums
     });
     await addFile({
       root: staging,
       path: "evidence/coverage.csv",
-      bytes: evidence.coverageText,
+      bytes: evidence.coverageBytes,
       checksums
     });
     const authoringFiles = [];
     const sourceFiles = [];
     const sourceProvenance = [];
     for (const [index, source] of evidence.manifest.sources.entries()) {
-      const bytes = await readFile8(
+      const bytes = await readFile11(
         await resolveModuleFile(input.moduleRoot, source.path)
       );
       if (sha256Bytes(bytes) !== source.sha256)
@@ -10212,7 +11393,7 @@ async function createCheatsheetReviewPackage(input) {
           evidence.manifest.artifact.support.length + 1
         );
         const bundlePath = `authoring/${relativeFragment}`;
-        const bytes = await readFile8(
+        const bytes = await readFile11(
           await resolveModuleFile(input.moduleRoot, fragment.path)
         );
         if (sha256Bytes(bytes) !== fragment.sha256) {
@@ -10229,9 +11410,43 @@ async function createCheatsheetReviewPackage(input) {
         authoringFiles.push(bundlePath);
       }
     }
+    const construction = constructionFor(evidence.manifest.authoring);
+    if (construction !== void 0) {
+      const packagedInputs = [];
+      for (const [index, inputFile] of [
+        construction.recipe,
+        ...construction.inputs
+      ].entries()) {
+        const bytes = await readFile11(
+          await resolveModuleFile(input.moduleRoot, inputFile.path)
+        );
+        if (sha256Bytes(bytes) !== inputFile.sha256)
+          throw new Error(`${inputFile.path} changed before packaging.`);
+        const packagedPath = `construction/${String(index).padStart(4, "0")}/${basename3(inputFile.path)}`;
+        await addFile({ root: staging, path: packagedPath, bytes, checksums });
+        authoringFiles.push(packagedPath);
+        packagedInputs.push({
+          ...inputFile,
+          role: index === 0 ? "recipe" : "input",
+          packagedPath
+        });
+      }
+      const provenancePath = "evidence/construction-provenance.json";
+      await addFile({
+        root: staging,
+        path: provenancePath,
+        bytes: `${JSON.stringify({ ...construction, packagedInputs }, null, 2)}
+`,
+        checksums
+      });
+      authoringFiles.push(provenancePath);
+    }
     const verification = await verifyPortableCheatsheetRelease({
-      source: await readFile8(join6(staging, texName), "utf8"),
-      releasedPdf: await readFile8(join6(staging, pdfName)),
+      source: decodeCheatsheetText(
+        await readFile11(join8(staging, texName)),
+        texName
+      ),
+      releasedPdf: await readFile11(join8(staging, pdfName)),
       filename: texName,
       constraints: evidence.manifest.constraints,
       requiredLabels: evidence.coverage.flatMap(
@@ -10247,15 +11462,15 @@ async function createCheatsheetReviewPackage(input) {
       checksums
     });
     checksums.sort();
-    await writeFile3(
-      join6(staging, "SHA256SUMS"),
+    await writeFile4(
+      join8(staging, "SHA256SUMS"),
       `${checksums.join("\n")}
 `,
       "utf8"
     );
     await verifyChecksums(staging, checksums);
-    await writeFile3(
-      join6(staging, "README.md"),
+    await writeFile4(
+      join8(staging, "README.md"),
       `# Cheatsheet review package
 
 This exact package passed isolated compilation and release comparison. Recompile its single dependency-free top-level release source from this directory:
@@ -10297,28 +11512,39 @@ Exact cited source bytes and module-relative locators are packaged under \`evide
 // src/cheatsheet/cli.ts
 var usage = `Usage:
   cheatsheet-tool schema
+  cheatsheet-tool doctor
   cheatsheet-tool prepare --module-root <absolute-path> --module-code <code> --assessment <name>
   cheatsheet-tool audit --module-root <absolute-path> --manifest <module-relative-path>
   cheatsheet-tool fit --module-root <absolute-path> --manifest <module-relative-path> --measurements <json-path>
-  cheatsheet-tool verify --module-root <absolute-path> --manifest <module-relative-path>
+  cheatsheet-tool verify --module-root <absolute-path> --manifest <module-relative-path> [--evidence-directory <new-module-relative-support-directory>]
+  cheatsheet-tool preservation --module-root <absolute-path> --manifest <module-relative-path> --baseline-tex <module-relative-path> --baseline-sha256 <digest> [--policy exact|preserve-existing]
+  cheatsheet-tool regeneration-check --module-root <absolute-path> --manifest <module-relative-path> --candidate <scratch-module-relative-path> --construction <module-relative-json-path>
   cheatsheet-tool package-review --module-root <absolute-path> --manifest <module-relative-path> --destination <absolute-path>`;
 var inputSchema = {
   runtime: {
-    requiredExecutables: [
-      "latexmk",
-      "kpsewhich",
-      "pdfinfo",
-      "pdffonts",
-      "pdftotext",
-      "pdftoppm",
-      "pdftohtml"
-    ]
+    minimumNodeMajor: 24,
+    requiredExecutables: cheatsheetExecutables,
+    discovery: "PATH plus conventional bundled locations; ACADEMIC_OS_TOOL_PATH overrides discovery"
   },
   commands: {
+    doctor: [],
     prepare: ["--module-root", "--module-code", "--assessment"],
     audit: ["--module-root", "--manifest"],
     fit: ["--module-root", "--manifest", "--measurements"],
-    verify: ["--module-root", "--manifest"],
+    verify: ["--module-root", "--manifest", "--evidence-directory"],
+    preservation: [
+      "--module-root",
+      "--manifest",
+      "--baseline-tex",
+      "--baseline-sha256",
+      "--policy"
+    ],
+    "regeneration-check": [
+      "--module-root",
+      "--manifest",
+      "--candidate",
+      "--construction"
+    ],
     "package-review": ["--module-root", "--manifest", "--destination"]
   },
   manifest: {
@@ -10333,25 +11559,61 @@ var inputSchema = {
       "coverage",
       "release"
     ],
-    sourceAuthorities: cheatsheetAuthorities
+    sourceAuthorities: cheatsheetAuthorities,
+    releaseReview: {
+      status: ["unreviewed", "pending", "passed"],
+      passedReviewDigestKey: "reviewed_pdf_sha256"
+    }
   },
   coverage: {
     format: "CSV",
     exactHeader: cheatsheetCoverageHeader
   },
-  measurements: {
-    format: "JSON",
-    requiredNumbers: [
-      "pages",
-      "bodyPt",
-      "overfullBoxes",
-      "missingGlyphs",
-      "unidentifiedContinuations",
-      "internalVoidBaselines",
-      "finalColumnUnusedMm"
-    ]
-  }
+  measurements: cheatsheetMeasurementSchema
 };
+async function doctor() {
+  const run3 = promisify4(execFile4);
+  const executables = await Promise.all(
+    cheatsheetExecutables.map(async (name) => {
+      const path = findCheatsheetExecutable(name);
+      if (path === void 0) return { name, status: "missing" };
+      try {
+        const arguments_ = name === "latexmk" ? ["-norc", "-version"] : name === "kpsewhich" ? ["--version"] : ["-v"];
+        const result = await run3(path, arguments_, {
+          encoding: "utf8",
+          timeout: 15e3,
+          env: { ...process.env, PATH: cheatsheetExecutablePath() }
+        });
+        return {
+          name,
+          path,
+          status: "available",
+          version: `${result.stdout}${result.stderr}`.trim().slice(0, 4096)
+        };
+      } catch (error) {
+        return {
+          name,
+          path,
+          status: "failed",
+          error: error instanceof Error ? error.message : String(error)
+        };
+      }
+    })
+  );
+  const nodeReady = Number(process.versions.node.split(".")[0]) >= inputSchema.runtime.minimumNodeMajor;
+  const node = {
+    executable: process.execPath,
+    version: process.version,
+    minimumMajor: inputSchema.runtime.minimumNodeMajor,
+    status: nodeReady ? "available" : "unsupported"
+  };
+  const ready = nodeReady && executables.every(({ status }) => status === "available");
+  process.stdout.write(
+    `${JSON.stringify({ schemaVersion: 1, status: ready ? "ready" : "incomplete", entrypointSha256: sha256Bytes(await readFile12(fileURLToPath(import.meta.url))), node, executables }, null, 2)}
+`
+  );
+  if (!ready) process.exitCode = 2;
+}
 function flags(arguments_) {
   const parsed = /* @__PURE__ */ new Map();
   for (let index = 0; index < arguments_.length; index += 2) {
@@ -10371,36 +11633,20 @@ function requiredFlag(parsed, name) {
 ${usage}`);
   return value;
 }
-function measurementAt(value, name) {
-  const candidate = typeof value === "object" && value !== null ? value[name] : void 0;
-  if (typeof candidate !== "number" || !Number.isFinite(candidate) || candidate < 0) {
-    throw new Error(`measurements.${name} must be a nonnegative number.`);
-  }
-  return candidate;
-}
-async function readMeasurements(path) {
-  const value = JSON.parse(await readFile9(path, "utf8"));
-  return {
-    pages: measurementAt(value, "pages"),
-    bodyPt: measurementAt(value, "bodyPt"),
-    overfullBoxes: measurementAt(value, "overfullBoxes"),
-    missingGlyphs: measurementAt(value, "missingGlyphs"),
-    unidentifiedContinuations: measurementAt(
-      value,
-      "unidentifiedContinuations"
-    ),
-    internalVoidBaselines: measurementAt(value, "internalVoidBaselines"),
-    finalColumnUnusedMm: measurementAt(value, "finalColumnUnusedMm")
-  };
-}
 async function main() {
   const [operation, ...rest] = process.argv.slice(2);
   if (operation === "schema" && rest.length === 0) {
-    process.stdout.write(`${JSON.stringify(inputSchema, null, 2)}
-`);
+    process.stdout.write(
+      `${JSON.stringify({ ...inputSchema, entrypointSha256: sha256Bytes(await readFile12(fileURLToPath(import.meta.url))) }, null, 2)}
+`
+    );
     return;
   }
-  if (operation !== "prepare" && operation !== "audit" && operation !== "fit" && operation !== "verify" && operation !== "package-review") {
+  if (operation === "doctor" && rest.length === 0) {
+    await doctor();
+    return;
+  }
+  if (operation !== "prepare" && operation !== "audit" && operation !== "fit" && operation !== "verify" && operation !== "preservation" && operation !== "regeneration-check" && operation !== "package-review") {
     throw new Error(usage);
   }
   const parsed = flags(rest);
@@ -10432,7 +11678,63 @@ async function main() {
 `);
     return;
   }
+  if (operation === "fit") {
+    const result2 = await fitCheatsheetRelease({
+      moduleRoot,
+      manifestPath,
+      measurementsPath: requiredFlag(parsed, "--measurements")
+    });
+    process.stdout.write(`${JSON.stringify(result2, null, 2)}
+`);
+    if (result2.kind === "blocked" || result2.kind === "user-choice")
+      process.exitCode = 2;
+    return;
+  }
   const evidence = await loadCheatsheetEvidence({ moduleRoot, manifestPath });
+  if (operation === "preservation") {
+    const baseline = await readCheatsheetModuleText(
+      moduleRoot,
+      requiredFlag(parsed, "--baseline-tex")
+    );
+    if (baseline.sha256 !== requiredFlag(parsed, "--baseline-sha256"))
+      throw new Error(
+        "Typography baseline no longer matches its frozen SHA-256."
+      );
+    const policy = parsed.get("--policy") ?? "exact";
+    if (policy !== "exact" && policy !== "preserve-existing")
+      throw new Error(
+        "Preservation policy must be exact or preserve-existing."
+      );
+    const result2 = assertCheatsheetMathematicsPreserved({
+      baseline: baseline.text,
+      candidate: evidence.releaseSource,
+      policy
+    });
+    process.stdout.write(
+      `${JSON.stringify({ ...result2, baselineTexSha256: baseline.sha256, candidateTexSha256: sha256Bytes(evidence.releaseBytes), pdfSha256: evidence.manifest.release.pdfSha256 }, null, 2)}
+`
+    );
+    return;
+  }
+  if (operation === "regeneration-check") {
+    if (evidence.manifest.authoring.kind !== "self-contained")
+      throw new Error(
+        "Staged transformed regeneration applies to self-contained authority."
+      );
+    const receipt = await readCheatsheetModuleText(
+      moduleRoot,
+      requiredFlag(parsed, "--construction")
+    );
+    const result2 = await checkCheatsheetRegenerationCandidate({
+      moduleRoot,
+      authoring: evidence.manifest.authoring,
+      candidatePath: requiredFlag(parsed, "--candidate"),
+      construction: parseCheatsheetConstruction(JSON.parse(receipt.text))
+    });
+    process.stdout.write(`${JSON.stringify(result2, null, 2)}
+`);
+    return;
+  }
   if (operation === "audit") {
     process.stdout.write(
       `${JSON.stringify(
@@ -10441,7 +11743,16 @@ async function main() {
           coverageItems: evidence.coverage.length,
           texSha256: evidence.manifest.release.texSha256,
           pdfSha256: evidence.manifest.release.pdfSha256,
-          review: evidence.manifest.release.review
+          review: evidence.manifest.release.review,
+          completenessInventory: {
+            status: evidence.manifest.sources.every(
+              (source) => source.requiredLocators !== void 0
+            ) ? "declared-bounded" : evidence.manifest.sources.some(
+              (source) => source.requiredLocators !== void 0
+            ) ? "partly-declared" : "undeclared",
+            sourceIds: evidence.manifest.sources.filter((source) => source.requiredLocators !== void 0).map(({ id }) => id),
+            scope: "Declared inventory only; original-source completeness requires independent review."
+          }
         },
         null,
         2
@@ -10450,21 +11761,13 @@ async function main() {
     );
     return;
   }
-  if (operation === "fit") {
-    const result2 = planCheatsheetFit({
-      constraints: evidence.manifest.constraints,
-      coverage: evidence.coverage,
-      measurements: await readMeasurements(
-        requiredFlag(parsed, "--measurements")
-      )
-    });
-    process.stdout.write(`${JSON.stringify(result2, null, 2)}
-`);
-    if (result2.kind === "blocked" || result2.kind === "user-choice")
-      process.exitCode = 2;
-    return;
-  }
   assertCheatsheetReleaseReady(evidence);
+  const evidenceDirectory = parsed.get("--evidence-directory");
+  if (evidenceDirectory !== void 0 && (!evidenceDirectory.startsWith(`${evidence.manifest.artifact.support}/`) || evidenceDirectory.includes("\\") || evidenceDirectory.split("/").some((part) => ["", ".", ".."].includes(part)))) {
+    throw new Error(
+      "--evidence-directory must be a normalized new directory beneath artifact.support."
+    );
+  }
   const result = await verifyPortableCheatsheetRelease({
     source: evidence.releaseSource,
     releasedPdf: evidence.releasedPdf,
@@ -10472,8 +11775,20 @@ async function main() {
     constraints: evidence.manifest.constraints,
     requiredLabels: evidence.coverage.flatMap(
       ({ artifactLocator }) => artifactLocator === void 0 ? [] : [artifactLocator]
-    )
+    ),
+    ...evidenceDirectory === void 0 ? {} : {
+      evidenceDestination: await resolveNewModuleDirectory(
+        moduleRoot,
+        evidenceDirectory
+      )
+    }
   });
+  if (evidenceDirectory !== void 0 && result.buildEvidence !== void 0) {
+    result.buildEvidence = rebaseCheatsheetBuildEvidence(
+      result.buildEvidence,
+      evidenceDirectory
+    );
+  }
   process.stdout.write(`${JSON.stringify(result, null, 2)}
 `);
 }

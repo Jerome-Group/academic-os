@@ -117,3 +117,26 @@ it("prints typed item references and keeps long staged proofs breakable at confi
   assert.match(rendered.log, /CHEATSHEET-BODY-PT=7/u);
   assert.doesNotMatch(rendered.log, /Overfull \\[hv]box/u);
 });
+
+it("selects native large-operator and script fonts when the sheet size changes", {
+  skip: !available,
+}, async () => {
+  for (const size of [4, 6]) {
+    const rendered = await render(
+      String.raw`\ReportMathFonts
+\[\left(\frac{\sum_{i=1}^{n}i^2}{n^3}\right)\quad\begin{cases}1&n>0,\\0&n=0.\end{cases}\]`,
+      `\\newcommand{\\SheetBodyPointSize}{${size}}\n\\newcommand{\\SheetBodyLeading}{${size + 0.5}}`,
+    );
+    const fontSize = (kind: string) =>
+      Number(
+        new RegExp(
+          `^CHEATSHEET-${kind}FONT3=lmex10 at ([0-9.]+)pt$`,
+          "mu",
+        ).exec(rendered.log)?.[1],
+      );
+    assert.equal(fontSize("TEXT"), size);
+    assert.equal(fontSize("SCRIPT"), size * 0.75);
+    assert.ok(Math.abs(fontSize("SCRIPTSCRIPT") - size * 0.6) < 0.0001);
+    assert.doesNotMatch(rendered.log, /Overfull \\[hv]box|Missing character:/u);
+  }
+});

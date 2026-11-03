@@ -2,6 +2,10 @@ import { lstat, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  cheatsheetExecutables,
+  findCheatsheetExecutable,
+} from "../cheatsheet/toolchain.js";
 import { parseArgumentTokens } from "../commands/argument-tokens.js";
 import { loadLocalConfig, resolveRoutineConfig } from "../config/index.js";
 import { OperationalError } from "../mounted/index.js";
@@ -139,7 +143,11 @@ export async function runCapabilitiesCommand(
         observeProcess({
           action: executable,
           executable:
-            executable === "java" ? (process.env.JAVA ?? "java") : executable,
+            executable === "java"
+              ? (process.env.JAVA ?? "java")
+              : cheatsheetExecutables.some((name) => name === executable)
+                ? (findCheatsheetExecutable(executable) ?? executable)
+                : executable,
           arguments:
             executable === "latexmk"
               ? ["-norc", "--version"]

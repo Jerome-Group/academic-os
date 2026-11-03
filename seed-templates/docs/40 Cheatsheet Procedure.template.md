@@ -50,7 +50,11 @@ object under its release/support tree as durable or reproducible. Retain superse
 `support/<artifact-id>/history/` with hashes. Reconcile prior statements, arguments, examples and
 question parts against the revised release: retained, corrected, equivalently condensed or explicitly
 retired with a reason. Preserve useful prior content unless the requested scope or a documented
-correction changes it. A successful regeneration alone does not establish preservation.
+correction changes it. A successful regeneration alone does not establish preservation. Run `preservation` against the
+current manifest, a frozen `--baseline-tex` and its `--baseline-sha256`. The default exact policy
+protects complete ordered mathematics; `preserve-existing` permits explicit additions. This catches
+literal expression drift, while macro meanings, prose hypotheses and proof sufficiency still need
+source review.
 
 Completion: every input has a locator, digest and authority; every existing unique object and every
 prior content item has an explicit disposition.
@@ -62,11 +66,17 @@ one composition mode: `self-contained`, where the top-level release TeX is autho
 `fragments`, where ordered digested files under `support/<artifact-id>/content/` are authoritative
 and their exact concatenation produces the release TeX. Edit the declared authority.
 
+For transformed self-contained construction, record `authoring.construction` with digested `recipe`,
+ordered `inputs`, `base_tex_sha256` and `output_tex_sha256`; keep it beneath support. `regeneration-check`
+checks a proposed construction JSON against a staged `--candidate` and the still-current authority. It
+never publishes. If current authoritative bytes differ, reconcile direct edits into the recipe or
+retire the construction record before regenerating; never overwrite first and reconcile later.
+
 Regenerate through fresh staging. Retain the generator/version, command, input digests and staged
 output digest; compare that output with the intended release before promotion. Transformations must
 be materialized in the authoritative fragments before exact concatenation, or their final output
 must become the self-contained authority. Generated copies and historical inputs carry provenance,
-not a second editable authority. After every authority edit, regenerate and hash the release again.
+not a second editable authority. After every authority edit, rebuild the PDF and hash the release pair again.
 
 Record artifact identity, scope, release/support paths, paper, color, pages, columns, preferred/floor
 body size, sources and SHA-256, coverage path, release TeX/PDF hashes and review status. `passed`

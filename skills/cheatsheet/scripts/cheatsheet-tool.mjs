@@ -11171,7 +11171,7 @@ async function verifyPortableCheatsheetRelease(input) {
         "Isolated build reports an overfull box or missing glyph."
       );
     }
-    if (/undefined references|Reference .+ undefined|has been referenced but does not exist/u.test(
+    if (/undefined references|Reference .+ undefined|pdfTeX warning \(dest\):/u.test(
       latexLog.replace(/\s+/gu, " ")
     ))
       throw new Error(

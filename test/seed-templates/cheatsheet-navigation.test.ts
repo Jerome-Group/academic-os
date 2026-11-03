@@ -82,7 +82,7 @@ it("prints accurate orientation and continuation guides at all eight specimen co
     );
     assert.doesNotMatch(
       log.replace(/\s+/gu, " "),
-      /undefined references|has been referenced but does not exist/u,
+      /undefined references|pdfTeX warning \(dest\):/u,
     );
 
     const expected = [

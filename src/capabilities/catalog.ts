@@ -531,7 +531,9 @@ export function capabilityIndex(): object {
       invocation: `node dist/src/cheatsheet/cli.js ${operation} (see schema for arguments)`,
       prerequisites: [
         "npm ci && npm run build",
-        "synthetic fixture or explicitly authorized Module",
+        ...(["schema", "doctor"].includes(operation)
+          ? []
+          : ["synthetic fixture or explicitly authorized Module"]),
         ...(["verify", "package-review"].includes(operation)
           ? [
               "latexmk and Poppler executables",

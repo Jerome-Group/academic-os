@@ -246,3 +246,71 @@ it("rejects a compiled unresolved reference for its actual destination warning",
     await rm(root, { recursive: true, force: true });
   }
 });
+
+it("rejects a missing hyperlink destination even when TeX hard-wraps its warning", {
+  skip: !toolchainAvailable,
+}, async () => {
+  const root = await mkdtemp(join(tmpdir(), "cheatsheet-missing-destination-"));
+  try {
+    const changed = source
+      .replace("lmodern,eso-pic", "lmodern,eso-pic,hyperref")
+      .replace(
+        "\\end{document}",
+        "\\hyperlink{missing-target}{broken destination}.\\end{document}",
+      );
+    await writeFile(join(root, "sheet.tex"), changed);
+    await run(
+      "latexmk",
+      [
+        "-norc",
+        "-pdf",
+        "-interaction=nonstopmode",
+        "-halt-on-error",
+        "sheet.tex",
+      ],
+      { cwd: root },
+    );
+    assert.match(
+      await readFile(join(root, "sheet.log"), "utf8"),
+      /pdfTeX warning \(dest\):/u,
+    );
+    await assert.rejects(
+      verifyPortableCheatsheetRelease({
+        source: changed,
+        releasedPdf: await readFile(join(root, "sheet.pdf")),
+        filename: "sheet.tex",
+        constraints,
+      }),
+      /unresolved references or PDF destinations/u,
+    );
+    const restored = changed.replace(
+      "\\hyperlink{missing-target}",
+      "\\hypertarget{missing-target}{}\\hyperlink{missing-target}",
+    );
+    await writeFile(join(root, "sheet.tex"), restored);
+    await run(
+      "latexmk",
+      [
+        "-norc",
+        "-pdf",
+        "-interaction=nonstopmode",
+        "-halt-on-error",
+        "sheet.tex",
+      ],
+      { cwd: root },
+    );
+    assert.equal(
+      (
+        await verifyPortableCheatsheetRelease({
+          source: restored,
+          releasedPdf: await readFile(join(root, "sheet.pdf")),
+          filename: "sheet.tex",
+          constraints,
+        })
+      ).isolatedBuild,
+      true,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

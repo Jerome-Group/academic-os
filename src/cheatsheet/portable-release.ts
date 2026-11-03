@@ -166,7 +166,7 @@ export async function verifyPortableCheatsheetRelease(input: {
       );
     }
     if (
-      /undefined references|Reference .+ undefined|has been referenced but does not exist/u.test(
+      /undefined references|Reference .+ undefined|pdfTeX warning \(dest\):/u.test(
         latexLog.replace(/\s+/gu, " "),
       )
     )

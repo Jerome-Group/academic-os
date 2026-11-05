@@ -39,6 +39,18 @@ Those caller protocols remain excluded. The shared helper's proof does not verif
 The integrated candidate passed the complete capability profile and formal implementation, mutation and restoration gates before the source record advanced.
 Supplementary `statechart` interpretation uses its compatible toolchain on the unchanged configurations. The primary gate retains the vendored artifact.
 
+## Configuration boundary maintenance
+
+Inspection through `6ac322c7d38fa3f9b368ee38a84c8eac00f2eea8` found one covered change since `d08c6969b7fd3ee126a5414a44c102dd60241733`.
+`7ddb50cbfa1c285e821c34a8dd084d3b94118722` imports `LoadedConfig` and uses it for the repair CLI's configuration parameter.
+The Academic configuration guard, ownership callback and all effect ordering remain unchanged.
+This is **No effect** on the ownership properties. Configuration validation remains outside their claim.
+
+The ordinary command first refused the changed CLI hash. The full candidate then passed all 19 model runs, 34 filesystem schedules, four protocol prerequisites, 33 journal tests, the repair probe and nine curation CLI schedules.
+Both cleanup mutations still deleted the protected sentinel. Owner bypass and early release admitted competing calls; both repair mutants repeated creation and both curation mutants lost a confirmed append.
+Every restored control passed, source hashes were restored and no owned process survived.
+Only the coverage binding advances. Models, properties, bounds and runtime checks remain unchanged.
+
 ## Bounds and assumptions
 
 The positive configurations enumerate one target, one active stage pathname, two claim generations, two nested directory components, two approved files, and one foreign descendant slot.

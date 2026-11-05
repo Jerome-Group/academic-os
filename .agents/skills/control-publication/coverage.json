@@ -1,7 +1,7 @@
 {
-  "syncRevision": "f9b7ad5dc32605e3d800a1fe5a259761420e9c52",
-  "outcome": "bug",
-  "reason": "Source-faithful namespace claim replay admits use before the required parent barrier. Independent and local compiled retries preserve PP1. Other safety properties and runtime sensitivity are separate checks.",
+  "syncRevision": "dac9de8148a6dd093f51ca379dd5c7765a8748d0",
+  "outcome": "updated",
+  "reason": "Separate product fix995226c repeats parent barriers after recovered physical claims. Source inspection, the source-faithful model and all three actual repaired placement retries agree. The original f9 counterexample remains retained. Model actions additionally separate every publication append/barrier and retained unclaimed attempts. The ordinary clean committed run remains the final gate.",
   "bounds": {
     "writers": 2,
     "candidates": 2,
@@ -9,7 +9,8 @@
     "alias": 1,
     "replacement": 1,
     "crashRestart": 1,
-    "outstandingEffect": 1
+    "outstandingEffect": 1,
+    "stageAttemptsPerWriter": 2
   },
   "sourceHashes": {
     "scripts/build-control-publication-native.mjs": "e028d73787892e395c5b20208ba05ecebb51369181d89ab54312cda6287cf6b9",
@@ -42,7 +43,7 @@
     "src/controls-publication/schema.ts": "973417e7a99dd04e7c3d95f198dac7880164198fa0b5aa138e1c6e6863fa54fc",
     "src/controls-publication/schemas/publication-contract-1.schema.json": "e7a946b5f143a9da7a80a410b57fe078c9fde64cc0a04d4612ea919ebe418b13",
     "src/controls-publication/standalone.ts": "3a9445d4c82fc58dda163105b4f13c3e88d759368fe23334c7322e07b08db959",
-    "src/controls-publication/store.ts": "6af9a5a38246152c32638719a86119499d436a25d9983fb8c01f8df3b30dd04b",
+    "src/controls-publication/store.ts": "afde714d976119dcf4cae9e53101b6b34ca4e46e1abcfc7cddf8ede88e8729d2",
     "src/controls-publication/tools.ts": "b08d8d6dd5e28abab7a94e3483cfae91e30d2b13a18efd170eb3260a958d9508",
     "src/controls/detect-control-shape.ts": "b035ce172deecc959ad18607b4f68ebe1931eed4e3698326c260e5d76f1192c8",
     "src/controls/evidence.ts": "3dc255076920aceafe7bec529d60e9513dab189720d4642a8d853426d72c66eb",
@@ -88,6 +89,7 @@
     "src/operations/types.ts": "22c0dd8b29cd3f83da4ce02954c632c2267aee1ef473cdda7e520484bcac958a",
     "test/controls-publication/alias-fixture.cc": "e94d761318e33072349437cf18077a35d3f82a27e3539ad471ee56c880e8bc2d",
     "test/controls-publication/capacity.test.ts": "7e52cbe3bc62594832c94f46924ea208a1a2278d068809dd9646aeafdcb5df07",
+    "test/controls-publication/durability.test.ts": "405e0a013f51ca74bfed0bad6f89ccac4dec95ae314c6ea81cbb7c0af4b33e6e",
     "test/controls-publication/fixtures.ts": "b6771bca5157b75986b73d1ec1dee9cba7bd638457a1aff3934e7e3d6e2c5846",
     "test/controls-publication/import-boundary.test.ts": "d270dc367f2602f4200964bc1779a71e0233182684bf3fa7f6cdbf6f322d1a6d",
     "test/controls-publication/journey.ts": "364fd075611fefddcf2c8e4e93d9d2668babe9c7bf002f0b53395287330ff8db",
@@ -96,5 +98,6 @@
     "test/controls-publication/publication-schema.test.ts": "1183364670e185d9c57d1176d44ba45bb3ffba927cde079386ee653887c0ba3e",
     "test/controls-publication/publication.test.ts": "c84b74a18307e770d619c98408ed629fddb50ab4c17c9d6a2778e2fce97ff7a4",
     "test/controls-publication/standalone-package.test.ts": "de34ddbb1297f37d344b20b8c28cacbbfe3228a3d45d7059dcc8b34adca01a20"
-  }
+  },
+  "previousSyncRevision": "f9b7ad5dc32605e3d800a1fe5a259761420e9c52"
 }

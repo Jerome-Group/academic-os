@@ -7,6 +7,7 @@ import {
   mkdir,
   mkdtemp,
   readFile,
+  readdir,
   realpath,
   symlink,
   writeFile,
@@ -352,8 +353,19 @@ process.stdout.write(JSON.stringify(await dispatch(JSON.parse(readFileSync(0,"ut
   }
   const save = async (result) => {
     const artifacts = {};
+    const compiledPublication = (
+      await readdir(join(host, "src/controls-publication"), {
+        withFileTypes: true,
+      })
+    )
+      .filter((entry) => entry.isFile() && entry.name.endsWith(".js"))
+      .map((entry) => join(host, "src/controls-publication", entry.name));
     for (const path of [
       addon,
+      loader,
+      join(host, "src/journal-mutation-owner.js"),
+      join(host, "src/controls-publication/native/index.js"),
+      ...compiledPublication,
       join(host, "src/cli.js"),
       join(host, "src/controls-publication/release.json"),
       join(host, "publication.mjs"),

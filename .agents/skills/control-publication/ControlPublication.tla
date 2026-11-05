@@ -6,10 +6,10 @@ Candidates == {1, 2}
 Target(c) == IF Alias THEN 1 ELSE c
 VARIABLES pc, target, gate, boot, progress, expected, head, complete,
           intent, observed, receipt, settled, active, outstanding,
-          replaced, rejected, crashed, restarted, selectedOld, selectedCount
+          replaced, rejected, crashed, restarted, selectedOld, selectedCount, attempt, unclaimed, orphanRecords
 vars == <<pc, target, gate, boot, progress, expected, head, complete,
           intent, observed, receipt, settled, active, outstanding,
-          replaced, rejected, crashed, restarted, selectedOld, selectedCount>>
+          replaced, rejected, crashed, restarted, selectedOld, selectedCount,attempt,unclaimed,orphanRecords>>
 Init == /\ pc = [w \in Writers |-> 0]
         /\ target = [w \in Writers |-> 1]
         /\ gate = 0 /\ boot = 0
@@ -20,6 +20,8 @@ Init == /\ pc = [w \in Writers |-> 0]
         /\ receipt = {} /\ settled = {} /\ active = {}
         /\ outstanding = 0 /\ replaced = FALSE /\ rejected = {}
         /\ crashed = FALSE /\ restarted = FALSE
+        /\ attempt = [w \in Writers |-> 0]
+        /\ unclaimed = {} /\ orphanRecords = {}
         /\ selectedOld = [w \in Writers |-> 0]
         /\ selectedCount = [c \in Candidates |-> [h \in 0..2 |-> 0]]
 
@@ -28,20 +30,20 @@ AnchorResolution(w,c) ==
   /\ target' = [target EXCEPT ![w] = Target(c)]
   /\ UNCHANGED <<gate,boot,progress,expected,head,complete,intent,observed,
        receipt,settled,active,outstanding,replaced,rejected,crashed,restarted,
-       selectedOld,selectedCount>>
+       selectedOld,selectedCount,attempt,unclaimed,orphanRecords>>
 Gate(w) ==
   /\ pc[w] = 1 /\ (gate = 0 \/ Broken = "namespace")
   /\ gate' = w /\ pc' = [pc EXCEPT ![w] = 2]
   /\ active' = active \cup {w}
   /\ UNCHANGED <<target,boot,progress,expected,head,complete,intent,observed,
        receipt,settled,outstanding,replaced,rejected,crashed,restarted,
-       selectedOld,selectedCount>>
+       selectedOld,selectedCount,attempt,unclaimed,orphanRecords>>
 
 Bootstrap(w,n) ==
   /\ gate = w /\ pc[w] = 2 /\ boot = n /\ boot' = n + 1
   /\ UNCHANGED <<pc,target,gate,progress,expected,head,complete,intent,observed,
        receipt,settled,active,outstanding,replaced,rejected,crashed,restarted,
-       selectedOld,selectedCount>>
+       selectedOld,selectedCount,attempt,unclaimed,orphanRecords>>
 LedgerExclusiveCreate(w) == Bootstrap(w,0)
 LedgerSelfReservation(w) == Bootstrap(w,1)
 LedgerReservationSync(w) == Bootstrap(w,2)
@@ -57,13 +59,13 @@ Begin(w) ==
   /\ pc' = [pc EXCEPT ![w] = 3]
   /\ UNCHANGED <<target,gate,boot,progress,expected,head,complete,intent,observed,
        receipt,settled,active,outstanding,replaced,rejected,crashed,restarted,
-       selectedOld,selectedCount>>
+       selectedOld,selectedCount,attempt,unclaimed,orphanRecords>>
 RefusePending(w) ==
   /\ gate = w /\ pc[w] = 2 /\ boot = 8 /\ ~(intent \subseteq settled)
   /\ pc' = [pc EXCEPT ![w] = 60] /\ rejected' = rejected \cup {w}
   /\ UNCHANGED <<target,gate,boot,progress,expected,head,complete,intent,observed,
        receipt,settled,active,outstanding,replaced,crashed,restarted,
-       selectedOld,selectedCount>>
+       selectedOld,selectedCount,attempt,unclaimed,orphanRecords>>
 
 ExpectedHeadResolution(w) ==
   /\ gate = w /\ pc[w] = 3
@@ -71,7 +73,7 @@ ExpectedHeadResolution(w) ==
   /\ pc' = [pc EXCEPT ![w] = 4]
   /\ UNCHANGED <<target,gate,boot,progress,head,complete,intent,observed,
        receipt,settled,active,outstanding,replaced,rejected,crashed,restarted,
-       selectedOld,selectedCount>>
+       selectedOld,selectedCount,attempt,unclaimed,orphanRecords>>
 Step(w,n,following) ==
   /\ gate = w /\ w \in active /\ pc[w] = n
   /\ (~replaced \/ Broken = "claim")
@@ -79,7 +81,7 @@ Step(w,n,following) ==
   /\ progress' = [progress EXCEPT ![w] = following]
   /\ UNCHANGED <<target,gate,boot,expected,head,complete,intent,observed,
        receipt,settled,active,outstanding,replaced,rejected,crashed,restarted,
-       selectedOld,selectedCount>>
+       selectedOld,selectedCount,attempt,unclaimed,orphanRecords>>
 Advance(w,n) == Step(w,n,n+1)
 PlanAppend(w) == Advance(w,4)
 PlanSync(w) == Advance(w,5)
@@ -102,18 +104,18 @@ WriteGuard(w) ==
   /\ outstanding' = w /\ pc' = [pc EXCEPT ![w] = 19]
   /\ UNCHANGED <<target,gate,boot,progress,expected,head,complete,intent,observed,
        receipt,settled,active,replaced,rejected,crashed,restarted,selectedOld,
-       selectedCount>>
+       selectedCount,attempt,unclaimed,orphanRecords>>
 WriteSyscall(w) ==
   /\ gate = w /\ pc[w] = 19 /\ outstanding = w
   /\ pc' = [pc EXCEPT ![w] = 20] /\ outstanding' = 0
   /\ progress' = [progress EXCEPT ![w] = 20]
   /\ UNCHANGED <<target,gate,boot,expected,head,complete,intent,observed,
        receipt,settled,active,replaced,rejected,crashed,restarted,selectedOld,
-       selectedCount>>
+       selectedCount,attempt,unclaimed,orphanRecords>>
 FileSync(w) == Advance(w,20)
 FileReadback(w) == Advance(w,21)
 GenerationDirectorySync(w) == Advance(w,22)
-PromotionIntent(w) == Advance(w,23)
+PromotionIntent(w) == Step(w,23,89)
 PromotionGuard(w) == Advance(w,24)
 PromotionSyscall(w) == Advance(w,25)
 SourceParentSync(w) == Advance(w,26)
@@ -125,19 +127,19 @@ CompleteGraphReadback(w) ==
   /\ pc' = [pc EXCEPT ![w] = 30]
   /\ UNCHANGED <<target,gate,boot,progress,expected,head,intent,observed,
        receipt,settled,active,outstanding,replaced,rejected,crashed,restarted,
-       selectedOld,selectedCount>>
-HeadReservation(w) == Advance(w,30)
+       selectedOld,selectedCount,attempt,unclaimed,orphanRecords>>
+HeadReservation(w) == Step(w,30,90)
 HeadCreate(w) == Advance(w,31)
-HeadClaim(w) == Advance(w,32)
+HeadClaim(w) == Step(w,32,91)
 HeadWrite(w) == Advance(w,33)
 HeadSync(w) == Advance(w,34)
-HeadReady(w) == Advance(w,35)
+HeadReady(w) == Step(w,93,36)
 PendingReceipt(w) ==
-  /\ gate = w /\ pc[w] = 36
-  /\ intent' = intent \cup {w} /\ pc' = [pc EXCEPT ![w] = 37]
+  /\ gate = w /\ pc[w] = 80
+  /\ intent' = intent \cup {w} /\ pc' = [pc EXCEPT ![w] = 81]
   /\ UNCHANGED <<target,gate,boot,progress,expected,head,complete,observed,
        receipt,settled,active,outstanding,replaced,rejected,crashed,restarted,
-       selectedOld,selectedCount>>
+       selectedOld,selectedCount,attempt,unclaimed,orphanRecords>>
 ExpectedHeadGuard(w) ==
   /\ gate = w /\ pc[w] = 37
   /\ (head[target[w]] = expected[w] \/ Broken = "expected")
@@ -145,7 +147,7 @@ ExpectedHeadGuard(w) ==
   /\ pc' = [pc EXCEPT ![w] = 38]
   /\ UNCHANGED <<target,gate,boot,progress,expected,head,complete,intent,observed,
        receipt,settled,active,outstanding,replaced,rejected,crashed,restarted,
-       selectedOld,selectedCount>>
+       selectedOld,selectedCount,attempt,unclaimed,orphanRecords>>
 SelectorRename(w) ==
   /\ gate = w /\ pc[w] = 38 /\ w \in active
   /\ head' = [head EXCEPT ![target[w]] = w]
@@ -153,112 +155,154 @@ SelectorRename(w) ==
   /\ selectedCount' = [selectedCount EXCEPT ![target[w]][head[target[w]]] = @ + 1]
   /\ pc' = [pc EXCEPT ![w] = 39]
   /\ UNCHANGED <<target,gate,boot,progress,expected,complete,intent,observed,
-       receipt,settled,active,outstanding,replaced,rejected,crashed,restarted>>
+       receipt,settled,active,outstanding,replaced,rejected,crashed,restarted,
+       attempt,unclaimed,orphanRecords>>
 HeadParentSync(w) == Advance(w,39)
 HeadReadback(w) ==
   /\ gate = w /\ pc[w] = 40 /\ head[target[w]] = w
   /\ observed' = observed \cup {w} /\ pc' = [pc EXCEPT ![w] = 41]
   /\ UNCHANGED <<target,gate,boot,progress,expected,head,complete,intent,
        receipt,settled,active,outstanding,replaced,rejected,crashed,restarted,
-       selectedOld,selectedCount>>
-ReceiptReservation(w) == Advance(w,41)
+       selectedOld,selectedCount,attempt,unclaimed,orphanRecords>>
+ReceiptReservation(w) == Step(w,83,84)
 ReceiptCreate(w) == Advance(w,42)
-ReceiptClaim(w) == Advance(w,43)
+ReceiptClaim(w) == Step(w,43,85)
 ReceiptWrite(w) == Advance(w,44)
 ReceiptSync(w) == Advance(w,45)
-ReceiptReady(w) == Advance(w,46)
-ReceiptPromotionGuard(w) == Advance(w,47)
+ReceiptReady(w) == Step(w,95,47)
+ReceiptPromotionGuard(w) == Step(w,88,48)
 ReceiptPromotionSyscall(w) ==
   /\ gate = w /\ pc[w] = 48
   /\ receipt' = receipt \cup {w} /\ pc' = [pc EXCEPT ![w] = 49]
   /\ UNCHANGED <<target,gate,boot,progress,expected,head,complete,intent,observed,
        settled,active,outstanding,replaced,rejected,crashed,restarted,
-       selectedOld,selectedCount>>
+       selectedOld,selectedCount,attempt,unclaimed,orphanRecords>>
 ReceiptSourceParentSync(w) == Advance(w,49)
 ReceiptDestinationParentSync(w) == Advance(w,50)
 ReceiptReadback(w) == Advance(w,51)
 Settlement(w) ==
-  /\ gate = w /\ pc[w] = 52 /\ w \in observed /\ w \in receipt
+  /\ gate = w /\ pc[w] = 96 /\ w \in observed /\ w \in receipt
   /\ settled' = settled \cup {w} /\ pc' = [pc EXCEPT ![w] = 60]
   /\ UNCHANGED <<target,gate,boot,progress,expected,head,complete,intent,observed,
        receipt,active,outstanding,replaced,rejected,crashed,restarted,
-       selectedOld,selectedCount>>
+       selectedOld,selectedCount,attempt,unclaimed,orphanRecords>>
 Expiry(w) ==
   /\ gate = w /\ pc[w] = 60
   /\ active' = active \ {w} /\ pc' = [pc EXCEPT ![w] = 61]
   /\ UNCHANGED <<target,gate,boot,progress,expected,head,complete,intent,observed,
        receipt,settled,outstanding,replaced,rejected,crashed,restarted,
-       selectedOld,selectedCount>>
+       selectedOld,selectedCount,attempt,unclaimed,orphanRecords>>
 Drain(w) ==
   /\ gate = w /\ pc[w] = 61 /\ outstanding = 0
   /\ pc' = [pc EXCEPT ![w] = 62]
   /\ UNCHANGED <<target,gate,boot,progress,expected,head,complete,intent,observed,
        receipt,settled,active,outstanding,replaced,rejected,crashed,restarted,
-       selectedOld,selectedCount>>
+       selectedOld,selectedCount,attempt,unclaimed,orphanRecords>>
 Release(w) ==
   /\ gate = w /\ pc[w] = 62 /\ outstanding = 0
   /\ gate' = 0 /\ pc' = [pc EXCEPT ![w] = 63]
   /\ UNCHANGED <<target,boot,progress,expected,head,complete,intent,observed,
        receipt,settled,active,outstanding,replaced,rejected,crashed,restarted,
-       selectedOld,selectedCount>>
+       selectedOld,selectedCount,attempt,unclaimed,orphanRecords>>
 Replacement ==
   /\ ~replaced /\ gate # 0 /\ pc[gate] \in 4..37
   /\ replaced' = TRUE
   /\ UNCHANGED <<pc,target,gate,boot,progress,expected,head,complete,intent,
        observed,receipt,settled,active,outstanding,rejected,crashed,restarted,
-       selectedOld,selectedCount>>
+       selectedOld,selectedCount,attempt,unclaimed,orphanRecords>>
 RejectReplacement(w) ==
   /\ gate = w /\ replaced /\ pc[w] \in 4..38 /\ outstanding = 0
   /\ pc' = [pc EXCEPT ![w] = 60] /\ rejected' = rejected \cup {w}
   /\ UNCHANGED <<target,gate,boot,progress,expected,head,complete,intent,
        observed,receipt,settled,active,outstanding,replaced,crashed,restarted,
-       selectedOld,selectedCount>>
+       selectedOld,selectedCount,attempt,unclaimed,orphanRecords>>
 Crash(w) ==
-  /\ ~crashed /\ gate = w /\ pc[w] \in 2..52
+  /\ ~crashed /\ gate = w /\ pc[w] \in (2..52 \cup {70} \cup 80..96)
+  /\ unclaimed' = IF pc[w] \in {9,13,16} THEN unclaimed \cup {<<w,attempt[w]>>} ELSE unclaimed
   /\ crashed' = TRUE /\ gate' = 0 /\ active' = active \ {w}
   /\ outstanding' = 0 /\ pc' = [pc EXCEPT ![w] = 54]
   /\ progress' = [progress EXCEPT ![w] = pc[w]]
   /\ UNCHANGED <<target,boot,expected,head,complete,intent,observed,
-       receipt,settled,replaced,rejected,restarted,selectedOld,selectedCount>>
+       receipt,settled,replaced,rejected,restarted,selectedOld,selectedCount,attempt,orphanRecords>>
 Restart(w) ==
   /\ crashed /\ ~restarted /\ pc[w] = 54 /\ gate = 0
   /\ restarted' = TRUE /\ gate' = w /\ active' = active \cup {w}
   /\ pc' = [pc EXCEPT ![w] = IF boot = 7 THEN 2 ELSE IF w \in intent THEN
-       IF head[target[w]] = w THEN 39 ELSE 37 ELSE IF progress[w] \in 4..36 THEN 58 ELSE 60]
+       IF head[target[w]] = w THEN 39 ELSE 37 ELSE IF progress[w] \in (4..36 \cup {70,80} \cup 89..93) THEN 58 ELSE 60]
   /\ UNCHANGED <<target,boot,progress,expected,head,complete,intent,observed,
        receipt,settled,outstanding,replaced,rejected,crashed,selectedOld,
-       selectedCount>>
+       selectedCount,attempt,unclaimed,orphanRecords>>
 RetryExpectedHead(w) ==
   /\ gate = w /\ pc[w] = 58
+  /\ (<<w,attempt[w]>> \notin unclaimed \/ Broken = "orphan")
   /\ ((intent \ {w}) \subseteq settled \/ Broken = "predecessor")
   /\ (head[target[w]] = expected[w] \/ Broken = "expected")
   /\ pc' = [pc EXCEPT ![w] = IF progress[w] = 19 THEN 18 ELSE progress[w]]
   /\ UNCHANGED <<target,gate,boot,progress,expected,head,complete,intent,observed,
        receipt,settled,active,outstanding,replaced,rejected,crashed,restarted,
-       selectedOld,selectedCount>>
+       selectedOld,selectedCount,attempt,unclaimed,orphanRecords>>
 RetryStaleHead(w) ==
   /\ gate = w /\ pc[w] = 58 /\ head[target[w]] # expected[w]
   /\ pc' = [pc EXCEPT ![w] = 60] /\ rejected' = rejected \cup {w}
   /\ UNCHANGED <<target,gate,boot,progress,expected,head,complete,intent,observed,
        receipt,settled,active,outstanding,replaced,crashed,restarted,
-       selectedOld,selectedCount>>
+       selectedOld,selectedCount,attempt,unclaimed,orphanRecords>>
 RetryPendingRefusal(w) ==
   /\ gate = w /\ pc[w] = 58 /\ ~((intent \ {w}) \subseteq settled)
   /\ pc' = [pc EXCEPT ![w] = 60] /\ rejected' = rejected \cup {w}
   /\ UNCHANGED <<target,gate,boot,progress,expected,head,complete,intent,observed,
        receipt,settled,active,outstanding,replaced,crashed,restarted,
-       selectedOld,selectedCount>>
+       selectedOld,selectedCount,attempt,unclaimed,orphanRecords>>
 ExistingNamespaceClaimReplay(w) ==
   /\ gate = w /\ restarted /\ pc[w] = 2 /\ boot = 7
   /\ boot' = 9
   /\ UNCHANGED <<pc,target,gate,progress,expected,head,complete,intent,observed,
        receipt,settled,active,outstanding,replaced,rejected,crashed,restarted,
-       selectedOld,selectedCount>>
+       selectedOld,selectedCount,attempt,unclaimed,orphanRecords>>
+RetryQuarantine(w) ==
+  /\ gate = w /\ pc[w] = 58 /\ <<w,attempt[w]>> \in unclaimed
+  /\ (intent \ {w}) \subseteq settled /\ head[target[w]] = expected[w]
+  /\ pc' = [pc EXCEPT ![w] = 72]
+  /\ UNCHANGED <<target,gate,boot,progress,expected,head,complete,intent,observed,
+       receipt,settled,active,outstanding,replaced,rejected,crashed,restarted,
+       selectedOld,selectedCount,attempt,unclaimed,orphanRecords>>
+OrphanAppend(w) ==
+  /\ gate = w /\ pc[w] = 72
+  /\ orphanRecords' = orphanRecords \cup {<<w,attempt[w]>>}
+  /\ pc' = [pc EXCEPT ![w] = 73]
+  /\ UNCHANGED <<target,gate,boot,progress,expected,head,complete,intent,observed,
+       receipt,settled,active,outstanding,replaced,rejected,crashed,restarted,
+       selectedOld,selectedCount,attempt,unclaimed>>
+OrphanSync(w) == Step(w,73,74)
+FreshAttempt(w) ==
+  /\ gate = w /\ pc[w] = 74 /\ attempt[w] = 0
+  /\ attempt' = [attempt EXCEPT ![w] = 1]
+  /\ pc' = [pc EXCEPT ![w] = 6]
+  /\ UNCHANGED <<target,gate,boot,progress,expected,head,complete,intent,observed,
+       receipt,settled,active,outstanding,replaced,rejected,crashed,restarted,
+       selectedOld,selectedCount,unclaimed,orphanRecords>>
 ReplayedNamespaceParentSync(w) ==
   /\ gate = w /\ pc[w] = 2 /\ boot = 9 /\ boot' = 8
   /\ UNCHANGED <<pc,target,gate,progress,expected,head,complete,intent,observed,
        receipt,settled,active,outstanding,replaced,rejected,crashed,restarted,
-       selectedOld,selectedCount>>
+       selectedOld,selectedCount,attempt,unclaimed,orphanRecords>>
+PromotionIntentSync(w) == Step(w,89,24)
+HeadReservationSync(w) == Step(w,90,31)
+HeadClaimSync(w) == Step(w,91,33)
+HeadTemporaryReadback(w) == Step(w,35,92)
+HeadTemporaryParentSync(w) == Step(w,92,93)
+HeadReadySync(w) == Step(w,36,80)
+IntentSync(w) == Step(w,81,37)
+HeadObservedAppend(w) == Step(w,41,82)
+HeadObservedSync(w) == Step(w,82,83)
+ReceiptReservationSync(w) == Step(w,84,42)
+ReceiptClaimSync(w) == Step(w,85,44)
+ReceiptTemporaryReadback(w) == Step(w,46,94)
+ReceiptTemporaryParentSync(w) == Step(w,94,95)
+ReceiptReadySync(w) == Step(w,47,86)
+ReceiptPromotionIntent(w) == Step(w,86,87)
+ReceiptPromotionIntentSync(w) == Step(w,87,88)
+SettlementAppend(w) == Step(w,52,96)
 Next == Replacement \/ \E w \in Writers:
   (\E c \in Candidates: AnchorResolution(w,c)) \/ Gate(w) \/
   LedgerExclusiveCreate(w) \/ LedgerSelfReservation(w) \/ LedgerReservationSync(w) \/
@@ -279,15 +323,19 @@ Next == Replacement \/ \E w \in Writers:
   ReceiptPromotionGuard(w) \/ ReceiptPromotionSyscall(w) \/ ReceiptSourceParentSync(w) \/
   ReceiptDestinationParentSync(w) \/ ReceiptReadback(w) \/ Settlement(w) \/
   Expiry(w) \/ Drain(w) \/ Release(w) \/ RejectReplacement(w) \/ Crash(w) \/ Restart(w) \/
-  ExistingNamespaceClaimReplay(w) \/ ReplayedNamespaceParentSync(w) \/ RetryExpectedHead(w) \/ RetryStaleHead(w) \/ RetryPendingRefusal(w)
+  ExistingNamespaceClaimReplay(w) \/ ReplayedNamespaceParentSync(w) \/ RetryExpectedHead(w) \/ RetryStaleHead(w) \/ RetryPendingRefusal(w) \/
+  RetryQuarantine(w) \/ OrphanAppend(w) \/ OrphanSync(w) \/ FreshAttempt(w) \/
+  PromotionIntentSync(w) \/ HeadReservationSync(w) \/ HeadClaimSync(w) \/ HeadTemporaryReadback(w) \/ HeadTemporaryParentSync(w) \/ HeadReadySync(w) \/ IntentSync(w) \/ HeadObservedAppend(w) \/ HeadObservedSync(w) \/ ReceiptReservationSync(w) \/ ReceiptClaimSync(w) \/ ReceiptTemporaryReadback(w) \/ ReceiptTemporaryParentSync(w) \/ ReceiptReadySync(w) \/ ReceiptPromotionIntent(w) \/ ReceiptPromotionIntentSync(w) \/ SettlementAppend(w)
 OneOwner == Cardinality(active) <= 1
 SelectedComplete == \A c \in Candidates: head[c] # 0 => head[c] \in complete
 SuccessAfterReadback == settled \subseteq (observed \cap receipt)
 PredecessorSettled == \A w \in Writers: pc[w] \in 3..38 =>
   \A v \in intent \ {w}: v \in settled
-ExpectedHead == \A w \in Writers: pc[w] \in 39..52 => selectedOld[w] = expected[w]
+ExpectedHead == \A w \in Writers: pc[w] \in (39..52 \cup 82..88 \cup {94,95,96}) => selectedOld[w] = expected[w]
 SameOldHead == \A c \in Candidates: \A h \in 0..2: selectedCount[c][h] <= 1
 OutstandingOwned == outstanding # 0 => gate = outstanding /\ outstanding \in active
 ParentBarrierBeforeUse == \A w \in Writers: pc[w] \in 3..52 => boot # 9
+NoUnclaimedUse == \A w \in Writers: pc[w] \in 18..52 => <<w,attempt[w]>> \notin unclaimed
+OrphanRetention == orphanRecords \subseteq unclaimed
 Spec == Init /\ [][Next]_vars
 =======================================================================

@@ -1069,3 +1069,72 @@ export async function barrierRetries(root, evidence) {
   }
   return results;
 }
+
+export async function orphanBoundaries(root, evidence) {
+  const f = await makeFixture(root, evidence, "orphan-boundaries");
+  const result = { evidence: f.evidence, outcome: "running", schedules: [] };
+  try {
+    for (const key of [
+      "appendExact|before-call|orphan-attempt",
+      "appendExact|after-call|orphan-attempt",
+      "syncFile|before-file-sync|orphan-attempt",
+      "syncFile|after-file-sync|orphan-attempt",
+    ]) {
+      const id = String(result.schedules.length),
+        c = candidate(f, `create-${id}`),
+        request = `orphan-${id}`;
+      await f.fault({
+        key: "createDirectoryExclusive|after-create-directory|stage-reserved",
+        mode: "kill",
+      });
+      assert.equal(f.publish(c, request).signal, "SIGKILL");
+      const reservation = (await records(f))
+        .filter(
+          (record) =>
+            record.kind === "stage-reserved" && record.requestId === request,
+        )
+        .at(-1);
+      const oldPath = join(
+          f.anchor,
+          "academic-os-control-publication/staging",
+          reservation.attemptId,
+        ),
+        before = await lstat(oldPath);
+      await f.fault({ key, mode: "kill" });
+      const interrupted = f.publish(c, request);
+      assert.equal(interrupted.signal, "SIGKILL", interrupted.stdout);
+      const hit = JSON.parse(await readFile(f.hit, "utf8"));
+      await f.clear();
+      const restored = expectPublished(f.publish(c, request));
+      const after = await lstat(oldPath);
+      assert.equal(after.ino, before.ino);
+      assert.deepEqual(await readdir(oldPath), []);
+      assert.notEqual(
+        restored.receipt.selectedHead.generationRoot.object.inode,
+        String(before.ino),
+      );
+      assert.ok(
+        (await records(f)).some(
+          (record) =>
+            record.kind === "orphan-attempt" &&
+            record.attemptId === reservation.attemptId,
+        ),
+      );
+      result.schedules.push({
+        key,
+        outcome: "passed",
+        interrupted,
+        hit,
+        restored,
+        retainedUnclaimedPath: oldPath,
+        retainedInode: before.ino,
+        readbacks: await readReceipt(f, restored.receipt),
+      });
+    }
+    result.outcome = "passed";
+    return result;
+  } finally {
+    await f.clear();
+    await f.save(result);
+  }
+}

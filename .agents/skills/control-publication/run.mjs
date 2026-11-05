@@ -23,6 +23,7 @@ import {
   barrierRetries,
   bootstrap,
   mutations,
+  orphanBoundaries,
   runtime,
   streamAndLifetime,
 } from "./runtime.mjs";
@@ -195,7 +196,7 @@ try {
   );
   assert.match(javaVersion.output, /version "21\./);
   const properties =
-    "OneOwner SelectedComplete SuccessAfterReadback PredecessorSettled ExpectedHead SameOldHead OutstandingOwned";
+    "OneOwner SelectedComplete SuccessAfterReadback PredecessorSettled ExpectedHead SameOldHead OutstandingOwned NoUnclaimedUse OrphanRetention";
   for (const [name, alias, broken, invariants, expectedFailure] of [
     [
       "all-source-properties",
@@ -234,6 +235,13 @@ try {
       "parent-barrier",
       "ParentBarrierBeforeUse",
       "ParentBarrierBeforeUse",
+    ],
+    [
+      "broken-unclaimed-adoption",
+      false,
+      "orphan",
+      "NoUnclaimedUse",
+      "NoUnclaimedUse",
     ],
   ]) {
     const model = join(evidence, name);
@@ -360,6 +368,7 @@ try {
     );
     result.runtime = await runtime(root, evidence);
     result.bootstrap = await bootstrap(root, evidence);
+    result.orphanBoundaries = await orphanBoundaries(root, evidence);
     result.barrierRetries = await barrierRetries(root, evidence);
     result.snapshotLifetime = await streamAndLifetime(root, evidence);
     result.mutations = await mutations(root, evidence);
@@ -413,6 +422,17 @@ try {
       finalStatus.output,
       "",
       "Verification checkout remained clean",
+    );
+    const finalRevision = await checked(
+      "git",
+      ["rev-parse", "HEAD"],
+      root,
+      "final-revision",
+    );
+    assert.equal(
+      finalRevision.output.trim(),
+      revision,
+      "Verification HEAD remained unchanged",
     );
     for (const [file, expected] of Object.entries(result.verificationHashes))
       assert.equal(

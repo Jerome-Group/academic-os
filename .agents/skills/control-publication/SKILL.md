@@ -27,6 +27,7 @@ Use `--evidence-parent /absolute/private/directory` after `--` to choose its par
 Read the printed `results.json`, every model log, fixture `result.json`, `commands.json`, fault marker and mutation record at its original path.
 Require all required boundaries to have outcome `passed`, eight mapped public mutation failures and eight restored passes.
 Require the numeric/event checks, stable snapshots, expiry, bootstrap, CLI/MCP/extracted standalone journey and immutable byte readbacks.
+Require all four orphan-append/barrier interruptions to retain the old physical attempt and select a different claimed attempt.
 Require all recorded child PIDs to have exited.
 `model-only`, `failed` and `bug` are incomplete outcomes and exit nonzero.
 A `bug` result preserves a current-code counterexample. Never relabel it a passed gate.
@@ -41,6 +42,7 @@ The statechart tool's interpreter is separate from the pinned checker identity.
 [Coverage](coverage.md) maps actions, source functions, runtime observations and reductions.
 [The source binding](coverage.json) records the checked product commit and exact covered-source hashes.
 The model bounds are two writers, two candidates, two generations, one conflicting alias, one physical replacement, one crash/restart and one admitted effect.
+One crash permits one retained unclaimed attempt and one fresh attempt. Orphan append, its file barrier and fresh reservation remain separate.
 The native operations are synchronous. Expiry/drain tests establish ordering; no asynchronous native worker exists in this implementation.
 Kernel exclusion, account discovery, native syscall behavior and filesystem durability remain runtime premises.
 The model is neither implementation equivalence nor a universal power-loss theorem.

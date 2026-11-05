@@ -42,6 +42,7 @@ Preflight CLI fixtures check exact roots, declaration ambiguity, aliases, collis
 
 An index entry marked `mapped` is not a successful run.
 A supported canonical envelope read covers head, generation and module identity only. Full canonical conformance, workflows and migration remain unavailable. Legacy observations preserve reported status without asserting completion or mastery.
+Mounted observations reject detected file or ancestor identity changes before returning bytes. The scheduled parent-swap fixture proves that interleaving only; pathname checks do not provide atomic traversal against arbitrary concurrent swaps.
 A current receipt proves a producer observation, not exhaustive NTULearn visibility or current attachment bytes.
 Readiness covers local controls and recorded Task binding. Live Google access, Task freshness, destination preflight and learning mastery remain unverified.
 One failed mounted inspection leaves controls, learning and Tasks unobserved together. The receipt observation and other Modules are still attempted.

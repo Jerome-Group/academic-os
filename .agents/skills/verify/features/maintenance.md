@@ -28,6 +28,9 @@ node dist/src/cli.js capabilities verify --workflow maintenance --json --log "$a
 Require a passed outcome. CLI journeys assert maintenance options, read-only status, curation migration and catch-up behavior.
 The curation CLI journey fills the seeded register example's placeholders and counts its item under the declared integration key.
 Domain journeys exercise bounded repository checks, recovery decisions, curation rederivation and weekly publication.
+Repository-repair subprocess fixtures preserve Owner issue text, bind publication to the controller's incident fingerprint,
+and require exact conclusion-comment and issue-state readback. They exercise refused writes, changed ownership,
+pagination, retries and durable unresolved outcomes through a fake GitHub transport and an isolated Git remote.
 Weekly subprocess fixtures check late Owner edits, causal conflicts, numeric repository-bound pagination, whole known-batch capacity and unknown-POST reconciliation.
 Compiled Shelf CLI journeys check catch-up/migration partial publication in human/JSON forms and exact-run reconciliation.
 Native process fixtures check exclusive moves, original captures, interruption/death recovery and unsupported-operation refusal.
@@ -42,6 +45,7 @@ It checks the selected Node executable, custom command output, an unrelated inhe
 ## Gotchas
 
 Repository-repair CLI coverage currently proves argument refusals. Its domain tests do not prove a real model repair or protected GitHub merge.
+GitHub issue bodies have no atomic compare-and-swap: an unseen edit can still race the final prewrite read.
 Curation rederive and textbooks sweep have domain coverage without compiled CLI journeys.
 Shelf mutation requires a compiler and native exclusive/exchange support; preview/no-op need no compiler. Unsupported mutation refuses before book effects.
 Same-host canonical private state and stable namespaces remain premises. Captures are recovery evidence, not active catalogs; preserve them.

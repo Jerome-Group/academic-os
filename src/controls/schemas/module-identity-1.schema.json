@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "$id": "urn:academic-os:module-identity:1",
+  "title": "ModuleIdentity",
+  "properties": {
+    "$schema": {
+      "const": "urn:academic-os:module-identity:1"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "module": {
+      "type": "string",
+      "pattern": "^module:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+    },
+    "moduleCode": {
+      "type": "string",
+      "pattern": "^[A-Z]{2,4}[0-9]{4}[A-Z]?$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": ["$schema", "schemaVersion", "module", "moduleCode", "title"]
+}

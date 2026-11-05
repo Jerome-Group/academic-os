@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { runCapabilitiesCommand } from "./capabilities/command.js";
+import { runModuleInspectCommand } from "./commands/module-inspect-command.js";
 import { runAuditCommand } from "./commands/audit-command.js";
 import { runCalendarPromoteCommand } from "./commands/calendar-promote-command.js";
 import { runCalendarProposeCommand } from "./commands/calendar-propose-command.js";
@@ -119,6 +120,8 @@ try {
     await runLearningMaterialsCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "offering" && arguments_[1] === "readiness") {
     await runOfferingReadinessCommand(arguments_.slice(1), json);
+  } else if (arguments_[0] === "module" && arguments_[1] === "inspect") {
+    await runModuleInspectCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "audit") {
     await runAuditCommand(arguments_, json);
   } else {

@@ -6,13 +6,20 @@ import { join } from "node:path";
 export const CHECK_PROFILE_TIMEOUT_MS = 900_000;
 
 export const checkProfiles = {
-  fast: ["format:check", "lint", "build", "cheatsheet-runtime:check"],
+  fast: [
+    "format:check",
+    "lint",
+    "build",
+    "cheatsheet-runtime:check",
+    "controls:check",
+  ],
   tests: ["test"],
   privacy: ["privacy:check"],
   templates: ["templates:check"],
   coverage: ["rule-coverage:check"],
   formal: ["seed-ownership:check"],
   full: [
+    "controls:check",
     "format:check",
     "lint",
     "build",
@@ -146,7 +153,7 @@ export async function runChecks(
 
 const workflowTests = {
   discovery: {
-    areas: ["capabilities"],
+    areas: ["capabilities", "controls"],
     cli: /^(argument-safety|offering-readiness-cli)\.test\.js$/u,
   },
   imports: {

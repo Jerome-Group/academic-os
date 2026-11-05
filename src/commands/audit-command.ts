@@ -100,7 +100,25 @@ async function runTargetAudit(
   parsed: ReturnType<typeof parseAuditArguments>,
   json: boolean,
 ): Promise<void> {
-  const mounted = await inspectMountedModule(config);
+  const mounted = await inspectMountedModule(config, { controls: "any" });
+  if (mounted.controlRead.kind !== "legacy") {
+    const read = mounted.controlRead;
+    const refusal = {
+      outcome: "unsupported-controls",
+      controlShape: read.shape,
+      coverage: read.coverage,
+      diagnostics: read.diagnostics,
+      remediation:
+        "Run academic-os module inspect for supported read-only controls. Full canonical audit, migration and mutation coverage are unavailable.",
+    };
+    process.stdout.write(
+      json
+        ? `${JSON.stringify(refusal, null, 2)}\n`
+        : `${refusal.outcome}: ${refusal.remediation} ${read.diagnostics.map((item) => `${item.code} at ${item.path}: ${item.message}`).join(" ")}\n`,
+    );
+    process.exitCode = 2;
+    return;
+  }
   const inventory =
     parsed.inventory === "drive-api"
       ? await readDriveInventory(config)
@@ -130,8 +148,8 @@ async function runTargetAudit(
   const mode = parsed.migration ? "migration" : "target";
   process.stdout.write(
     json
-      ? `${JSON.stringify(createJsonAuditReport(target, result, recorded, mode), null, 2)}\n`
-      : `${renderHumanAuditReport(target, result, recorded, mode)}\n`,
+      ? `${JSON.stringify({ ...createJsonAuditReport(target, result, recorded, mode), controlShape: mounted.controlRead.shape, controlReadCoverage: mounted.controlRead.coverage }, null, 2)}\n`
+      : `${renderHumanAuditReport(target, result, recorded, mode)}\nControl shape: ${mounted.controlRead.kind}; schema=${JSON.stringify(mounted.controlRead.shape.declared.schemaVersion)}; contract=${JSON.stringify(mounted.controlRead.shape.declared.contractVersion)}; coverage=${mounted.controlRead.coverage}.\n`,
   );
   process.exitCode = exitCodeForOutcome(result.outcome);
 }

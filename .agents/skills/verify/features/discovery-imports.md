@@ -48,6 +48,19 @@ The process-observer journey injects a failing process and a timeout, then prove
 Readiness CLI fixtures check ready, attention and unobserved outcomes, simultaneous findings, sibling retention and unchanged mounted/private-state bytes.
 Preflight CLI fixtures check exact roots, declaration ambiguity, aliases, collisions, excluded routes and partial evidence against disposable configurations, with unchanged fixture bytes.
 
+## Select local quality checks
+
+Run `fast` for formatting, lint, build and generated schema/runtime parity. `tests` runs every
+compiled test, while `privacy` runs the publication assertions. Verification-selection and
+rule-coverage changes require `coverage`, including passing behavioral rule evidence. Teaching
+and template changes require `templates`, including the synthetic cheatsheet journey. Covered
+ownership changes require the formal skill and `formal`. `full` retains the complete gate.
+
+For workflow or prose changes, run relevant checks and compare source bytes with retained proof.
+Repeat heavy behavioral, template or formal checks when their source, selection or assertions
+change. Record unchanged bindings and the exact earlier evidence when reusing a prior result.
+Each platform claim needs an actual run on that platform. Hosted conformance proves no product behavior.
+
 ## Gotchas
 
 An index entry marked `mapped` is not a successful run.

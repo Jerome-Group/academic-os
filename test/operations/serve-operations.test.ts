@@ -247,7 +247,7 @@ it("preserves original listen failure while cleaning partially started servers",
   assert.equal(started.length, 2);
   assert.equal(cleanupAttempted, true);
 });
-it("controller fixture sandbox refuses the default TCP listener; ordinary CI exercises TCP success", async () => {
+it("controller fixture sandbox refuses the default TCP listener; local host verification exercises TCP success", async () => {
   if (unixFixture)
     await assert.rejects(
       startOperationsServer({

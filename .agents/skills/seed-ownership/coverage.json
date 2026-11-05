@@ -1,8 +1,8 @@
 {
-  "syncRevision": "6ac322c7d38fa3f9b368ee38a84c8eac00f2eea8",
-  "lastInspectedRevision": "6ac322c7d38fa3f9b368ee38a84c8eac00f2eea8",
+  "syncRevision": "bda3c541f90ed16ab2945cc17fef13431a05d4da",
+  "lastInspectedRevision": "bda3c541f90ed16ab2945cc17fef13431a05d4da",
   "outcome": "updated",
-  "reason": "Configuration boundary commit 7ddb50c widens the repair CLI type to LoadedConfig. Its runtime Academic guard and ownership callback are unchanged. All 23 covered sources were inspected; only that type-level CLI edit changes a hash. The full candidate passed unchanged models, runtime schedules, real-code mutations and restored controls. Configuration semantics remain outside the ownership claim.",
+  "reason": "Meeting intake commits b9fca19 and bda3c54 reject unsupported saved policies and mixed plan identities. All 23 covered files were inspected; only the seed journal parser changes a hash. Ownership transitions, properties and bounds are unchanged. The full candidate passed all model, runtime, mutation and restored controls. Parser completeness remains outside the formal claim.",
   "files": [
     "src/mounted/seed-mounted-module.ts",
     "src/mounted/seed-mounted-research-project.ts",
@@ -33,7 +33,7 @@
     "src/mounted/seed-mounted-research-project.ts": "b5aee6dd3f0dd469301420182362db9d7ed939bfa05190c66b126283febb18f5",
     "src/mounted/seed-mounted-target.ts": "25dcf40b4501108249dd1b9964ab58c8cf0252a447ccb5a80929667201f85817",
     "src/mounted/execute-seed-operations.ts": "aaae11b752b42847c966d95d7eb1fcdeccbec99edaba101c6e117bd1bb71f432",
-    "src/mounted/seed-operation-journal.ts": "1ab1e83f21350aab31babae783142cc77342899f42c455cd4985c5d7ccbf1015",
+    "src/mounted/seed-operation-journal.ts": "c8cf357fbca4fe90009ab490065e5651a6be7e688290dc6959f62305c5f5796f",
     "src/mounted/seed-target-state.ts": "7eba622f1cabe949344028372ee6fee5bfcfe6aa2a3804c4aa09f4603b34ebca",
     "src/mounted/seed-ownership.ts": "9228e89919dc7d0dc0b6159c089497f9f177f9aa36d45611d2832545470687f2",
     "src/journal-mutation-owner.ts": "0e0123904932abca3bcb70c7a63503789c1b7fffa99f66e67e83c8ddeb885b1c",

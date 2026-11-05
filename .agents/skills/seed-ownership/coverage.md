@@ -51,6 +51,23 @@ Both cleanup mutations still deleted the protected sentinel. Owner bypass and ea
 Every restored control passed, source hashes were restored and no owned process survived.
 Only the coverage binding advances. Models, properties, bounds and runtime checks remain unchanged.
 
+## Meeting intake policy maintenance
+
+Inspection extends through `bda3c541f90ed16ab2945cc17fef13431a05d4da`.
+The inspected history includes the configuration squash `c2383f1`, whose covered bytes already match the record,
+and Meeting intake commits `b9fca19` and `bda3c54`. Only `src/mounted/seed-operation-journal.ts` changes a covered hash.
+Its parser accepts implicit legacy intake policy 1 or explicit policy 2 and rejects mixed Module and Research plan identities.
+Module plans admit no Research-only identity or policy fields. The owner callback, effects, journal persistence and cleanup are unchanged.
+This is **No effect** on the ownership properties. The model still assumes a parseable current prefix and does not prove parser completeness.
+
+The ordinary preflight refused the changed source binding. The full candidate passed all 19 model outcomes,
+34 filesystem schedules, four prerequisites, 33 journal tests, the repair probe and nine curation schedules.
+Both cleanup mutants lost protected bytes; six losing CLIs completed under owner mutants; repair mutants duplicated creation;
+curation mutants lost a confirmed append. Every restored control passed and no owned child survived.
+Separate compiled-CLI mutations remove policy admission and variant exclusivity. Each incorrectly admits a saved plan with exit zero,
+and the corresponding regression fails `0 !== 1`; restored checks pass. These are parser behavior checks, not additional formal properties.
+Models, promises and bounds remain unchanged. Only the exact source binding advances.
+
 ## Bounds and assumptions
 
 The positive configurations enumerate one target, one active stage pathname, two claim generations, two nested directory components, two approved files, and one foreign descendant slot.

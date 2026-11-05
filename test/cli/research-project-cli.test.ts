@@ -60,6 +60,7 @@ describe("academic-os research-project CLI", () => {
       await readFile(join(fixture.projectRoot, "Icon\r"), "utf8"),
       "",
     );
+    await assertSavedPolicyBinding(fixture, target, "add-v2");
 
     const audit = await runCli(
       "audit",
@@ -345,6 +346,7 @@ describe("academic-os research-project CLI", () => {
       }
     }
     await writeFile(journal.path, journal.bytes);
+    await assertSavedPolicyBinding(fixture, target, "remove-v2");
   });
 
   it("refuses invalid Meeting intake before publication", async () => {
@@ -681,4 +683,64 @@ async function onlyJournal(
   assert.equal(entries.length, 1);
   const path = join(root, entries[0] ?? "missing");
   return { path, bytes: await readFile(path) };
+}
+
+async function assertSavedPolicyBinding(
+  fixture: Awaited<ReturnType<typeof setupFixture>>,
+  target: string[],
+  mutation: "add-v2" | "remove-v2",
+): Promise<void> {
+  const original = await onlyJournal(fixture.stateRoot);
+  const entries = await readdir(fixture.projectRoot, {
+    recursive: true,
+    withFileTypes: true,
+  });
+  const files = await Promise.all(
+    entries
+      .filter((entry) => entry.isFile())
+      .map(async (entry) => {
+        const path = join(entry.parentPath, entry.name);
+        return { path, bytes: await readFile(path) };
+      }),
+  );
+  try {
+    for (const recomputeDigest of [false, true]) {
+      const events = original.bytes
+        .toString("utf8")
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line));
+      if (mutation === "add-v2") events[0].plan.intakePolicyVersion = 2;
+      else delete events[0].plan.intakePolicyVersion;
+      if (recomputeDigest)
+        events[0].planDigest = createHash("sha256")
+          .update(JSON.stringify(events[0].plan))
+          .digest("hex");
+      const changed = `${events.map((event) => JSON.stringify(event)).join("\n")}\n`;
+      await writeFile(original.path, changed);
+      const refused = await runCli(...target, "--apply", "--resume", "--json");
+      assert.equal(refused.exitCode, 1, refused.stdout);
+      assert.match(
+        JSON.parse(refused.stdout).evidence.join(" "),
+        recomputeDigest
+          ? /approved plan changed/u
+          : /stored plan does not match its recorded digest/u,
+      );
+      assert.equal(await readFile(original.path, "utf8"), changed);
+      assert.deepEqual(
+        (await readdir(fixture.projectRoot, { recursive: true })).sort(),
+        entries
+          .map((entry) =>
+            join(entry.parentPath, entry.name).slice(
+              fixture.projectRoot.length + 1,
+            ),
+          )
+          .sort(),
+      );
+      for (const file of files)
+        assert.deepEqual(await readFile(file.path), file.bytes, file.path);
+    }
+  } finally {
+    await writeFile(original.path, original.bytes);
+  }
 }

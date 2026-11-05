@@ -227,6 +227,12 @@ export async function readSeedJournal(
       diagnostic: "Seed journal contains a mismatched target identity.",
     };
   }
+  if (seedPlanDigest(started.plan) !== started.planDigest) {
+    return {
+      diagnostic:
+        "Seed continuation stored plan does not match its recorded digest.",
+    };
+  }
   if (
     events.some(
       (event, index) =>

@@ -161,6 +161,31 @@ describe("academic-os seed", () => {
         profile,
       );
     }
+    const changedEvents = original
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    const savedProfile = changedEvents[0].plan.operations.find(
+      ({ path }: { path: string }) =>
+        path === "00 Module Admin/00 Module Profile.md",
+    );
+    assert.ok(savedProfile);
+    savedProfile.contents = "Changed bytes in the saved private plan.\n";
+    const changedBytes = `${changedEvents.map((event) => JSON.stringify(event)).join("\n")}\n`;
+    await writeFile(journalPath, changedBytes);
+    const refusedBytes = await runCli(...args, "--resume");
+    assert.equal(refusedBytes.exitCode, 1, refusedBytes.stdout);
+    assert.match(
+      JSON.parse(refusedBytes.stdout).evidence.join(" "),
+      /stored plan does not match its recorded digest/u,
+    );
+    assert.equal(await readFile(journalPath, "utf8"), changedBytes);
+    assert.deepEqual(
+      await readFile(
+        join(fixture.moduleRoot, "00 Module Admin/00 Module Profile.md"),
+      ),
+      profile,
+    );
     await writeFile(journalPath, original);
     const resumed = await runCli(...args, "--resume");
     assert.equal(resumed.exitCode, 0, resumed.stdout);

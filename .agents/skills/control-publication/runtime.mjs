@@ -207,6 +207,59 @@ export async function runtime(root, evidence) {
     await f.clear();
     const selectedB = expectPublished(f.publish(c2, "wins-b"));
     refusal(f.publish(c2, "frozen-a"), "stale-head");
+    const freshCandidate = candidate(f, "fresh-competing-candidate");
+    const supplied = {
+      candidateId: freshCandidate,
+      expectedHead: { kind: "absent" },
+      bundleSha256: hash(await readFile(f.bundle)),
+    };
+    let busyB;
+    const freshACommand = await f.stopped(
+      f.publishArgs(freshCandidate, "fresh-a"),
+      "replaceHeadGuarded|before-head-rename|publication-intent",
+      async (marker) => {
+        const before = await readFile(f.ledger);
+        const headPath = join(
+          f.anchor,
+          "academic-os-control-publication/candidates",
+          freshCandidate,
+          "00 Module Admin/00 Module.json",
+        );
+        await assert.rejects(lstat(headPath), { code: "ENOENT" });
+        busyB = f.publish(freshCandidate, "fresh-b");
+        refusal(busyB, "busy");
+        assert.equal(busyB.status, 2);
+        assert.ok(alive(marker.pid));
+        assert.deepEqual(await readFile(f.ledger), before);
+      },
+    );
+    const freshA = expectPublished(freshACommand);
+    assert.equal(freshA.receipt.previousHead.kind, "absent");
+    const beforeFreshRetry = await readFile(f.ledger),
+      staleB = f.publish(freshCandidate, "fresh-b");
+    refusal(staleB, "stale-head");
+    assert.equal(staleB.status, 2);
+    assert.deepEqual(await readFile(f.ledger), beforeFreshRetry);
+    assert.equal(hash(await readFile(f.bundle)), supplied.bundleSha256);
+    assert.ok(
+      !(await records(f)).some(
+        (record) =>
+          record.kind === "publication-plan" &&
+          record.binding.requestId === "fresh-b",
+      ),
+    );
+    const freshSameOldHead = {
+      supplied,
+      requestA: "fresh-a",
+      requestB: "fresh-b",
+      busyB,
+      freshACommand,
+      freshA,
+      staleB,
+      noCrash: true,
+      noBPlan: true,
+    };
+    result.readbacks.push(...(await readReceipt(f, freshA.receipt)));
     const c3 = candidate(f, "pending-predecessor");
     await f.fault({
       key: "replaceHeadGuarded|after-head-rename|publication-intent",
@@ -300,6 +353,7 @@ export async function runtime(root, evidence) {
     await writeFile(f.ledger, settledLedger);
     result.p5 = {
       sameOldHead: true,
+      freshSameOldHead,
       pendingBeforeSuccessor: true,
       completedARetryReportsB: true,
       candidateInputExpectationReleaseRebinding: true,

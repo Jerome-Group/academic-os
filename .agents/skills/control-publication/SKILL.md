@@ -28,6 +28,7 @@ Read the printed `results.json`, every model log, fixture `result.json`, `comman
 Require all required boundaries to have outcome `passed`, eight mapped public mutation failures and eight restored passes.
 Require the numeric/event checks, stable snapshots, expiry, bootstrap, CLI/MCP/extracted standalone journey and immutable byte readbacks.
 Require all four orphan-append/barrier interruptions to retain the old physical attempt and select a different claimed attempt.
+Require the fresh competing-call schedule to keep both supplied expectations unchanged, refuse B as busy while A holds ownership, then refuse the unchanged B as stale after A succeeds. This schedule uses no crash.
 Require all recorded child PIDs to have exited.
 `model-only`, `failed` and `bug` are incomplete outcomes and exit nonzero.
 A `bug` result preserves a current-code counterexample. Never relabel it a passed gate.
@@ -53,6 +54,7 @@ Existing seed evidence is checked for applicability only and supplies no publish
 1. Run the ordinary command before editing verification. Retain the outcome.
 2. Diff every covered source from `syncRevision`. Read intervening commit messages and identify moved functions or new writers.
 3. Classify each change as no effect, model drift, intended promise change or possible product bug. Keep claim append, syscall and parent barrier distinct.
+   Preserve caller-supplied expectation before ownership separately from the resolved owned previous head. Never refresh caller input inside resolution.
 4. Update the model from source. Replay every failing path against the public fixture. Keep genuine counterexamples and report them before product repair.
 5. Run with `--candidate-revision <full-clean-HEAD>` to record candidate hashes. Require meaningful behavioral mutant failures and restored passes.
 6. Advance `syncRevision` and exact hashes only after source mapping and observed behavior agree. Commit verification separately, then run the ordinary command again.

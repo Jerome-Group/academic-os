@@ -16,7 +16,7 @@ Public fixture loaders are separate from the production native loader. The relea
 | `RetryQuarantine`, `OrphanAppend`, `OrphanSync`, `FreshAttempt`, `NoUnclaimedUse` | `store.ts stageObject`, `abandonStage`, `publication.ts performPublication` | Four actual orphan append/sync interruptions preserve the unclaimed directory inode and leave it empty. Retry selects a different physical generation object and reads its complete bytes. |
 | File create, physical claim, write guard/syscall, truncate, sync and readback | `store.ts write`, native `writeExact`, `guardInterval`, `guard` | Killed compiled CLI at each observed boundary. Recovered manifests are read byte-for-byte. Physical-claim mutant admits a same-byte foreign inode. |
 | Promotion intent, guard, rename, both parent syncs and readback | `store.ts promote`, native `promote` | Separate syscall/guard traces. Foreign byte-identical regular output refuses under exclusive rename; exclusive-rename mutant overwrites it. Existing journey also retains foreign generation refusal. |
-| Expected head, frozen retry, complete graph | `publication-plan.ts freezePlan`, `publication-reader.ts resolveExpectedHead`, `readPlanFiles`, `publication.ts performPublication` | Two frozen requests expecting absence admit only one selection. Completed A after B returns A's receipt and current B. Missing file before selection refuses; complete-readback mutant selects it. |
+| `CallerRequest`, `ExpectedHeadResolution`, `InitialStaleRefusal`, frozen retry and complete graph | `index.ts publish` input, `publication-plan.ts freezePlan`, `publication-reader.ts resolveExpectedHead`, `readPlanFiles`, `publication.ts performPublication` | Caller `supplied` is immutable before anchor resolution and ownership. Resolved `expected` is captured from the owned current head only after comparison. Same-old-head counts use supplied expectation. Two fresh competing calls use unchanged absent expectations and no crash; B first refuses busy, then stale after A succeeds, without a plan or ledger change. The separate frozen-plan crash/retry remains. |
 | Head reservation, create, claim, write, sync, intent, selector rename, parent sync and readback | `publication-settlement.ts prepareHead`, `settleIntent`, native `replaceHead` | Exact pending bytes survive kill after selector rename. Read-only inspect reports recovery and leaves ledger bytes unchanged. |
 | Receipt reservation, write, sync, ready, promotion, parent syncs, readback and settlement | `publication-settlement.ts settleReceipt`, `store.ts temporary`, `promote`, `append` | Actual rows, exact receipt bytes and before/after append/barrier/readback schedules. Only settled results return public success. |
 | Pending predecessor and request binding | `index.ts publish`, `publication-settlement.ts reconcilePending`, `publication-plan.ts freezePlan` | A selected without receipt settles before B's plan. Candidate, input, expectation and release rebinding refuse. Torn tail remains unchanged. Predecessor mutant admits B first. |
@@ -31,6 +31,8 @@ Guards and syscalls have different edge names. A stopped syscall-edge marker is 
 ## Bounds and reductions
 
 TLC explores two writers, two physical candidates and two request generations. An alias configuration maps both candidate names to one physical aggregate.
+Each caller supplies absence or one of the two bounded head tokens before gate acquisition. Other digests cannot match either generated head and take the same initial stale-refusal branch.
+Waiting at `Gate` represents a caller retry with unchanged input after the public busy refusal. The product does not provide an internal blocking queue or a liveness promise.
 It permits one replacement, one crash/restart and one outstanding native effect.
 One crash permits two stage attempts. A created-but-unclaimed attempt stays retained; orphan append, its barrier and the next reservation are separate actions.
 Every record append/barrier, physical creation, claim, promotion, head and receipt phase is separate.
@@ -43,6 +45,7 @@ The model records native guard admission and the following syscall separately. S
 Replacement refusal stops the modeled request. Foreign-byte identity and native exclusive rename are established by compiled fixtures and mutants, rather than a theorem about the operating system.
 The model does not model disk caches, filesystem crash persistence, SQLite internals, N-API memory safety, ACL evaluation, account lookup or distributed/hostile writers.
 A claim record alone never establishes that its parent directory barrier completed.
+MF1 corrected the earlier model that refreshed public expectation inside ownership. The frozen earlier run and root finding remain checkpoint evidence, not a complete P5 formal verdict.
 
 ## Historical counterexamples
 

@@ -243,6 +243,7 @@ try {
       "NoUnclaimedUse",
       "NoUnclaimedUse",
     ],
+    ["broken-same-old-head", true, "expected", "SameOldHead", "SameOldHead"],
   ]) {
     const model = join(evidence, name);
     await mkdir(model, { mode: 0o700 });
@@ -275,6 +276,12 @@ try {
       environment,
     );
     await run.persist();
+    if (name === "broken-same-old-head")
+      assert.doesNotMatch(
+        run.output,
+        /<Crash\(/,
+        "Fresh competing-call counterexample requires no crash",
+      );
     if (expectedFailure) {
       assert.match(
         run.output,

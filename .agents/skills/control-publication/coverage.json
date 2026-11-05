@@ -10,7 +10,8 @@
     "replacement": 1,
     "crashRestart": 1,
     "outstandingEffect": 1,
-    "stageAttemptsPerWriter": 2
+    "stageAttemptsPerWriter": 2,
+    "suppliedHeadTokensIncludingAbsence": 3
   },
   "sourceHashes": {
     "scripts/build-control-publication-native.mjs": "e028d73787892e395c5b20208ba05ecebb51369181d89ab54312cda6287cf6b9",
@@ -99,5 +100,12 @@
     "test/controls-publication/publication.test.ts": "c84b74a18307e770d619c98408ed629fddb50ab4c17c9d6a2778e2fce97ff7a4",
     "test/controls-publication/standalone-package.test.ts": "de34ddbb1297f37d344b20b8c28cacbbfe3228a3d45d7059dcc8b34adca01a20"
   },
-  "previousSyncRevision": "f9b7ad5dc32605e3d800a1fe5a259761420e9c52"
+  "previousSyncRevision": "f9b7ad5dc32605e3d800a1fe5a259761420e9c52",
+  "modelMaintenance": {
+    "finding": "MF1",
+    "classification": "model drift",
+    "previousVerificationHead": "594787f978f30200074d0021f3ffcc518d2e5e01",
+    "productSourceChanged": false,
+    "correction": "Freeze caller supplied expectation before anchor/gate, compare it under ownership, separately retain the resolved owned previous head, refuse initial staleness before PlanAppend, retain retry guards, and count replacement by supplied expectation. The fresh public competing-call schedule uses no crash."
+  }
 }

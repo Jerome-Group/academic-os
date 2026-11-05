@@ -21,6 +21,7 @@ export const checkProfiles = {
   formal: ["seed-ownership:check"],
   publication: ["controls-publication:check"],
   "module-activity": ["module-activity:check"],
+  "publication-formal": ["control-publication:check"],
   full: [
     "controls:check",
     "config:check",

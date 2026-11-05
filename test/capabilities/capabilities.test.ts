@@ -104,7 +104,7 @@ it("reports complete capability usage with executable workflow names", async () 
   assert.equal(actions.length, 4);
   for (const action of actions)
     assert.deepEqual(action.usage, [
-      "Usage: academic-os capabilities index|health|check|verify [health: --config <private-config>] [--profile fast|tests|privacy|templates|coverage|formal|publication|module-activity|full] [--workflow module-activity|discovery|imports|recovery|services|teaching|maintenance] [--log <private-new-file>] [--json]",
+      "Usage: academic-os capabilities index|health|check|verify [health: --config <private-config>] [--profile fast|tests|privacy|templates|coverage|formal|publication|module-activity|publication-formal|full] [--workflow module-activity|discovery|imports|recovery|services|teaching|maintenance] [--log <private-new-file>] [--json]",
     ]);
 });
 

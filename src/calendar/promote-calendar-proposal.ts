@@ -62,12 +62,12 @@ export async function promoteCalendarProposal(
       proposal.id,
       "Legacy Calendar Proposal requires re-preview. Its saved intervals, digest and counts cannot authorize publication.",
     );
-  const deletionInvalidated =
+  const deletionInvalidatedBeforeRefresh =
     proposal.status === "stale" && proposal.staleReason === "live-item-deleted";
   if (
     recorded === undefined &&
     proposal.status !== "ready" &&
-    !deletionInvalidated
+    !deletionInvalidatedBeforeRefresh
   )
     throw new OperationalError(
       "invalid-target",
@@ -85,6 +85,20 @@ export async function promoteCalendarProposal(
       proposal.id,
       "blocked",
       "Calendar Refresh must succeed before publication.",
+    );
+  const refreshedProposal = await input.proposalStore.read(proposal.id);
+  const deletionInvalidatedAfterRefresh =
+    refreshedProposal?.status === "stale" &&
+    refreshedProposal.staleReason === "live-item-deleted";
+  if (
+    recorded === undefined &&
+    refreshedProposal?.status !== "ready" &&
+    !deletionInvalidatedAfterRefresh
+  )
+    return refused(
+      proposal.id,
+      "stale",
+      "Proposal became ineligible during Calendar Refresh; prepare and review a new Proposal.",
     );
   const workspace = await input.workspaceReader.read();
   const mirrors = await readCurrentCalendarMirrors(
@@ -124,7 +138,7 @@ export async function promoteCalendarProposal(
   let assessment = await assess();
   if (
     recorded === undefined &&
-    deletionInvalidated &&
+    (deletionInvalidatedBeforeRefresh || deletionInvalidatedAfterRefresh) &&
     assessment.outcome === "ready" &&
     assessment.acceptedStepCount === 0
   )

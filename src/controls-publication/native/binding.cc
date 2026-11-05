@@ -188,7 +188,12 @@ napi_value invoke(napi_env env, size_t operation, size_t argc, napi_value* args)
       else fail("unsafe-ancestry");
       return undefined(env);
     }
-    case 20: checkpoint("before-expiry"); unwrap<Interval>(env, input, intervalTag)->active = false; checkpoint("after-drain"); return undefined(env);
+    case 20: {
+      auto owner = unwrap<Interval>(env, input, intervalTag);
+      try { checkpoint("before-expiry"); } catch (...) { owner->active = false; throw; }
+      owner->active = false;
+      checkpoint("after-expiry"); checkpoint("after-drain"); return undefined(env);
+    }
     case 21: closeHandle(handle(env, input)); return undefined(env);
     default: fail("io");
   }

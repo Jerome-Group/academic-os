@@ -21,6 +21,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { after, before, describe, it } from "node:test";
+import { withJournalMutationOwner } from "../../src/journal-mutation-owner.js";
 import type { ObjectIdentity } from "../../src/controls-publication/generated/publication-contract-1.js";
 import type {
   DirectoryHandle,
@@ -147,6 +148,20 @@ describe("same-process publication native boundary", {
       { encoding: "utf8", timeout: 30000 },
     );
     writeFileSync(join(root, "build-output.txt"), build);
+    execFileSync(
+      "xcrun",
+      [
+        "clang++",
+        "-std=c++17",
+        "-framework",
+        "CoreFoundation",
+        `-DAOS_ALIAS_FIXTURE_ROOT=${JSON.stringify(root)}`,
+        "test/controls-publication/alias-fixture.cc",
+        "-o",
+        join(root, "alias-fixture"),
+      ],
+      { encoding: "utf8", timeout: 30000 },
+    );
     const native: unknown = createRequire(import.meta.url)(addon);
     assert.ok(isFixtureNative(native));
     const anchor = ok(native.resolveAccountAnchor());
@@ -611,6 +626,74 @@ describe("same-process publication native boundary", {
     );
     assert.equal(statSync(sidecar).size, 0);
   });
+  it("keeps exact SQLite ownership through excluded sidecar aliases", async () => {
+    const stateRoot = join(f().root, "anchor"),
+      journalPath = join(stateRoot, "academic-os-control-publication.jsonl");
+    const key = createHash("sha256").update(journalPath).digest("hex");
+    const sidecar = join(stateRoot, "journal-ownership", `${key}.sqlite`);
+    const alias = join(f().root, "sidecar-alias");
+    const helper = pathToFileURL(
+      resolve("dist/src/journal-mutation-owner.js"),
+    ).href;
+    const observations: unknown[] = [];
+    const owned = await withJournalMutationOwner(
+      { stateRoot, journalPath },
+      async () => {
+        symlinkSync(sidecar, alias);
+        for (const path of [sidecar, alias]) {
+          const observed = f().native.observeExclusionRoots({
+            anchor: f().anchor,
+            requiredRepositoryAndSourcePaths: [Buffer.from(path)],
+          });
+          failed(observed);
+          const script = `const {withJournalMutationOwner}=await import(${JSON.stringify(helper)});const r=await withJournalMutationOwner(${JSON.stringify({ stateRoot, journalPath })},async()=>"entered");process.stdout.write(JSON.stringify(r));`;
+          const contender = spawnSync(
+            process.execPath,
+            ["--input-type=module", "-e", script],
+            { encoding: "utf8", timeout: 10000 },
+          );
+          assert.equal(contender.status, 0, contender.stderr);
+          const result: unknown = JSON.parse(contender.stdout);
+          assert.ok(
+            typeof result === "object" &&
+              result !== null &&
+              "kind" in result &&
+              result.kind === "refused" &&
+              "reason" in result &&
+              result.reason === "busy",
+            "excluded sidecar traversal released the exact SQLite owner",
+          );
+          let alive = false;
+          try {
+            process.kill(contender.pid, 0);
+            alive = true;
+          } catch {}
+          assert.equal(alive, false);
+          observations.push({
+            path,
+            observed,
+            contender: {
+              pid: contender.pid,
+              status: contender.status,
+              stdout: contender.stdout,
+              stderr: contender.stderr,
+              aliveAfter: alive,
+            },
+          });
+        }
+        return "held-through-exclusions";
+      },
+    );
+    assert.deepEqual(owned, {
+      kind: "owned",
+      value: "held-through-exclusions",
+    });
+    writeFileSync(
+      join(f().root, "sidecar-exclusion-owner.json"),
+      JSON.stringify(observations, null, 2),
+    );
+    exclusions();
+  });
   it("rejects foreign ACL grants despite 0700 and accepts safe deny entries", () => {
     const denied = directory("safe-deny"),
       granted = directory("foreign-allow");
@@ -683,6 +766,39 @@ describe("same-process publication native boundary", {
     );
     exclusions();
   });
+  it("supports identity-bound directory bookmarks and refuses stale or regular bookmarks", () => {
+    const root = join(f().root, "bookmark-target"),
+      alias = join(f().root, "directory.alias");
+    mkdirSync(root, { mode: 0o700 });
+    execFileSync(join(f().root, "alias-fixture"), [root, alias]);
+    exclusions([alias]);
+    file("safe-with-bookmark", Buffer.from("safe"));
+    renameSync(root, `${root}-retained`);
+    mkdirSync(root, { mode: 0o700 });
+    failed(
+      f().native.createRegularExclusive({
+        interval: f().interval,
+        parent: f().anchor.directory,
+        name: name("blocked-bookmark"),
+      }),
+      "unsupported-host",
+    );
+    assert.equal(existsSync(join(f().root, "anchor/blocked-bookmark")), false);
+    renameSync(root, `${root}-replacement`);
+    renameSync(`${root}-retained`, root);
+    const regularPath = join(f().root, "bookmark-regular"),
+      regularAlias = join(f().root, "regular.alias");
+    writeFileSync(regularPath, "regular", { mode: 0o600 });
+    execFileSync(join(f().root, "alias-fixture"), [regularPath, regularAlias]);
+    failed(
+      f().native.observeExclusionRoots({
+        anchor: f().anchor,
+        requiredRepositoryAndSourcePaths: [Buffer.from(regularAlias)],
+      }),
+      "unsupported-host",
+    );
+    exclusions();
+  });
   it("retains no traversal descriptors in exclusion observations", () => {
     const before = readdirSync("/dev/fd").length;
     for (let i = 0; i < 20; i += 1) exclusions();
@@ -747,6 +863,18 @@ describe("same-process publication native boundary", {
     assert.equal(
       readFileSync(join(f().root, "anchor/expired"), "utf8"),
       "retained",
+    );
+    const failingInterval = ok(
+      f().native.beginIntervalUnderHeldGate(f().anchor),
+    );
+    f().native.setFixtureCheckpoint((edge) => {
+      if (edge === "before-expiry") throw new Error("fixture expiry failure");
+    });
+    failed(f().native.expireAndDrain(failingInterval), "io");
+    f().native.setFixtureCheckpoint(undefined);
+    failed(
+      f().native.syncFile({ interval: failingInterval, file: target }),
+      "expired",
     );
     ok(f().native.close(target));
     ok(f().native.close(target));

@@ -47,7 +47,7 @@ struct Handle {
   explicit Handle(int fd) : descriptor(fd) {}
 };
 struct PathSnapshot {
-  std::string path, signature;
+  std::string path, signature, resolved;
   bool optional = false;
   bool absent = false;
   std::vector<Identity> ancestry;

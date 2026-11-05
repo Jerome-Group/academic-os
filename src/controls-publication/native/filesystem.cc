@@ -101,7 +101,8 @@ thread_local std::function<void(const char*)> checkpointHook;
 #endif
 void checkpoint(const char* edge) {
 #ifdef AOS_PUBLICATION_FIXTURE_ANCHOR
-  if (checkpointHook) checkpointHook(edge);
+  auto hook = checkpointHook;
+  if (hook) hook(edge);
 #else
   (void)edge;
 #endif

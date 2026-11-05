@@ -117,6 +117,7 @@ export async function runtime(root, evidence) {
     }
     result.coverage = [...targets.values()];
     const publicationRecords = new Set([
+      "none",
       "publication-plan",
       "stage-reserved",
       "stage-claimed",
@@ -1049,8 +1050,10 @@ export async function barrierRetries(root, evidence) {
         (event) =>
           event.operation === "syncDirectory" &&
           event.edge === "after-directory-sync" &&
-          JSON.stringify(event.directoryObject) ===
-            JSON.stringify(requiredParent),
+          event.directoryObject !== null &&
+          ["kind", "volumeUuid", "device", "inode", "birthtimeNs"].every(
+            (key) => event.directoryObject[key] === requiredParent[key],
+          ),
       );
       result = {
         ...result,

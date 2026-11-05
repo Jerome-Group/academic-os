@@ -1038,6 +1038,11 @@ export function capabilityIndex(): object {
               "clean committed checkout; covered-source hashes match the checked-in formal binding",
             ]
           : []),
+        ...(profile === "publication-formal"
+          ? [
+              "Darwin; Apple clang and current Node N-API headers; private local fixture evidence parent",
+            ]
+          : []),
       ],
       reads: ["repository source/tests/templates"],
       writes: [
@@ -1049,6 +1054,9 @@ export function capabilityIndex(): object {
       tests: [
         "test/capabilities/capabilities.test.ts",
         "test/capabilities/build-provenance.test.ts",
+        ...(profile === "publication-formal"
+          ? [".agents/skills/control-publication/run.mjs"]
+          : []),
       ],
       status: "supported",
       health: "not-observed",

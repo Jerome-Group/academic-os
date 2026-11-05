@@ -12,7 +12,7 @@ import {
   writeFile,
   unlink,
 } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { build, transform } from "esbuild";
 
@@ -73,6 +73,9 @@ export async function makeFixture(root, parent, name, mutate) {
   if (mutate) await mutate(replace);
   for (let index = 0; index < patches.length; index++) {
     const patch = patches[index];
+    patch.snapshot = join(evidence, "mutant-sources", patch.file);
+    await mkdir(dirname(patch.snapshot), { recursive: true, mode: 0o700 });
+    await cp(join(source, patch.file), patch.snapshot);
     const diff = spawnSync(
       "git",
       [
@@ -355,7 +358,7 @@ process.stdout.write(JSON.stringify(await dispatch(JSON.parse(readFileSync(0,"ut
       join(host, "src/controls-publication/release.json"),
       join(host, "publication.mjs"),
       join(host, "mcp.mjs"),
-      ...patches.map((patch) => join(source, patch.file)),
+      ...patches.map((patch) => patch.snapshot),
     ])
       artifacts[path] = hash(await readFile(path));
     await writeFile(

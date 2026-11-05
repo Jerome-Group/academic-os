@@ -10,10 +10,10 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { stop } from "esbuild";
+import { stop, version as esbuildVersion } from "esbuild";
 import {
   preparePinnedTlc,
   tlcJavaEnvironment,
@@ -38,9 +38,17 @@ const { values } = parseArgs({
 });
 const root = resolve(values["product-root"] ?? resolve(directory, "../../.."));
 const parent = await realpath(values["evidence-parent"] ?? tmpdir());
+const evidenceRelative = relative(root, parent);
 assert.ok(
-  isAbsolute(parent) && relative(root, parent).startsWith(".."),
+  isAbsolute(parent) &&
+    (isAbsolute(evidenceRelative) ||
+      evidenceRelative === ".." ||
+      evidenceRelative.startsWith(`..${sep}`)),
   "Evidence remains outside repository",
+);
+assert.ok(
+  Number(process.versions.node.split(".")[0]) >= 24,
+  "Node 24 or later required",
 );
 const evidence = await mkdtemp(join(parent, "control-publication-"));
 await chmod(evidence, 0o700);
@@ -298,6 +306,28 @@ try {
       "darwin",
       "Fixed-anchor native proof requires Darwin",
     );
+    const clang = await checked(
+      "xcrun",
+      ["clang++", "--version"],
+      root,
+      "clang-version",
+    );
+    const header = resolve(
+      dirname(await realpath(process.execPath)),
+      "../include/node/node_api.h",
+    );
+    result.nativeToolchain = {
+      node: process.version,
+      executable: process.execPath,
+      platform: process.platform,
+      arch: process.arch,
+      napi: 8,
+      esbuildVersion,
+      header,
+      headerSha256: hash(await readFile(header)),
+      packageLockSha256: hash(await readFile(join(root, "package-lock.json"))),
+      clang: clang.stdout,
+    };
     await checked("npm", ["run", "build"], root, "build");
     await checked(
       process.execPath,
@@ -364,6 +394,32 @@ try {
       ),
       "All mapped publication boundaries reached",
     );
+    assert.ok(
+      result.runtime.coverage.every((edge) =>
+        result.runtime.schedules.some(
+          (schedule) =>
+            schedule.key === edge.key && schedule.outcome === "passed",
+        ),
+      ),
+      "Every observed boundary has a passing interrupted/restored schedule",
+    );
+    const finalStatus = await checked(
+      "git",
+      ["status", "--porcelain", "--untracked-files=all"],
+      root,
+      "final-working-tree",
+    );
+    assert.equal(
+      finalStatus.output,
+      "",
+      "Verification checkout remained clean",
+    );
+    for (const [file, expected] of Object.entries(result.verificationHashes))
+      assert.equal(
+        hash(await readFile(join(directory, file))),
+        expected,
+        `Verification file remained unchanged ${file}`,
+      );
     result.outcome =
       result.models.some((model) => model.outcome === "bug") ||
       result.barrierRetries.some((check) => check.outcome === "bug")
@@ -381,7 +437,7 @@ try {
       alive: alive(command.pid),
     })),
     listenerCreated: false,
-    sqliteSidecarContentsOpened: false,
+    ordinarySqliteSidecarContentAccess: false,
     retainedAtOriginalPaths: true,
   };
   await writeFile(

@@ -19,6 +19,7 @@ const sources = [
   "package-lock.json",
   "scripts/build-control-publication-native.mjs",
   "scripts/build-control-publication-release.mjs",
+  "scripts/check-control-publication-imports.mjs",
   "scripts/build-control-publication-standalone.mjs",
 ].sort();
 const sourceBindings = [];

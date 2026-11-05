@@ -103,6 +103,7 @@ export const cliCapabilities: Capability[] = [
       implementation: "src/controls-publication/command.ts",
       tests: [
         "test/controls-publication/publication.test.ts",
+        "test/controls-publication/import-boundary.test.ts",
         "test/controls-publication/publication-journey.test.ts",
       ],
       status: "supported",

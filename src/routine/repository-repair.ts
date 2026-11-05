@@ -127,8 +127,7 @@ export async function runRepositoryRepair(input: {
   let mutationBegun = false;
   let candidateState: RepositoryCandidate | undefined;
   let verifiedRollout:
-    | { postmergeVerified: boolean; rolledOut: boolean }
-    | undefined;
+    { postmergeVerified: boolean; rolledOut: boolean } | undefined;
   const ports =
     input.ports ?? createRepositoryRepairPorts({ ...input, repositoryRoot });
   async function stage(name: string, data: object = {}): Promise<void> {
@@ -432,7 +431,7 @@ export async function runRepositoryRepair(input: {
       });
     }
     await stage("publish-intent", { head, reviews });
-    pullRequest = await ports.publish(candidate, issue, head);
+    pullRequest = await ports.publish({ candidate, issue, fingerprint, head });
     await stage("published", { head, pullRequest });
     return await finishPublished(
       candidate,

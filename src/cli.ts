@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 
-import { runConfigValidateCommand } from "./commands/config-validate-command.js";
-import { runNamingPlanCommand } from "./commands/naming-plan-command.js";
 import { runCapabilitiesCommand } from "./capabilities/command.js";
-import { runModuleInspectCommand } from "./commands/module-inspect-command.js";
 import { runAuditCommand } from "./commands/audit-command.js";
 import { runCalendarPromoteCommand } from "./commands/calendar-promote-command.js";
 import { runCalendarProposeCommand } from "./commands/calendar-propose-command.js";
 import { runCalendarRefreshCommand } from "./commands/calendar-refresh-command.js";
 import { runCalendarSetupCommand } from "./commands/calendar-setup-command.js";
+import { runConfigValidateCommand } from "./commands/config-validate-command.js";
 import { runCurationMigrateCommand } from "./commands/curation-migrate-command.js";
 import { runCurationRederiveCommand } from "./commands/curation-rederive-command.js";
-import { runImportsStatusCommand } from "./commands/imports-status-command.js";
 import { runImportsPreflightCommand } from "./commands/imports-preflight-command.js";
+import { runImportsStatusCommand } from "./commands/imports-status-command.js";
 import { runLearningMaterialsCommand } from "./commands/learning-materials-command.js";
+import { runModuleInspectCommand } from "./commands/module-inspect-command.js";
+import { runNamingPlanCommand } from "./commands/naming-plan-command.js";
 import { runOfferingReadinessCommand } from "./commands/offering-readiness-command.js";
 import { writeOperationalError } from "./commands/operational-error-output.js";
 import { runPinnedRefreshCommand } from "./commands/pinned-refresh-command.js";
@@ -22,29 +22,32 @@ import { runRoutineMorningCommand } from "./commands/routine-morning-command.js"
 import { runRoutineRepositoryRepairCommand } from "./commands/routine-repository-repair-command.js";
 import { runRoutineRepositoryStatusCommand } from "./commands/routine-repository-status-command.js";
 import { runSeedCommand } from "./commands/seed-command.js";
+import { runTasksApplyPlanCommand } from "./commands/tasks-apply-plan-command.js";
 import {
   isTaskOperation,
   runTasksOperateCommand,
 } from "./commands/tasks-operate-command.js";
-import { runTasksRecordLifecycleCommand } from "./commands/tasks-record-lifecycle-command.js";
+import { runTasksProvisionCommand } from "./commands/tasks-provision-command.js";
 import { runTasksPublishCompletionCatalogCommand } from "./commands/tasks-publish-completion-catalog-command.js";
-import { runTasksApplyPlanCommand } from "./commands/tasks-apply-plan-command.js";
+import { runTasksRecordLifecycleCommand } from "./commands/tasks-record-lifecycle-command.js";
 import { runTasksRecoveryCommand } from "./commands/tasks-recovery-command.js";
+import { runTasksRefreshCommand } from "./commands/tasks-refresh-command.js";
 import { runTasksRestoreCommand } from "./commands/tasks-restore-command.js";
 import { runTasksStatusCommand } from "./commands/tasks-status-command.js";
-import { runTasksProvisionCommand } from "./commands/tasks-provision-command.js";
-import { runTasksRefreshCommand } from "./commands/tasks-refresh-command.js";
 import { runTextbooksCatchUpCommand } from "./commands/textbooks-catch-up-command.js";
 import { runTextbooksMigrateCommand } from "./commands/textbooks-migrate-command.js";
 import { runTextbooksReconcileCommand } from "./commands/textbooks-reconcile-command.js";
 import { runTextbooksSweepCommand } from "./commands/textbooks-sweep-command.js";
+import { runControlsPublicationCommand } from "./controls-publication/command.js";
 import { OperationalError } from "./mounted/index.js";
 
 const arguments_ = process.argv.slice(2);
 const json = arguments_.includes("--json");
 
 try {
-  if (arguments_[0] === "capabilities") {
+  if (arguments_[0] === "controls") {
+    await runControlsPublicationCommand(arguments_.slice(1));
+  } else if (arguments_[0] === "capabilities") {
     await runCapabilitiesCommand(arguments_);
   } else if (
     arguments_.length === 0 ||

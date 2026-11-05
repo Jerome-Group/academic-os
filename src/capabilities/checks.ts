@@ -19,6 +19,7 @@ export const checkProfiles = {
   templates: ["templates:check"],
   coverage: ["rule-coverage:check"],
   formal: ["seed-ownership:check"],
+  publication: ["controls-publication:check"],
   full: [
     "controls:check",
     "config:check",
@@ -155,7 +156,13 @@ export async function runChecks(
 
 const workflowTests = {
   discovery: {
-    areas: ["capabilities", "controls", "config", "naming"],
+    areas: [
+      "capabilities",
+      "controls",
+      "controls-publication",
+      "config",
+      "naming",
+    ],
     cli: /^(argument-safety|offering-readiness-cli)\.test\.js$/u,
   },
   imports: {

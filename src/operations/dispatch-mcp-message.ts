@@ -1,7 +1,11 @@
 import { OperationalError } from "../operational-error.js";
 import { isJsonObject } from "./json-object.js";
 import { readToolArguments, toolInputSchema } from "./tool-arguments.js";
-import type { JsonRpcResponse, McpServerInfo, OperationTool } from "./types.js";
+import type {
+  JsonRpcResponse,
+  McpServerInfo,
+  ServedOperationTool,
+} from "./types.js";
 
 // The versions this surface speaks. Tool listing and tool calling are identical across all three,
 // so an older client is answered in its own version rather than turned away.
@@ -30,7 +34,7 @@ export type McpDispatcher = (
 // when the message was a notification. Transport is somebody else's problem, so the same
 // dispatcher answers an in-process test and an HTTP request identically.
 export function createMcpDispatcher(input: {
-  tools: readonly OperationTool[];
+  tools: readonly ServedOperationTool[];
   serverInfo: McpServerInfo;
 }): McpDispatcher {
   const tools = new Map(input.tools.map((tool) => [tool.name, tool]));
@@ -71,7 +75,8 @@ export function createMcpDispatcher(input: {
           name: tool.name,
           title: tool.title,
           description: tool.description,
-          inputSchema: toolInputSchema(tool.fields),
+          inputSchema:
+            "fields" in tool ? toolInputSchema(tool.fields) : tool.inputSchema,
         })),
       };
     }
@@ -101,15 +106,16 @@ export function createMcpDispatcher(input: {
         `Unknown tool: ${String(name)}.`,
       );
     }
-    const values = readToolArguments(
-      tool,
-      isJsonObject(params) ? params.arguments : undefined,
-    );
+    const arguments_ = isJsonObject(params) ? params.arguments : undefined;
+    const call =
+      "fields" in tool
+        ? tool.call.bind(tool, readToolArguments(tool, arguments_))
+        : tool.call.bind(tool, arguments_);
     // Everything past the parse is the operation itself, and an operation that fails is a result
     // the calling agent reads rather than a protocol error: the report says what the live list
     // and the register now hold, which is the only thing that tells it what to do next.
     try {
-      const { report, failed } = await tool.call(values);
+      const { report, failed } = await call();
       return { content: [text(report)], isError: failed };
     } catch (error) {
       return {

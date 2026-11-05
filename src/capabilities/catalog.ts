@@ -1,3 +1,4 @@
+import { createPublicationTools } from "../controls-publication/tools.js";
 import { checkProfiles } from "./checks.js";
 
 export interface Capability {
@@ -68,6 +69,48 @@ function cli(
 }
 
 export const cliCapabilities: Capability[] = [
+  ...[
+    "create-generated-candidate",
+    "publish-generation",
+    "inspect-candidate",
+  ].map(
+    (operation): Capability => ({
+      id: `controls ${operation}`,
+      surface: "cli",
+      invocation: `node dist/src/cli.js controls ${operation} --json`,
+      prerequisites: [
+        "Node >=24",
+        "npm ci && npm run build",
+        "supported Darwin account, private local Application Support anchor and native addon",
+        "generated candidate admission for publish and inspect",
+      ],
+      reads: [
+        "exact supplied identity or complete publication bundle",
+        "host-owned publication catalog and physical claims",
+      ],
+      writes:
+        operation === "inspect-candidate"
+          ? ["existing SQLite lock-coordination metadata only"]
+          : [
+              "private generated candidates, immutable generations, retained bytes, publication ledger and receipts",
+            ],
+      riskFlags: [
+        operation === "inspect-candidate"
+          ? "read-owned-generated-controls"
+          : "writes-private-generated-controls",
+      ],
+      preview: null,
+      implementation: "src/controls-publication/command.ts",
+      tests: [
+        "test/controls-publication/publication.test.ts",
+        "test/controls-publication/publication-journey.test.ts",
+      ],
+      status: "supported",
+      health: "not-observed",
+      result:
+        "Generated candidates only. Complete module-data graph or explicit refusal/recovery. Other workflows, migration and conformance remain not-implemented. No arbitrary target admission.",
+    }),
+  ),
   {
     ...cli("module validate", [], [], null, [
       "test/controls/module-data.test.ts",
@@ -602,6 +645,32 @@ export const cliCapabilities: Capability[] = [
 
 export function capabilityIndex(): object {
   const actions = [...cliCapabilities];
+  for (const tool of createPublicationTools())
+    actions.push({
+      id: tool.name,
+      surface: "mcp",
+      invocation: `tools/call ${tool.name}`,
+      prerequisites: [
+        "supported Darwin host and private local account anchor",
+        "generated candidate admission for publication and inspection",
+      ],
+      reads: [
+        "schema-validated exact publication bytes",
+        "owned catalog and current physical identities",
+      ],
+      writes:
+        tool.name === "controls_inspect_candidate"
+          ? ["existing SQLite lock-coordination metadata only"]
+          : ["private generated candidate publication data and ledger"],
+      riskFlags: ["generated-candidates-only"],
+      preview: null,
+      implementation: "src/controls-publication/tools.ts",
+      tests: ["test/controls-publication/publication-journey.test.ts"],
+      status: "supported",
+      health: "not-observed",
+      result:
+        "MCP content text contains the strict generated result schema; isError marks refusal or recovery. Complete graph and immutable evidence or explicit refusal/recovery. No historical or live target admission.",
+    });
   for (const operation of [
     "schema",
     "doctor",

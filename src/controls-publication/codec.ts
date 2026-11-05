@@ -1,0 +1,82 @@
+import { createHash } from "node:crypto";
+import { readStrictJson } from "../controls/strict-json.js";
+import type { FrozenBytes } from "./generated/publication-contract-1.js";
+
+export const publicationEncoding = "academic-os-publication-json/1";
+
+export function encodePublication(value: unknown): Uint8Array {
+  const source = encode(value, new Set());
+  const bytes = Buffer.from(source, "utf8");
+  const checked = readStrictJson(bytes, publicationEncoding);
+  if (checked.kind !== "read")
+    throw new Error("Invalid publication JSON value.");
+  return bytes;
+}
+
+function encode(value: unknown, parents: Set<object>): string {
+  if (value === null) return "null";
+  if (typeof value === "string" || typeof value === "boolean")
+    return JSON.stringify(value);
+  if (typeof value === "number") {
+    if (!Number.isSafeInteger(value) || Object.is(value, -0))
+      throw new Error("Publication numbers must be safe integers.");
+    return String(value);
+  }
+  if (typeof value !== "object" || parents.has(value))
+    throw new Error("Unsupported publication JSON value.");
+  parents.add(value);
+  try {
+    if (Array.isArray(value))
+      return `[${value.map((item) => encode(item, parents)).join(",")}]`;
+    if (
+      Object.getPrototypeOf(value) !== Object.prototype &&
+      Object.getPrototypeOf(value) !== null
+    )
+      throw new Error("Publication JSON requires plain objects.");
+    return `{${Object.entries(value)
+      .sort(([a], [b]) => Buffer.compare(Buffer.from(a), Buffer.from(b)))
+      .map(([key, item]) => `${JSON.stringify(key)}:${encode(item, parents)}`)
+      .join(",")}}`;
+  } finally {
+    parents.delete(value);
+  }
+}
+
+export function sha256(bytes: Uint8Array): string {
+  return createHash("sha256").update(bytes).digest("hex");
+}
+
+export function digest(value: unknown): string {
+  return sha256(encodePublication(value));
+}
+
+export function freezeBytes(bytes: Uint8Array): FrozenBytes {
+  return {
+    byteLength: bytes.byteLength,
+    byteSha256: sha256(bytes),
+    bytesBase64: Buffer.from(bytes).toString("base64"),
+  };
+}
+
+export function canonicalBase64(value: string): boolean {
+  return (
+    /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(
+      value,
+    ) && Buffer.from(value, "base64").toString("base64") === value
+  );
+}
+
+export function thawBytes(value: FrozenBytes): Uint8Array {
+  const bytes = Buffer.from(value.bytesBase64, "base64");
+  if (
+    !canonicalBase64(value.bytesBase64) ||
+    bytes.byteLength !== value.byteLength ||
+    sha256(bytes) !== value.byteSha256
+  )
+    throw new Error("Frozen byte length or digest mismatch.");
+  return bytes;
+}
+
+export function equalBytes(a: Uint8Array, b: Uint8Array): boolean {
+  return Buffer.from(a).equals(Buffer.from(b));
+}

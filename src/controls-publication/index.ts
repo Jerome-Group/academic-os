@@ -1,0 +1,211 @@
+import {
+  decodeBundle,
+  decodeIdentity,
+  generationFiles,
+  moduleAggregate,
+} from "./bundle.js";
+import {
+  bootstrapCatalog,
+  createCandidate,
+  openCandidate,
+  recoverPendingCreates,
+  summary,
+} from "./candidate.js";
+import { freezeBytes } from "./codec.js";
+import { PublicationFailure, recover } from "./failure.js";
+import type {
+  CreateResult,
+  CreateWireInput,
+  InspectResult,
+  InspectWireInput,
+  PublicationPlan,
+  PublishResult,
+  PublishWireInput,
+  Readiness,
+} from "./generated/publication-contract-1.js";
+import { type RuntimeContext, withPublicationOwner } from "./owner.js";
+import {
+  completedReceipt,
+  currentHead,
+  freezePlan,
+  inspectPinned,
+  pendingIntents,
+  performPublication,
+  reconcilePending,
+} from "./publication.js";
+import {
+  parseBytes,
+  validateBundle,
+  validateCreateInput,
+  validateInspectInput,
+  validatePublishInput,
+} from "./schema.js";
+
+export type { CreateResult, InspectResult, PublishResult };
+export type CreateInput = Omit<CreateWireInput, "identityBytesBase64"> & {
+  readonly identityBytes: Uint8Array;
+};
+export type PublishInput = Omit<PublishWireInput, "inputBytesBase64"> & {
+  readonly bundleBytes: Uint8Array;
+};
+export type InspectInput = InspectWireInput;
+
+export const readiness: Readiness = {
+  publication: "host-owned-generated-candidates-only",
+  workflows: "not-implemented",
+  moduleConformance: "not-implemented",
+  migration: "not-implemented",
+};
+
+export function createPublicationService(
+  context: RuntimeContext = { exclusionPaths: [] },
+) {
+  return {
+    async create(input: CreateInput): Promise<CreateResult> {
+      try {
+        if (
+          !validateCreateInput({
+            requestId: input.requestId,
+            identityBytesBase64: freezeBytes(input.identityBytes).bytesBase64,
+          })
+        )
+          throw new Error("Invalid create input.");
+        decodeIdentity(input.identityBytes);
+      } catch (error) {
+        return invalid(error);
+      }
+      return withPublicationOwner<CreateResult>({
+        mutate: true,
+        bootstrap: true,
+        requestId: input.requestId,
+        context,
+        run: (store, releaseDigest) => {
+          bootstrapCatalog(store);
+          reconcilePending(store, releaseDigest);
+          recoverPendingCreates(store, releaseDigest);
+          return {
+            kind: "created",
+            candidate: summary(
+              createCandidate(store, { ...input, releaseDigest }),
+            ),
+          };
+        },
+      });
+    },
+    async publish(input: PublishInput): Promise<PublishResult> {
+      if (
+        !validatePublishInput({
+          candidateId: input.candidateId,
+          requestId: input.requestId,
+          expectedHead: input.expectedHead,
+          inputBytesBase64: freezeBytes(input.bundleBytes).bytesBase64,
+        })
+      )
+        return invalid(new Error("Invalid publish input."));
+      try {
+        const raw = parseBytes(input.bundleBytes, validateBundle);
+        const identity = raw.controls.find(
+          (control) => control.role === "module-identity",
+        );
+        if (!identity)
+          throw new Error("Complete generation lacks module identity.");
+        const aggregate = moduleAggregate(
+          decodeIdentity(Buffer.from(identity.bytes.bytesBase64, "base64")),
+        );
+        generationFiles(
+          decodeBundle(input.bundleBytes, aggregate),
+          aggregate,
+          "validation-only",
+        );
+      } catch (error) {
+        return invalid(error);
+      }
+      return withPublicationOwner<PublishResult>({
+        mutate: true,
+        requestId: input.requestId,
+        context,
+        run: (store, releaseDigest) => {
+          reconcilePending(store, releaseDigest);
+          recoverPendingCreates(store, releaseDigest);
+          const candidate = openCandidate(store, input.candidateId);
+          let plan: PublicationPlan;
+          try {
+            plan = freezePlan(store, candidate, { ...input, releaseDigest });
+          } catch (error) {
+            if (error instanceof PublicationFailure) throw error;
+            return invalid(error);
+          }
+          const replayed = completedReceipt(store, plan) !== undefined;
+          const receipt = performPublication(store, candidate, plan);
+          return {
+            kind: "published",
+            receipt,
+            replayed,
+            currentHead: currentHead(store, candidate),
+          };
+        },
+      });
+    },
+    async inspect(input: InspectInput): Promise<InspectResult> {
+      if (!validateInspectInput(input))
+        return invalid(new Error("Invalid inspect input."));
+      return withPublicationOwner<InspectResult>({
+        mutate: false,
+        context,
+        run: (store) => {
+          if (pendingIntents(store).length)
+            recover(
+              "uncertain-publication",
+              "A pending publication requires a mutating recovery before inspection.",
+            );
+          const candidate = openCandidate(store, input.candidateId);
+          const current = currentHead(store, candidate);
+          if (current.kind === "absent" && input.selection.kind === "current")
+            return {
+              kind: "empty",
+              candidate: summary(candidate.admission),
+              readiness,
+            };
+          const generationId =
+            input.selection.kind === "pinned"
+              ? input.selection.generationId
+              : current.kind === "selected"
+                ? current.generationId
+                : "";
+          const pinned = inspectPinned(store, candidate, generationId);
+          return {
+            kind: "inspected",
+            candidate: summary(candidate.admission),
+            selection: pinned.selection,
+            currentHead: current,
+            files: pinned.files,
+            coverage: "validated-module-data",
+            readiness,
+          };
+        },
+      });
+    },
+  };
+}
+
+function invalid(error: unknown): {
+  kind: "refused";
+  code: "invalid-controls";
+  evidence: string[];
+} {
+  return {
+    kind: "refused",
+    code: "invalid-controls",
+    evidence: [error instanceof Error ? error.message : "Invalid controls."],
+  };
+}
+
+export const createGeneratedCandidate = (
+  input: CreateInput,
+): Promise<CreateResult> => createPublicationService().create(input);
+export const publishGeneratedControls = (
+  input: PublishInput,
+): Promise<PublishResult> => createPublicationService().publish(input);
+export const inspectGeneratedCandidate = (
+  input: InspectInput,
+): Promise<InspectResult> => createPublicationService().inspect(input);

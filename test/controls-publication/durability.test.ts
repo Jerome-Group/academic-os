@@ -139,7 +139,7 @@ export function loadPublicationNative() {
  });
  return {kind:"ok",value:{...n,
   beginIntervalUnderHeldGate(input){log({method:"beginIntervalUnderHeldGate"});return n.beginIntervalUnderHeldGate(input);},
-  appendLedger(input){log({method:"appendLedger"});return n.appendLedger(input);},
+  appendExact(input){log({method:"appendExact"});return n.appendExact(input);},
   syncFile(input){const result=n.syncFile(input);log({method:"syncFile",result});return result;},
   syncDirectory(input){const observed=n.observe(input.directory);if(observed.kind!=="ok")throw Error("Native directory observation failed.");syncing=observed.value.object;const result=n.syncDirectory(input);log({method:"syncDirectory",object:syncing,result});return result;}
  }};

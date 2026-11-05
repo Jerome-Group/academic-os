@@ -369,7 +369,11 @@ export class PublicationStore {
     attemptId: string,
   ): DirectoryHandle {
     const prior = this.directoryClaim(parent, name);
-    if (prior) return this.openDirectory(parent, name, prior);
+    if (prior) {
+      const directory = this.openDirectory(parent, name, prior);
+      this.syncDirectory(parent);
+      return directory;
+    }
     if (
       nativeValue(this.native.observeAt(parent, this.name(name))).kind !==
       "absent"
@@ -916,6 +920,7 @@ export function openStore(store: PublicationStore, create: boolean): void {
       namespaceName,
       prior.namespace,
     );
+    if (store.interval) store.syncDirectory(anchor);
   } else {
     if (!create)
       refuse("bootstrap-unclaimed", "Namespace bootstrap is pending.");

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtemp, readdir, readFile, realpath, rm } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, realpath } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -11,27 +11,24 @@ const runner = fileURLToPath(
 );
 const repository = fileURLToPath(new URL("../../../", import.meta.url));
 
-test("formal runner admits an ordinary two-dot temporary child before tool startup", async () => {
+test("formal runner admits an ordinary two-dot temporary child before tool startup", async (context) => {
   const parent = await mkdtemp(join(tmpdir(), "..academic-formal-admission-"));
-  try {
-    const result = run(parent);
-    assert.equal(result.status, 1, result.stdout + result.stderr);
-    const children = await readdir(parent);
-    assert.equal(children.length, 1, result.stdout + result.stderr);
-    assert.match(children[0] ?? "", /^seed-ownership-/u);
-    const record: unknown = JSON.parse(
-      await readFile(join(parent, children[0] ?? "", "results.json"), "utf8"),
-    );
-    assert.ok(record !== null && typeof record === "object");
-    assert.ok("outcome" in record && record.outcome === "failed");
-    assert.ok("models" in record);
-    assert.deepEqual(record.models, []);
-    assert.ok("error" in record && typeof record.error === "string");
-    assert.match(record.error, /not-installed-java/u);
-    assert.match(result.stdout, /Evidence /u);
-  } finally {
-    await rm(parent, { recursive: true, force: true });
-  }
+  context.diagnostic(`Formal admission evidence ${parent}`);
+  const result = run(parent);
+  assert.equal(result.status, 1, result.stdout + result.stderr);
+  const children = await readdir(parent);
+  assert.equal(children.length, 1, result.stdout + result.stderr);
+  assert.match(children[0] ?? "", /^seed-ownership-/u);
+  const record: unknown = JSON.parse(
+    await readFile(join(parent, children[0] ?? "", "results.json"), "utf8"),
+  );
+  assert.ok(record !== null && typeof record === "object");
+  assert.ok("outcome" in record && record.outcome === "failed");
+  assert.ok("models" in record);
+  assert.deepEqual(record.models, []);
+  assert.ok("error" in record && typeof record.error === "string");
+  assert.match(record.error, /not-installed-java/u);
+  assert.match(result.stdout, /Evidence /u);
 });
 
 test("formal runner refuses an actual parent traversal before allocating evidence", async () => {

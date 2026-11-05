@@ -20,5 +20,7 @@ Keep raw fixture proof after process teardown. Record each feature as passed, fa
 
 Full maintenance runs every listed workflow and `capabilities check --profile full`.
 Full checks cover repository checks and synthetic fixtures. They do not turn untested or live-only actions into observed behavior.
+Product verification runs locally under [ADR-0047](../../../../docs/adr/0047-product-verification-runs-locally.md).
+Hosted Organisation conformance supplies separate policy evidence.
 Interactive `credentials authorize` and `calendar local setup` require the Owner's session and are not invoked by verification.
 Synthetic `calendar setup` is covered by services. Full includes the separate bounded formal skill; follow the parent doctor and retention instructions.

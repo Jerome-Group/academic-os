@@ -1153,10 +1153,10 @@ export function capabilityIndex(): object {
       health: "not-observed",
       result:
         profile === "publication-formal"
-          ? "Bounded source-bound generated control publisher model, compiled fault schedules, exact byte readbacks and eight behavioral mutants with restored controls. Native account/kernel/syscall behavior remains a runtime premise. Local only; no live admission or whole-system proof."
+          ? "Local bounded source-bound generated control publisher model, compiled fault schedules, exact byte readbacks and eight behavioral mutants with restored controls. Native account/kernel/syscall behavior remains a runtime premise. Local only; no live admission or whole-system proof."
           : profile === "formal"
-            ? "Bounded seed filesystem and cooperating journal-owner models, compiled schedules and mutation controls; expected counterexamples are required. Same-host canonical-state assumptions apply. No guarantee against syscall swaps, uncontrolled writers or distributed ownership."
-            : "Per-check exit, duration, bounded output count/hash; full includes all compiled tests, privacy checks and seed ownership verification.",
+            ? "Local bounded seed filesystem and cooperating journal-owner models, compiled schedules and mutation controls; expected counterexamples are required. Same-host canonical-state assumptions apply. No guarantee against syscall swaps, uncontrolled writers or distributed ownership."
+            : "Local per-check exit, duration, bounded output count/hash; full includes all compiled tests, privacy checks and seed ownership verification. Hosted Organisation conformance supplies separate policy evidence.",
     });
   return {
     schemaVersion: 1,

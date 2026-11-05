@@ -29,6 +29,7 @@ node dist/src/cli.js capabilities verify --workflow recovery --json --log "$aos_
 
 Require a passed outcome. The existing CLI journeys check preview leaves the destination absent, apply publishes a conformant Module and audit reads it back.
 Research-project journeys check profile-derived folders and supplied initial files.
+Public URECA and generic audits reject undeclared first-level Deliverable and Resource directories under RP-ROOT-002. Required categories, universal Unclassified, nesting inside permitted homes and direct files at the category roots remain conformant.
 The Module seed CLI journey interrupts publication and proves explicit resume completes it.
 Pinned-refresh journeys compare backups and resulting bytes and reject changed preconditions.
 Recovery selects all mounted, repair, seed and pinned suites, including competing, missing and replaced root claims.

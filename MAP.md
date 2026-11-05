@@ -45,7 +45,7 @@ Start here: `README.md`, then `AGENTS.md`.
 | Coordinated improvements | Prioritized Module-management features shared with NTULearn, their dependencies and acceptance boundaries | `docs/research/coordinated-module-management.md` |
 | Automation | The workflows that run on a pull request or on a new issue, and dependency updates | `.github/` |
 | Secret-scan exceptions | Exact historical fingerprints for two synthetic module identities; no broad rule or path exclusion | `.gitleaksignore` |
-| Quality gates | Cross-file rule coverage, publication checks, and the seeded LaTeX set's compile check — all invoked by package scripts and CI | `scripts/check-contract-rule-coverage.mjs`, `src/privacy/`, `scripts/compile-seed-templates.mjs` |
+| Local quality gates | Cross-file rule coverage, publication checks, and the seeded LaTeX set's compile check, invoked by local package scripts and capability profiles | `scripts/check-contract-rule-coverage.mjs`, `src/privacy/`, `scripts/compile-seed-templates.mjs` |
 
 The data `homepage` reads is named in `README.md` as part of what this repository is for. It has no
 entry here because it has no files yet; it earns a row in the pull request that brings it. The

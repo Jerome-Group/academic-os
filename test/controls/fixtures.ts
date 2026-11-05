@@ -25,16 +25,21 @@ export function canonicalFixture(
     generation?: Record<string, unknown>;
     head?: Record<string, unknown>;
     identity?: Record<string, unknown>;
+    identityFile?: string;
   } = {},
 ) {
-  const identity = jsonFile(identityPath, {
-    $schema: "urn:academic-os:module-identity:1",
-    schemaVersion: 1,
-    module: moduleId,
-    moduleCode,
-    title: "Synthetic subject",
-    ...options.identity,
-  });
+  const identityFile = options.identityFile ?? "identity.json";
+  const identity = jsonFile(
+    `.academic-os/control-generations/g1/${identityFile}`,
+    {
+      $schema: "urn:academic-os:module-identity:1",
+      schemaVersion: 1,
+      module: moduleId,
+      moduleCode,
+      title: "Synthetic subject",
+      ...options.identity,
+    },
+  );
   const generation = jsonFile(generationPath, {
     $schema: "urn:academic-os:control-generation:1",
     schemaVersion: 1,
@@ -44,7 +49,7 @@ export function canonicalFixture(
     controls: [
       {
         role: "module-identity",
-        file: "identity.json",
+        file: identityFile,
         schema: "urn:academic-os:module-identity:1",
         byteSha256: sha(identity.bytes),
       },

@@ -1,4 +1,4 @@
-import { constants } from "node:fs";
+import { constants, type Stats } from "node:fs";
 import { lstat, open, realpath } from "node:fs/promises";
 import { join } from "node:path";
 import { moduleControlPaths } from "../conformance/control-paths.js";
@@ -17,7 +17,8 @@ export async function observeModuleControls(
       (entry) =>
         entry.path === moduleHeadPath ||
         known.has(entry.path) ||
-        /^\.academic-os\/control-generations\/.+\.json$/u.test(entry.path) ||
+        (entry.kind !== "directory" &&
+          entry.path.startsWith(".academic-os/control-generations/")) ||
         /^70 Learning\/[^/]+\/records\/[^/]+\.md$/u.test(entry.path) ||
         /^70 Learning\/(?:templates\/preferences|MISSION|NOTES|REVISIT|GLOSSARY|RESOURCES)\.md$/u.test(
           entry.path,
@@ -44,12 +45,14 @@ async function observe(
   try {
     if (!safeRelativePath(path)) throw new Error("Unsafe relative path.");
     let current = root;
-    for (const [index, component] of path.split("/").entries()) {
+    const observed: { path: string; metadata: Stats }[] = [];
+    const components = path.split("/");
+    for (const [index, component] of components.entries()) {
       current = join(current, component);
       const metadata = await lstat(current);
       if (
         metadata.isSymbolicLink() ||
-        (index === path.split("/").length - 1
+        (index === components.length - 1
           ? !metadata.isFile()
           : !metadata.isDirectory()) ||
         !isContainedBy(root, await realpath(current))
@@ -57,6 +60,7 @@ async function observe(
         throw new Error(
           "Control is not a contained regular file without symbolic links.",
         );
+      observed.push({ path: current, metadata });
     }
     const handle = await open(
       current,
@@ -64,11 +68,31 @@ async function observe(
     );
     try {
       const metadata = await handle.stat();
-      if (!metadata.isFile() || metadata.size > 8 * 1024 * 1024)
+      const expected = observed.at(-1)?.metadata;
+      if (
+        !metadata.isFile() ||
+        metadata.dev !== expected?.dev ||
+        metadata.ino !== expected?.ino
+      )
+        throw new Error("Control identity changed before its bytes were read.");
+      if (metadata.size > 8 * 1024 * 1024)
         throw new Error("Control is not a regular file of at most 8 MiB.");
       const bytes = await handle.readFile();
       if (bytes.byteLength > 8 * 1024 * 1024)
         throw new Error("Control exceeds 8 MiB.");
+      const after = await handle.stat();
+      if (after.size !== metadata.size || after.mtimeMs !== metadata.mtimeMs)
+        throw new Error("Control content changed while being read.");
+      for (const item of observed) {
+        const after = await lstat(item.path);
+        if (
+          after.isSymbolicLink() ||
+          after.dev !== item.metadata.dev ||
+          after.ino !== item.metadata.ino ||
+          !isContainedBy(root, await realpath(item.path))
+        )
+          throw new Error("Control path changed while being read.");
+      }
       return { kind: "file", path, bytes };
     } finally {
       await handle.close();

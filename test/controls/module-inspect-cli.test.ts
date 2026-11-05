@@ -4,6 +4,7 @@ import {
   mkdtemp,
   readFile,
   readdir,
+  realpath,
   rm,
   symlink,
   writeFile,
@@ -11,12 +12,14 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, it } from "node:test";
-import { runCli } from "../support/run-cli.js";
+import { pathToFileURL } from "node:url";
+import { runCli, runCliWithEnvironment } from "../support/run-cli.js";
 import {
   canonicalFixture,
   file,
   generationPath,
   headPath,
+  identityPath,
   legacyFixture,
   moduleCode,
   sha,
@@ -29,7 +32,7 @@ afterEach(async () => {
     await rm(root, { recursive: true, force: true });
 });
 async function fixture(files: ControlObservation[]) {
-  const root = await mkdtemp(join(tmpdir(), "aos-controls-"));
+  const root = await realpath(await mkdtemp(join(tmpdir(), "aos-controls-")));
   roots.push(root);
   const moduleRoot = join(root, "Drive", "Modules", "Y1S1", moduleCode);
   const stateRoot = join(root, "State");
@@ -105,6 +108,97 @@ describe("read-only module inspection through the compiled CLI", () => {
     assert.equal(refusal.controlShape.kind, "canonical");
     assert.match(refusal.remediation, /module inspect/u);
     assert.deepEqual(await manifest(target.root), before);
+  });
+
+  it("reads every supported generation reference filename through portable and configured routes", async () => {
+    for (const identityFile of [
+      "identity",
+      "identity.JSON",
+      "nested/identity.data",
+    ]) {
+      const target = await fixture(canonicalFixture({ identityFile }));
+      const before = await manifest(target.root);
+      for (const route of [
+        ["--root", target.moduleRoot],
+        ["--config", target.config],
+      ]) {
+        const result = await runCli("module", "inspect", ...route, "--json");
+        assert.equal(result.exitCode, 0, result.stderr);
+        const report = JSON.parse(result.stdout);
+        assert.equal(report.kind, "canonical");
+        assert.equal(
+          report.controls[0].path,
+          `.academic-os/control-generations/g1/${identityFile}`,
+        );
+        assert.deepEqual(report.diagnostics, []);
+      }
+      assert.deepEqual(await manifest(target.root), before);
+    }
+  });
+
+  it("refuses a parent-directory swap before opening a canonical reference without reporting outside bytes", async () => {
+    const outsideTitle = "Outside content must never enter the observation";
+    const files = canonicalFixture({ identity: { title: outsideTitle } });
+    const identity = files.find((item) => item.path === identityPath);
+    const generation = files.find((item) => item.path === generationPath);
+    assert.ok(identity && generation);
+    const target = await fixture(
+      files.map((item) =>
+        item.path === identityPath ? file(identityPath, "{}") : item,
+      ),
+    );
+    const outside = join(target.root, "outside");
+    await mkdir(outside);
+    await writeFile(join(outside, "identity.json"), identity.bytes);
+    await writeFile(join(outside, "generation.json"), generation.bytes);
+    const beforeOutside = await manifest(outside);
+    const generationRoot = dirname(join(target.moduleRoot, identityPath));
+    const preload = join(target.root, "swap-before-open.mjs");
+    const swapReceipt = join(target.root, "swap-performed.txt");
+    await writeFile(
+      preload,
+      `import fs from 'node:fs';
+import { syncBuiltinESMExports } from 'node:module';
+const open = fs.promises.open;
+let swapped = false;
+fs.promises.open = async function(path, ...args) {
+  if (path === ${JSON.stringify(join(target.moduleRoot, identityPath))} && !swapped) {
+    swapped = true;
+    await fs.promises.rename(${JSON.stringify(generationRoot)}, ${JSON.stringify(`${generationRoot}-retained`)});
+    await fs.promises.symlink(${JSON.stringify(outside)}, ${JSON.stringify(generationRoot)});
+    await fs.promises.writeFile(${JSON.stringify(swapReceipt)}, "swapped");
+  }
+  return open.call(this, path, ...args);
+};
+syncBuiltinESMExports();
+`,
+    );
+    const result = await runCliWithEnvironment(
+      { NODE_OPTIONS: `--import=${pathToFileURL(preload).href}` },
+      "module",
+      "inspect",
+      "--root",
+      target.moduleRoot,
+      "--json",
+    );
+    assert.equal(result.exitCode, 2, result.stderr);
+    assert.equal(await readFile(swapReceipt, "utf8"), "swapped");
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.kind, "unsupported");
+    assert.ok(
+      report.diagnostics.some(
+        (item: { code: string }) =>
+          item.code === "unreadable-canonical-control",
+      ),
+    );
+    assert.equal(
+      report.evidence.some(
+        (item: { path: string }) => item.path === identityPath,
+      ),
+      false,
+    );
+    assert.equal(result.stdout.includes(outsideTitle), false);
+    assert.deepEqual(await manifest(outside), beforeOutside);
   });
 
   it("refuses a missing generation and a changed generation through public commands without legacy fallback", async () => {

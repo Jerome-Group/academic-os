@@ -7,6 +7,8 @@ The [native inventory contract](../../../../docs/native-inventory.md) defines en
 ## Drive
 
 Use the parent skill's isolated fixture environment and a fresh doctor.
+On macOS, `native-inventory-compiler` observes the Command Line Tools rebuild prerequisite.
+The compiled inventory journey also proves that a bound adapter runs with an unavailable compiler toolchain.
 The discovery workflow invokes the compiled `migration inventory` CLI against disposable sources.
 
 ```sh

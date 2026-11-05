@@ -182,7 +182,7 @@ it("refuses an output location outside the owned build directory", async (contex
 async function buildFixture(context: TestContext) {
   const root = await mkdtemp(join(tmpdir(), "academic-build-provenance-"));
   context.diagnostic(`Retained build fixture ${root}`);
-  const installation = join(root, "installation");
+  const installation = join(root, "installation with spaces");
   await mkdir(join(installation, "src"), { recursive: true });
   await mkdir(join(installation, "test/build"), { recursive: true });
   for (const name of [

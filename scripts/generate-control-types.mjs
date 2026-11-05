@@ -8,6 +8,7 @@ const schemaExports = {
   controls: "controlSchemas",
   naming: "namingSchemas",
   "controls-publication": "publicationSchemas",
+  "migration/native-inventory": "nativeInventorySchemas",
 };
 for (const owner of Object.keys(schemaExports)) {
   const schemaRoot = new URL(`../src/${owner}/schemas/`, import.meta.url);

@@ -103,6 +103,8 @@ export const cliCapabilities: Capability[] = [
       implementation: "src/controls-publication/command.ts",
       tests: [
         "test/controls-publication/publication.test.ts",
+        "test/controls-publication/capacity.test.ts",
+        "test/controls-publication/native.test.ts",
         "test/controls-publication/import-boundary.test.ts",
         "test/controls-publication/publication-journey.test.ts",
       ],
@@ -664,7 +666,10 @@ export function capabilityIndex(): object {
     riskFlags: ["writes-release-artifact"],
     preview: null,
     implementation: "scripts/build-control-publication-standalone.mjs",
-    tests: ["test/controls-publication/standalone-package.test.ts"],
+    tests: [
+      "test/controls-publication/standalone-package.test.ts",
+      "test/controls-publication/publication-journey.test.ts",
+    ],
     status: "supported",
     health: "not-observed",
     result:
@@ -693,6 +698,8 @@ export function capabilityIndex(): object {
       tests: [
         "test/controls-publication/publication-journey.test.ts",
         "test/controls-publication/publication-schema.test.ts",
+        "test/controls-publication/capacity.test.ts",
+        "test/controls-publication/native.test.ts",
       ],
       status: "supported",
       health: "not-observed",

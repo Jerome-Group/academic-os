@@ -10,6 +10,7 @@ Keep raw fixture proof after process teardown. Record each feature as passed, fa
 | Feature | Existing workflows |
 | --- | --- |
 | [Discovery, readiness and importer observations](discovery-imports.md) | `discovery`, `imports`, quality profiles |
+| [Generated control publication](controls-publication.md) | `publication` check profile |
 | [Module and Research-project lifecycle](folder-lifecycle.md) | `recovery` |
 | [Tasks, Calendar and Operations](services.md) | `services` |
 | [Teaching and cheatsheet releases](teaching.md) | `teaching` |

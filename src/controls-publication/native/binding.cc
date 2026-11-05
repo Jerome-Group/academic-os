@@ -232,6 +232,12 @@ napi_value setFixtureCheckpoint(napi_env env, napi_callback_info info) {
 }
 #endif
 napi_value initialize(napi_env env, napi_value exports) {
+  put(env, exports, "nativeBoundaryVersion", number(env, 1));
+#ifdef AOS_PUBLICATION_FIXTURE_ANCHOR
+  put(env, exports, "buildKind", text(env, "fixture"));
+#else
+  put(env, exports, "buildKind", text(env, "production"));
+#endif
   for (size_t i = 0; i < sizeof operations / sizeof *operations; ++i) {
     napi_value method; check(napi_create_function(env, operations[i], NAPI_AUTO_LENGTH, dispatch, reinterpret_cast<void*>(i), &method));
     put(env, exports, operations[i], method);
@@ -242,6 +248,7 @@ napi_value initialize(napi_env env, napi_value exports) {
   put(env, exports, "setFixtureCheckpoint", setter);
   check(napi_add_env_cleanup_hook(env, [](void*) { checkpointHook = {}; fixtureHookReference = nullptr; }, nullptr));
 #endif
+  check(napi_object_freeze(env, exports));
   return exports;
 }
 }

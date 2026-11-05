@@ -32,6 +32,8 @@ export function isPublicationNative(
   return (
     typeof value === "object" &&
     value !== null &&
+    "nativeBoundaryVersion" in value &&
+    value.nativeBoundaryVersion === 1 &&
     methods.every(
       (method) =>
         method in value && typeof Reflect.get(value, method) === "function",
@@ -54,7 +56,12 @@ export function loadPublicationNative(): NativeResult<PublicationNative> {
     const addon: unknown = createRequire(import.meta.url)(
       "./publication-native.node",
     );
-    if (isPublicationNative(addon)) return { kind: "ok", value: addon };
+    if (
+      isPublicationNative(addon) &&
+      "buildKind" in addon &&
+      addon.buildKind === "production"
+    )
+      return { kind: "ok", value: addon };
   } catch {
     return {
       kind: "native-failure",

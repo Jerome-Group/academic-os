@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { lstatSync, mkdirSync, realpathSync } from "node:fs";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -50,7 +50,28 @@ if (!lstatSync(join(headers, "node_api.h")).isFile())
 const output =
   options.get("--output") ??
   join(root, "dist/src/controls-publication/native/publication-native.node");
+const outputRelative = relative(join(root, "dist"), output);
+if (
+  fixture !== undefined &&
+  outputRelative !== ".." &&
+  !outputRelative.startsWith(`..${sep}`) &&
+  !isAbsolute(outputRelative)
+) {
+  throw new Error(
+    "Fixture addons must stay outside the production dist directory.",
+  );
+}
 mkdirSync(dirname(output), { recursive: true, mode: 0o700 });
+if (realpathSync(dirname(output)) !== dirname(output))
+  throw new Error("Native output parent must be canonical.");
+try {
+  const existing = lstatSync(output);
+  if (!existing.isFile() || existing.nlink !== 1)
+    throw new Error("Native output must be an ordinary unshared file.");
+} catch (error) {
+  if (!(error instanceof Error && "code" in error && error.code === "ENOENT"))
+    throw error;
+}
 const source = join(root, "src/controls-publication/native");
 const flags = [
   "clang++",

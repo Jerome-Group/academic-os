@@ -113,7 +113,7 @@ void syscallResult(int result) {
     case EEXIST: case ENOTEMPTY: fail("exists");
     case ENOENT: fail("missing");
     case ELOOP: case ENOTDIR: case EACCES: case EPERM: fail("unsafe-ancestry");
-    case ENOTSUP: case EXDEV: fail("unsupported-host");
+    case ENOTSUP: case EXDEV: case EILSEQ: fail("unsupported-host");
     default: fail("io");
   }
 }
@@ -195,7 +195,7 @@ std::shared_ptr<Anchor> resolveAnchor() {
   if (anchor->home.empty() || anchor->home.front() != '/' || anchor->path.front() != '/') fail("unsupported-host");
   uuid_t account, host;
   struct timespec timeout = {2, 0};
-  if (mbr_uid_to_uuid(getuid(), account) || gethostuuid(host, &timeout)) fail("unsupported-host");
+  if (mbr_uid_to_uuid(getuid(), account) || gethostuuid(host, &timeout) || uuid_is_null(account) || uuid_is_null(host)) fail("unsupported-host");
   anchor->accountUuid = uuidString(account); anchor->hostUuid = uuidString(host);
   int rootFd = open("/", O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
   syscallResult(rootFd);

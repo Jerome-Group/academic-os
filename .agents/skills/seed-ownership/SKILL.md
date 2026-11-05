@@ -37,7 +37,8 @@ Require bypass and early release each to lose a confirmed curation decision afte
 The runner retains source patches, exact heads, manifests, fixture journals, and TLC traces in a fresh OS temporary directory.
 It uses synthetic Module and Research-project folders only.
 
-To diagnose native TLC and Java temporary writes in the repository repair sandbox, set `JAVA` if needed, then run:
+To diagnose native TLC and Java temporary writes in the repository repair sandbox, build the repository and set `JAVA` if needed.
+The diagnostic loads the compiled production sandbox policy. Then run:
 
 ```sh
 node .agents/skills/seed-ownership/java-temp-probe.mjs

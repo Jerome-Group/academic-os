@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 import {
   repositoryFixtureRoot,
   repositorySandboxArguments,
-} from "../../../src/routine/repository-repair-process.ts";
+} from "../../../dist/src/routine/repository-repair-process.js";
 import { preparePinnedTlc, tlcJavaEnvironment } from "./tlc-toolchain.mjs";
 
 const directory = dirname(fileURLToPath(import.meta.url));

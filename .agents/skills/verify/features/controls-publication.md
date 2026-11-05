@@ -6,6 +6,13 @@ health steps. Run `capabilities check --profile publication` with a unique priva
 Require its outer outcome and every child check to pass. Retain its native and publication
 fixture paths exactly as printed.
 
+For publisher protocol changes, also follow [control publication](../../control-publication/SKILL.md)
+and run the local `publication-formal` profile from a clean committed checkout.
+Read its nested models, compiled fault schedules, exact source bindings, actual public mutant
+failures, restored controls and child teardown. `model-only`, `bug` and `failed` are incomplete.
+Keep existing seed proof separate. The publisher runner compares its 23 covered hashes for
+applicability and does not rerun or relabel its theorems.
+
 The public journey creates private generated candidates. Four large, complete synthetic
 publications cross the former 64 MiB ledger ceiling before CLI A, MCP B, extracted standalone
 current B and pinned A, and retry A. It validates all 18 roles and reads every referenced

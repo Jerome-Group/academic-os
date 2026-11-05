@@ -1032,7 +1032,7 @@ export function capabilityIndex(): object {
         profile === "coverage"
           ? ["TeX Live and Poppler for rendered artifact checks"]
           : []),
-        ...(["formal", "full"].includes(profile)
+        ...(["formal", "publication-formal", "full"].includes(profile)
           ? [
               "Java 21 via JAVA or PATH; pinned TLC download or TLA2TOOLS_JAR",
               "clean committed checkout; covered-source hashes match the checked-in formal binding",
@@ -1053,9 +1053,11 @@ export function capabilityIndex(): object {
       status: "supported",
       health: "not-observed",
       result:
-        profile === "formal"
-          ? "Bounded seed filesystem and cooperating journal-owner models, compiled schedules and mutation controls; expected counterexamples are required. Same-host canonical-state assumptions apply. No guarantee against syscall swaps, uncontrolled writers or distributed ownership."
-          : "Per-check exit, duration, bounded output count/hash; full includes all compiled tests, privacy checks and seed ownership verification.",
+        profile === "publication-formal"
+          ? "Bounded source-bound generated control publisher model, compiled fault schedules, exact byte readbacks and eight behavioral mutants with restored controls. Native account/kernel/syscall behavior remains a runtime premise. Local only; no live admission or whole-system proof."
+          : profile === "formal"
+            ? "Bounded seed filesystem and cooperating journal-owner models, compiled schedules and mutation controls; expected counterexamples are required. Same-host canonical-state assumptions apply. No guarantee against syscall swaps, uncontrolled writers or distributed ownership."
+            : "Per-check exit, duration, bounded output count/hash; full includes all compiled tests, privacy checks and seed ownership verification.",
     });
   return {
     schemaVersion: 1,

@@ -20,6 +20,7 @@ export const checkProfiles = {
   coverage: ["rule-coverage:check"],
   formal: ["seed-ownership:check"],
   publication: ["controls-publication:check"],
+  "publication-formal": ["control-publication:check"],
   full: [
     "controls:check",
     "config:check",

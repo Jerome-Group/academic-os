@@ -630,6 +630,7 @@ function isSeedPlan(value: unknown): value is SeedablePlan {
     plan.target.kind === "research-project" &&
     typeof plan.target.key === "string" &&
     typeof plan.target.folder === "string" &&
+    (!("intakePolicyVersion" in plan) || plan.intakePolicyVersion === 2) &&
     Number.isInteger(plan.contractVersion)
   );
 }

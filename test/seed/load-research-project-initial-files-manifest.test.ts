@@ -73,18 +73,21 @@ describe("research-project initial-files manifest", () => {
 
     const loaded = await loadResearchProjectInitialFilesManifest(manifest);
 
-    assert.deepEqual(loaded, [
-      {
-        destination: "00 Project Admin/20 Source Register.yaml",
-        encoding: "utf8",
-        contents: "sources: []\n",
-      },
-      {
-        destination: "10 Source Materials/20 Core Sources/paper.pdf",
-        encoding: "binary",
-        contentsBase64: "AP8KgEE=",
-      },
-    ]);
+    assert.deepEqual(loaded, {
+      policyVersion: 1,
+      files: [
+        {
+          destination: "00 Project Admin/20 Source Register.yaml",
+          encoding: "utf8",
+          contents: "sources: []\n",
+        },
+        {
+          destination: "10 Source Materials/20 Core Sources/paper.pdf",
+          encoding: "binary",
+          contentsBase64: "AP8KgEE=",
+        },
+      ],
+    });
   });
 
   it("rejects an open schema, a hash mismatch, invalid UTF-8, and a non-ordinary source", async () => {

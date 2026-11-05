@@ -6,7 +6,10 @@ import { TextDecoder } from "node:util";
 import { sha256Bytes } from "../checksum.js";
 import { ensureMaterialized } from "../mounted/ensure-materialized.js";
 import { OperationalError } from "../operational-error.js";
-import type { ResearchProjectInitialFile } from "./types.js";
+import type {
+  ResearchProjectInitialFile,
+  ResearchProjectInitialIntake,
+} from "./types.js";
 
 const sha256Pattern = /^[0-9a-f]{64}$/u;
 
@@ -19,7 +22,7 @@ interface ManifestEntry {
 
 export async function loadResearchProjectInitialFilesManifest(
   manifestPath: string,
-): Promise<ResearchProjectInitialFile[]> {
+): Promise<ResearchProjectInitialIntake> {
   const absoluteManifestPath = resolve(manifestPath);
   const manifestBytes = await readOrdinaryMaterializedFile(
     absoluteManifestPath,
@@ -32,10 +35,10 @@ export async function loadResearchProjectInitialFilesManifest(
   } catch {
     throw invalidManifest("Initial-files manifest is not valid JSON.");
   }
-  const entries = parseManifest(parsed);
+  const manifest = parseManifest(parsed);
   const destinations = new Set<string>();
   const initialFiles: ResearchProjectInitialFile[] = [];
-  for (const entry of entries) {
+  for (const entry of manifest.entries) {
     if (destinations.has(entry.destination)) {
       throw invalidManifest(
         `Initial-files manifest has duplicate destination ${entry.destination}.`,
@@ -63,21 +66,32 @@ export async function loadResearchProjectInitialFilesManifest(
           },
     );
   }
-  return initialFiles;
+  return { policyVersion: manifest.policyVersion, files: initialFiles };
 }
 
-function parseManifest(value: unknown): ManifestEntry[] {
+function parseManifest(value: unknown): {
+  policyVersion: 1 | 2;
+  entries: ManifestEntry[];
+} {
   if (!isRecord(value) || !hasExactKeys(value, ["schemaVersion", "files"])) {
     throw invalidManifest(
-      "Initial-files manifest must use the closed schema v1.",
+      "Initial-files manifest must use the closed schema v1 or v2.",
     );
   }
-  if (value.schemaVersion !== 1 || !Array.isArray(value.files)) {
+  if (
+    (value.schemaVersion !== 1 && value.schemaVersion !== 2) ||
+    !Array.isArray(value.files)
+  ) {
     throw invalidManifest(
-      "Initial-files manifest must use the closed schema v1.",
+      "Initial-files manifest must use the closed schema v1 or v2.",
     );
   }
-  return value.files.map((entry, index) => parseManifestEntry(entry, index));
+  return {
+    policyVersion: value.schemaVersion,
+    entries: value.files.map((entry, index) =>
+      parseManifestEntry(entry, index),
+    ),
+  };
 }
 
 function parseManifestEntry(value: unknown, index: number): ManifestEntry {
@@ -95,7 +109,7 @@ function parseManifestEntry(value: unknown, index: number): ManifestEntry {
     (value.encoding !== "utf8" && value.encoding !== "binary")
   ) {
     throw invalidManifest(
-      `Initial-files manifest entry ${index + 1} does not match the closed schema v1.`,
+      `Initial-files manifest entry ${index + 1} does not match the closed schema v1 or v2.`,
     );
   }
   return {

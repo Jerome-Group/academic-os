@@ -9,7 +9,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   repositoryFixtureRoot,
@@ -88,6 +88,25 @@ try {
     join(evidence, "JavaTemp.cfg"),
     "INIT Init\nNEXT Next\nINVARIANT Range\n",
   );
+  const defaults = await sandbox("java-default-temp", [
+    java,
+    "-XshowSettings:properties",
+    "-version",
+  ]);
+  assert.equal(defaults.code, 0, "native Java default properties");
+  const defaultTemp = defaults.output.match(
+    /^\s+java\.io\.tmpdir = (.+)$/mu,
+  )?.[1];
+  assert.ok(defaultTemp, "native Java default temporary directory required");
+  assert.ok(
+    isAbsolute(defaultTemp),
+    "absolute native Java temporary directory",
+  );
+  assert.ok(
+    relative(evidence, defaultTemp).split(sep)[0] === "..",
+    "default Java temporary directory must be outside the owned fixture",
+  );
+  results.defaultJavaTemp = defaultTemp;
   for (const [name, temporary] of [
     ["environment-only", undefined],
     ["owned-temp", evidence],
@@ -133,7 +152,7 @@ try {
         /^java\.nio\.file\.FileSystemException: .+\/tlc-\d+: Operation not permitted$/mu,
       );
       assert.ok(
-        run.output.includes(`${temporary ?? tmpdir()}/tlc-`),
+        run.output.includes(join(temporary ?? defaultTemp, "tlc-")),
         `${name} refuses extraction into the selected unowned temp`,
       );
       assert.match(

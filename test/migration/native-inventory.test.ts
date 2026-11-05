@@ -97,6 +97,7 @@ test("portable boundary refuses invalid membership, metadata payloads and change
     both([entry(), entry("2e2e2f657363617065", "file")]),
     both([entry(), entry("6469722f66696c65", "file")]),
     both([entry(), child, child]),
+    both([entry(), entry("61"), entry("62")]),
     [entry(), child, { ...entry(), pass: 2 }],
     both([entry(), { ...child, after: { ...child.before, ctimeNs: "999" } }]),
     both([

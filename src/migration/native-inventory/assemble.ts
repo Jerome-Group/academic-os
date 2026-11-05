@@ -205,6 +205,7 @@ export function assembleNativeInventory(input: {
       hardlinkGroup: null,
     }));
   const groups = new Map<string, NativeInventoryEntry[]>();
+  const directories = new Map<string, string>();
   for (const entry of entries) {
     if (entry.pathHex !== "") {
       const raw = Buffer.from(entry.pathHex, "hex");
@@ -217,8 +218,17 @@ export function assembleNativeInventory(input: {
           "Entry parent is absent or not a directory.",
         );
     }
-    if (entry.kind !== "file") continue;
     const key = `${entry.before.device}:${entry.before.inode}`;
+    if (entry.kind === "directory") {
+      if (directories.has(key))
+        add(
+          "directory-alias",
+          entry.pathHex,
+          "Two raw paths identify the same native directory.",
+        );
+      directories.set(key, entry.pathHex);
+    }
+    if (entry.kind !== "file") continue;
     const group = groups.get(key) ?? [];
     group.push(entry);
     groups.set(key, group);

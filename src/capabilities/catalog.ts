@@ -71,6 +71,7 @@ export const cliCapabilities: Capability[] = [
   {
     ...cli("module validate", [], [], null, [
       "test/controls/module-data.test.ts",
+      "test/controls/native-data-validation.test.ts",
       "test/controls/module-inspect-cli.test.ts",
     ]),
     invocation:
@@ -90,6 +91,7 @@ export const cliCapabilities: Capability[] = [
   {
     ...cli("module inspect", [], [], null, [
       "test/controls/read-controls.test.ts",
+      "test/controls/native-data-validation.test.ts",
       "test/controls/module-inspect-cli.test.ts",
     ]),
     invocation:

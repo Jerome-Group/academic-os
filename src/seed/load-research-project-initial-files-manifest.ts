@@ -4,6 +4,7 @@ import { isAbsolute, dirname, resolve } from "node:path";
 import { TextDecoder } from "node:util";
 
 import { sha256Bytes } from "../checksum.js";
+import { readStrictJson } from "../controls/strict-json.js";
 import { ensureMaterialized } from "../mounted/ensure-materialized.js";
 import { OperationalError } from "../operational-error.js";
 import type {
@@ -28,14 +29,13 @@ export async function loadResearchProjectInitialFilesManifest(
     absoluteManifestPath,
     "manifest",
   );
-  const source = strictUtf8(manifestBytes, "Initial-files manifest");
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(source);
-  } catch {
-    throw invalidManifest("Initial-files manifest is not valid JSON.");
+  const parsed = readStrictJson(manifestBytes, "initial-files-manifest");
+  if (parsed.kind === "invalid") {
+    throw invalidManifest(
+      "Initial-files manifest requires UTF-8 JSON with unique keys, Unicode scalar strings and safe integer literals, at most 8 MiB and 128 nesting levels.",
+    );
   }
-  const manifest = parseManifest(parsed);
+  const manifest = parseManifest(parsed.value);
   const destinations = new Set<string>();
   const initialFiles: ResearchProjectInitialFile[] = [];
   for (const entry of manifest.entries) {

@@ -16,6 +16,23 @@ afterEach(async () => {
 });
 
 describe("research-project initial-files manifest", () => {
+  it("refuses duplicate and escaped version keys before selecting intake policy", async () => {
+    const root = await temporaryRoot();
+    const manifest = join(root, "initial-files.json");
+    for (const keys of [
+      '"schemaVersion":1,"schemaVersion":2',
+      '"schemaVersion":2,"schemaVersion":1',
+      String.raw`"schemaVersion":1,"\u0073chemaVersion":2`,
+      String.raw`"schemaVersion":2,"\u0073chemaVersion":1`,
+    ]) {
+      await writeFile(manifest, `{${keys},"files":[]}`);
+      await assert.rejects(
+        loadResearchProjectInitialFilesManifest(manifest),
+        /unique keys/u,
+      );
+    }
+  });
+
   it("refuses non-scalar encodings before treating invalid UTF-8 as binary", async () => {
     const root = await temporaryRoot();
     const bytes = Buffer.from([0xc3, 0x28]);
@@ -43,51 +60,53 @@ describe("research-project initial-files manifest", () => {
     }
   });
 
-  it("loads verified UTF-8 and binary bytes relative to the manifest", async () => {
+  it("loads verified UTF-8 and binary bytes under both intake policies", async () => {
     const root = await temporaryRoot();
     const text = Buffer.from("sources: []\n", "utf8");
     const binary = Buffer.from([0, 255, 10, 128, 65]);
     await writeFile(join(root, "sources.yaml"), text);
     await writeFile(join(root, "paper.pdf"), binary);
     const manifest = join(root, "initial-files.json");
-    await writeFile(
-      manifest,
-      JSON.stringify({
-        schemaVersion: 1,
+    for (const policyVersion of [1, 2]) {
+      await writeFile(
+        manifest,
+        JSON.stringify({
+          schemaVersion: policyVersion,
+          files: [
+            {
+              destination: "00 Project Admin/20 Source Register.yaml",
+              source: "sources.yaml",
+              sha256: digest(text),
+              encoding: "utf8",
+            },
+            {
+              destination: "10 Source Materials/20 Core Sources/paper.pdf",
+              source: "paper.pdf",
+              sha256: digest(binary),
+              encoding: "binary",
+            },
+          ],
+        }),
+      );
+
+      const loaded = await loadResearchProjectInitialFilesManifest(manifest);
+
+      assert.deepEqual(loaded, {
+        policyVersion,
         files: [
           {
             destination: "00 Project Admin/20 Source Register.yaml",
-            source: "sources.yaml",
-            sha256: digest(text),
             encoding: "utf8",
+            contents: "sources: []\n",
           },
           {
             destination: "10 Source Materials/20 Core Sources/paper.pdf",
-            source: "paper.pdf",
-            sha256: digest(binary),
             encoding: "binary",
+            contentsBase64: "AP8KgEE=",
           },
         ],
-      }),
-    );
-
-    const loaded = await loadResearchProjectInitialFilesManifest(manifest);
-
-    assert.deepEqual(loaded, {
-      policyVersion: 1,
-      files: [
-        {
-          destination: "00 Project Admin/20 Source Register.yaml",
-          encoding: "utf8",
-          contents: "sources: []\n",
-        },
-        {
-          destination: "10 Source Materials/20 Core Sources/paper.pdf",
-          encoding: "binary",
-          contentsBase64: "AP8KgEE=",
-        },
-      ],
-    });
+      });
+    }
   });
 
   it("rejects an open schema, a hash mismatch, invalid UTF-8, and a non-ordinary source", async () => {

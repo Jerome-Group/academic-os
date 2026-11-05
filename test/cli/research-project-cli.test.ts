@@ -349,6 +349,44 @@ describe("academic-os research-project CLI", () => {
     await assertSavedPolicyBinding(fixture, target, "remove-v2");
   });
 
+  it("refuses duplicate and escaped conflicting manifest versions before publication", async () => {
+    for (const keys of [
+      '"schemaVersion":1,"schemaVersion":2',
+      '"schemaVersion":2,"schemaVersion":1',
+      String.raw`"schemaVersion":1,"\u0073chemaVersion":2`,
+      String.raw`"schemaVersion":2,"\u0073chemaVersion":1`,
+    ]) {
+      const fixture = await setupFixture({ existing: false, generic: true });
+      const files = researchMeetingInitialFiles();
+      const manifestPath = await writeIntakeManifest(fixture.root, files);
+      const canonical = JSON.parse(await readFile(manifestPath, "utf8"));
+      const payloads = await Promise.all(
+        files.map((_, index) =>
+          readFile(join(fixture.root, `intake-${index}.payload`)),
+        ),
+      );
+      await writeFile(
+        manifestPath,
+        `{${keys},"files":${JSON.stringify(canonical.files)}}`,
+      );
+      const result = await runCli(
+        ...meetingSeedArguments(fixture, manifestPath),
+        "--apply",
+        "--json",
+      );
+      assert.equal(result.exitCode, 2, result.stdout);
+      assert.equal(JSON.parse(result.stdout).error.code, "invalid-config");
+      assert.match(JSON.parse(result.stdout).error.message, /unique keys/u);
+      assert.deepEqual(await readdir(fixture.researchRoot), []);
+      assert.deepEqual(await readdir(fixture.stateRoot), []);
+      for (const [index, bytes] of payloads.entries())
+        assert.deepEqual(
+          await readFile(join(fixture.root, `intake-${index}.payload`)),
+          bytes,
+        );
+    }
+  });
+
   it("refuses invalid Meeting intake before publication", async () => {
     const cases: Array<{
       name: string;

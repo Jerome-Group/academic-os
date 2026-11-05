@@ -57,6 +57,10 @@ The root and each row use exactly the shown keys. Manifest `schemaVersion` selec
 plan identity, with no policy field in the plan. Version 2 adds the initial meeting schedule and records `intakePolicyVersion: 2`
 in the private plan and journal. Both policies produce folders under contract version 3.
 
+Manifest JSON uses unique keys, Unicode scalar strings and safe integer literals without negative
+zero. It is at most 8 MiB with at most 128 nesting levels. These limits govern the manifest,
+not its payload files. Conflicting or escaped duplicate version keys refuse before policy selection.
+
 `encoding` is `utf8` or `binary`. `source` is a relative local path resolved from the manifest.
 The manifest and every source are ordinary,
 materialized files, and each source's exact bytes match its recorded SHA-256. A `utf8` source also
@@ -65,8 +69,8 @@ decodes as strict UTF-8.
 Both policies accept the caller-owned seed bodies for `20 Source Register.yaml`,
 `50 Deliverable Register.yaml` and `references.bib`. Policy 2 also permits the caller-owned
 `20 Supervisor Meetings/SCHEDULE.md` seed body. These controls require UTF-8. A complete initial
-Meeting supplies its `Meeting.md`, Sources, Learning and Exercises with their `records/`, and a
-schedule satisfying RP-MEETINGS-001. Projected, staged and published audits inspect the supplied
+Meeting supplies `Meeting.md` and Sources, plus Learning and Exercises each with `records/`.
+Its schedule satisfies RP-MEETINGS-001. Projected, staged and published audits inspect the supplied
 note bytes. A meeting-free intake remains valid with the empty schedule template.
 
 These replacements select planned seed bodies only. Existing target files must already match

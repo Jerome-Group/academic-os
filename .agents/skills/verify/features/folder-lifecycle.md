@@ -34,6 +34,7 @@ They compare exact note, schedule and binary payload bytes after publication and
 Missing or invalid notes, inconsistent schedules, binary schedule controls, pinned replacements, existing-content conflicts and unsupported policies refuse before publication.
 Saved-plan cases reject mixed Module and Research identities, including a supported policy attached to the wrong variant, without changing the journal or target.
 They verify the entire stored plan against its recorded digest, reject both supported policy transitions and altered saved operation bytes, and preserve every Research target file.
+Manifest fixtures reject conflicting and escaped duplicate version keys before policy selection, while both valid intake policies preserve source payload bytes.
 Mounted fixtures also exercise staged Meeting interruption and exact-plan resume, including refusal after schedule bytes or policy identity change.
 The Module seed CLI journey interrupts publication and proves explicit resume completes it.
 Pinned-refresh journeys compare backups and resulting bytes and reject changed preconditions.

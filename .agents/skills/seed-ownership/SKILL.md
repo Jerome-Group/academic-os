@@ -60,6 +60,8 @@ Set `TLC_OLD_JAR` to an existing 1.7.4 artifact to include its real pre-model re
 [The machine record](coverage.json) names the last checked source revision and binds every covered file to its SHA-256.
 [Curation coverage](curation-coverage.md) maps its distinct append order, identity key, bounds, and exclusions.
 The ordinary run compares exact source bytes, so a squash merge does not require the original product commit object.
+Read every TLA+ result with pstack `statechart`, including its shortest paths and real-code replay.
+Record its tool identity separately. Its interpretation does not replace the pinned runner gate.
 TLC checks a bounded model. The compiled schedules and real-code mutation connect that model to the TypeScript implementation.
 Their combined result is model safety plus implementation evidence.
 

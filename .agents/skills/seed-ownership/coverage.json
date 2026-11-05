@@ -1,8 +1,8 @@
 {
-  "syncRevision": "4b87383783d8250830b22483db275efa9dc7254b",
-  "lastInspectedRevision": "4b87383783d8250830b22483db275efa9dc7254b",
-  "outcome": "updated",
-  "reason": "Extend bounded coverage to canonical curation register ownership and its actual append order. The later completion classifier changes only reporting outside these ownership actions. Properties and bounds are unchanged; native TLC execution uses an exactly pinned offline artifact and owned Java temporary storage.",
+  "syncRevision": "d08c6969b7fd3ee126a5414a44c102dd60241733",
+  "lastInspectedRevision": "d08c6969b7fd3ee126a5414a44c102dd60241733",
+  "outcome": "in sync",
+  "reason": "Recheck the preserved curation ownership and pinned offline TLC foundation against current main. All 23 covered source hashes remain unchanged. Tasks caller protocols remain explicitly excluded. Models, properties, bounds and product code are unchanged.",
   "files": [
     "src/mounted/seed-mounted-module.ts",
     "src/mounted/seed-mounted-research-project.ts",
@@ -56,6 +56,6 @@
   "checks": {
     "seedFilesystem": "in sync",
     "journalMutationOwner": "in sync",
-    "curationRegister": "updated"
+    "curationRegister": "in sync"
   }
 }

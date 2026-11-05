@@ -362,6 +362,178 @@ export type IntegerClaim =
         }[],
       ];
     };
+export type NanosecondsClaim =
+  | {
+      kind: "known";
+      value: string;
+      /**
+       * @minItems 1
+       */
+      evidence: [
+        {
+          kind: "evidence";
+          id: string;
+        },
+        ...{
+          kind: "evidence";
+          id: string;
+        }[],
+      ];
+      reasoning?: string;
+    }
+  | {
+      kind: "unknown";
+      reason: string;
+      evidence: {
+        kind: "evidence";
+        id: string;
+      }[];
+    }
+  | {
+      kind: "disputed";
+      /**
+       * @minItems 2
+       */
+      alternatives: [
+        {
+          value: string;
+          /**
+           * @minItems 1
+           */
+          evidence: [
+            {
+              kind: "evidence";
+              id: string;
+            },
+            ...{
+              kind: "evidence";
+              id: string;
+            }[],
+          ];
+          reasoning: string;
+        },
+        {
+          value: string;
+          /**
+           * @minItems 1
+           */
+          evidence: [
+            {
+              kind: "evidence";
+              id: string;
+            },
+            ...{
+              kind: "evidence";
+              id: string;
+            }[],
+          ];
+          reasoning: string;
+        },
+        ...{
+          value: string;
+          /**
+           * @minItems 1
+           */
+          evidence: [
+            {
+              kind: "evidence";
+              id: string;
+            },
+            ...{
+              kind: "evidence";
+              id: string;
+            }[],
+          ];
+          reasoning: string;
+        }[],
+      ];
+    };
+export type NativeBytesClaim =
+  | {
+      kind: "known";
+      value: string;
+      /**
+       * @minItems 1
+       */
+      evidence: [
+        {
+          kind: "evidence";
+          id: string;
+        },
+        ...{
+          kind: "evidence";
+          id: string;
+        }[],
+      ];
+      reasoning?: string;
+    }
+  | {
+      kind: "unknown";
+      reason: string;
+      evidence: {
+        kind: "evidence";
+        id: string;
+      }[];
+    }
+  | {
+      kind: "disputed";
+      /**
+       * @minItems 2
+       */
+      alternatives: [
+        {
+          value: string;
+          /**
+           * @minItems 1
+           */
+          evidence: [
+            {
+              kind: "evidence";
+              id: string;
+            },
+            ...{
+              kind: "evidence";
+              id: string;
+            }[],
+          ];
+          reasoning: string;
+        },
+        {
+          value: string;
+          /**
+           * @minItems 1
+           */
+          evidence: [
+            {
+              kind: "evidence";
+              id: string;
+            },
+            ...{
+              kind: "evidence";
+              id: string;
+            }[],
+          ];
+          reasoning: string;
+        },
+        ...{
+          value: string;
+          /**
+           * @minItems 1
+           */
+          evidence: [
+            {
+              kind: "evidence";
+              id: string;
+            },
+            ...{
+              kind: "evidence";
+              id: string;
+            }[],
+          ];
+          reasoning: string;
+        }[],
+      ];
+    };
 export type LearningRecord =
   | {
       id: string;
@@ -2084,9 +2256,14 @@ export interface Artifact {
     fingerprintPolicy: string;
     digest: HashClaim;
     /**
+     * Complete native representation with one included raw-path root. Directory and native-bundle roots are directories containing every other entry by raw path components. File, symlink and special representations have one entry matching that kind. Raw paths are independent of the display artifact path.
+     *
      * @minItems 1
      */
     entries: [NativeEntry, ...NativeEntry[]];
+    /**
+     * Acyclic native containment references. Membership does not follow symlink targets.
+     */
     bundleMembers: {
       kind: "artifact";
       id: string;
@@ -2328,8 +2505,8 @@ export interface NativeEntry {
   data: HashClaim;
   mode: IntegerClaim;
   flags: IntegerClaim;
-  mtimeNanoseconds: TextClaim;
-  birthtimeNanoseconds: TextClaim;
+  mtimeNanoseconds: NanosecondsClaim;
+  birthtimeNanoseconds: NanosecondsClaim;
   acl:
     | {
         kind: "known";
@@ -2489,9 +2666,97 @@ export interface NativeEntry {
           id: string;
         }[];
       };
-  symlinkTargetBytesBase64: null | TextClaim;
+  symlinkTargetBytesBase64: null | NativeBytesClaim;
   specialType: null | TextClaim;
-  hardlinkGroup: TextClaim;
+  /**
+   * Known equal group identities within a module generation claim one inode and coherent known inode metadata. Unknown and disputed observations remain unresolved.
+   */
+  hardlinkGroup:
+    | {
+        kind: "known";
+        value: string;
+        /**
+         * @minItems 1
+         */
+        evidence: [
+          {
+            kind: "evidence";
+            id: string;
+          },
+          ...{
+            kind: "evidence";
+            id: string;
+          }[],
+        ];
+        reasoning?: string;
+      }
+    | {
+        kind: "unknown";
+        reason: string;
+        evidence: {
+          kind: "evidence";
+          id: string;
+        }[];
+      }
+    | {
+        kind: "disputed";
+        /**
+         * @minItems 2
+         */
+        alternatives: [
+          {
+            value: string;
+            /**
+             * @minItems 1
+             */
+            evidence: [
+              {
+                kind: "evidence";
+                id: string;
+              },
+              ...{
+                kind: "evidence";
+                id: string;
+              }[],
+            ];
+            reasoning: string;
+          },
+          {
+            value: string;
+            /**
+             * @minItems 1
+             */
+            evidence: [
+              {
+                kind: "evidence";
+                id: string;
+              },
+              ...{
+                kind: "evidence";
+                id: string;
+              }[],
+            ];
+            reasoning: string;
+          },
+          ...{
+            value: string;
+            /**
+             * @minItems 1
+             */
+            evidence: [
+              {
+                kind: "evidence";
+                id: string;
+              },
+              ...{
+                kind: "evidence";
+                id: string;
+              }[],
+            ];
+            reasoning: string;
+          }[],
+        ];
+      };
 }
 export interface SourceMapControl {
   $schema: "urn:academic-os:module-data:1";

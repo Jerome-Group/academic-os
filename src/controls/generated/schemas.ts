@@ -255,6 +255,7 @@ export const controlSchemas = [
               value: {
                 type: "string",
                 pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                format: "module-calendar-date",
               },
               evidence: {
                 type: "array",
@@ -318,6 +319,7 @@ export const controlSchemas = [
                     value: {
                       type: "string",
                       pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                      format: "module-calendar-date",
                     },
                     evidence: {
                       type: "array",
@@ -609,8 +611,8 @@ export const controlSchemas = [
           data: { $ref: "#/definitions/hashClaim" },
           mode: { $ref: "#/definitions/integerClaim" },
           flags: { $ref: "#/definitions/integerClaim" },
-          mtimeNanoseconds: { $ref: "#/definitions/textClaim" },
-          birthtimeNanoseconds: { $ref: "#/definitions/textClaim" },
+          mtimeNanoseconds: { $ref: "#/definitions/nanosecondsClaim" },
+          birthtimeNanoseconds: { $ref: "#/definitions/nanosecondsClaim" },
           acl: {
             oneOf: [
               {
@@ -727,7 +729,11 @@ export const controlSchemas = [
                       type: "object",
                       additionalProperties: false,
                       properties: {
-                        nameBytesBase64: { type: "string", minLength: 1 },
+                        nameBytesBase64: {
+                          type: "string",
+                          minLength: 1,
+                          format: "native-nul-free-bytes",
+                        },
                         valueSha256: {
                           type: "string",
                           pattern: "^[a-f0-9]{64}$",
@@ -875,12 +881,19 @@ export const controlSchemas = [
             ],
           },
           symlinkTargetBytesBase64: {
-            oneOf: [{ type: "null" }, { $ref: "#/definitions/textClaim" }],
+            oneOf: [
+              { type: "null" },
+              { $ref: "#/definitions/nativeBytesClaim" },
+            ],
           },
           specialType: {
             oneOf: [{ type: "null" }, { $ref: "#/definitions/textClaim" }],
           },
-          hardlinkGroup: { $ref: "#/definitions/textClaim" },
+          hardlinkGroup: {
+            $ref: "#/definitions/textClaim",
+            description:
+              "Known equal group identities within a module generation claim one inode and coherent known inode metadata. Unknown and disputed observations remain unresolved.",
+          },
         },
         required: [
           "pathBytesBase64",
@@ -938,6 +951,8 @@ export const controlSchemas = [
                 type: "array",
                 items: { $ref: "#/definitions/nativeEntry" },
                 minItems: 1,
+                description:
+                  "Complete native representation with one included raw-path root. Directory and native-bundle roots are directories containing every other entry by raw path components. File, symlink and special representations have one entry matching that kind. Raw paths are independent of the display artifact path.",
               },
               bundleMembers: {
                 type: "array",
@@ -955,6 +970,8 @@ export const controlSchemas = [
                   required: ["kind", "id"],
                 },
                 uniqueItems: true,
+                description:
+                  "Acyclic native containment references. Membership does not follow symlink targets.",
               },
               evidence: {
                 type: "array",
@@ -5646,6 +5663,200 @@ export const controlSchemas = [
           "role",
           "mission",
           "notes",
+        ],
+      },
+      nativeBytesClaim: {
+        oneOf: [
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "known" },
+              value: { type: "string", format: "native-nul-free-bytes" },
+              evidence: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { const: "evidence" },
+                    id: {
+                      type: "string",
+                      pattern:
+                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                    },
+                  },
+                  required: ["kind", "id"],
+                },
+                minItems: 1,
+                uniqueItems: true,
+              },
+              reasoning: { type: "string", minLength: 1 },
+            },
+            required: ["kind", "value", "evidence"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "unknown" },
+              reason: { type: "string", minLength: 1 },
+              evidence: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { const: "evidence" },
+                    id: {
+                      type: "string",
+                      pattern:
+                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                    },
+                  },
+                  required: ["kind", "id"],
+                },
+                uniqueItems: true,
+              },
+            },
+            required: ["kind", "reason", "evidence"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "disputed" },
+              alternatives: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    value: { type: "string", format: "native-nul-free-bytes" },
+                    evidence: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        additionalProperties: false,
+                        properties: {
+                          kind: { const: "evidence" },
+                          id: {
+                            type: "string",
+                            pattern:
+                              "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                          },
+                        },
+                        required: ["kind", "id"],
+                      },
+                      minItems: 1,
+                      uniqueItems: true,
+                    },
+                    reasoning: { type: "string", minLength: 1 },
+                  },
+                  required: ["value", "evidence", "reasoning"],
+                },
+                minItems: 2,
+              },
+            },
+            required: ["kind", "alternatives"],
+          },
+        ],
+      },
+      nanosecondsClaim: {
+        oneOf: [
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "known" },
+              value: { type: "string", pattern: "^-?(0|[1-9][0-9]*)$" },
+              evidence: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { const: "evidence" },
+                    id: {
+                      type: "string",
+                      pattern:
+                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                    },
+                  },
+                  required: ["kind", "id"],
+                },
+                minItems: 1,
+                uniqueItems: true,
+              },
+              reasoning: { type: "string", minLength: 1 },
+            },
+            required: ["kind", "value", "evidence"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "unknown" },
+              reason: { type: "string", minLength: 1 },
+              evidence: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { const: "evidence" },
+                    id: {
+                      type: "string",
+                      pattern:
+                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                    },
+                  },
+                  required: ["kind", "id"],
+                },
+                uniqueItems: true,
+              },
+            },
+            required: ["kind", "reason", "evidence"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "disputed" },
+              alternatives: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    value: { type: "string", pattern: "^-?(0|[1-9][0-9]*)$" },
+                    evidence: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        additionalProperties: false,
+                        properties: {
+                          kind: { const: "evidence" },
+                          id: {
+                            type: "string",
+                            pattern:
+                              "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                          },
+                        },
+                        required: ["kind", "id"],
+                      },
+                      minItems: 1,
+                      uniqueItems: true,
+                    },
+                    reasoning: { type: "string", minLength: 1 },
+                  },
+                  required: ["value", "evidence", "reasoning"],
+                },
+                minItems: 2,
+              },
+            },
+            required: ["kind", "alternatives"],
+          },
         ],
       },
     },

@@ -7,6 +7,7 @@ import type {
   SourceUse,
   Target,
 } from "./generated/module-data-1.js";
+import { validateNativeRepresentations } from "./validate-native-representations.js";
 import { safeRelativePath } from "./read-controls.js";
 
 export function validateModuleFacts({
@@ -87,6 +88,9 @@ export function validateModuleFacts({
         relative(workspace.path, `/workspaces/${index}/path`);
       break;
     case "artifacts":
+      validateNativeRepresentations(value.artifacts, (code, pointer, message) =>
+        problem(code, path, pointer, message),
+      );
       for (const [index, source] of value.sources.entries())
         for (const [locator, observed] of source.locators.entries())
           if (observed.kind === "module-file")

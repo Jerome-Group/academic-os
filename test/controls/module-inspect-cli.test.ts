@@ -27,6 +27,8 @@ import {
 import type { ControlObservation } from "../../src/controls/index.js";
 import {
   controlFor,
+  evidence,
+  known,
   moduleDataControls,
   moduleDataFixture,
 } from "./module-data-fixtures.js";
@@ -118,6 +120,98 @@ describe("read-only module inspection through the compiled CLI", () => {
     assert.equal(audit.exitCode, 2, audit.stderr);
     assert.equal(JSON.parse(audit.stdout).outcome, "unsupported-controls");
     assert.deepEqual(await manifest(target.root), before);
+  });
+
+  it("refuses contradictory native records and impossible dates through module validate without writes", async () => {
+    for (const name of [
+      "xattr-bytes",
+      "xattr-duplicate",
+      "link-bytes",
+      "root-kind",
+      "hardlink-data",
+      "bundle-cycle",
+      "date",
+    ]) {
+      const controls = moduleDataControls();
+      const artifacts = controlFor(controls, "artifacts").artifacts;
+      const artifact = artifacts[0];
+      assert.ok(artifact);
+      const entry = artifact.representation.entries[0];
+      assert.ok(entry);
+      let code = "invalid-control-schema";
+      if (name === "xattr-bytes" || name === "xattr-duplicate") {
+        const attribute = {
+          nameBytesBase64:
+            name === "xattr-bytes"
+              ? "%%%not-base64"
+              : Buffer.from("user.same").toString("base64"),
+          valueSha256: "1".repeat(64),
+          byteLength: 1,
+        };
+        entry.xattrs = {
+          kind: "known",
+          entries:
+            name === "xattr-duplicate" ? [attribute, attribute] : [attribute],
+          evidence: evidence(),
+        };
+        if (name === "xattr-duplicate") code = "duplicate-native-xattr-name";
+      } else if (name === "link-bytes") {
+        artifact.representation.kind = "symlink";
+        entry.kind = "symlink";
+        entry.symlinkTargetBytesBase64 = known(
+          Buffer.from("a\0b").toString("base64"),
+        );
+      } else if (name === "root-kind") {
+        artifact.representation.kind = "symlink";
+        code = "conflicting-native-representation-root";
+      } else if (name === "date") {
+        const record = controlFor(controls, "learning-records").records[1];
+        assert.ok(record?.kind === "current");
+        record.date = known("2026-99-99");
+      } else {
+        const second = structuredClone(artifact);
+        second.id = "artifact:second";
+        second.path = "native-second";
+        const other = second.representation.entries[0];
+        assert.ok(other);
+        other.pathBytesBase64 = Buffer.from(second.path).toString("base64");
+        if (name === "bundle-cycle") {
+          artifact.representation.kind = second.representation.kind =
+            "native-bundle";
+          entry.kind = other.kind = "directory";
+          artifact.representation.bundleMembers = [
+            { kind: "artifact", id: second.id },
+          ];
+          second.representation.bundleMembers = [
+            { kind: "artifact", id: artifact.id },
+          ];
+          code = "native-bundle-cycle";
+        } else {
+          entry.hardlinkGroup = other.hardlinkGroup = known("inode-1");
+          entry.data = known("1".repeat(64));
+          other.data = known("2".repeat(64));
+          code = "conflicting-native-hardlink";
+        }
+        artifacts.push(second);
+      }
+      const target = await fixture(moduleDataFixture(controls));
+      const before = await manifest(target.root);
+      const observed = await runCli(
+        "module",
+        "validate",
+        "--root",
+        target.moduleRoot,
+        "--json",
+      );
+      assert.equal(observed.exitCode, 2, `${name}: ${observed.stderr}`);
+      const report = JSON.parse(observed.stdout);
+      assert.equal(report.outcome, "refused");
+      assert.ok(
+        report.diagnostics.some((item: { code: string }) => item.code === code),
+        JSON.stringify(report.diagnostics),
+      );
+      assert.deepEqual(await manifest(target.root), before);
+    }
   });
 
   it("refuses partial candidates and cross-unit targets through the same CLI owner without writes", async () => {

@@ -49,6 +49,7 @@ Retain the producer revision and manifest digest with the evidence. Check public
 exact identity, original-packet retention and recovery without a second mutation. A configured
 local source and its digest do not authenticate cloud authorship or current cloud selection.
 Calendar journeys also assert nonmutating timetable/Routine previews, later recurrence conflicts, new blockers after preview, owner revalidation and Research-project milestone evidence refusals.
+Public prepare-to-refresh journeys confirm deletion invalidation from exact source and reviewed recurrence dependencies, including sparse cancellation and complete expired-token recovery. Other event/calendar identities, terminal proposals and repeated refresh retain their state. These checks inspect saved proposals, tombstones and read-only provider traces.
 Accepted writes require exact normalized content and identity; omitted/regular default event types are equivalent, while mismatches still refuse.
 Receipt process fixtures cover competing and killed owners across duplicate-read, append and sync boundaries without PID takeover. This coordinates receipts, not all provider mutations.
 Operations journeys open an owned temporary HTTP listener, call it and close it.

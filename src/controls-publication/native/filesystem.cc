@@ -84,6 +84,16 @@ std::shared_ptr<Handle> remember(int fd, std::shared_ptr<Handle> parent, const s
   handles.push_back(handle);
   return handle;
 }
+std::vector<std::shared_ptr<Handle>> linkedHandlesAt(const std::shared_ptr<Handle>& source) {
+  std::vector<std::shared_ptr<Handle>> linked;
+  for (const auto& weak : handles) {
+    auto handle = weak.lock();
+    if (!handle || handle->descriptor.fd < 0 || !handle->parent || !(handle->parent->object == source->parent->object) || !(handle->object == source->object)) continue;
+    try { guard(handle); } catch (const Failure&) { continue; }
+    linked.push_back(std::move(handle));
+  }
+  return linked;
+}
 bool descendant(const std::shared_ptr<Handle>& handle, const std::shared_ptr<Handle>& anchor) {
   for (auto current = handle; current; current = current->parent) if (current == anchor) return true;
   return false;
@@ -313,12 +323,11 @@ void promote(const std::shared_ptr<Interval>& interval, const std::shared_ptr<Ha
   rejectSidecarDirectory(sourceParent, sourceName); rejectSidecarDirectory(destinationParent, destinationName);
   auto source = openChild(sourceParent, sourceName, expected.kind == "directory", false);
   requireIdentity(source->object, expected);
+  auto linked = linkedHandlesAt(source);
   checkpoint("before-exclusive-promote");
   syscallResult(renameatx_np(sourceParent->descriptor.fd, sourceName.c_str(), destinationParent->descriptor.fd, destinationName.c_str(), exclusive ? RENAME_EXCL : 0));
-  for (const auto& weak : handles) {
-    if (auto handle = weak.lock(); handle && handle->parent == sourceParent && handle->name == sourceName && handle->object == expected) {
-      handle->parent = destinationParent; handle->name = destinationName;
-    }
+  for (const auto& handle : linked) {
+    handle->parent = destinationParent; handle->name = destinationName;
   }
   checkpoint("after-exclusive-promote");
   guard(source);
@@ -339,10 +348,11 @@ void replaceHead(const std::shared_ptr<Interval>& interval, const std::shared_pt
     if (fstatat(parent->descriptor.fd, headName.c_str(), &entry, AT_SYMLINK_NOFOLLOW) == 0) fail("exists");
     if (errno != ENOENT) syscallResult(-1);
   }
+  auto linked = linkedHandlesAt(temporary);
   checkpoint("before-head-rename");
   syscallResult(renameatx_np(parent->descriptor.fd, temporaryName.c_str(), parent->descriptor.fd, headName.c_str(), oldObject ? 0 : RENAME_EXCL));
-  for (const auto& weak : handles) {
-    if (auto handle = weak.lock(); handle && handle->parent == parent && handle->name == temporaryName && handle->object == temporaryObject) handle->name = headName;
+  for (const auto& handle : linked) {
+    handle->parent = parent; handle->name = headName;
   }
   checkpoint("after-head-rename");
   guard(temporary);

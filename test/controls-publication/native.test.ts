@@ -467,6 +467,234 @@ describe("same-process publication native boundary", {
       "present",
     );
   });
+  const sourceAliases = [
+    {
+      label: "separate parent handles",
+      stored: "stage",
+      supplied: "stage",
+      separateParent: true,
+    },
+    {
+      label: "case equivalent names",
+      stored: "stage-case",
+      supplied: "STAGE-CASE",
+      separateParent: false,
+    },
+    {
+      label: "Unicode equivalent names",
+      stored: "stage-Résumé",
+      supplied: "stage-Re\u0301sume\u0301",
+      separateParent: false,
+    },
+    {
+      label: "separate parents and case/Unicode equivalent names",
+      stored: "stage-Résumé",
+      supplied: "STAGE-RE\u0301SUME\u0301",
+      separateParent: true,
+    },
+  ];
+  for (const [index, alias] of sourceAliases.entries()) {
+    it(`retains promoted directory and descendant handles with ${alias.label}`, () => {
+      const parentName = `promotion-alias-${index}`;
+      const parent = directory(parentName);
+      const alternateParent = alias.separateParent
+        ? ok(
+            f().native.openDirectoryNoFollow(
+              f().anchor.directory,
+              name(parentName),
+            ),
+          )
+        : parent;
+      if (alternateParent !== parent) f().handles.push(alternateParent);
+      const stage = directory(alias.stored, parent);
+      const descendant = directory("descendant", stage);
+      const retained = file("retained", Buffer.from("retained"), descendant);
+      const stageObject = identity(stage),
+        descendantObject = identity(descendant),
+        fileObject = identity(retained);
+      const alternateStage = ok(
+        f().native.openDirectoryNoFollow(alternateParent, name(alias.supplied)),
+      );
+      f().handles.push(alternateStage);
+      ok(
+        f().native.promoteExclusive({
+          interval: f().interval,
+          sourceParent: alternateParent,
+          sourceName: name(alias.supplied),
+          destinationParent: f().anchor.directory,
+          destinationName: name(`promoted-alias-${index}`),
+          expectedObject: stageObject,
+        }),
+      );
+      for (const handle of [stage, alternateStage])
+        assert.deepEqual(identity(handle), stageObject);
+      assert.deepEqual(identity(descendant), descendantObject);
+      assert.deepEqual(identity(retained), fileObject);
+      assert.equal(
+        Buffer.from(
+          ok(f().native.readBounded({ file: retained, maximumBytes: 100 })),
+        ).toString(),
+        "retained",
+      );
+      ok(
+        f().native.syncDirectory({
+          interval: f().interval,
+          directory: descendant,
+        }),
+      );
+      ok(f().native.syncFile({ interval: f().interval, file: retained }));
+      assert.equal(
+        ok(f().native.observeAt(parent, name(alias.stored))).kind,
+        "absent",
+      );
+      assert.deepEqual(
+        ok(
+          f().native.requireLocation({
+            parent: f().anchor.directory,
+            name: name(`promoted-alias-${index}`),
+            object: stageObject,
+          }),
+        ).object,
+        stageObject,
+      );
+      assert.equal(
+        readFileSync(
+          join(f().root, `anchor/promoted-alias-${index}/descendant/retained`),
+          "utf8",
+        ),
+        "retained",
+      );
+    });
+    for (const expected of ["absent", "present"]) {
+      it(`retains ${expected} head temporary handles with ${alias.label}`, () => {
+        const parentName = `head-alias-${index}-${expected}`;
+        const parent = directory(parentName);
+        const alternateParent = alias.separateParent
+          ? ok(
+              f().native.openDirectoryNoFollow(
+                f().anchor.directory,
+                name(parentName),
+              ),
+            )
+          : parent;
+        if (alternateParent !== parent) f().handles.push(alternateParent);
+        const temporary = file(alias.stored, Buffer.from("next"), parent),
+          object = identity(temporary);
+        const alternateTemporary = ok(
+          f().native.openRegularNoFollow(
+            alternateParent,
+            name(alias.supplied),
+            "read",
+          ),
+        );
+        f().handles.push(alternateTemporary);
+        const old =
+          expected === "present"
+            ? file("head", Buffer.from("previous"), parent)
+            : undefined;
+        ok(
+          f().native.replaceHeadGuarded({
+            interval: f().interval,
+            parent: alternateParent,
+            temporaryName: name(alias.supplied),
+            temporaryObject: object,
+            headName: name("head"),
+            expectedHead:
+              old === undefined
+                ? { kind: "absent" }
+                : {
+                    kind: "present",
+                    object: identity(old),
+                    bytes: Buffer.from("previous"),
+                  },
+          }),
+        );
+        for (const handle of [temporary, alternateTemporary]) {
+          assert.deepEqual(identity(handle), object);
+          assert.equal(
+            Buffer.from(
+              ok(f().native.readBounded({ file: handle, maximumBytes: 100 })),
+            ).toString(),
+            "next",
+          );
+        }
+        ok(f().native.syncFile({ interval: f().interval, file: temporary }));
+        assert.equal(
+          ok(f().native.observeAt(parent, name(alias.stored))).kind,
+          "absent",
+        );
+        assert.deepEqual(
+          ok(f().native.requireLocation({ parent, name: name("head"), object }))
+            .object,
+          object,
+        );
+        assert.equal(
+          readFileSync(join(f().root, `anchor/${parentName}/head`), "utf8"),
+          "next",
+        );
+        if (old !== undefined)
+          failed(f().native.observe(old), "identity-changed");
+      });
+    }
+  }
+  it("does not rebind stale handles whose former names now hold foreign objects", () => {
+    for (const operation of ["promotion", "head"]) {
+      const parentName = `stale-${operation}`,
+        parent = directory(parentName);
+      const stale = file("original", Buffer.from("owned"), parent),
+        object = identity(stale);
+      renameSync(
+        join(f().root, `anchor/${parentName}/original`),
+        join(f().root, `anchor/${parentName}/current`),
+      );
+      const foreign = file("original", Buffer.from("foreign"), parent),
+        foreignObject = identity(foreign);
+      const current = ok(
+        f().native.openRegularNoFollow(parent, name("current"), "read"),
+      );
+      f().handles.push(current);
+      if (operation === "promotion") {
+        ok(
+          f().native.promoteExclusive({
+            interval: f().interval,
+            sourceParent: parent,
+            sourceName: name("current"),
+            destinationParent: parent,
+            destinationName: name("final"),
+            expectedObject: object,
+          }),
+        );
+      } else {
+        ok(
+          f().native.replaceHeadGuarded({
+            interval: f().interval,
+            parent,
+            temporaryName: name("current"),
+            temporaryObject: object,
+            headName: name("final"),
+            expectedHead: { kind: "absent" },
+          }),
+        );
+      }
+      failed(f().native.observe(stale), "identity-changed");
+      assert.deepEqual(identity(current), object);
+      assert.deepEqual(identity(foreign), foreignObject);
+      assert.equal(
+        Buffer.from(
+          ok(f().native.readBounded({ file: current, maximumBytes: 100 })),
+        ).toString(),
+        "owned",
+      );
+      assert.equal(
+        readFileSync(join(f().root, `anchor/${parentName}/original`), "utf8"),
+        "foreign",
+      );
+      assert.equal(
+        readFileSync(join(f().root, `anchor/${parentName}/final`), "utf8"),
+        "owned",
+      );
+    }
+  });
   it("guards absent and present heads by physical object and exact bytes", () => {
     const old = file("head-temporary-a", Buffer.from("A")),
       oldObject = identity(old);

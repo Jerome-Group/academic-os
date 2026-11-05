@@ -309,32 +309,40 @@ describe("academic-os research-project CLI", () => {
 
     changedPolicy.schemaVersion = 2;
     await writeFile(manifestPath, JSON.stringify(changedPolicy));
-    const events = journal.bytes
-      .toString("utf8")
-      .trim()
-      .split("\n")
-      .map((line) => JSON.parse(line));
-    events[0].plan.intakePolicyVersion = 3;
-    for (const recomputeDigest of [false, true]) {
-      if (recomputeDigest)
-        events[0].planDigest = createHash("sha256")
-          .update(JSON.stringify(events[0].plan))
-          .digest("hex");
-      const unsupportedJournal = `${events.map((event) => JSON.stringify(event)).join("\n")}\n`;
-      await writeFile(journal.path, unsupportedJournal);
-      const refusedReplay = await runCli(
-        ...target,
-        "--apply",
-        "--resume",
-        "--json",
-      );
-      assert.equal(refusedReplay.exitCode, 1, refusedReplay.stdout);
-      assert.match(
-        JSON.parse(refusedReplay.stdout).evidence.join(" "),
-        /ambiguous journal entry/u,
-      );
-      assert.equal(await readFile(journal.path, "utf8"), unsupportedJournal);
-      await assertIntakeBytes(fixture.projectRoot, files);
+    for (const savedPolicy of [
+      { version: 3, extraIdentity: {} },
+      { version: 3, extraIdentity: { module: "AA9999", semester: "Y2S1" } },
+      { version: 2, extraIdentity: { module: "AA9999", semester: "Y2S1" } },
+    ]) {
+      for (const recomputeDigest of [false, true]) {
+        const events = journal.bytes
+          .toString("utf8")
+          .trim()
+          .split("\n")
+          .map((line) => JSON.parse(line));
+        Object.assign(events[0].plan, savedPolicy.extraIdentity, {
+          intakePolicyVersion: savedPolicy.version,
+        });
+        if (recomputeDigest)
+          events[0].planDigest = createHash("sha256")
+            .update(JSON.stringify(events[0].plan))
+            .digest("hex");
+        const unsupportedJournal = `${events.map((event) => JSON.stringify(event)).join("\n")}\n`;
+        await writeFile(journal.path, unsupportedJournal);
+        const refusedReplay = await runCli(
+          ...target,
+          "--apply",
+          "--resume",
+          "--json",
+        );
+        assert.equal(refusedReplay.exitCode, 1, refusedReplay.stdout);
+        assert.match(
+          JSON.parse(refusedReplay.stdout).evidence.join(" "),
+          /ambiguous journal entry/u,
+        );
+        assert.equal(await readFile(journal.path, "utf8"), unsupportedJournal);
+        await assertIntakeBytes(fixture.projectRoot, files);
+      }
     }
     await writeFile(journal.path, journal.bytes);
   });

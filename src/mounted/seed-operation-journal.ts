@@ -622,8 +622,14 @@ function isSeedPlan(value: unknown): value is SeedablePlan {
     Array.isArray(plan.blockers) &&
     plan.blockers.every((blocker) => typeof blocker === "string");
   if (!common) return false;
-  if (typeof plan.module === "string" || typeof plan.semester === "string") {
-    return typeof plan.module === "string" && typeof plan.semester === "string";
+  if ("module" in plan || "semester" in plan) {
+    return (
+      typeof plan.module === "string" &&
+      typeof plan.semester === "string" &&
+      !["target", "contractVersion", "intakePolicyVersion"].some(
+        (key) => key in plan,
+      )
+    );
   }
   if (!isRecord(plan.target)) return false;
   return (

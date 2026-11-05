@@ -1,7 +1,8 @@
 import { readFile } from "node:fs/promises";
 
 import {
-  type AcademicConfig,
+  type LoadedConfig,
+  requireLocalConfig,
   loadLocalConfig,
   resolveConfiguredResearchProject,
 } from "../config/index.js";
@@ -113,10 +114,8 @@ function parseSeedArguments(arguments_: string[]): {
   };
 }
 
-function requireTargetConfig(
-  config: LocalConfig | AcademicConfig,
-): LocalConfig {
-  if (!("activeSemester" in config)) return config;
+function requireTargetConfig(config: LoadedConfig): LocalConfig {
+  if (!("activeSemester" in config)) return requireLocalConfig(config);
   if (config.seedTarget === undefined) {
     throw new OperationalError(
       "invalid-config",
@@ -142,7 +141,7 @@ async function readApprovedControl(path: string): Promise<string> {
 }
 
 async function runModuleSeed(
-  config: LocalConfig | AcademicConfig,
+  config: LoadedConfig,
   parsed: ReturnType<typeof parseSeedArguments>,
   profile: string,
   definition: string,
@@ -164,7 +163,7 @@ async function runModuleSeed(
 }
 
 async function runResearchProjectSeed(
-  config: LocalConfig | AcademicConfig,
+  config: LoadedConfig,
   parsed: ReturnType<typeof parseSeedArguments> & {
     researchProject: string;
   },

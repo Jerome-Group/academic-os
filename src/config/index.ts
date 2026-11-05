@@ -1,3 +1,9 @@
+export { ConfigurationError } from "./configuration-error.js";
+export {
+  parseConfig,
+  validateConfig,
+  requireLocalConfig,
+} from "./parse-config.js";
 export { loadLocalConfig } from "./load-local-config.js";
 export { resolveCalendarConfig } from "./resolve-calendar-config.js";
 export {
@@ -11,6 +17,9 @@ export { resolveStateRoot } from "./resolve-state-root.js";
 export { resolveTasksConfig } from "./resolve-tasks-config.js";
 export type {
   AcademicConfig,
+  LoadedConfig,
+  LocalConfig,
+  ServiceConfig,
   CalendarConfig,
   ConfiguredModule,
   ConfiguredResearchProject,

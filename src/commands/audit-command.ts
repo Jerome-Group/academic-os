@@ -1,4 +1,9 @@
-import { type AcademicConfig, loadLocalConfig } from "../config/index.js";
+import {
+  type LoadedConfig,
+  type AcademicConfig,
+  loadLocalConfig,
+  requireLocalConfig,
+} from "../config/index.js";
 import {
   evaluateResearchProjectAudit,
   resolveConfiguredAuditTarget,
@@ -70,7 +75,7 @@ export async function runAuditCommand(
           parsed.semester ?? "",
           parsed.module ?? "",
         )
-      : config;
+      : requireLocalConfig(config);
   requireMigrationTarget(config, parsed);
   await runTargetAudit(targetConfig, parsed, json);
 }
@@ -155,7 +160,7 @@ async function runTargetAudit(
 }
 
 function requireMigrationTarget(
-  config: LocalConfig | AcademicConfig,
+  config: LoadedConfig,
   parsed: ReturnType<typeof parseAuditArguments>,
 ): void {
   if (

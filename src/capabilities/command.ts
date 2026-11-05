@@ -109,11 +109,6 @@ export async function runCapabilitiesCommand(
     const configPath = values.get("--config");
     if (configPath !== undefined) {
       const config = await loadLocalConfig(configPath);
-      if (!("activeSemester" in config))
-        throw new OperationalError(
-          "invalid-config",
-          "Configured health requires an academic configuration.",
-        );
       configuredExecutables = {
         tools: await inspectRoutineExecutables(resolveRoutineConfig(config)),
         scope:

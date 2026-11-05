@@ -1,3 +1,4 @@
+import { ConfigurationError } from "../config/configuration-error.js";
 import { OperationalError } from "../mounted/index.js";
 
 export function writeOperationalError(error: unknown, json: boolean): void {
@@ -18,6 +19,9 @@ export function writeOperationalError(error: unknown, json: boolean): void {
             code: operationalError.code,
             message: operationalError.message,
             ...operationalError.details,
+            ...(operationalError instanceof ConfigurationError
+              ? { diagnostics: operationalError.diagnostics }
+              : {}),
           },
         },
         null,

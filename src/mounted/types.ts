@@ -8,16 +8,7 @@ import type {
   ObservationComparison,
 } from "../observation/index.js";
 
-export interface LocalConfig {
-  driveMount: string;
-  stateRoot: string;
-  semester: string;
-  module: string;
-  semesterRoots: Record<string, string>;
-  driveApi?: {
-    moduleFolderId: string;
-  };
-}
+export type { LocalConfig } from "../config/types.js";
 
 export interface ResolvedTarget {
   driveMount: string;

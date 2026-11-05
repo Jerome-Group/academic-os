@@ -10,6 +10,8 @@ import {
   mkdtemp,
   open,
   readFile,
+  readdir,
+  rename,
   realpath,
   symlink,
   utimes,
@@ -365,4 +367,156 @@ test("a built native adapter runs without compiler availability", {
   const value: unknown = JSON.parse(result.stdout);
   assert(validateNativeInventory(value));
   assert.equal((value as NativeInventory).complete, true);
+});
+
+async function refusedLog(command: string, root: string, log: string) {
+  await assert.rejects(
+    run(process.execPath, [
+      command,
+      "migration",
+      "inventory",
+      "--root",
+      root,
+      "--log",
+      log,
+      "--json",
+    ]),
+    (error: unknown) => {
+      assert(
+        error instanceof Error &&
+          "stdout" in error &&
+          typeof error.stdout === "string",
+      );
+      const result = JSON.parse(error.stdout);
+      assert.equal(result.error?.code, "invalid-arguments");
+      assert.match(result.error?.message, /source.*repository/u);
+      return true;
+    },
+  );
+}
+
+test("native log refuses physical case and Unicode aliases before mutation", {
+  skip: process.platform !== "darwin",
+}, async (context) => {
+  for (const [name, alias] of [
+    ["CaseSource", "casesource"],
+    ["Café", "Cafe\u0301"],
+  ] as const) {
+    await context.test(name, async (child) => {
+      const { proof, root: original } = await fixture();
+      const root = join(proof, name);
+      const alternate = join(proof, alias);
+      await rename(original, root);
+      await chmod(root, 0o700);
+      const before = await lstat(root, { bigint: true });
+      const other = await lstat(alternate, { bigint: true }).catch(
+        () => undefined,
+      );
+      if (
+        other === undefined ||
+        other.ino !== before.ino ||
+        other.dev !== before.dev
+      ) {
+        child.skip(
+          "Filesystem gives the alternate spelling a distinct identity.",
+        );
+        return;
+      }
+      const contents = await readdir(root);
+      await refusedLog(cli, root, join(alternate, "forbidden.json"));
+      const after = await lstat(root, { bigint: true });
+      assert.deepEqual(await readdir(root), contents);
+      assert.equal(after.ctimeNs, before.ctimeNs);
+      assert.equal(after.mtimeNs, before.mtimeNs);
+      await assert.rejects(lstat(join(root, "forbidden.json")), {
+        code: "ENOENT",
+      });
+    });
+  }
+});
+
+test("native log refuses physical repository aliases in a disposable installation", {
+  skip: process.platform !== "darwin",
+}, async (context) => {
+  for (const [name, alias] of [
+    ["CaseInstallation", "caseinstallation"],
+    ["CaféInstallation", "Cafe\u0301Installation"],
+  ] as const) {
+    await context.test(name, async (child) => {
+      const { proof, root } = await fixture();
+      const installation = join(proof, name);
+      await mkdir(join(installation, "dist"), { recursive: true });
+      await cp(
+        fileURLToPath(new URL("../../src/", import.meta.url)),
+        join(installation, "dist/src"),
+        { recursive: true },
+      );
+      await writeFile(join(installation, "package.json"), '{"type":"module"}');
+      await symlink(
+        resolve("node_modules"),
+        join(installation, "node_modules"),
+      );
+      const alternate = join(proof, alias);
+      const before = await lstat(installation, { bigint: true });
+      const other = await lstat(alternate, { bigint: true }).catch(
+        () => undefined,
+      );
+      if (
+        other === undefined ||
+        other.ino !== before.ino ||
+        other.dev !== before.dev
+      ) {
+        child.skip(
+          "Filesystem gives the alternate spelling a distinct identity.",
+        );
+        return;
+      }
+      const directory = join(installation, "private-logs");
+      await mkdir(directory, { mode: 0o700 });
+      const metadata = await lstat(directory, { bigint: true });
+      const contents = await readdir(directory);
+      await refusedLog(
+        join(installation, "dist/src/cli.js"),
+        root,
+        join(alternate, "private-logs", "forbidden.json"),
+      );
+      const after = await lstat(directory, { bigint: true });
+      assert.deepEqual(await readdir(directory), contents);
+      assert.equal(after.ctimeNs, metadata.ctimeNs);
+      assert.equal(after.mtimeNs, metadata.mtimeNs);
+      await assert.rejects(lstat(join(directory, "forbidden.json")), {
+        code: "ENOENT",
+      });
+    });
+  }
+});
+
+test("native inventory preserves symlink hardlinks and refuses their external aliases", {
+  skip: process.platform !== "darwin",
+}, async () => {
+  const { proof, root } = await fixture();
+  const first = join(root, "first");
+  const second = join(root, "second");
+  await symlink("no-target", first);
+  execFileSync("/bin/ln", ["-P", first, second]);
+  const internal = await inventory(root);
+  assert.equal(internal.exit, 0);
+  const links = internal.report.entries.filter(
+    (entry) => entry.kind === "symlink",
+  );
+  assert.equal(links.length, 2);
+  assert.notEqual(links[0]?.hardlinkGroup, null);
+  assert.equal(links[0]?.hardlinkGroup, links[1]?.hardlinkGroup);
+  assert.equal(links[0]?.before.links, "2");
+  assert.equal(links[0]?.linkTargetHex, hex("no-target"));
+  execFileSync("/bin/ln", ["-P", first, join(proof, "external-hardlink")]);
+  const external = await inventory(root);
+  assert.equal(external.exit, 2);
+  assert.equal(external.report.outcome, "refused");
+  assert.equal(external.report.sourceFingerprint, null);
+  assert(
+    external.report.diagnostics.some(
+      (item) => item.code === "external-hardlink-alias",
+    ),
+  );
 });

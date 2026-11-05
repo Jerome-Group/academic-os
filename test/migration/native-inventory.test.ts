@@ -179,3 +179,41 @@ test("portable access time observations do not change source fingerprint", () =>
     }
   assert.equal(assemble(records).sourceFingerprint, a.sourceFingerprint);
 });
+
+test("portable hardlink accounting includes symlinks and special entries", () => {
+  for (const kind of [
+    "file",
+    "symlink",
+    "fifo",
+    "character-device",
+    "block-device",
+    "socket",
+  ] as const) {
+    const members = [entry("61", kind), entry("62", kind)];
+    for (const member of members) {
+      member.before = { ...member.before, links: "2" };
+      member.after = { ...member.before };
+    }
+    const internal = assemble(both([entry(), ...members]));
+    assert.notEqual(internal.entries[1]?.hardlinkGroup, null);
+    assert.equal(
+      internal.entries[1]?.hardlinkGroup,
+      internal.entries[2]?.hardlinkGroup,
+    );
+    const external = assemble(both([entry(), members[0] ?? entry()]));
+    assert.equal(external.outcome, "refused");
+    assert(
+      external.diagnostics.some(
+        (item) => item.code === "external-hardlink-alias",
+      ),
+    );
+  }
+  const first = entry("61", "symlink");
+  const second = entry("62", "symlink");
+  for (const member of [first, second]) {
+    member.before = { ...member.before, links: "2" };
+    member.after = { ...member.before };
+  }
+  second.linkTargetHex = "61";
+  assert.equal(assemble(both([entry(), first, second])).outcome, "refused");
+});

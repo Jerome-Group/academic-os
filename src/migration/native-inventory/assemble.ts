@@ -227,8 +227,8 @@ export function assembleNativeInventory(input: {
           "Two raw paths identify the same native directory.",
         );
       directories.set(key, entry.pathHex);
+      continue;
     }
-    if (entry.kind !== "file") continue;
     const group = groups.get(key) ?? [];
     group.push(entry);
     groups.set(key, group);
@@ -240,14 +240,18 @@ export function assembleNativeInventory(input: {
       add(
         "external-hardlink-alias",
         anchor.pathHex,
-        "Observed regular-file link count differs from complete root membership.",
+        "Observed native link count differs from complete root membership.",
       );
     if (group.length > 1) {
       const id = sha256(JSON.stringify(group.map((entry) => entry.pathHex)));
       for (const entry of group) {
         entry.hardlinkGroup = id;
         if (
+          entry.kind !== anchor.kind ||
           entry.dataSha256 !== anchor.dataSha256 ||
+          entry.linkTargetHex !== anchor.linkTargetHex ||
+          JSON.stringify(entry.acl) !== JSON.stringify(anchor.acl) ||
+          JSON.stringify(entry.xattrs) !== JSON.stringify(anchor.xattrs) ||
           JSON.stringify(stableStat(entry.before)) !==
             JSON.stringify(stableStat(anchor.before))
         )

@@ -35,7 +35,7 @@ A later snapshot or writer-pause protocol remains necessary when authoritative m
 Symlinks are observed through Darwin link descriptors and are never traversed.
 Known special files are never opened. Their unavailable ACL and xattr observations prevent completeness.
 Dataless entries are refused before content reads, preventing intentional placeholder hydration.
-Cross-device entries and regular files with links outside complete root membership refuse.
+Cross-device entries and non-directory entries with links outside complete root membership refuse.
 Unknown entry kinds, unsupported metadata, unreadable entries and collection limits prevent a complete result.
 
 The adapter permits 256 levels, one million entries, 32 MiB per retained attribute and 256 MiB each for helper output and the serialized result.
@@ -44,7 +44,7 @@ Diagnostics retain at most 128 entries with an explicit omitted count.
 `observed` exits zero. `incomplete` and `refused` exit two.
 
 The optional `--log` creates an exclusive mode-0600 file in an existing private owner directory outside the source and repository.
-Log ancestors must be physical directories. No source bytes, metadata, controls or provider state are intentionally written.
+Log ancestors must be physical directories. Device and inode comparisons reject aliases into the source or repository, including case and Unicode aliases. No source bytes, metadata, controls or provider state are intentionally written.
 Filesystem access-time updates remain possible.
 
 ## Build and portability

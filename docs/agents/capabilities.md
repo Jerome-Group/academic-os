@@ -10,8 +10,18 @@ and independent postflight checks. Fresh importer receipts establish a separate 
 
 Use `capabilities verify` for disposable fixture journeys and `capabilities check` for quality
 profiles. They return structured status, exit codes, durations and evidence digests. Preserve a
-failed run's private evidence and retry the same bounded workflow after fixing its cause. CI calls
-these entrypoints too. Optional logs belong outside the repository and every academic mount.
+failed run's private evidence and retry the same bounded workflow after fixing its cause.
+Local agents own product verification. Hosted Organisation conformance establishes Organisation
+policy compliance only. Optional logs belong outside the repository and every academic mount.
+
+Before pull-request delivery, retain relevant local quality profiles and feature journeys through
+the [project verify skill](../../.agents/skills/verify/SKILL.md). `fast` checks formatting, lint,
+build and generated schema/runtime parity. Verification-selection and rule-coverage changes
+require `coverage`; teaching and template changes require `templates`; formal covered-source
+changes require the [formal skill](../../.agents/skills/seed-ownership/SKILL.md).
+`full` remains the complete local gate. [ADR-0047](../adr/0047-product-verification-runs-locally.md)
+records this execution boundary.
+
 The `formal` profile runs bounded seed ownership models, compiled adapter schedules and real cleanup mutations.
 It requires Java 21, the pinned TLC jar or download access, a clean Git checkout and the exact covered source bytes recorded by the formal skill.
 The `full` profile includes that same verification. Expected syscall-race and concurrent-writer counterexamples remain product limits.

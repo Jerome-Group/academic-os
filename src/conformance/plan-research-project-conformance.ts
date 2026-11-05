@@ -74,6 +74,7 @@ export function planResearchProjectConformance(input: {
       `The configured ${profile} profile derives this structure.`,
     ),
     rootPlacementFinding(input.inventory, expected),
+    ...profileCategoryFindings(input.inventory, expected),
     mountArtifactFinding(input.inventory),
     ...validateResearchProjectDefinition(
       input.controls.definition,
@@ -251,6 +252,34 @@ function rootPlacementFinding(
     unknownDirectory?.path ?? unexpected[0]?.path ?? ".",
     `Inventory contains unclassified root entries: ${unexpected.map(({ path, kind }) => `${kind} ${path}`).join(", ")}.`,
     "Loose content is an error; an unknown root directory requires classification.",
+  );
+}
+
+function profileCategoryFindings(
+  inventory: ResearchProjectInventory,
+  expected: ReadonlyArray<readonly [string, "directory" | "file"]>,
+): ResearchFinding[] {
+  const expectedPaths = new Set(
+    expected.filter(([, kind]) => kind === "directory").map(([path]) => path),
+  );
+  return ["30 Deliverables", "90 Resources"].flatMap((home) =>
+    inventory.entries
+      .filter(
+        ({ path, kind }) =>
+          kind === "directory" &&
+          path.startsWith(`${home}/`) &&
+          !path.slice(home.length + 1).includes("/") &&
+          !expectedPaths.has(path),
+      )
+      .map(({ path }) =>
+        finding(
+          "RP-ROOT-002",
+          "fail",
+          path,
+          `Inventory contains a first-level category not derived by the selected profile: ${path}.`,
+          "Additional first-level Deliverable and Resource directories require a profile-derived path; permitted interiors remain open to nesting.",
+        ),
+      ),
   );
 }
 

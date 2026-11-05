@@ -13,6 +13,13 @@ import { dirname, join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 
 import { runCli } from "../support/run-cli.js";
+import type { ResearchProjectInitialFile } from "../../src/seed/index.js";
+import {
+  initialMeetingNote,
+  initialMeetingNotePath,
+  initialSchedulePath,
+  researchMeetingInitialFiles,
+} from "../support/research-meeting-intake.js";
 
 const temporaryRoots: string[] = [];
 
@@ -117,6 +124,7 @@ describe("academic-os research-project CLI", () => {
       await readFile(join(fixture.projectRoot, "Icon\r"), "utf8"),
       "",
     );
+    await assertSavedPolicyBinding(fixture, target, "add-v2");
 
     const audit = await runCli(
       "audit",
@@ -285,10 +293,310 @@ describe("academic-os research-project CLI", () => {
     assert.equal(moduleOnly.exitCode, 2);
     assert.equal(JSON.parse(moduleOnly.stdout).error.code, "invalid-arguments");
   });
+
+  it("previews, publishes, replays and audits a complete policy v2 Meeting with exact bytes", async () => {
+    const fixture = await setupFixture({ existing: false, generic: true });
+    const files = researchMeetingInitialFiles();
+    const manifestPath = await writeIntakeManifest(fixture.root, files);
+    const target = meetingSeedArguments(fixture, manifestPath);
+
+    const preview = await runCli(...target, "--json");
+    assert.equal(preview.exitCode, 0, preview.stdout);
+    assert.equal(JSON.parse(preview.stdout).outcome, "preview");
+    assert.deepEqual(await readdir(fixture.researchRoot), []);
+    assert.deepEqual(await readdir(fixture.stateRoot), []);
+    assert.doesNotMatch(preview.stdout, /Exact approved prose|AP8KgEE=/u);
+
+    const applied = await runCli(...target, "--apply", "--json");
+    assert.equal(applied.exitCode, 0, applied.stdout);
+    assert.equal(JSON.parse(applied.stdout).outcome, "completed");
+    await assertIntakeBytes(fixture.projectRoot, files);
+    const journal = await onlyJournal(fixture.stateRoot);
+    assert.equal(
+      JSON.parse(journal.bytes.toString("utf8").split("\n")[0] ?? "").plan
+        .intakePolicyVersion,
+      2,
+    );
+    const paths = await readdir(fixture.projectRoot, { recursive: true });
+
+    const replay = await runCli(...target, "--apply", "--resume", "--json");
+    assert.equal(replay.exitCode, 0, replay.stdout);
+    assert.equal(JSON.parse(replay.stdout).outcome, "completed");
+    assert.deepEqual(JSON.parse(replay.stdout).operations, []);
+    assert.deepEqual(
+      await readdir(fixture.projectRoot, { recursive: true }),
+      paths,
+    );
+    await assertIntakeBytes(fixture.projectRoot, files);
+    assert.deepEqual(
+      (await onlyJournal(fixture.stateRoot)).bytes,
+      journal.bytes,
+    );
+
+    const audit = await runCli(
+      "audit",
+      "--config",
+      fixture.configPath,
+      "--research-project",
+      "example-project",
+      "--json",
+    );
+    assert.equal(audit.exitCode, 0, audit.stdout);
+    const report = JSON.parse(audit.stdout);
+    assert.equal(report.outcome, "conformant");
+    assert.equal(report.contractVersion, 3);
+    assert.equal(
+      report.findings.find(
+        ({ ruleId }: { ruleId: string }) => ruleId === "RP-MEETINGS-001",
+      ).status,
+      "pass",
+    );
+
+    const changedPolicy = JSON.parse(await readFile(manifestPath, "utf8"));
+    changedPolicy.schemaVersion = 3;
+    await writeFile(manifestPath, JSON.stringify(changedPolicy));
+    const unsupported = await runCli(
+      ...target,
+      "--apply",
+      "--resume",
+      "--json",
+    );
+    assert.equal(unsupported.exitCode, 2, unsupported.stdout);
+    assert.match(
+      JSON.parse(unsupported.stdout).error.message,
+      /closed schema v1 or v2/u,
+    );
+    assert.deepEqual(
+      (await onlyJournal(fixture.stateRoot)).bytes,
+      journal.bytes,
+    );
+    await assertIntakeBytes(fixture.projectRoot, files);
+
+    changedPolicy.schemaVersion = 2;
+    await writeFile(manifestPath, JSON.stringify(changedPolicy));
+    for (const savedPolicy of [
+      { version: 3, extraIdentity: {} },
+      { version: 3, extraIdentity: { module: "AA9999", semester: "Y2S1" } },
+      { version: 2, extraIdentity: { module: "AA9999", semester: "Y2S1" } },
+    ]) {
+      for (const recomputeDigest of [false, true]) {
+        const events = journal.bytes
+          .toString("utf8")
+          .trim()
+          .split("\n")
+          .map((line) => JSON.parse(line));
+        Object.assign(events[0].plan, savedPolicy.extraIdentity, {
+          intakePolicyVersion: savedPolicy.version,
+        });
+        if (recomputeDigest)
+          events[0].planDigest = createHash("sha256")
+            .update(JSON.stringify(events[0].plan))
+            .digest("hex");
+        const unsupportedJournal = `${events.map((event) => JSON.stringify(event)).join("\n")}\n`;
+        await writeFile(journal.path, unsupportedJournal);
+        const refusedReplay = await runCli(
+          ...target,
+          "--apply",
+          "--resume",
+          "--json",
+        );
+        assert.equal(refusedReplay.exitCode, 1, refusedReplay.stdout);
+        assert.match(
+          JSON.parse(refusedReplay.stdout).evidence.join(" "),
+          /ambiguous journal entry/u,
+        );
+        assert.equal(await readFile(journal.path, "utf8"), unsupportedJournal);
+        await assertIntakeBytes(fixture.projectRoot, files);
+      }
+    }
+    await writeFile(journal.path, journal.bytes);
+    await assertSavedPolicyBinding(fixture, target, "remove-v2");
+  });
+
+  it("refuses duplicate and escaped conflicting manifest versions before publication", async () => {
+    for (const keys of [
+      '"schemaVersion":1,"schemaVersion":2',
+      '"schemaVersion":2,"schemaVersion":1',
+      String.raw`"schemaVersion":1,"\u0073chemaVersion":2`,
+      String.raw`"schemaVersion":2,"\u0073chemaVersion":1`,
+    ]) {
+      const fixture = await setupFixture({ existing: false, generic: true });
+      const files = researchMeetingInitialFiles();
+      const manifestPath = await writeIntakeManifest(fixture.root, files);
+      const canonical = JSON.parse(await readFile(manifestPath, "utf8"));
+      const payloads = await Promise.all(
+        files.map((_, index) =>
+          readFile(join(fixture.root, `intake-${index}.payload`)),
+        ),
+      );
+      await writeFile(
+        manifestPath,
+        `{${keys},"files":${JSON.stringify(canonical.files)}}`,
+      );
+      const result = await runCli(
+        ...meetingSeedArguments(fixture, manifestPath),
+        "--apply",
+        "--json",
+      );
+      assert.equal(result.exitCode, 2, result.stdout);
+      assert.equal(JSON.parse(result.stdout).error.code, "invalid-config");
+      assert.match(JSON.parse(result.stdout).error.message, /unique keys/u);
+      assert.deepEqual(await readdir(fixture.researchRoot), []);
+      assert.deepEqual(await readdir(fixture.stateRoot), []);
+      for (const [index, bytes] of payloads.entries())
+        assert.deepEqual(
+          await readFile(join(fixture.root, `intake-${index}.payload`)),
+          bytes,
+        );
+    }
+  });
+
+  it("refuses invalid Meeting intake before publication", async () => {
+    const cases: Array<{
+      name: string;
+      files: ResearchProjectInitialFile[];
+      message: RegExp;
+      policyVersion?: number;
+    }> = [
+      {
+        name: "missing note",
+        files: researchMeetingInitialFiles().filter(
+          ({ destination }) => destination !== initialMeetingNotePath,
+        ),
+        message: /requires file .*Meeting.md|No readable meeting note/u,
+      },
+      {
+        name: "invalid note",
+        files: researchMeetingInitialFiles().map((file) =>
+          file.destination === initialMeetingNotePath
+            ? {
+                destination: file.destination,
+                encoding: "utf8",
+                contents: initialMeetingNote.replace(
+                  "date: 2026-11-06",
+                  "date: 2026-11-07",
+                ),
+              }
+            : file,
+        ),
+        message: /date must be 2026-11-06/u,
+      },
+      {
+        name: "missing schedule",
+        files: researchMeetingInitialFiles().filter(
+          ({ destination }) => destination !== initialSchedulePath,
+        ),
+        message: /Schedule omits meeting directory/u,
+      },
+      {
+        name: "inconsistent schedule",
+        files: researchMeetingInitialFiles().map((file) =>
+          file.destination === initialSchedulePath && file.encoding === "utf8"
+            ? {
+                ...file,
+                contents: file.contents.replace("| planned |", "| confirmed |"),
+              }
+            : file,
+        ),
+        message: /must match Meeting.md status planned/u,
+      },
+      {
+        name: "binary schedule",
+        files: researchMeetingInitialFiles().map((file) =>
+          file.destination === initialSchedulePath
+            ? {
+                destination: file.destination,
+                encoding: "binary",
+                contentsBase64: "AP8=",
+              }
+            : file,
+        ),
+        message: /requires utf8 encoding/u,
+      },
+      {
+        name: "pinned replacement",
+        files: [
+          ...researchMeetingInitialFiles(),
+          {
+            destination: "AGENTS.md",
+            encoding: "utf8",
+            contents: "replacement\n",
+          },
+        ],
+        message: /cannot replace pinned or fixed/u,
+      },
+      {
+        name: "legacy schedule replacement",
+        files: researchMeetingInitialFiles(),
+        policyVersion: 1,
+        message: /requires initial-intake policy v2/u,
+      },
+      {
+        name: "unsupported policy",
+        files: researchMeetingInitialFiles(),
+        policyVersion: 3,
+        message: /closed schema v1 or v2/u,
+      },
+    ];
+    for (const testCase of cases) {
+      const fixture = await setupFixture({ existing: false, generic: true });
+      const manifest = await writeIntakeManifest(
+        fixture.root,
+        testCase.files,
+        testCase.policyVersion,
+      );
+      const result = await runCli(
+        ...meetingSeedArguments(fixture, manifest),
+        "--apply",
+        "--json",
+      );
+      assert.notEqual(result.exitCode, 0, testCase.name);
+      assert.match(result.stdout, testCase.message, testCase.name);
+      assert.deepEqual(await readdir(fixture.researchRoot), [], testCase.name);
+      await assert.rejects(
+        readdir(join(fixture.stateRoot, "journals", "seeds")),
+      );
+    }
+  });
+
+  it("preserves conflicting existing notes and schedules before any planned creation", async () => {
+    for (const destination of [initialMeetingNotePath, initialSchedulePath]) {
+      const fixture = await setupFixture({ generic: true });
+      const path = join(fixture.projectRoot, destination);
+      await mkdir(dirname(path), { recursive: true });
+      const sentinel = Buffer.from(
+        `Existing Owner content at ${destination}\n`,
+      );
+      await writeFile(path, sentinel);
+      const paths = await readdir(fixture.projectRoot, { recursive: true });
+      const manifest = await writeIntakeManifest(
+        fixture.root,
+        researchMeetingInitialFiles(),
+      );
+      const result = await runCli(
+        ...meetingSeedArguments(fixture, manifest),
+        "--apply",
+        "--json",
+      );
+      assert.equal(result.exitCode, 1, result.stdout);
+      assert.match(
+        JSON.parse(result.stdout).evidence.join(" "),
+        /conflicts with/u,
+      );
+      assert.deepEqual(await readFile(path), sentinel);
+      assert.deepEqual(
+        await readdir(fixture.projectRoot, { recursive: true }),
+        paths,
+      );
+      await assert.rejects(
+        readdir(join(fixture.stateRoot, "journals", "seeds")),
+      );
+    }
+  });
 });
 
 async function seededFixture(profile: "ureca" | "generic") {
-  const fixture = await setupFixture(profile);
+  const fixture = await setupFixture({ generic: profile === "generic" });
   const seeded = await runCli(
     "seed",
     "--config",
@@ -306,16 +614,21 @@ async function seededFixture(profile: "ureca" | "generic") {
   return fixture;
 }
 
-async function setupFixture(profile: "ureca" | "generic" = "ureca") {
+async function setupFixture(
+  options: { existing?: boolean; generic?: boolean } = {},
+) {
   const root = await mkdtemp(join(tmpdir(), "academic-os-research-cli-"));
   temporaryRoots.push(root);
   const driveMount = join(root, "Drive");
   const stateRoot = join(root, "State");
   const researchRoot = join(driveMount, "Modules", "Research");
   const projectRoot = join(researchRoot, "Example Project");
-  await mkdir(projectRoot, { recursive: true });
+  await mkdir(options.existing === false ? researchRoot : projectRoot, {
+    recursive: true,
+  });
   await mkdir(stateRoot);
-  await writeFile(join(projectRoot, "Icon\r"), "");
+  if (options.existing !== false)
+    await writeFile(join(projectRoot, "Icon\r"), "");
   const configPath = join(root, "academic-os.config.json");
   await writeFile(
     configPath,
@@ -332,7 +645,7 @@ async function setupFixture(profile: "ureca" | "generic" = "ureca") {
           "example-project": {
             folder: "Example Project",
             status: "active",
-            ...(profile === "ureca" ? { profile } : {}),
+            ...(options.generic ? {} : { profile: "ureca" }),
           },
         },
       },
@@ -340,7 +653,10 @@ async function setupFixture(profile: "ureca" | "generic" = "ureca") {
   );
   const profilePath = join(root, "profile.md");
   const definitionPath = join(root, "definition.yaml");
-  await writeFile(profilePath, validProfile(profile));
+  await writeFile(
+    profilePath,
+    validProfile(options.generic ? "generic" : "ureca"),
+  );
   await writeFile(
     definitionPath,
     `contract_version: 3
@@ -349,16 +665,24 @@ project:
   folder: Example Project
   title: Synthetic project
   status: active
-profile: ${profile}
+profile: ${options.generic ? "generic" : "ureca"}
 evidence:
   identity: owner-supplied
   confirmation: unresolved
 `,
   );
-  return { root, configPath, profilePath, definitionPath, projectRoot };
+  return {
+    root,
+    configPath,
+    profilePath,
+    definitionPath,
+    projectRoot,
+    researchRoot,
+    stateRoot,
+  };
 }
 
-function validProfile(profile: "ureca" | "generic"): string {
+function validProfile(profile: "generic" | "ureca" = "ureca"): string {
   return `# Example Project — Synthetic project
 
 ## Identity
@@ -406,4 +730,138 @@ Synthetic profile coverage.
 | --- | --- | --- |
 | Content accuracy | Not tested here | unresolved |
 `;
+}
+
+function meetingSeedArguments(
+  fixture: Awaited<ReturnType<typeof setupFixture>>,
+  manifestPath: string,
+): string[] {
+  return [
+    "seed",
+    "--config",
+    fixture.configPath,
+    "--research-project",
+    "example-project",
+    "--profile",
+    fixture.profilePath,
+    "--definition",
+    fixture.definitionPath,
+    "--initial-files-manifest",
+    manifestPath,
+  ];
+}
+
+async function writeIntakeManifest(
+  root: string,
+  files: readonly ResearchProjectInitialFile[],
+  policyVersion = 2,
+): Promise<string> {
+  const rows = [];
+  for (const [index, file] of files.entries()) {
+    const source = `intake-${index}.payload`;
+    const bytes =
+      file.encoding === "utf8"
+        ? Buffer.from(file.contents, "utf8")
+        : Buffer.from(file.contentsBase64, "base64");
+    await writeFile(join(root, source), bytes);
+    rows.push({
+      destination: file.destination,
+      source,
+      sha256: createHash("sha256").update(bytes).digest("hex"),
+      encoding: file.encoding,
+    });
+  }
+  const path = join(root, "initial-files.json");
+  await writeFile(
+    path,
+    JSON.stringify({ schemaVersion: policyVersion, files: rows }),
+  );
+  return path;
+}
+
+async function assertIntakeBytes(
+  projectRoot: string,
+  files: readonly ResearchProjectInitialFile[],
+): Promise<void> {
+  for (const file of files) {
+    const expected =
+      file.encoding === "utf8"
+        ? Buffer.from(file.contents, "utf8")
+        : Buffer.from(file.contentsBase64, "base64");
+    assert.deepEqual(
+      await readFile(join(projectRoot, file.destination)),
+      expected,
+      file.destination,
+    );
+  }
+}
+
+async function onlyJournal(
+  stateRoot: string,
+): Promise<{ path: string; bytes: Buffer }> {
+  const root = join(stateRoot, "journals", "seeds");
+  const entries = await readdir(root);
+  assert.equal(entries.length, 1);
+  const path = join(root, entries[0] ?? "missing");
+  return { path, bytes: await readFile(path) };
+}
+
+async function assertSavedPolicyBinding(
+  fixture: Awaited<ReturnType<typeof setupFixture>>,
+  target: string[],
+  mutation: "add-v2" | "remove-v2",
+): Promise<void> {
+  const original = await onlyJournal(fixture.stateRoot);
+  const entries = await readdir(fixture.projectRoot, {
+    recursive: true,
+    withFileTypes: true,
+  });
+  const files = await Promise.all(
+    entries
+      .filter((entry) => entry.isFile())
+      .map(async (entry) => {
+        const path = join(entry.parentPath, entry.name);
+        return { path, bytes: await readFile(path) };
+      }),
+  );
+  try {
+    for (const recomputeDigest of [false, true]) {
+      const events = original.bytes
+        .toString("utf8")
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line));
+      if (mutation === "add-v2") events[0].plan.intakePolicyVersion = 2;
+      else delete events[0].plan.intakePolicyVersion;
+      if (recomputeDigest)
+        events[0].planDigest = createHash("sha256")
+          .update(JSON.stringify(events[0].plan))
+          .digest("hex");
+      const changed = `${events.map((event) => JSON.stringify(event)).join("\n")}\n`;
+      await writeFile(original.path, changed);
+      const refused = await runCli(...target, "--apply", "--resume", "--json");
+      assert.equal(refused.exitCode, 1, refused.stdout);
+      assert.match(
+        JSON.parse(refused.stdout).evidence.join(" "),
+        recomputeDigest
+          ? /approved plan changed/u
+          : /stored plan does not match its recorded digest/u,
+      );
+      assert.equal(await readFile(original.path, "utf8"), changed);
+      assert.deepEqual(
+        (await readdir(fixture.projectRoot, { recursive: true })).sort(),
+        entries
+          .map((entry) =>
+            join(entry.parentPath, entry.name).slice(
+              fixture.projectRoot.length + 1,
+            ),
+          )
+          .sort(),
+      );
+      for (const file of files)
+        assert.deepEqual(await readFile(file.path), file.bytes, file.path);
+    }
+  } finally {
+    await writeFile(original.path, original.bytes);
+  }
 }

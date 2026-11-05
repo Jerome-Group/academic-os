@@ -74,10 +74,37 @@ export function parseBytes<T>(
 export function wireSchema(
   name: "CreateWireInput" | "PublishWireInput" | "InspectWireInput",
 ): { type: "object"; [key: string]: unknown } {
+  const contract = publicationSchemas[0];
+  if (contract === undefined)
+    throw new Error("Missing built-in publication schema.");
+  const input = contract.definitions[name];
+  const available = new Map<string, unknown>(
+    Object.entries(contract.definitions),
+  );
+  const selected = new Map<string, unknown>();
+  const pending: unknown[] = [input];
+  while (pending.length) {
+    const value = pending.pop();
+    if (typeof value !== "object" || value === null) continue;
+    if ("$ref" in value && typeof value.$ref === "string") {
+      if (!value.$ref.startsWith("#/definitions/"))
+        throw new Error("Unsupported publication input schema reference.");
+      const key = value.$ref.slice("#/definitions/".length);
+      const definition = available.get(key);
+      if (definition === undefined)
+        throw new Error("Missing publication input schema definition.");
+      if (!selected.has(key)) {
+        selected.set(key, definition);
+        pending.push(definition);
+      }
+    }
+    pending.push(...Object.values(value));
+  }
   return {
-    ...publicationSchemas[0],
+    ...input,
+    $schema: contract.$schema,
     type: "object",
     $id: `${publicationSchemaId}:input:${name}`,
-    $ref: `#/definitions/${name}`,
+    ...(selected.size ? { definitions: Object.fromEntries(selected) } : {}),
   };
 }

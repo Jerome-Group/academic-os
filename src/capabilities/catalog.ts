@@ -689,7 +689,10 @@ export function capabilityIndex(): object {
       riskFlags: ["generated-candidates-only"],
       preview: null,
       implementation: "src/controls-publication/tools.ts",
-      tests: ["test/controls-publication/publication-journey.test.ts"],
+      tests: [
+        "test/controls-publication/publication-journey.test.ts",
+        "test/controls-publication/publication-schema.test.ts",
+      ],
       status: "supported",
       health: "not-observed",
       result:

@@ -29,6 +29,16 @@ The cleanup mutations still deleted foreign sentinels, owner mutations still let
 Restored implementations passed those same controls.
 The candidate runner also used the separate evidence-parent containment correction tracked by #362; that correction changes no protocol check.
 
+## Current caller inspection
+
+Inspection through `d08c6969b7fd3ee126a5414a44c102dd60241733` finds all 23 covered files byte-identical to `4b87383783d8250830b22483db275efa9dc7254b`.
+The existing seed, repair and curation actions, properties and bounds are in sync.
+`469306b59ad8f4fe48f3a9729a3b341edc6f9961` adds Tasks callers under `src/tasks/`.
+They cover operation and restore journals, recovery history, lifecycle state, completion catalogs, refresh receipts and prepared completions.
+Those caller protocols remain excluded. The shared helper's proof does not verify their business transitions.
+The integrated candidate passed the complete capability profile and formal implementation, mutation and restoration gates before the source record advanced.
+Supplementary `statechart` interpretation uses its compatible toolchain on the unchanged configurations. The primary gate retains the vendored artifact.
+
 ## Bounds and assumptions
 
 The positive configurations enumerate one target, one active stage pathname, two claim generations, two nested directory components, two approved files, and one foreign descendant slot.
@@ -153,9 +163,16 @@ Existing ambiguous histories still refuse. No history is renumbered.
 The expanded covered-source list includes the shared helper and the seed and repair entry, storage, export, and CLI wiring boundaries.
 Configuration loading, approved-plan validation, configured-root resolution, and repair mount/snapshot metadata preflight precede those entry boundaries.
 Those observations are outside the owner model. Continuation reads, provider requests, mounted mutations, and repair effects remain inside it.
-Search found no additional caller of the helper and no remaining unrestricted production repair append API.
+The earlier search found no additional caller of the helper and no remaining unrestricted production repair append API.
+The earlier search through `4bde27955b2fb250adf7d9bac778f0068ea71567` finds Calendar receipts, Shelf mutations, weekly publication, and curation register appends in addition to seed and repair.
+Calendar `appendOnce` owns duplicate observation through file and directory sync.
+Shelf `run` owns journal reconciliation, fresh planning, native publication and settlement.
+Weekly `withPublicationJournal` owns journal opening, callback work, sync and close, with bounded busy retries outside ownership.
+These three caller protocols are explicitly excluded from the formal models and compiled controls here.
+Their use of the shared helper does not make their semantics formally verified.
+Curation has a separate [coverage record and state machine](curation-coverage.md).
 The cheatsheet-only `createSeedOperation` remains outside mounted seed authority.
-Calendar promotion, pinned updates, routines, unrelated journals, provider implementations, and full repair recovery correctness remain outside this claim.
+Calendar promotion, Shelf publication, pinned updates, routines, unrelated journals, provider implementations, and full repair recovery correctness remain outside this claim.
 
 ## Failure controls
 

@@ -162,10 +162,30 @@ export async function runCapabilitiesCommand(
         }),
       ),
     );
+    const nativeCompiler =
+      process.platform === "darwin"
+        ? await observeProcess({
+            action: "native-inventory-compiler",
+            executable: "/usr/bin/xcrun",
+            arguments: ["clang", "--version"],
+            timeoutMs: 3000,
+          })
+        : undefined;
+    if (nativeCompiler !== undefined) tools.push(nativeCompiler);
     result = {
       schemaVersion: 1,
       outcome: "observed",
       tools,
+      nativeInventory: {
+        rebuild:
+          nativeCompiler === undefined
+            ? "unsupported-platform"
+            : nativeCompiler.outcome === "passed"
+              ? "compiler-observed"
+              : "compiler-unavailable",
+        scope:
+          "Compiler invocation establishes rebuild readiness only. A previously built bound native adapter requires no compiler at runtime.",
+      },
       ...(configuredExecutables === undefined ? {} : { configuredExecutables }),
       unverified: [
         "credentials and authorization",

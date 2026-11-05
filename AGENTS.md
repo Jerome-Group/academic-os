@@ -19,6 +19,8 @@ the RAID0 and in Drive; this repository describes them and must never contain on
 
 ## Getting it running
 
+Use Node 24 or later. macOS builds also require Xcode Command Line Tools (`/usr/bin/xcrun clang`).
+The built native inventory adapter needs no compiler at runtime; other platforms report native inventory unsupported.
 Install dependencies with `npm ci`, then `npm run build`. Discover supported actions, effects,
 prerequisites and verification through `node dist/src/cli.js capabilities index --json`.
 Use `npm run check` for the complete local check. The index is the command and

@@ -350,3 +350,19 @@ test("native CLI reports an oversized resource fork as unavailable", {
   );
   assert(report.diagnostics.some((item) => item.code === "xattrs-unreadable"));
 });
+
+test("a built native adapter runs without compiler availability", {
+  skip: process.platform !== "darwin",
+}, async () => {
+  const { proof, root } = await fixture();
+  const result = await run(
+    process.execPath,
+    [cli, "migration", "inventory", "--root", root, "--json"],
+    {
+      env: { ...process.env, DEVELOPER_DIR: join(proof, "missing-toolchain") },
+    },
+  );
+  const value: unknown = JSON.parse(result.stdout);
+  assert(validateNativeInventory(value));
+  assert.equal((value as NativeInventory).complete, true);
+});

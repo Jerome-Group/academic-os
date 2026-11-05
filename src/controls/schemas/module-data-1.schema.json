@@ -56,25 +56,6 @@
     }
   ],
   "definitions": {
-    "evidenceReferences": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "kind": {
-            "const": "evidence"
-          },
-          "id": {
-            "type": "string",
-            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-          }
-        },
-        "required": ["kind", "id"]
-      },
-      "minItems": 1,
-      "uniqueItems": true
-    },
     "textClaim": {
       "oneOf": [
         {
@@ -89,23 +70,7 @@
               "minLength": 1
             },
             "evidence": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "kind": {
-                    "const": "evidence"
-                  },
-                  "id": {
-                    "type": "string",
-                    "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                  }
-                },
-                "required": ["kind", "id"]
-              },
-              "minItems": 1,
-              "uniqueItems": true
+              "$ref": "#/definitions/evidenceReferences"
             },
             "reasoning": {
               "type": "string",
@@ -164,23 +129,7 @@
                     "minLength": 1
                   },
                   "evidence": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "properties": {
-                        "kind": {
-                          "const": "evidence"
-                        },
-                        "id": {
-                          "type": "string",
-                          "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                        }
-                      },
-                      "required": ["kind", "id"]
-                    },
-                    "minItems": 1,
-                    "uniqueItems": true
+                    "$ref": "#/definitions/evidenceReferences"
                   },
                   "reasoning": {
                     "type": "string",
@@ -211,23 +160,7 @@
               "format": "module-calendar-date"
             },
             "evidence": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "kind": {
-                    "const": "evidence"
-                  },
-                  "id": {
-                    "type": "string",
-                    "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                  }
-                },
-                "required": ["kind", "id"]
-              },
-              "minItems": 1,
-              "uniqueItems": true
+              "$ref": "#/definitions/evidenceReferences"
             },
             "reasoning": {
               "type": "string",
@@ -287,23 +220,7 @@
                     "format": "module-calendar-date"
                   },
                   "evidence": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "properties": {
-                        "kind": {
-                          "const": "evidence"
-                        },
-                        "id": {
-                          "type": "string",
-                          "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                        }
-                      },
-                      "required": ["kind", "id"]
-                    },
-                    "minItems": 1,
-                    "uniqueItems": true
+                    "$ref": "#/definitions/evidenceReferences"
                   },
                   "reasoning": {
                     "type": "string",
@@ -333,23 +250,7 @@
               "pattern": "^[a-f0-9]{64}$"
             },
             "evidence": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "kind": {
-                    "const": "evidence"
-                  },
-                  "id": {
-                    "type": "string",
-                    "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                  }
-                },
-                "required": ["kind", "id"]
-              },
-              "minItems": 1,
-              "uniqueItems": true
+              "$ref": "#/definitions/evidenceReferences"
             },
             "reasoning": {
               "type": "string",
@@ -408,23 +309,7 @@
                     "pattern": "^[a-f0-9]{64}$"
                   },
                   "evidence": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "properties": {
-                        "kind": {
-                          "const": "evidence"
-                        },
-                        "id": {
-                          "type": "string",
-                          "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                        }
-                      },
-                      "required": ["kind", "id"]
-                    },
-                    "minItems": 1,
-                    "uniqueItems": true
+                    "$ref": "#/definitions/evidenceReferences"
                   },
                   "reasoning": {
                     "type": "string",
@@ -454,23 +339,7 @@
               "minimum": 0
             },
             "evidence": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "kind": {
-                    "const": "evidence"
-                  },
-                  "id": {
-                    "type": "string",
-                    "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                  }
-                },
-                "required": ["kind", "id"]
-              },
-              "minItems": 1,
-              "uniqueItems": true
+              "$ref": "#/definitions/evidenceReferences"
             },
             "reasoning": {
               "type": "string",
@@ -529,23 +398,7 @@
                     "minimum": 0
                   },
                   "evidence": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "properties": {
-                        "kind": {
-                          "const": "evidence"
-                        },
-                        "id": {
-                          "type": "string",
-                          "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                        }
-                      },
-                      "required": ["kind", "id"]
-                    },
-                    "minItems": 1,
-                    "uniqueItems": true
+                    "$ref": "#/definitions/evidenceReferences"
                   },
                   "reasoning": {
                     "type": "string",
@@ -701,23 +554,7 @@
                   }
                 },
                 "evidence": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                      "kind": {
-                        "const": "evidence"
-                      },
-                      "id": {
-                        "type": "string",
-                        "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                      }
-                    },
-                    "required": ["kind", "id"]
-                  },
-                  "minItems": 1,
-                  "uniqueItems": true
+                  "$ref": "#/definitions/evidenceReferences"
                 },
                 "reasoning": {
                   "type": "string",
@@ -779,23 +616,7 @@
                         }
                       },
                       "evidence": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "additionalProperties": false,
-                          "properties": {
-                            "kind": {
-                              "const": "evidence"
-                            },
-                            "id": {
-                              "type": "string",
-                              "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                            }
-                          },
-                          "required": ["kind", "id"]
-                        },
-                        "minItems": 1,
-                        "uniqueItems": true
+                        "$ref": "#/definitions/evidenceReferences"
                       },
                       "reasoning": {
                         "type": "string",
@@ -844,23 +665,7 @@
                   }
                 },
                 "evidence": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                      "kind": {
-                        "const": "evidence"
-                      },
-                      "id": {
-                        "type": "string",
-                        "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                      }
-                    },
-                    "required": ["kind", "id"]
-                  },
-                  "minItems": 1,
-                  "uniqueItems": true
+                  "$ref": "#/definitions/evidenceReferences"
                 }
               },
               "required": ["kind", "entries", "evidence"]
@@ -909,23 +714,7 @@
                   "const": "absent"
                 },
                 "evidence": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                      "kind": {
-                        "const": "evidence"
-                      },
-                      "id": {
-                        "type": "string",
-                        "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                      }
-                    },
-                    "required": ["kind", "id"]
-                  },
-                  "minItems": 1,
-                  "uniqueItems": true
+                  "$ref": "#/definitions/evidenceReferences"
                 }
               },
               "required": ["kind", "evidence"]
@@ -946,23 +735,7 @@
                   "minimum": 0
                 },
                 "evidence": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                      "kind": {
-                        "const": "evidence"
-                      },
-                      "id": {
-                        "type": "string",
-                        "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                      }
-                    },
-                    "required": ["kind", "id"]
-                  },
-                  "minItems": 1,
-                  "uniqueItems": true
+                  "$ref": "#/definitions/evidenceReferences"
                 }
               },
               "required": ["kind", "byteSha256", "byteLength", "evidence"]
@@ -1116,23 +889,7 @@
               "description": "Acyclic native containment references. Membership does not follow symlink targets."
             },
             "evidence": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "kind": {
-                    "const": "evidence"
-                  },
-                  "id": {
-                    "type": "string",
-                    "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                  }
-                },
-                "required": ["kind", "id"]
-              },
-              "minItems": 1,
-              "uniqueItems": true
+              "$ref": "#/definitions/evidenceReferences"
             }
           },
           "required": [
@@ -1180,23 +937,7 @@
                       "enum": ["clean", "annotated"]
                     },
                     "evidence": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "kind": {
-                            "const": "evidence"
-                          },
-                          "id": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                          }
-                        },
-                        "required": ["kind", "id"]
-                      },
-                      "minItems": 1,
-                      "uniqueItems": true
+                      "$ref": "#/definitions/evidenceReferences"
                     },
                     "reasoning": {
                       "type": "string",
@@ -1254,23 +995,7 @@
                             "enum": ["clean", "annotated"]
                           },
                           "evidence": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "properties": {
-                                "kind": {
-                                  "const": "evidence"
-                                },
-                                "id": {
-                                  "type": "string",
-                                  "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                                }
-                              },
-                              "required": ["kind", "id"]
-                            },
-                            "minItems": 1,
-                            "uniqueItems": true
+                            "$ref": "#/definitions/evidenceReferences"
                           },
                           "reasoning": {
                             "type": "string",
@@ -1299,23 +1024,7 @@
                       "enum": ["ungraded", "graded"]
                     },
                     "evidence": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "kind": {
-                            "const": "evidence"
-                          },
-                          "id": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                          }
-                        },
-                        "required": ["kind", "id"]
-                      },
-                      "minItems": 1,
-                      "uniqueItems": true
+                      "$ref": "#/definitions/evidenceReferences"
                     },
                     "reasoning": {
                       "type": "string",
@@ -1373,23 +1082,7 @@
                             "enum": ["ungraded", "graded"]
                           },
                           "evidence": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "properties": {
-                                "kind": {
-                                  "const": "evidence"
-                                },
-                                "id": {
-                                  "type": "string",
-                                  "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                                }
-                              },
-                              "required": ["kind", "id"]
-                            },
-                            "minItems": 1,
-                            "uniqueItems": true
+                            "$ref": "#/definitions/evidenceReferences"
                           },
                           "reasoning": {
                             "type": "string",
@@ -1409,23 +1102,7 @@
           "required": ["content", "annotation", "grading"]
         },
         "evidence": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "kind": {
-                "const": "evidence"
-              },
-              "id": {
-                "type": "string",
-                "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-              }
-            },
-            "required": ["kind", "id"]
-          },
-          "minItems": 1,
-          "uniqueItems": true
+          "$ref": "#/definitions/evidenceReferences"
         }
       },
       "required": [
@@ -1467,23 +1144,7 @@
                   "minLength": 1
                 },
                 "evidence": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                      "kind": {
-                        "const": "evidence"
-                      },
-                      "id": {
-                        "type": "string",
-                        "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                      }
-                    },
-                    "required": ["kind", "id"]
-                  },
-                  "minItems": 1,
-                  "uniqueItems": true
+                  "$ref": "#/definitions/evidenceReferences"
                 }
               },
               "required": [
@@ -1510,23 +1171,7 @@
                   "minLength": 1
                 },
                 "evidence": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                      "kind": {
-                        "const": "evidence"
-                      },
-                      "id": {
-                        "type": "string",
-                        "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                      }
-                    },
-                    "required": ["kind", "id"]
-                  },
-                  "minItems": 1,
-                  "uniqueItems": true
+                  "$ref": "#/definitions/evidenceReferences"
                 }
               },
               "required": ["kind", "acquisitionId", "algorithm", "evidence"]
@@ -1547,23 +1192,7 @@
                   "minLength": 1
                 },
                 "evidence": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                      "kind": {
-                        "const": "evidence"
-                      },
-                      "id": {
-                        "type": "string",
-                        "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                      }
-                    },
-                    "required": ["kind", "id"]
-                  },
-                  "minItems": 1,
-                  "uniqueItems": true
+                  "$ref": "#/definitions/evidenceReferences"
                 }
               },
               "required": ["kind", "algorithm", "originalId", "evidence"]
@@ -1593,23 +1222,7 @@
           "minItems": 1
         },
         "evidence": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "kind": {
-                "const": "evidence"
-              },
-              "id": {
-                "type": "string",
-                "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-              }
-            },
-            "required": ["kind", "id"]
-          },
-          "minItems": 1,
-          "uniqueItems": true
+          "$ref": "#/definitions/evidenceReferences"
         }
       },
       "required": ["id", "identity", "title", "locators", "evidence"]
@@ -1668,23 +1281,7 @@
           ]
         },
         "evidence": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "kind": {
-                "const": "evidence"
-              },
-              "id": {
-                "type": "string",
-                "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-              }
-            },
-            "required": ["kind", "id"]
-          },
-          "minItems": 1,
-          "uniqueItems": true
+          "$ref": "#/definitions/evidenceReferences"
         }
       },
       "required": ["source", "artifact", "locator", "role", "evidence"]
@@ -1751,46 +1348,14 @@
                 "minLength": 1
               },
               "evidence": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "evidence"
-                    },
-                    "id": {
-                      "type": "string",
-                      "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                    }
-                  },
-                  "required": ["kind", "id"]
-                },
-                "minItems": 1,
-                "uniqueItems": true
+                "$ref": "#/definitions/evidenceReferences"
               }
             },
             "required": ["role", "reason", "evidence"]
           }
         },
         "evidence": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "kind": {
-                "const": "evidence"
-              },
-              "id": {
-                "type": "string",
-                "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-              }
-            },
-            "required": ["kind", "id"]
-          },
-          "minItems": 1,
-          "uniqueItems": true
+          "$ref": "#/definitions/evidenceReferences"
         }
       },
       "required": [
@@ -1830,23 +1395,7 @@
                 "minLength": 1
               },
               "evidence": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "evidence"
-                    },
-                    "id": {
-                      "type": "string",
-                      "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                    }
-                  },
-                  "required": ["kind", "id"]
-                },
-                "minItems": 1,
-                "uniqueItems": true
+                "$ref": "#/definitions/evidenceReferences"
               }
             },
             "required": ["id", "title", "evidence"]
@@ -1895,23 +1444,7 @@
           }
         },
         "evidence": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "kind": {
-                "const": "evidence"
-              },
-              "id": {
-                "type": "string",
-                "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-              }
-            },
-            "required": ["kind", "id"]
-          },
-          "minItems": 1,
-          "uniqueItems": true
+          "$ref": "#/definitions/evidenceReferences"
         }
       },
       "required": [
@@ -2095,42 +1628,10 @@
               "enum": ["unaided-demonstrated", "needs-work"]
             },
             "ownerAttempt": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "kind": {
-                    "const": "evidence"
-                  },
-                  "id": {
-                    "type": "string",
-                    "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                  }
-                },
-                "required": ["kind", "id"]
-              },
-              "minItems": 1,
-              "uniqueItems": true
+              "$ref": "#/definitions/evidenceReferences"
             },
             "independentReview": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "kind": {
-                    "const": "evidence"
-                  },
-                  "id": {
-                    "type": "string",
-                    "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                  }
-                },
-                "required": ["kind", "id"]
-              },
-              "minItems": 1,
-              "uniqueItems": true
+              "$ref": "#/definitions/evidenceReferences"
             },
             "reasoning": {
               "type": "string",
@@ -2233,23 +1734,7 @@
                 "required": ["kind", "id"]
               },
               "observations": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "evidence"
-                    },
-                    "id": {
-                      "type": "string",
-                      "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                    }
-                  },
-                  "required": ["kind", "id"]
-                },
-                "minItems": 1,
-                "uniqueItems": true
+                "$ref": "#/definitions/evidenceReferences"
               },
               "reasoning": {
                 "type": "string",
@@ -2385,23 +1870,7 @@
               "uniqueItems": true
             },
             "evidence": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "kind": {
-                    "const": "evidence"
-                  },
-                  "id": {
-                    "type": "string",
-                    "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                  }
-                },
-                "required": ["kind", "id"]
-              },
-              "minItems": 1,
-              "uniqueItems": true
+              "$ref": "#/definitions/evidenceReferences"
             },
             "supersedes": {
               "type": "array",
@@ -2492,23 +1961,7 @@
                       "$ref": "#/definitions/target"
                     },
                     "evidence": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "kind": {
-                            "const": "evidence"
-                          },
-                          "id": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                          }
-                        },
-                        "required": ["kind", "id"]
-                      },
-                      "minItems": 1,
-                      "uniqueItems": true
+                      "$ref": "#/definitions/evidenceReferences"
                     }
                   },
                   "required": ["kind", "value", "evidence"]
@@ -2551,23 +2004,7 @@
               "uniqueItems": true
             },
             "evidence": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "kind": {
-                    "const": "evidence"
-                  },
-                  "id": {
-                    "type": "string",
-                    "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                  }
-                },
-                "required": ["kind", "id"]
-              },
-              "minItems": 1,
-              "uniqueItems": true
+              "$ref": "#/definitions/evidenceReferences"
             }
           },
           "required": [
@@ -2657,23 +2094,7 @@
           "minLength": 1
         },
         "evidence": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "kind": {
-                "const": "evidence"
-              },
-              "id": {
-                "type": "string",
-                "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-              }
-            },
-            "required": ["kind", "id"]
-          },
-          "minItems": 1,
-          "uniqueItems": true
+          "$ref": "#/definitions/evidenceReferences"
         },
         "supersedes": {
           "type": "array",
@@ -2759,23 +2180,7 @@
           "required": ["kind", "id"]
         },
         "evidence": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "kind": {
-                "const": "evidence"
-              },
-              "id": {
-                "type": "string",
-                "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-              }
-            },
-            "required": ["kind", "id"]
-          },
-          "minItems": 1,
-          "uniqueItems": true
+          "$ref": "#/definitions/evidenceReferences"
         },
         "supersedes": {
           "type": "array",
@@ -2899,23 +2304,7 @@
           "minLength": 1
         },
         "evidence": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "kind": {
-                "const": "evidence"
-              },
-              "id": {
-                "type": "string",
-                "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-              }
-            },
-            "required": ["kind", "id"]
-          },
-          "minItems": 1,
-          "uniqueItems": true
+          "$ref": "#/definitions/evidenceReferences"
         }
       },
       "required": [
@@ -3005,23 +2394,7 @@
                             "enum": ["needsAction", "completed"]
                           },
                           "evidence": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "properties": {
-                                "kind": {
-                                  "const": "evidence"
-                                },
-                                "id": {
-                                  "type": "string",
-                                  "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                                }
-                              },
-                              "required": ["kind", "id"]
-                            },
-                            "minItems": 1,
-                            "uniqueItems": true
+                            "$ref": "#/definitions/evidenceReferences"
                           },
                           "reasoning": {
                             "type": "string",
@@ -3079,23 +2452,7 @@
                                   "enum": ["needsAction", "completed"]
                                 },
                                 "evidence": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "properties": {
-                                      "kind": {
-                                        "const": "evidence"
-                                      },
-                                      "id": {
-                                        "type": "string",
-                                        "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                                      }
-                                    },
-                                    "required": ["kind", "id"]
-                                  },
-                                  "minItems": 1,
-                                  "uniqueItems": true
+                                  "$ref": "#/definitions/evidenceReferences"
                                 },
                                 "reasoning": {
                                   "type": "string",
@@ -3115,23 +2472,7 @@
                     "type": "boolean"
                   },
                   "provenance": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "properties": {
-                        "kind": {
-                          "const": "evidence"
-                        },
-                        "id": {
-                          "type": "string",
-                          "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                        }
-                      },
-                      "required": ["kind", "id"]
-                    },
-                    "minItems": 1,
-                    "uniqueItems": true
+                    "$ref": "#/definitions/evidenceReferences"
                   }
                 },
                 "required": [
@@ -3144,23 +2485,7 @@
               }
             },
             "evidence": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "kind": {
-                    "const": "evidence"
-                  },
-                  "id": {
-                    "type": "string",
-                    "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                  }
-                },
-                "required": ["kind", "id"]
-              },
-              "minItems": 1,
-              "uniqueItems": true
+              "$ref": "#/definitions/evidenceReferences"
             }
           },
           "required": [
@@ -3247,23 +2572,7 @@
                             "enum": ["confirmed", "tentative", "cancelled"]
                           },
                           "evidence": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "properties": {
-                                "kind": {
-                                  "const": "evidence"
-                                },
-                                "id": {
-                                  "type": "string",
-                                  "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                                }
-                              },
-                              "required": ["kind", "id"]
-                            },
-                            "minItems": 1,
-                            "uniqueItems": true
+                            "$ref": "#/definitions/evidenceReferences"
                           },
                           "reasoning": {
                             "type": "string",
@@ -3325,23 +2634,7 @@
                                   ]
                                 },
                                 "evidence": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "properties": {
-                                      "kind": {
-                                        "const": "evidence"
-                                      },
-                                      "id": {
-                                        "type": "string",
-                                        "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                                      }
-                                    },
-                                    "required": ["kind", "id"]
-                                  },
-                                  "minItems": 1,
-                                  "uniqueItems": true
+                                  "$ref": "#/definitions/evidenceReferences"
                                 },
                                 "reasoning": {
                                   "type": "string",
@@ -3361,23 +2654,7 @@
                     "type": "boolean"
                   },
                   "provenance": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "properties": {
-                        "kind": {
-                          "const": "evidence"
-                        },
-                        "id": {
-                          "type": "string",
-                          "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                        }
-                      },
-                      "required": ["kind", "id"]
-                    },
-                    "minItems": 1,
-                    "uniqueItems": true
+                    "$ref": "#/definitions/evidenceReferences"
                   }
                 },
                 "required": [
@@ -3390,23 +2667,7 @@
               }
             },
             "evidence": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "kind": {
-                    "const": "evidence"
-                  },
-                  "id": {
-                    "type": "string",
-                    "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                  }
-                },
-                "required": ["kind", "id"]
-              },
-              "minItems": 1,
-              "uniqueItems": true
+              "$ref": "#/definitions/evidenceReferences"
             }
           },
           "required": [
@@ -3461,23 +2722,7 @@
                       "pattern": "^[0-9]{4}-[0-9]{4}$"
                     },
                     "evidence": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "kind": {
-                            "const": "evidence"
-                          },
-                          "id": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                          }
-                        },
-                        "required": ["kind", "id"]
-                      },
-                      "minItems": 1,
-                      "uniqueItems": true
+                      "$ref": "#/definitions/evidenceReferences"
                     },
                     "reasoning": {
                       "type": "string",
@@ -3536,23 +2781,7 @@
                             "pattern": "^[0-9]{4}-[0-9]{4}$"
                           },
                           "evidence": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "properties": {
-                                "kind": {
-                                  "const": "evidence"
-                                },
-                                "id": {
-                                  "type": "string",
-                                  "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                                }
-                              },
-                              "required": ["kind", "id"]
-                            },
-                            "minItems": 1,
-                            "uniqueItems": true
+                            "$ref": "#/definitions/evidenceReferences"
                           },
                           "reasoning": {
                             "type": "string",
@@ -3581,23 +2810,7 @@
                       "enum": [1, 2]
                     },
                     "evidence": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "kind": {
-                            "const": "evidence"
-                          },
-                          "id": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                          }
-                        },
-                        "required": ["kind", "id"]
-                      },
-                      "minItems": 1,
-                      "uniqueItems": true
+                      "$ref": "#/definitions/evidenceReferences"
                     },
                     "reasoning": {
                       "type": "string",
@@ -3655,23 +2868,7 @@
                             "enum": [1, 2]
                           },
                           "evidence": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "properties": {
-                                "kind": {
-                                  "const": "evidence"
-                                },
-                                "id": {
-                                  "type": "string",
-                                  "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                                }
-                              },
-                              "required": ["kind", "id"]
-                            },
-                            "minItems": 1,
-                            "uniqueItems": true
+                            "$ref": "#/definitions/evidenceReferences"
                           },
                           "reasoning": {
                             "type": "string",
@@ -3700,23 +2897,7 @@
                       "enum": ["active", "past", "future"]
                     },
                     "evidence": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "kind": {
-                            "const": "evidence"
-                          },
-                          "id": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                          }
-                        },
-                        "required": ["kind", "id"]
-                      },
-                      "minItems": 1,
-                      "uniqueItems": true
+                      "$ref": "#/definitions/evidenceReferences"
                     },
                     "reasoning": {
                       "type": "string",
@@ -3774,23 +2955,7 @@
                             "enum": ["active", "past", "future"]
                           },
                           "evidence": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "properties": {
-                                "kind": {
-                                  "const": "evidence"
-                                },
-                                "id": {
-                                  "type": "string",
-                                  "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                                }
-                              },
-                              "required": ["kind", "id"]
-                            },
-                            "minItems": 1,
-                            "uniqueItems": true
+                            "$ref": "#/definitions/evidenceReferences"
                           },
                           "reasoning": {
                             "type": "string",
@@ -3829,23 +2994,7 @@
                       }
                     },
                     "evidence": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "kind": {
-                            "const": "evidence"
-                          },
-                          "id": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                          }
-                        },
-                        "required": ["kind", "id"]
-                      },
-                      "minItems": 1,
-                      "uniqueItems": true
+                      "$ref": "#/definitions/evidenceReferences"
                     },
                     "reasoning": {
                       "type": "string",
@@ -3907,23 +3056,7 @@
                             }
                           },
                           "evidence": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "properties": {
-                                "kind": {
-                                  "const": "evidence"
-                                },
-                                "id": {
-                                  "type": "string",
-                                  "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                                }
-                              },
-                              "required": ["kind", "id"]
-                            },
-                            "minItems": 1,
-                            "uniqueItems": true
+                            "$ref": "#/definitions/evidenceReferences"
                           },
                           "reasoning": {
                             "type": "string",
@@ -3956,23 +3089,7 @@
                       }
                     },
                     "evidence": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "kind": {
-                            "const": "evidence"
-                          },
-                          "id": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                          }
-                        },
-                        "required": ["kind", "id"]
-                      },
-                      "minItems": 1,
-                      "uniqueItems": true
+                      "$ref": "#/definitions/evidenceReferences"
                     },
                     "reasoning": {
                       "type": "string",
@@ -4034,23 +3151,7 @@
                             }
                           },
                           "evidence": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "properties": {
-                                "kind": {
-                                  "const": "evidence"
-                                },
-                                "id": {
-                                  "type": "string",
-                                  "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                                }
-                              },
-                              "required": ["kind", "id"]
-                            },
-                            "minItems": 1,
-                            "uniqueItems": true
+                            "$ref": "#/definitions/evidenceReferences"
                           },
                           "reasoning": {
                             "type": "string",
@@ -4095,23 +3196,7 @@
                       "const": "flat"
                     },
                     "evidence": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "kind": {
-                            "const": "evidence"
-                          },
-                          "id": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                          }
-                        },
-                        "required": ["kind", "id"]
-                      },
-                      "minItems": 1,
-                      "uniqueItems": true
+                      "$ref": "#/definitions/evidenceReferences"
                     }
                   },
                   "required": ["kind", "evidence"]
@@ -4133,23 +3218,7 @@
                       "uniqueItems": true
                     },
                     "evidence": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "kind": {
-                            "const": "evidence"
-                          },
-                          "id": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                          }
-                        },
-                        "required": ["kind", "id"]
-                      },
-                      "minItems": 1,
-                      "uniqueItems": true
+                      "$ref": "#/definitions/evidenceReferences"
                     }
                   },
                   "required": ["kind", "groups", "evidence"]
@@ -4189,599 +3258,19 @@
               ]
             },
             "quizzes": {
-              "oneOf": [
-                {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "known"
-                    },
-                    "value": {
-                      "type": "boolean"
-                    },
-                    "evidence": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "kind": {
-                            "const": "evidence"
-                          },
-                          "id": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                          }
-                        },
-                        "required": ["kind", "id"]
-                      },
-                      "minItems": 1,
-                      "uniqueItems": true
-                    },
-                    "reasoning": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": ["kind", "value", "evidence"]
-                },
-                {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "unknown"
-                    },
-                    "reason": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "evidence": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "kind": {
-                            "const": "evidence"
-                          },
-                          "id": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                          }
-                        },
-                        "required": ["kind", "id"]
-                      },
-                      "uniqueItems": true
-                    }
-                  },
-                  "required": ["kind", "reason", "evidence"]
-                },
-                {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "disputed"
-                    },
-                    "alternatives": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "value": {
-                            "type": "boolean"
-                          },
-                          "evidence": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "properties": {
-                                "kind": {
-                                  "const": "evidence"
-                                },
-                                "id": {
-                                  "type": "string",
-                                  "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                                }
-                              },
-                              "required": ["kind", "id"]
-                            },
-                            "minItems": 1,
-                            "uniqueItems": true
-                          },
-                          "reasoning": {
-                            "type": "string",
-                            "minLength": 1
-                          }
-                        },
-                        "required": ["value", "evidence", "reasoning"]
-                      },
-                      "minItems": 2
-                    }
-                  },
-                  "required": ["kind", "alternatives"]
-                }
-              ]
+              "$ref": "#/definitions/booleanClaim"
             },
             "tests": {
-              "oneOf": [
-                {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "known"
-                    },
-                    "value": {
-                      "type": "boolean"
-                    },
-                    "evidence": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "kind": {
-                            "const": "evidence"
-                          },
-                          "id": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                          }
-                        },
-                        "required": ["kind", "id"]
-                      },
-                      "minItems": 1,
-                      "uniqueItems": true
-                    },
-                    "reasoning": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": ["kind", "value", "evidence"]
-                },
-                {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "unknown"
-                    },
-                    "reason": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "evidence": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "kind": {
-                            "const": "evidence"
-                          },
-                          "id": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                          }
-                        },
-                        "required": ["kind", "id"]
-                      },
-                      "uniqueItems": true
-                    }
-                  },
-                  "required": ["kind", "reason", "evidence"]
-                },
-                {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "disputed"
-                    },
-                    "alternatives": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "value": {
-                            "type": "boolean"
-                          },
-                          "evidence": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "properties": {
-                                "kind": {
-                                  "const": "evidence"
-                                },
-                                "id": {
-                                  "type": "string",
-                                  "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                                }
-                              },
-                              "required": ["kind", "id"]
-                            },
-                            "minItems": 1,
-                            "uniqueItems": true
-                          },
-                          "reasoning": {
-                            "type": "string",
-                            "minLength": 1
-                          }
-                        },
-                        "required": ["value", "evidence", "reasoning"]
-                      },
-                      "minItems": 2
-                    }
-                  },
-                  "required": ["kind", "alternatives"]
-                }
-              ]
+              "$ref": "#/definitions/booleanClaim"
             },
             "assignments": {
-              "oneOf": [
-                {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "known"
-                    },
-                    "value": {
-                      "type": "boolean"
-                    },
-                    "evidence": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "kind": {
-                            "const": "evidence"
-                          },
-                          "id": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                          }
-                        },
-                        "required": ["kind", "id"]
-                      },
-                      "minItems": 1,
-                      "uniqueItems": true
-                    },
-                    "reasoning": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": ["kind", "value", "evidence"]
-                },
-                {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "unknown"
-                    },
-                    "reason": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "evidence": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "kind": {
-                            "const": "evidence"
-                          },
-                          "id": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                          }
-                        },
-                        "required": ["kind", "id"]
-                      },
-                      "uniqueItems": true
-                    }
-                  },
-                  "required": ["kind", "reason", "evidence"]
-                },
-                {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "disputed"
-                    },
-                    "alternatives": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "value": {
-                            "type": "boolean"
-                          },
-                          "evidence": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "properties": {
-                                "kind": {
-                                  "const": "evidence"
-                                },
-                                "id": {
-                                  "type": "string",
-                                  "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                                }
-                              },
-                              "required": ["kind", "id"]
-                            },
-                            "minItems": 1,
-                            "uniqueItems": true
-                          },
-                          "reasoning": {
-                            "type": "string",
-                            "minLength": 1
-                          }
-                        },
-                        "required": ["value", "evidence", "reasoning"]
-                      },
-                      "minItems": 2
-                    }
-                  },
-                  "required": ["kind", "alternatives"]
-                }
-              ]
+              "$ref": "#/definitions/booleanClaim"
             },
             "projects": {
-              "oneOf": [
-                {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "known"
-                    },
-                    "value": {
-                      "type": "boolean"
-                    },
-                    "evidence": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "kind": {
-                            "const": "evidence"
-                          },
-                          "id": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                          }
-                        },
-                        "required": ["kind", "id"]
-                      },
-                      "minItems": 1,
-                      "uniqueItems": true
-                    },
-                    "reasoning": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": ["kind", "value", "evidence"]
-                },
-                {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "unknown"
-                    },
-                    "reason": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "evidence": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "kind": {
-                            "const": "evidence"
-                          },
-                          "id": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                          }
-                        },
-                        "required": ["kind", "id"]
-                      },
-                      "uniqueItems": true
-                    }
-                  },
-                  "required": ["kind", "reason", "evidence"]
-                },
-                {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "disputed"
-                    },
-                    "alternatives": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "value": {
-                            "type": "boolean"
-                          },
-                          "evidence": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "properties": {
-                                "kind": {
-                                  "const": "evidence"
-                                },
-                                "id": {
-                                  "type": "string",
-                                  "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                                }
-                              },
-                              "required": ["kind", "id"]
-                            },
-                            "minItems": 1,
-                            "uniqueItems": true
-                          },
-                          "reasoning": {
-                            "type": "string",
-                            "minLength": 1
-                          }
-                        },
-                        "required": ["value", "evidence", "reasoning"]
-                      },
-                      "minItems": 2
-                    }
-                  },
-                  "required": ["kind", "alternatives"]
-                }
-              ]
+              "$ref": "#/definitions/booleanClaim"
             },
             "labs": {
-              "oneOf": [
-                {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "known"
-                    },
-                    "value": {
-                      "type": "boolean"
-                    },
-                    "evidence": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "kind": {
-                            "const": "evidence"
-                          },
-                          "id": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                          }
-                        },
-                        "required": ["kind", "id"]
-                      },
-                      "minItems": 1,
-                      "uniqueItems": true
-                    },
-                    "reasoning": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "required": ["kind", "value", "evidence"]
-                },
-                {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "unknown"
-                    },
-                    "reason": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "evidence": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "kind": {
-                            "const": "evidence"
-                          },
-                          "id": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                          }
-                        },
-                        "required": ["kind", "id"]
-                      },
-                      "uniqueItems": true
-                    }
-                  },
-                  "required": ["kind", "reason", "evidence"]
-                },
-                {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "disputed"
-                    },
-                    "alternatives": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "value": {
-                            "type": "boolean"
-                          },
-                          "evidence": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "properties": {
-                                "kind": {
-                                  "const": "evidence"
-                                },
-                                "id": {
-                                  "type": "string",
-                                  "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                                }
-                              },
-                              "required": ["kind", "id"]
-                            },
-                            "minItems": 1,
-                            "uniqueItems": true
-                          },
-                          "reasoning": {
-                            "type": "string",
-                            "minLength": 1
-                          }
-                        },
-                        "required": ["value", "evidence", "reasoning"]
-                      },
-                      "minItems": 2
-                    }
-                  },
-                  "required": ["kind", "alternatives"]
-                }
-              ]
+              "$ref": "#/definitions/booleanClaim"
             },
             "resourceCategories": {
               "type": "array",
@@ -4794,23 +3283,7 @@
                     "minLength": 1
                   },
                   "evidence": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "properties": {
-                        "kind": {
-                          "const": "evidence"
-                        },
-                        "id": {
-                          "type": "string",
-                          "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                        }
-                      },
-                      "required": ["kind", "id"]
-                    },
-                    "minItems": 1,
-                    "uniqueItems": true
+                    "$ref": "#/definitions/evidenceReferences"
                   }
                 },
                 "required": ["name", "evidence"]
@@ -4846,23 +3319,7 @@
                 "minLength": 1
               },
               "evidence": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "evidence"
-                    },
-                    "id": {
-                      "type": "string",
-                      "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                    }
-                  },
-                  "required": ["kind", "id"]
-                },
-                "minItems": 1,
-                "uniqueItems": true
+                "$ref": "#/definitions/evidenceReferences"
               }
             },
             "required": ["integration", "role", "root", "evidence"]
@@ -4887,23 +3344,7 @@
                 "minLength": 1
               },
               "evidence": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "evidence"
-                    },
-                    "id": {
-                      "type": "string",
-                      "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                    }
-                  },
-                  "required": ["kind", "id"]
-                },
-                "minItems": 1,
-                "uniqueItems": true
+                "$ref": "#/definitions/evidenceReferences"
               }
             },
             "required": ["id", "rule", "reason", "evidence"]
@@ -4958,23 +3399,7 @@
                 "minLength": 1
               },
               "evidence": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "evidence"
-                    },
-                    "id": {
-                      "type": "string",
-                      "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                    }
-                  },
-                  "required": ["kind", "id"]
-                },
-                "minItems": 1,
-                "uniqueItems": true
+                "$ref": "#/definitions/evidenceReferences"
               },
               "reasoning": {
                 "type": "string",
@@ -5013,23 +3438,7 @@
                 "minLength": 1
               },
               "evidence": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "evidence"
-                    },
-                    "id": {
-                      "type": "string",
-                      "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                    }
-                  },
-                  "required": ["kind", "id"]
-                },
-                "minItems": 1,
-                "uniqueItems": true
+                "$ref": "#/definitions/evidenceReferences"
               }
             },
             "required": ["id", "label", "mode", "description", "evidence"]
@@ -5095,23 +3504,7 @@
                       "minLength": 1
                     },
                     "evidence": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "kind": {
-                            "const": "evidence"
-                          },
-                          "id": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                          }
-                        },
-                        "required": ["kind", "id"]
-                      },
-                      "minItems": 1,
-                      "uniqueItems": true
+                      "$ref": "#/definitions/evidenceReferences"
                     }
                   },
                   "required": ["kind", "requirement", "evidence"]
@@ -5145,23 +3538,7 @@
                       "$ref": "#/definitions/textClaim"
                     },
                     "evidence": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "kind": {
-                            "const": "evidence"
-                          },
-                          "id": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                          }
-                        },
-                        "required": ["kind", "id"]
-                      },
-                      "minItems": 1,
-                      "uniqueItems": true
+                      "$ref": "#/definitions/evidenceReferences"
                     }
                   },
                   "required": [
@@ -5177,23 +3554,7 @@
                 }
               },
               "evidence": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "evidence"
-                    },
-                    "id": {
-                      "type": "string",
-                      "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                    }
-                  },
-                  "required": ["kind", "id"]
-                },
-                "minItems": 1,
-                "uniqueItems": true
+                "$ref": "#/definitions/evidenceReferences"
               }
             },
             "required": [
@@ -5242,23 +3603,7 @@
                 "minItems": 1
               },
               "evidence": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "evidence"
-                    },
-                    "id": {
-                      "type": "string",
-                      "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                    }
-                  },
-                  "required": ["kind", "id"]
-                },
-                "minItems": 1,
-                "uniqueItems": true
+                "$ref": "#/definitions/evidenceReferences"
               }
             },
             "required": ["source", "rank", "governs", "evidence"]
@@ -5279,23 +3624,7 @@
                 "minLength": 1
               },
               "evidence": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "evidence"
-                    },
-                    "id": {
-                      "type": "string",
-                      "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                    }
-                  },
-                  "required": ["kind", "id"]
-                },
-                "minItems": 1,
-                "uniqueItems": true
+                "$ref": "#/definitions/evidenceReferences"
               }
             },
             "required": ["path", "purpose", "evidence"]
@@ -5454,23 +3783,7 @@
                   "const": "mapped"
                 },
                 "evidence": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                      "kind": {
-                        "const": "evidence"
-                      },
-                      "id": {
-                        "type": "string",
-                        "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                      }
-                    },
-                    "required": ["kind", "id"]
-                  },
-                  "minItems": 1,
-                  "uniqueItems": true
+                  "$ref": "#/definitions/evidenceReferences"
                 }
               },
               "required": ["kind", "evidence"]
@@ -5524,23 +3837,7 @@
                 "minLength": 1
               },
               "evidence": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "evidence"
-                    },
-                    "id": {
-                      "type": "string",
-                      "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                    }
-                  },
-                  "required": ["kind", "id"]
-                },
-                "minItems": 1,
-                "uniqueItems": true
+                "$ref": "#/definitions/evidenceReferences"
               }
             },
             "required": ["id", "label", "evidence"]
@@ -5676,23 +3973,7 @@
               "pattern": "^[a-f0-9]{64}$"
             },
             "evidence": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "kind": {
-                    "const": "evidence"
-                  },
-                  "id": {
-                    "type": "string",
-                    "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                  }
-                },
-                "required": ["kind", "id"]
-              },
-              "minItems": 1,
-              "uniqueItems": true
+              "$ref": "#/definitions/evidenceReferences"
             }
           },
           "required": ["id", "version", "byteSha256", "evidence"]
@@ -5740,23 +4021,7 @@
                 "required": ["kind", "id"]
               },
               "evidence": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "evidence"
-                    },
-                    "id": {
-                      "type": "string",
-                      "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                    }
-                  },
-                  "required": ["kind", "id"]
-                },
-                "minItems": 1,
-                "uniqueItems": true
+                "$ref": "#/definitions/evidenceReferences"
               }
             },
             "required": ["id", "setting", "value", "ownerDecision", "evidence"]
@@ -5881,23 +4146,7 @@
                 ]
               },
               "evidence": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "evidence"
-                    },
-                    "id": {
-                      "type": "string",
-                      "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                    }
-                  },
-                  "required": ["kind", "id"]
-                },
-                "minItems": 1,
-                "uniqueItems": true
+                "$ref": "#/definitions/evidenceReferences"
               }
             },
             "required": [
@@ -5970,23 +4219,7 @@
                 "$ref": "#/definitions/textClaim"
               },
               "sources": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "evidence"
-                    },
-                    "id": {
-                      "type": "string",
-                      "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                    }
-                  },
-                  "required": ["kind", "id"]
-                },
-                "minItems": 1,
-                "uniqueItems": true
+                "$ref": "#/definitions/evidenceReferences"
               }
             },
             "required": [
@@ -6080,146 +4313,14 @@
                 ]
               },
               "checked": {
-                "oneOf": [
-                  {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                      "kind": {
-                        "const": "known"
-                      },
-                      "value": {
-                        "type": "boolean"
-                      },
-                      "evidence": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "additionalProperties": false,
-                          "properties": {
-                            "kind": {
-                              "const": "evidence"
-                            },
-                            "id": {
-                              "type": "string",
-                              "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                            }
-                          },
-                          "required": ["kind", "id"]
-                        },
-                        "minItems": 1,
-                        "uniqueItems": true
-                      },
-                      "reasoning": {
-                        "type": "string",
-                        "minLength": 1
-                      }
-                    },
-                    "required": ["kind", "value", "evidence"]
-                  },
-                  {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                      "kind": {
-                        "const": "unknown"
-                      },
-                      "reason": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "evidence": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "additionalProperties": false,
-                          "properties": {
-                            "kind": {
-                              "const": "evidence"
-                            },
-                            "id": {
-                              "type": "string",
-                              "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                            }
-                          },
-                          "required": ["kind", "id"]
-                        },
-                        "uniqueItems": true
-                      }
-                    },
-                    "required": ["kind", "reason", "evidence"]
-                  },
-                  {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                      "kind": {
-                        "const": "disputed"
-                      },
-                      "alternatives": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "additionalProperties": false,
-                          "properties": {
-                            "value": {
-                              "type": "boolean"
-                            },
-                            "evidence": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties": {
-                                  "kind": {
-                                    "const": "evidence"
-                                  },
-                                  "id": {
-                                    "type": "string",
-                                    "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                                  }
-                                },
-                                "required": ["kind", "id"]
-                              },
-                              "minItems": 1,
-                              "uniqueItems": true
-                            },
-                            "reasoning": {
-                              "type": "string",
-                              "minLength": 1
-                            }
-                          },
-                          "required": ["value", "evidence", "reasoning"]
-                        },
-                        "minItems": 2
-                      }
-                    },
-                    "required": ["kind", "alternatives"]
-                  }
-                ]
+                "$ref": "#/definitions/booleanClaim"
               },
               "use": {
                 "type": "string",
                 "minLength": 1
               },
               "evidence": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "evidence"
-                    },
-                    "id": {
-                      "type": "string",
-                      "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                    }
-                  },
-                  "required": ["kind", "id"]
-                },
-                "minItems": 1,
-                "uniqueItems": true
+                "$ref": "#/definitions/evidenceReferences"
               }
             },
             "required": [
@@ -6324,23 +4425,7 @@
                 "$ref": "#/definitions/hashClaim"
               },
               "evidence": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "evidence"
-                    },
-                    "id": {
-                      "type": "string",
-                      "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                    }
-                  },
-                  "required": ["kind", "id"]
-                },
-                "minItems": 1,
-                "uniqueItems": true
+                "$ref": "#/definitions/evidenceReferences"
               }
             },
             "required": [
@@ -6527,23 +4612,7 @@
                 "minItems": 1
               },
               "sources": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "evidence"
-                    },
-                    "id": {
-                      "type": "string",
-                      "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                    }
-                  },
-                  "required": ["kind", "id"]
-                },
-                "minItems": 1,
-                "uniqueItems": true
+                "$ref": "#/definitions/evidenceReferences"
               }
             },
             "required": [
@@ -6647,23 +4716,7 @@
                         "minLength": 1
                       },
                       "evidence": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "additionalProperties": false,
-                          "properties": {
-                            "kind": {
-                              "const": "evidence"
-                            },
-                            "id": {
-                              "type": "string",
-                              "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                            }
-                          },
-                          "required": ["kind", "id"]
-                        },
-                        "minItems": 1,
-                        "uniqueItems": true
+                        "$ref": "#/definitions/evidenceReferences"
                       }
                     },
                     "required": ["criterion", "evidence"]
@@ -6680,23 +4733,7 @@
                         "minLength": 1
                       },
                       "evidence": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "additionalProperties": false,
-                          "properties": {
-                            "kind": {
-                              "const": "evidence"
-                            },
-                            "id": {
-                              "type": "string",
-                              "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                            }
-                          },
-                          "required": ["kind", "id"]
-                        },
-                        "minItems": 1,
-                        "uniqueItems": true
+                        "$ref": "#/definitions/evidenceReferences"
                       }
                     },
                     "required": ["constraint", "evidence"]
@@ -6713,46 +4750,14 @@
                         "minLength": 1
                       },
                       "evidence": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "additionalProperties": false,
-                          "properties": {
-                            "kind": {
-                              "const": "evidence"
-                            },
-                            "id": {
-                              "type": "string",
-                              "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                            }
-                          },
-                          "required": ["kind", "id"]
-                        },
-                        "minItems": 1,
-                        "uniqueItems": true
+                        "$ref": "#/definitions/evidenceReferences"
                       }
                     },
                     "required": ["subject", "evidence"]
                   }
                 },
                 "evidence": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                      "kind": {
-                        "const": "evidence"
-                      },
-                      "id": {
-                        "type": "string",
-                        "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                      }
-                    },
-                    "required": ["kind", "id"]
-                  },
-                  "minItems": 1,
-                  "uniqueItems": true
+                  "$ref": "#/definitions/evidenceReferences"
                 }
               },
               "required": [
@@ -6791,23 +4796,7 @@
                 "const": false
               },
               "evidence": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "evidence"
-                    },
-                    "id": {
-                      "type": "string",
-                      "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                    }
-                  },
-                  "required": ["kind", "id"]
-                },
-                "minItems": 1,
-                "uniqueItems": true
+                "$ref": "#/definitions/evidenceReferences"
               }
             },
             "required": [
@@ -6844,23 +4833,7 @@
               "format": "native-nul-free-bytes"
             },
             "evidence": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "kind": {
-                    "const": "evidence"
-                  },
-                  "id": {
-                    "type": "string",
-                    "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                  }
-                },
-                "required": ["kind", "id"]
-              },
-              "minItems": 1,
-              "uniqueItems": true
+              "$ref": "#/definitions/evidenceReferences"
             },
             "reasoning": {
               "type": "string",
@@ -6919,23 +4892,7 @@
                     "format": "native-nul-free-bytes"
                   },
                   "evidence": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "properties": {
-                        "kind": {
-                          "const": "evidence"
-                        },
-                        "id": {
-                          "type": "string",
-                          "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                        }
-                      },
-                      "required": ["kind", "id"]
-                    },
-                    "minItems": 1,
-                    "uniqueItems": true
+                    "$ref": "#/definitions/evidenceReferences"
                   },
                   "reasoning": {
                     "type": "string",
@@ -6965,23 +4922,7 @@
               "pattern": "^-?(0|[1-9][0-9]*)$"
             },
             "evidence": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "kind": {
-                    "const": "evidence"
-                  },
-                  "id": {
-                    "type": "string",
-                    "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                  }
-                },
-                "required": ["kind", "id"]
-              },
-              "minItems": 1,
-              "uniqueItems": true
+              "$ref": "#/definitions/evidenceReferences"
             },
             "reasoning": {
               "type": "string",
@@ -7040,23 +4981,113 @@
                     "pattern": "^-?(0|[1-9][0-9]*)$"
                   },
                   "evidence": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "properties": {
-                        "kind": {
-                          "const": "evidence"
-                        },
-                        "id": {
-                          "type": "string",
-                          "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
-                        }
-                      },
-                      "required": ["kind", "id"]
-                    },
-                    "minItems": 1,
-                    "uniqueItems": true
+                    "$ref": "#/definitions/evidenceReferences"
+                  },
+                  "reasoning": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": ["value", "evidence", "reasoning"]
+              },
+              "minItems": 2
+            }
+          },
+          "required": ["kind", "alternatives"]
+        }
+      ]
+    },
+    "evidenceReferences": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "evidence"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+          }
+        },
+        "required": ["kind", "id"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "booleanClaim": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "known"
+            },
+            "value": {
+              "type": "boolean"
+            },
+            "evidence": {
+              "$ref": "#/definitions/evidenceReferences"
+            },
+            "reasoning": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["kind", "value", "evidence"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unknown"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "evidence"
+                  },
+                  "id": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+                  }
+                },
+                "required": ["kind", "id"]
+              },
+              "uniqueItems": true
+            }
+          },
+          "required": ["kind", "reason", "evidence"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "disputed"
+            },
+            "alternatives": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "boolean"
+                  },
+                  "evidence": {
+                    "$ref": "#/definitions/evidenceReferences"
                   },
                   "reasoning": {
                     "type": "string",

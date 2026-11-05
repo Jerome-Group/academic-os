@@ -18,23 +18,24 @@ export type ModuleDataControl =
   | ProviderMirrorsControl
   | VerificationControl
   | LearningWorkspaceControl;
+/**
+ * @minItems 1
+ */
+export type EvidenceReferences = [
+  {
+    kind: "evidence";
+    id: string;
+  },
+  ...{
+    kind: "evidence";
+    id: string;
+  }[],
+];
 export type TextClaim =
   | {
       kind: "known";
       value: string;
-      /**
-       * @minItems 1
-       */
-      evidence: [
-        {
-          kind: "evidence";
-          id: string;
-        },
-        ...{
-          kind: "evidence";
-          id: string;
-        }[],
-      ];
+      evidence: EvidenceReferences;
       reasoning?: string;
     }
   | {
@@ -53,53 +54,55 @@ export type TextClaim =
       alternatives: [
         {
           value: string;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
           reasoning: string;
         },
         {
           value: string;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
           reasoning: string;
         },
         ...{
           value: string;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
+          reasoning: string;
+        }[],
+      ];
+    };
+export type BooleanClaim =
+  | {
+      kind: "known";
+      value: boolean;
+      evidence: EvidenceReferences;
+      reasoning?: string;
+    }
+  | {
+      kind: "unknown";
+      reason: string;
+      evidence: {
+        kind: "evidence";
+        id: string;
+      }[];
+    }
+  | {
+      kind: "disputed";
+      /**
+       * @minItems 2
+       */
+      alternatives: [
+        {
+          value: boolean;
+          evidence: EvidenceReferences;
+          reasoning: string;
+        },
+        {
+          value: boolean;
+          evidence: EvidenceReferences;
+          reasoning: string;
+        },
+        ...{
+          value: boolean;
+          evidence: EvidenceReferences;
           reasoning: string;
         }[],
       ];
@@ -108,19 +111,7 @@ export type DateClaim =
   | {
       kind: "known";
       value: string;
-      /**
-       * @minItems 1
-       */
-      evidence: [
-        {
-          kind: "evidence";
-          id: string;
-        },
-        ...{
-          kind: "evidence";
-          id: string;
-        }[],
-      ];
+      evidence: EvidenceReferences;
       reasoning?: string;
     }
   | {
@@ -139,53 +130,17 @@ export type DateClaim =
       alternatives: [
         {
           value: string;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
           reasoning: string;
         },
         {
           value: string;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
           reasoning: string;
         },
         ...{
           value: string;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
           reasoning: string;
         }[],
       ];
@@ -194,19 +149,7 @@ export type HashClaim =
   | {
       kind: "known";
       value: string;
-      /**
-       * @minItems 1
-       */
-      evidence: [
-        {
-          kind: "evidence";
-          id: string;
-        },
-        ...{
-          kind: "evidence";
-          id: string;
-        }[],
-      ];
+      evidence: EvidenceReferences;
       reasoning?: string;
     }
   | {
@@ -225,53 +168,17 @@ export type HashClaim =
       alternatives: [
         {
           value: string;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
           reasoning: string;
         },
         {
           value: string;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
           reasoning: string;
         },
         ...{
           value: string;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
           reasoning: string;
         }[],
       ];
@@ -280,19 +187,7 @@ export type IntegerClaim =
   | {
       kind: "known";
       value: number;
-      /**
-       * @minItems 1
-       */
-      evidence: [
-        {
-          kind: "evidence";
-          id: string;
-        },
-        ...{
-          kind: "evidence";
-          id: string;
-        }[],
-      ];
+      evidence: EvidenceReferences;
       reasoning?: string;
     }
   | {
@@ -311,53 +206,17 @@ export type IntegerClaim =
       alternatives: [
         {
           value: number;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
           reasoning: string;
         },
         {
           value: number;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
           reasoning: string;
         },
         ...{
           value: number;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
           reasoning: string;
         }[],
       ];
@@ -366,19 +225,7 @@ export type NanosecondsClaim =
   | {
       kind: "known";
       value: string;
-      /**
-       * @minItems 1
-       */
-      evidence: [
-        {
-          kind: "evidence";
-          id: string;
-        },
-        ...{
-          kind: "evidence";
-          id: string;
-        }[],
-      ];
+      evidence: EvidenceReferences;
       reasoning?: string;
     }
   | {
@@ -397,53 +244,17 @@ export type NanosecondsClaim =
       alternatives: [
         {
           value: string;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
           reasoning: string;
         },
         {
           value: string;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
           reasoning: string;
         },
         ...{
           value: string;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
           reasoning: string;
         }[],
       ];
@@ -452,19 +263,7 @@ export type NativeBytesClaim =
   | {
       kind: "known";
       value: string;
-      /**
-       * @minItems 1
-       */
-      evidence: [
-        {
-          kind: "evidence";
-          id: string;
-        },
-        ...{
-          kind: "evidence";
-          id: string;
-        }[],
-      ];
+      evidence: EvidenceReferences;
       reasoning?: string;
     }
   | {
@@ -483,53 +282,17 @@ export type NativeBytesClaim =
       alternatives: [
         {
           value: string;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
           reasoning: string;
         },
         {
           value: string;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
           reasoning: string;
         },
         ...{
           value: string;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
           reasoning: string;
         }[],
       ];
@@ -554,19 +317,7 @@ export type LearningRecord =
         kind: "assessment";
         id: string;
       }[];
-      /**
-       * @minItems 1
-       */
-      evidence: [
-        {
-          kind: "evidence";
-          id: string;
-        },
-        ...{
-          kind: "evidence";
-          id: string;
-        }[],
-      ];
+      evidence: EvidenceReferences;
       supersedes: {
         kind: "learning-record";
         id: string;
@@ -588,19 +339,7 @@ export type LearningRecord =
         | {
             kind: "established";
             value: Target;
-            /**
-             * @minItems 1
-             */
-            evidence: [
-              {
-                kind: "evidence";
-                id: string;
-              },
-              ...{
-                kind: "evidence";
-                id: string;
-              }[],
-            ];
+            evidence: EvidenceReferences;
           };
       observedStatus: TextClaim;
       established: ("observed-session" | "exact-single-topic-coverage")[];
@@ -609,19 +348,7 @@ export type LearningRecord =
         kind: "learning-record";
         id: string;
       }[];
-      /**
-       * @minItems 1
-       */
-      evidence: [
-        {
-          kind: "evidence";
-          id: string;
-        },
-        ...{
-          kind: "evidence";
-          id: string;
-        }[],
-      ];
+      evidence: EvidenceReferences;
     };
 export type Target =
   | {
@@ -681,32 +408,8 @@ export type Understanding =
   | {
       kind: "agent-assessed";
       judgment: "unaided-demonstrated" | "needs-work";
-      /**
-       * @minItems 1
-       */
-      ownerAttempt: [
-        {
-          kind: "evidence";
-          id: string;
-        },
-        ...{
-          kind: "evidence";
-          id: string;
-        }[],
-      ];
-      /**
-       * @minItems 1
-       */
-      independentReview: [
-        {
-          kind: "evidence";
-          id: string;
-        },
-        ...{
-          kind: "evidence";
-          id: string;
-        }[],
-      ];
+      ownerAttempt: EvidenceReferences;
+      independentReview: EvidenceReferences;
       reasoning: string;
       limitations: string[];
     };
@@ -731,19 +434,7 @@ export type ProviderMirror =
           | {
               kind: "known";
               value: "needsAction" | "completed";
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
+              evidence: EvidenceReferences;
               reasoning?: string;
             }
           | {
@@ -762,85 +453,25 @@ export type ProviderMirror =
               alternatives: [
                 {
                   value: "needsAction" | "completed";
-                  /**
-                   * @minItems 1
-                   */
-                  evidence: [
-                    {
-                      kind: "evidence";
-                      id: string;
-                    },
-                    ...{
-                      kind: "evidence";
-                      id: string;
-                    }[],
-                  ];
+                  evidence: EvidenceReferences;
                   reasoning: string;
                 },
                 {
                   value: "needsAction" | "completed";
-                  /**
-                   * @minItems 1
-                   */
-                  evidence: [
-                    {
-                      kind: "evidence";
-                      id: string;
-                    },
-                    ...{
-                      kind: "evidence";
-                      id: string;
-                    }[],
-                  ];
+                  evidence: EvidenceReferences;
                   reasoning: string;
                 },
                 ...{
                   value: "needsAction" | "completed";
-                  /**
-                   * @minItems 1
-                   */
-                  evidence: [
-                    {
-                      kind: "evidence";
-                      id: string;
-                    },
-                    ...{
-                      kind: "evidence";
-                      id: string;
-                    }[],
-                  ];
+                  evidence: EvidenceReferences;
                   reasoning: string;
                 }[],
               ];
             };
         tombstone: boolean;
-        /**
-         * @minItems 1
-         */
-        provenance: [
-          {
-            kind: "evidence";
-            id: string;
-          },
-          ...{
-            kind: "evidence";
-            id: string;
-          }[],
-        ];
+        provenance: EvidenceReferences;
       }[];
-      /**
-       * @minItems 1
-       */
-      evidence: [
-        {
-          kind: "evidence";
-          id: string;
-        },
-        ...{
-          kind: "evidence";
-          id: string;
-        }[],
-      ];
+      evidence: EvidenceReferences;
     }
   | {
       id: string;
@@ -862,19 +493,7 @@ export type ProviderMirror =
           | {
               kind: "known";
               value: "confirmed" | "tentative" | "cancelled";
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
+              evidence: EvidenceReferences;
               reasoning?: string;
             }
           | {
@@ -893,85 +512,25 @@ export type ProviderMirror =
               alternatives: [
                 {
                   value: "confirmed" | "tentative" | "cancelled";
-                  /**
-                   * @minItems 1
-                   */
-                  evidence: [
-                    {
-                      kind: "evidence";
-                      id: string;
-                    },
-                    ...{
-                      kind: "evidence";
-                      id: string;
-                    }[],
-                  ];
+                  evidence: EvidenceReferences;
                   reasoning: string;
                 },
                 {
                   value: "confirmed" | "tentative" | "cancelled";
-                  /**
-                   * @minItems 1
-                   */
-                  evidence: [
-                    {
-                      kind: "evidence";
-                      id: string;
-                    },
-                    ...{
-                      kind: "evidence";
-                      id: string;
-                    }[],
-                  ];
+                  evidence: EvidenceReferences;
                   reasoning: string;
                 },
                 ...{
                   value: "confirmed" | "tentative" | "cancelled";
-                  /**
-                   * @minItems 1
-                   */
-                  evidence: [
-                    {
-                      kind: "evidence";
-                      id: string;
-                    },
-                    ...{
-                      kind: "evidence";
-                      id: string;
-                    }[],
-                  ];
+                  evidence: EvidenceReferences;
                   reasoning: string;
                 }[],
               ];
             };
         tombstone: boolean;
-        /**
-         * @minItems 1
-         */
-        provenance: [
-          {
-            kind: "evidence";
-            id: string;
-          },
-          ...{
-            kind: "evidence";
-            id: string;
-          }[],
-        ];
+        provenance: EvidenceReferences;
       }[];
-      /**
-       * @minItems 1
-       */
-      evidence: [
-        {
-          kind: "evidence";
-          id: string;
-        },
-        ...{
-          kind: "evidence";
-          id: string;
-        }[],
-      ];
+      evidence: EvidenceReferences;
     };
 
 export interface DefinitionControl {
@@ -985,19 +544,7 @@ export interface DefinitionControl {
       | {
           kind: "known";
           value: string;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
           reasoning?: string;
         }
       | {
@@ -1016,53 +563,17 @@ export interface DefinitionControl {
           alternatives: [
             {
               value: string;
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
+              evidence: EvidenceReferences;
               reasoning: string;
             },
             {
               value: string;
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
+              evidence: EvidenceReferences;
               reasoning: string;
             },
             ...{
               value: string;
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
+              evidence: EvidenceReferences;
               reasoning: string;
             }[],
           ];
@@ -1071,19 +582,7 @@ export interface DefinitionControl {
       | {
           kind: "known";
           value: 1 | 2;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
           reasoning?: string;
         }
       | {
@@ -1102,53 +601,17 @@ export interface DefinitionControl {
           alternatives: [
             {
               value: 1 | 2;
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
+              evidence: EvidenceReferences;
               reasoning: string;
             },
             {
               value: 1 | 2;
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
+              evidence: EvidenceReferences;
               reasoning: string;
             },
             ...{
               value: 1 | 2;
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
+              evidence: EvidenceReferences;
               reasoning: string;
             }[],
           ];
@@ -1157,19 +620,7 @@ export interface DefinitionControl {
       | {
           kind: "known";
           value: "active" | "past" | "future";
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
           reasoning?: string;
         }
       | {
@@ -1188,53 +639,17 @@ export interface DefinitionControl {
           alternatives: [
             {
               value: "active" | "past" | "future";
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
+              evidence: EvidenceReferences;
               reasoning: string;
             },
             {
               value: "active" | "past" | "future";
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
+              evidence: EvidenceReferences;
               reasoning: string;
             },
             ...{
               value: "active" | "past" | "future";
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
+              evidence: EvidenceReferences;
               reasoning: string;
             }[],
           ];
@@ -1245,19 +660,7 @@ export interface DefinitionControl {
       | {
           kind: "known";
           value: string[];
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
           reasoning?: string;
         }
       | {
@@ -1276,53 +679,17 @@ export interface DefinitionControl {
           alternatives: [
             {
               value: string[];
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
+              evidence: EvidenceReferences;
               reasoning: string;
             },
             {
               value: string[];
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
+              evidence: EvidenceReferences;
               reasoning: string;
             },
             ...{
               value: string[];
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
+              evidence: EvidenceReferences;
               reasoning: string;
             }[],
           ];
@@ -1331,19 +698,7 @@ export interface DefinitionControl {
       | {
           kind: "known";
           value: string[];
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
           reasoning?: string;
         }
       | {
@@ -1362,53 +717,17 @@ export interface DefinitionControl {
           alternatives: [
             {
               value: string[];
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
+              evidence: EvidenceReferences;
               reasoning: string;
             },
             {
               value: string[];
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
+              evidence: EvidenceReferences;
               reasoning: string;
             },
             ...{
               value: string[];
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
+              evidence: EvidenceReferences;
               reasoning: string;
             }[],
           ];
@@ -1419,19 +738,7 @@ export interface DefinitionControl {
     tutorials:
       | {
           kind: "flat";
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
         }
       | {
           kind: "grouped";
@@ -1439,19 +746,7 @@ export interface DefinitionControl {
            * @minItems 1
            */
           groups: [string, ...string[]];
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
         }
       | {
           kind: "unknown";
@@ -1461,488 +756,27 @@ export interface DefinitionControl {
             id: string;
           }[];
         };
-    quizzes:
-      | {
-          kind: "known";
-          value: boolean;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
-          reasoning?: string;
-        }
-      | {
-          kind: "unknown";
-          reason: string;
-          evidence: {
-            kind: "evidence";
-            id: string;
-          }[];
-        }
-      | {
-          kind: "disputed";
-          /**
-           * @minItems 2
-           */
-          alternatives: [
-            {
-              value: boolean;
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
-              reasoning: string;
-            },
-            {
-              value: boolean;
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
-              reasoning: string;
-            },
-            ...{
-              value: boolean;
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
-              reasoning: string;
-            }[],
-          ];
-        };
-    tests:
-      | {
-          kind: "known";
-          value: boolean;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
-          reasoning?: string;
-        }
-      | {
-          kind: "unknown";
-          reason: string;
-          evidence: {
-            kind: "evidence";
-            id: string;
-          }[];
-        }
-      | {
-          kind: "disputed";
-          /**
-           * @minItems 2
-           */
-          alternatives: [
-            {
-              value: boolean;
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
-              reasoning: string;
-            },
-            {
-              value: boolean;
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
-              reasoning: string;
-            },
-            ...{
-              value: boolean;
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
-              reasoning: string;
-            }[],
-          ];
-        };
-    assignments:
-      | {
-          kind: "known";
-          value: boolean;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
-          reasoning?: string;
-        }
-      | {
-          kind: "unknown";
-          reason: string;
-          evidence: {
-            kind: "evidence";
-            id: string;
-          }[];
-        }
-      | {
-          kind: "disputed";
-          /**
-           * @minItems 2
-           */
-          alternatives: [
-            {
-              value: boolean;
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
-              reasoning: string;
-            },
-            {
-              value: boolean;
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
-              reasoning: string;
-            },
-            ...{
-              value: boolean;
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
-              reasoning: string;
-            }[],
-          ];
-        };
-    projects:
-      | {
-          kind: "known";
-          value: boolean;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
-          reasoning?: string;
-        }
-      | {
-          kind: "unknown";
-          reason: string;
-          evidence: {
-            kind: "evidence";
-            id: string;
-          }[];
-        }
-      | {
-          kind: "disputed";
-          /**
-           * @minItems 2
-           */
-          alternatives: [
-            {
-              value: boolean;
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
-              reasoning: string;
-            },
-            {
-              value: boolean;
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
-              reasoning: string;
-            },
-            ...{
-              value: boolean;
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
-              reasoning: string;
-            }[],
-          ];
-        };
-    labs:
-      | {
-          kind: "known";
-          value: boolean;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
-          reasoning?: string;
-        }
-      | {
-          kind: "unknown";
-          reason: string;
-          evidence: {
-            kind: "evidence";
-            id: string;
-          }[];
-        }
-      | {
-          kind: "disputed";
-          /**
-           * @minItems 2
-           */
-          alternatives: [
-            {
-              value: boolean;
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
-              reasoning: string;
-            },
-            {
-              value: boolean;
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
-              reasoning: string;
-            },
-            ...{
-              value: boolean;
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
-              reasoning: string;
-            }[],
-          ];
-        };
+    quizzes: BooleanClaim;
+    tests: BooleanClaim;
+    assignments: BooleanClaim;
+    projects: BooleanClaim;
+    labs: BooleanClaim;
     resourceCategories: {
       name: string;
-      /**
-       * @minItems 1
-       */
-      evidence: [
-        {
-          kind: "evidence";
-          id: string;
-        },
-        ...{
-          kind: "evidence";
-          id: string;
-        }[],
-      ];
+      evidence: EvidenceReferences;
     }[];
   };
   importers: {
     integration: string;
     role: string;
     root: string;
-    /**
-     * @minItems 1
-     */
-    evidence: [
-      {
-        kind: "evidence";
-        id: string;
-      },
-      ...{
-        kind: "evidence";
-        id: string;
-      }[],
-    ];
+    evidence: EvidenceReferences;
   }[];
   exceptions: {
     id: string;
     rule: string;
     reason: string;
-    /**
-     * @minItems 1
-     */
-    evidence: [
-      {
-        kind: "evidence";
-        id: string;
-      },
-      ...{
-        kind: "evidence";
-        id: string;
-      }[],
-    ];
+    evidence: EvidenceReferences;
   }[];
 }
 export interface ProfileControl {
@@ -1954,19 +788,7 @@ export interface ProfileControl {
   scope: {
     id: string;
     claim: string;
-    /**
-     * @minItems 1
-     */
-    evidence: [
-      {
-        kind: "evidence";
-        id: string;
-      },
-      ...{
-        kind: "evidence";
-        id: string;
-      }[],
-    ];
+    evidence: EvidenceReferences;
     reasoning?: string;
   }[];
   teaching: {
@@ -1974,19 +796,7 @@ export interface ProfileControl {
     label: string;
     mode: "lecture" | "tutorial" | "lab" | "project" | "assignment" | "other";
     description: string;
-    /**
-     * @minItems 1
-     */
-    evidence: [
-      {
-        kind: "evidence";
-        id: string;
-      },
-      ...{
-        kind: "evidence";
-        id: string;
-      }[],
-    ];
+    evidence: EvidenceReferences;
   }[];
   assessments: {
     id: string;
@@ -2016,19 +826,7 @@ export interface ProfileControl {
         | "access"
         | "other";
       requirement: string;
-      /**
-       * @minItems 1
-       */
-      evidence: [
-        {
-          kind: "evidence";
-          id: string;
-        },
-        ...{
-          kind: "evidence";
-          id: string;
-        }[],
-      ];
+      evidence: EvidenceReferences;
     }[];
     arrangements: {
       kind: "issued" | "owner-reservation" | "derived";
@@ -2038,33 +836,9 @@ export interface ProfileControl {
       timezone: TextClaim;
       venue: TextClaim;
       condition: TextClaim;
-      /**
-       * @minItems 1
-       */
-      evidence: [
-        {
-          kind: "evidence";
-          id: string;
-        },
-        ...{
-          kind: "evidence";
-          id: string;
-        }[],
-      ];
+      evidence: EvidenceReferences;
     }[];
-    /**
-     * @minItems 1
-     */
-    evidence: [
-      {
-        kind: "evidence";
-        id: string;
-      },
-      ...{
-        kind: "evidence";
-        id: string;
-      }[],
-    ];
+    evidence: EvidenceReferences;
   }[];
   sourceAuthority: {
     source: {
@@ -2076,36 +850,12 @@ export interface ProfileControl {
      * @minItems 1
      */
     governs: [string, ...string[]];
-    /**
-     * @minItems 1
-     */
-    evidence: [
-      {
-        kind: "evidence";
-        id: string;
-      },
-      ...{
-        kind: "evidence";
-        id: string;
-      }[],
-    ];
+    evidence: EvidenceReferences;
   }[];
   workspaces: {
     path: string;
     purpose: string;
-    /**
-     * @minItems 1
-     */
-    evidence: [
-      {
-        kind: "evidence";
-        id: string;
-      },
-      ...{
-        kind: "evidence";
-        id: string;
-      }[],
-    ];
+    evidence: EvidenceReferences;
   }[];
   gaps: {
     id: string;
@@ -2166,55 +916,19 @@ export interface Source {
         provider: string;
         upstreamId: string;
         algorithm: string;
-        /**
-         * @minItems 1
-         */
-        evidence: [
-          {
-            kind: "evidence";
-            id: string;
-          },
-          ...{
-            kind: "evidence";
-            id: string;
-          }[],
-        ];
+        evidence: EvidenceReferences;
       }
     | {
         kind: "acquisition";
         acquisitionId: string;
         algorithm: string;
-        /**
-         * @minItems 1
-         */
-        evidence: [
-          {
-            kind: "evidence";
-            id: string;
-          },
-          ...{
-            kind: "evidence";
-            id: string;
-          }[],
-        ];
+        evidence: EvidenceReferences;
       }
     | {
         kind: "legacy";
         algorithm: string;
         originalId: string;
-        /**
-         * @minItems 1
-         */
-        evidence: [
-          {
-            kind: "evidence";
-            id: string;
-          },
-          ...{
-            kind: "evidence";
-            id: string;
-          }[],
-        ];
+        evidence: EvidenceReferences;
       };
   title: string;
   /**
@@ -2230,19 +944,7 @@ export interface Source {
       value: string;
     }[],
   ];
-  /**
-   * @minItems 1
-   */
-  evidence: [
-    {
-      kind: "evidence";
-      id: string;
-    },
-    ...{
-      kind: "evidence";
-      id: string;
-    }[],
-  ];
+  evidence: EvidenceReferences;
 }
 export interface Artifact {
   id: string;
@@ -2268,19 +970,7 @@ export interface Artifact {
       kind: "artifact";
       id: string;
     }[];
-    /**
-     * @minItems 1
-     */
-    evidence: [
-      {
-        kind: "evidence";
-        id: string;
-      },
-      ...{
-        kind: "evidence";
-        id: string;
-      }[],
-    ];
+    evidence: EvidenceReferences;
   };
   traits: {
     /**
@@ -2316,19 +1006,7 @@ export interface Artifact {
       | {
           kind: "known";
           value: "clean" | "annotated";
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
           reasoning?: string;
         }
       | {
@@ -2347,53 +1025,17 @@ export interface Artifact {
           alternatives: [
             {
               value: "clean" | "annotated";
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
+              evidence: EvidenceReferences;
               reasoning: string;
             },
             {
               value: "clean" | "annotated";
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
+              evidence: EvidenceReferences;
               reasoning: string;
             },
             ...{
               value: "clean" | "annotated";
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
+              evidence: EvidenceReferences;
               reasoning: string;
             }[],
           ];
@@ -2402,19 +1044,7 @@ export interface Artifact {
       | {
           kind: "known";
           value: "ungraded" | "graded";
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
           reasoning?: string;
         }
       | {
@@ -2433,71 +1063,23 @@ export interface Artifact {
           alternatives: [
             {
               value: "ungraded" | "graded";
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
+              evidence: EvidenceReferences;
               reasoning: string;
             },
             {
               value: "ungraded" | "graded";
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
+              evidence: EvidenceReferences;
               reasoning: string;
             },
             ...{
               value: "ungraded" | "graded";
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
+              evidence: EvidenceReferences;
               reasoning: string;
             }[],
           ];
         };
   };
-  /**
-   * @minItems 1
-   */
-  evidence: [
-    {
-      kind: "evidence";
-      id: string;
-    },
-    ...{
-      kind: "evidence";
-      id: string;
-    }[],
-  ];
+  evidence: EvidenceReferences;
 }
 export interface NativeEntry {
   pathBytesBase64: string;
@@ -2511,19 +1093,7 @@ export interface NativeEntry {
     | {
         kind: "known";
         value: string[];
-        /**
-         * @minItems 1
-         */
-        evidence: [
-          {
-            kind: "evidence";
-            id: string;
-          },
-          ...{
-            kind: "evidence";
-            id: string;
-          }[],
-        ];
+        evidence: EvidenceReferences;
         reasoning?: string;
       }
     | {
@@ -2542,53 +1112,17 @@ export interface NativeEntry {
         alternatives: [
           {
             value: string[];
-            /**
-             * @minItems 1
-             */
-            evidence: [
-              {
-                kind: "evidence";
-                id: string;
-              },
-              ...{
-                kind: "evidence";
-                id: string;
-              }[],
-            ];
+            evidence: EvidenceReferences;
             reasoning: string;
           },
           {
             value: string[];
-            /**
-             * @minItems 1
-             */
-            evidence: [
-              {
-                kind: "evidence";
-                id: string;
-              },
-              ...{
-                kind: "evidence";
-                id: string;
-              }[],
-            ];
+            evidence: EvidenceReferences;
             reasoning: string;
           },
           ...{
             value: string[];
-            /**
-             * @minItems 1
-             */
-            evidence: [
-              {
-                kind: "evidence";
-                id: string;
-              },
-              ...{
-                kind: "evidence";
-                id: string;
-              }[],
-            ];
+            evidence: EvidenceReferences;
             reasoning: string;
           }[],
         ];
@@ -2601,19 +1135,7 @@ export interface NativeEntry {
           valueSha256: string;
           byteLength: number;
         }[];
-        /**
-         * @minItems 1
-         */
-        evidence: [
-          {
-            kind: "evidence";
-            id: string;
-          },
-          ...{
-            kind: "evidence";
-            id: string;
-          }[],
-        ];
+        evidence: EvidenceReferences;
       }
     | {
         kind: "unknown";
@@ -2626,37 +1148,13 @@ export interface NativeEntry {
   resourceFork:
     | {
         kind: "absent";
-        /**
-         * @minItems 1
-         */
-        evidence: [
-          {
-            kind: "evidence";
-            id: string;
-          },
-          ...{
-            kind: "evidence";
-            id: string;
-          }[],
-        ];
+        evidence: EvidenceReferences;
       }
     | {
         kind: "present";
         byteSha256: string;
         byteLength: number;
-        /**
-         * @minItems 1
-         */
-        evidence: [
-          {
-            kind: "evidence";
-            id: string;
-          },
-          ...{
-            kind: "evidence";
-            id: string;
-          }[],
-        ];
+        evidence: EvidenceReferences;
       }
     | {
         kind: "unknown";
@@ -2675,19 +1173,7 @@ export interface NativeEntry {
     | {
         kind: "known";
         value: string;
-        /**
-         * @minItems 1
-         */
-        evidence: [
-          {
-            kind: "evidence";
-            id: string;
-          },
-          ...{
-            kind: "evidence";
-            id: string;
-          }[],
-        ];
+        evidence: EvidenceReferences;
         reasoning?: string;
       }
     | {
@@ -2706,53 +1192,17 @@ export interface NativeEntry {
         alternatives: [
           {
             value: string;
-            /**
-             * @minItems 1
-             */
-            evidence: [
-              {
-                kind: "evidence";
-                id: string;
-              },
-              ...{
-                kind: "evidence";
-                id: string;
-              }[],
-            ];
+            evidence: EvidenceReferences;
             reasoning: string;
           },
           {
             value: string;
-            /**
-             * @minItems 1
-             */
-            evidence: [
-              {
-                kind: "evidence";
-                id: string;
-              },
-              ...{
-                kind: "evidence";
-                id: string;
-              }[],
-            ];
+            evidence: EvidenceReferences;
             reasoning: string;
           },
           ...{
             value: string;
-            /**
-             * @minItems 1
-             */
-            evidence: [
-              {
-                kind: "evidence";
-                id: string;
-              },
-              ...{
-                kind: "evidence";
-                id: string;
-              }[],
-            ];
+            evidence: EvidenceReferences;
             reasoning: string;
           }[],
         ];
@@ -2767,19 +1217,7 @@ export interface SourceMapControl {
   availability:
     | {
         kind: "mapped";
-        /**
-         * @minItems 1
-         */
-        evidence: [
-          {
-            kind: "evidence";
-            id: string;
-          },
-          ...{
-            kind: "evidence";
-            id: string;
-          }[],
-        ];
+        evidence: EvidenceReferences;
       }
     | {
         kind: "unknown";
@@ -2792,19 +1230,7 @@ export interface SourceMapControl {
   teachingWeeks: {
     id: string;
     label: string;
-    /**
-     * @minItems 1
-     */
-    evidence: [
-      {
-        kind: "evidence";
-        id: string;
-      },
-      ...{
-        kind: "evidence";
-        id: string;
-      }[],
-    ];
+    evidence: EvidenceReferences;
   }[];
   units: Unit[];
 }
@@ -2814,19 +1240,7 @@ export interface Unit {
   topics: {
     id: string;
     title: string;
-    /**
-     * @minItems 1
-     */
-    evidence: [
-      {
-        kind: "evidence";
-        id: string;
-      },
-      ...{
-        kind: "evidence";
-        id: string;
-      }[],
-    ];
+    evidence: EvidenceReferences;
   }[];
   teachingWeeks: {
     kind: "teaching-week";
@@ -2836,19 +1250,7 @@ export interface Unit {
   textbook: SourceUse[];
   tutorials: TutorialBlock[];
   supplementary: SourceUse[];
-  /**
-   * @minItems 1
-   */
-  evidence: [
-    {
-      kind: "evidence";
-      id: string;
-    },
-    ...{
-      kind: "evidence";
-      id: string;
-    }[],
-  ];
+  evidence: EvidenceReferences;
 }
 export interface SourceUse {
   source: {
@@ -2874,19 +1276,7 @@ export interface SourceUse {
     | "practice-test"
     | "historical-reference"
     | "other";
-  /**
-   * @minItems 1
-   */
-  evidence: [
-    {
-      kind: "evidence";
-      id: string;
-    },
-    ...{
-      kind: "evidence";
-      id: string;
-    }[],
-  ];
+  evidence: EvidenceReferences;
 }
 export interface TutorialBlock {
   id: string;
@@ -2903,33 +1293,9 @@ export interface TutorialBlock {
   missing: {
     role: "questions" | "solutions" | "hints" | "content" | "code" | "other";
     reason: string;
-    /**
-     * @minItems 1
-     */
-    evidence: [
-      {
-        kind: "evidence";
-        id: string;
-      },
-      ...{
-        kind: "evidence";
-        id: string;
-      }[],
-    ];
+    evidence: EvidenceReferences;
   }[];
-  /**
-   * @minItems 1
-   */
-  evidence: [
-    {
-      kind: "evidence";
-      id: string;
-    },
-    ...{
-      kind: "evidence";
-      id: string;
-    }[],
-  ];
+  evidence: EvidenceReferences;
 }
 export interface TermsControl {
   $schema: "urn:academic-os:module-data:1";
@@ -2952,19 +1318,7 @@ export interface Term {
     kind: "decision";
     id: string;
   };
-  /**
-   * @minItems 1
-   */
-  evidence: [
-    {
-      kind: "evidence";
-      id: string;
-    },
-    ...{
-      kind: "evidence";
-      id: string;
-    }[],
-  ];
+  evidence: EvidenceReferences;
   supersedes: {
     kind: "term";
     id: string;
@@ -3026,19 +1380,7 @@ export interface Decision {
     }[],
   ];
   rationale: string;
-  /**
-   * @minItems 1
-   */
-  evidence: [
-    {
-      kind: "evidence";
-      id: string;
-    },
-    ...{
-      kind: "evidence";
-      id: string;
-    }[],
-  ];
+  evidence: EvidenceReferences;
   supersedes: {
     kind: "decision";
     id: string;
@@ -3054,19 +1396,7 @@ export interface PreferencesControl {
     id: string;
     version: string;
     byteSha256: string;
-    /**
-     * @minItems 1
-     */
-    evidence: [
-      {
-        kind: "evidence";
-        id: string;
-      },
-      ...{
-        kind: "evidence";
-        id: string;
-      }[],
-    ];
+    evidence: EvidenceReferences;
   };
   refinements: {
     id: string;
@@ -3086,19 +1416,7 @@ export interface PreferencesControl {
       kind: "decision";
       id: string;
     };
-    /**
-     * @minItems 1
-     */
-    evidence: [
-      {
-        kind: "evidence";
-        id: string;
-      },
-      ...{
-        kind: "evidence";
-        id: string;
-      }[],
-    ];
+    evidence: EvidenceReferences;
   }[];
 }
 export interface LearningRecordsControl {
@@ -3135,19 +1453,7 @@ export interface Assessment {
         kind: "evidence";
         id: string;
       };
-      /**
-       * @minItems 1
-       */
-      observations: [
-        {
-          kind: "evidence";
-          id: string;
-        },
-        ...{
-          kind: "evidence";
-          id: string;
-        }[],
-      ];
+      observations: EvidenceReferences;
       reasoning: string;
       uncertainty: TextClaim;
     },
@@ -3159,19 +1465,7 @@ export interface Assessment {
         kind: "evidence";
         id: string;
       };
-      /**
-       * @minItems 1
-       */
-      observations: [
-        {
-          kind: "evidence";
-          id: string;
-        },
-        ...{
-          kind: "evidence";
-          id: string;
-        }[],
-      ];
+      observations: EvidenceReferences;
       reasoning: string;
       uncertainty: TextClaim;
     }[],
@@ -3197,19 +1491,7 @@ export interface RevisitControl {
       kind: "decision";
       id: string;
     };
-    /**
-     * @minItems 1
-     */
-    evidence: [
-      {
-        kind: "evidence";
-        id: string;
-      },
-      ...{
-        kind: "evidence";
-        id: string;
-      }[],
-    ];
+    evidence: EvidenceReferences;
   }[];
 }
 export interface GlossaryControl {
@@ -3224,19 +1506,7 @@ export interface GlossaryControl {
     definition: string;
     notation: string[];
     uncertainty: TextClaim;
-    /**
-     * @minItems 1
-     */
-    sources: [
-      {
-        kind: "evidence";
-        id: string;
-      },
-      ...{
-        kind: "evidence";
-        id: string;
-      }[],
-    ];
+    sources: EvidenceReferences;
   }[];
 }
 export interface ResourcesControl {
@@ -3260,106 +1530,9 @@ export interface ResourcesControl {
       kind: "artifact";
       id: string;
     };
-    checked:
-      | {
-          kind: "known";
-          value: boolean;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
-          reasoning?: string;
-        }
-      | {
-          kind: "unknown";
-          reason: string;
-          evidence: {
-            kind: "evidence";
-            id: string;
-          }[];
-        }
-      | {
-          kind: "disputed";
-          /**
-           * @minItems 2
-           */
-          alternatives: [
-            {
-              value: boolean;
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
-              reasoning: string;
-            },
-            {
-              value: boolean;
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
-              reasoning: string;
-            },
-            ...{
-              value: boolean;
-              /**
-               * @minItems 1
-               */
-              evidence: [
-                {
-                  kind: "evidence";
-                  id: string;
-                },
-                ...{
-                  kind: "evidence";
-                  id: string;
-                }[],
-              ];
-              reasoning: string;
-            }[],
-          ];
-        };
+    checked: BooleanClaim;
     use: string;
-    /**
-     * @minItems 1
-     */
-    evidence: [
-      {
-        kind: "evidence";
-        id: string;
-      },
-      ...{
-        kind: "evidence";
-        id: string;
-      }[],
-    ];
+    evidence: EvidenceReferences;
   }[];
 }
 export interface TextbooksControl {
@@ -3383,19 +1556,7 @@ export interface TextbooksControl {
       id: string;
     };
     sourceHash: HashClaim;
-    /**
-     * @minItems 1
-     */
-    evidence: [
-      {
-        kind: "evidence";
-        id: string;
-      },
-      ...{
-        kind: "evidence";
-        id: string;
-      }[],
-    ];
+    evidence: EvidenceReferences;
   }[];
 }
 export interface CurationControl {
@@ -3442,19 +1603,7 @@ export interface CurationEvent {
     id: string;
   }[];
   rationale: string;
-  /**
-   * @minItems 1
-   */
-  evidence: [
-    {
-      kind: "evidence";
-      id: string;
-    },
-    ...{
-      kind: "evidence";
-      id: string;
-    }[],
-  ];
+  evidence: EvidenceReferences;
 }
 export interface ProviderMirrorsControl {
   $schema: "urn:academic-os:module-data:1";
@@ -3479,19 +1628,7 @@ export interface VerificationControl {
      * @minItems 1
      */
     requiredEvidence: [string, ...string[]];
-    /**
-     * @minItems 1
-     */
-    sources: [
-      {
-        kind: "evidence";
-        id: string;
-      },
-      ...{
-        kind: "evidence";
-        id: string;
-      }[],
-    ];
+    sources: EvidenceReferences;
   }[];
   limitations: string[];
 }
@@ -3514,83 +1651,23 @@ export interface LearningWorkspaceControl {
         purpose: string;
         successCriteria: {
           criterion: string;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
         }[];
         constraints: {
           constraint: string;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
         }[];
         outOfScope: {
           subject: string;
-          /**
-           * @minItems 1
-           */
-          evidence: [
-            {
-              kind: "evidence";
-              id: string;
-            },
-            ...{
-              kind: "evidence";
-              id: string;
-            }[],
-          ];
+          evidence: EvidenceReferences;
         }[];
-        /**
-         * @minItems 1
-         */
-        evidence: [
-          {
-            kind: "evidence";
-            id: string;
-          },
-          ...{
-            kind: "evidence";
-            id: string;
-          }[],
-        ];
+        evidence: EvidenceReferences;
       };
   notes: {
     id: string;
     kind: "learner-context" | "material-presentation" | "session-guidance";
     statement: string;
     standingAuthority: false;
-    /**
-     * @minItems 1
-     */
-    evidence: [
-      {
-        kind: "evidence";
-        id: string;
-      },
-      ...{
-        kind: "evidence";
-        id: string;
-      }[],
-    ];
+    evidence: EvidenceReferences;
   }[];
 }

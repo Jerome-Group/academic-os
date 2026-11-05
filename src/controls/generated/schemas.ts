@@ -131,23 +131,6 @@ export const controlSchemas = [
       { $ref: "#/definitions/LearningWorkspaceControl" },
     ],
     definitions: {
-      evidenceReferences: {
-        type: "array",
-        items: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            kind: { const: "evidence" },
-            id: {
-              type: "string",
-              pattern: "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-            },
-          },
-          required: ["kind", "id"],
-        },
-        minItems: 1,
-        uniqueItems: true,
-      },
       textClaim: {
         oneOf: [
           {
@@ -156,24 +139,7 @@ export const controlSchemas = [
             properties: {
               kind: { const: "known" },
               value: { type: "string", minLength: 1 },
-              evidence: {
-                type: "array",
-                items: {
-                  type: "object",
-                  additionalProperties: false,
-                  properties: {
-                    kind: { const: "evidence" },
-                    id: {
-                      type: "string",
-                      pattern:
-                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                    },
-                  },
-                  required: ["kind", "id"],
-                },
-                minItems: 1,
-                uniqueItems: true,
-              },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
               reasoning: { type: "string", minLength: 1 },
             },
             required: ["kind", "value", "evidence"],
@@ -216,24 +182,7 @@ export const controlSchemas = [
                   additionalProperties: false,
                   properties: {
                     value: { type: "string", minLength: 1 },
-                    evidence: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        additionalProperties: false,
-                        properties: {
-                          kind: { const: "evidence" },
-                          id: {
-                            type: "string",
-                            pattern:
-                              "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                          },
-                        },
-                        required: ["kind", "id"],
-                      },
-                      minItems: 1,
-                      uniqueItems: true,
-                    },
+                    evidence: { $ref: "#/definitions/evidenceReferences" },
                     reasoning: { type: "string", minLength: 1 },
                   },
                   required: ["value", "evidence", "reasoning"],
@@ -257,24 +206,7 @@ export const controlSchemas = [
                 pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
                 format: "module-calendar-date",
               },
-              evidence: {
-                type: "array",
-                items: {
-                  type: "object",
-                  additionalProperties: false,
-                  properties: {
-                    kind: { const: "evidence" },
-                    id: {
-                      type: "string",
-                      pattern:
-                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                    },
-                  },
-                  required: ["kind", "id"],
-                },
-                minItems: 1,
-                uniqueItems: true,
-              },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
               reasoning: { type: "string", minLength: 1 },
             },
             required: ["kind", "value", "evidence"],
@@ -321,24 +253,7 @@ export const controlSchemas = [
                       pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
                       format: "module-calendar-date",
                     },
-                    evidence: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        additionalProperties: false,
-                        properties: {
-                          kind: { const: "evidence" },
-                          id: {
-                            type: "string",
-                            pattern:
-                              "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                          },
-                        },
-                        required: ["kind", "id"],
-                      },
-                      minItems: 1,
-                      uniqueItems: true,
-                    },
+                    evidence: { $ref: "#/definitions/evidenceReferences" },
                     reasoning: { type: "string", minLength: 1 },
                   },
                   required: ["value", "evidence", "reasoning"],
@@ -358,24 +273,7 @@ export const controlSchemas = [
             properties: {
               kind: { const: "known" },
               value: { type: "string", pattern: "^[a-f0-9]{64}$" },
-              evidence: {
-                type: "array",
-                items: {
-                  type: "object",
-                  additionalProperties: false,
-                  properties: {
-                    kind: { const: "evidence" },
-                    id: {
-                      type: "string",
-                      pattern:
-                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                    },
-                  },
-                  required: ["kind", "id"],
-                },
-                minItems: 1,
-                uniqueItems: true,
-              },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
               reasoning: { type: "string", minLength: 1 },
             },
             required: ["kind", "value", "evidence"],
@@ -418,24 +316,7 @@ export const controlSchemas = [
                   additionalProperties: false,
                   properties: {
                     value: { type: "string", pattern: "^[a-f0-9]{64}$" },
-                    evidence: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        additionalProperties: false,
-                        properties: {
-                          kind: { const: "evidence" },
-                          id: {
-                            type: "string",
-                            pattern:
-                              "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                          },
-                        },
-                        required: ["kind", "id"],
-                      },
-                      minItems: 1,
-                      uniqueItems: true,
-                    },
+                    evidence: { $ref: "#/definitions/evidenceReferences" },
                     reasoning: { type: "string", minLength: 1 },
                   },
                   required: ["value", "evidence", "reasoning"],
@@ -455,24 +336,7 @@ export const controlSchemas = [
             properties: {
               kind: { const: "known" },
               value: { type: "integer", minimum: 0 },
-              evidence: {
-                type: "array",
-                items: {
-                  type: "object",
-                  additionalProperties: false,
-                  properties: {
-                    kind: { const: "evidence" },
-                    id: {
-                      type: "string",
-                      pattern:
-                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                    },
-                  },
-                  required: ["kind", "id"],
-                },
-                minItems: 1,
-                uniqueItems: true,
-              },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
               reasoning: { type: "string", minLength: 1 },
             },
             required: ["kind", "value", "evidence"],
@@ -515,24 +379,7 @@ export const controlSchemas = [
                   additionalProperties: false,
                   properties: {
                     value: { type: "integer", minimum: 0 },
-                    evidence: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        additionalProperties: false,
-                        properties: {
-                          kind: { const: "evidence" },
-                          id: {
-                            type: "string",
-                            pattern:
-                              "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                          },
-                        },
-                        required: ["kind", "id"],
-                      },
-                      minItems: 1,
-                      uniqueItems: true,
-                    },
+                    evidence: { $ref: "#/definitions/evidenceReferences" },
                     reasoning: { type: "string", minLength: 1 },
                   },
                   required: ["value", "evidence", "reasoning"],
@@ -624,24 +471,7 @@ export const controlSchemas = [
                     type: "array",
                     items: { type: "string", minLength: 1 },
                   },
-                  evidence: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      additionalProperties: false,
-                      properties: {
-                        kind: { const: "evidence" },
-                        id: {
-                          type: "string",
-                          pattern:
-                            "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                        },
-                      },
-                      required: ["kind", "id"],
-                    },
-                    minItems: 1,
-                    uniqueItems: true,
-                  },
+                  evidence: { $ref: "#/definitions/evidenceReferences" },
                   reasoning: { type: "string", minLength: 1 },
                 },
                 required: ["kind", "value", "evidence"],
@@ -687,24 +517,7 @@ export const controlSchemas = [
                           type: "array",
                           items: { type: "string", minLength: 1 },
                         },
-                        evidence: {
-                          type: "array",
-                          items: {
-                            type: "object",
-                            additionalProperties: false,
-                            properties: {
-                              kind: { const: "evidence" },
-                              id: {
-                                type: "string",
-                                pattern:
-                                  "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                              },
-                            },
-                            required: ["kind", "id"],
-                          },
-                          minItems: 1,
-                          uniqueItems: true,
-                        },
+                        evidence: { $ref: "#/definitions/evidenceReferences" },
                         reasoning: { type: "string", minLength: 1 },
                       },
                       required: ["value", "evidence", "reasoning"],
@@ -747,24 +560,7 @@ export const controlSchemas = [
                       ],
                     },
                   },
-                  evidence: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      additionalProperties: false,
-                      properties: {
-                        kind: { const: "evidence" },
-                        id: {
-                          type: "string",
-                          pattern:
-                            "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                        },
-                      },
-                      required: ["kind", "id"],
-                    },
-                    minItems: 1,
-                    uniqueItems: true,
-                  },
+                  evidence: { $ref: "#/definitions/evidenceReferences" },
                 },
                 required: ["kind", "entries", "evidence"],
               },
@@ -803,24 +599,7 @@ export const controlSchemas = [
                 additionalProperties: false,
                 properties: {
                   kind: { const: "absent" },
-                  evidence: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      additionalProperties: false,
-                      properties: {
-                        kind: { const: "evidence" },
-                        id: {
-                          type: "string",
-                          pattern:
-                            "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                        },
-                      },
-                      required: ["kind", "id"],
-                    },
-                    minItems: 1,
-                    uniqueItems: true,
-                  },
+                  evidence: { $ref: "#/definitions/evidenceReferences" },
                 },
                 required: ["kind", "evidence"],
               },
@@ -831,24 +610,7 @@ export const controlSchemas = [
                   kind: { const: "present" },
                   byteSha256: { type: "string", pattern: "^[a-f0-9]{64}$" },
                   byteLength: { type: "integer", minimum: 0 },
-                  evidence: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      additionalProperties: false,
-                      properties: {
-                        kind: { const: "evidence" },
-                        id: {
-                          type: "string",
-                          pattern:
-                            "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                        },
-                      },
-                      required: ["kind", "id"],
-                    },
-                    minItems: 1,
-                    uniqueItems: true,
-                  },
+                  evidence: { $ref: "#/definitions/evidenceReferences" },
                 },
                 required: ["kind", "byteSha256", "byteLength", "evidence"],
               },
@@ -973,24 +735,7 @@ export const controlSchemas = [
                 description:
                   "Acyclic native containment references. Membership does not follow symlink targets.",
               },
-              evidence: {
-                type: "array",
-                items: {
-                  type: "object",
-                  additionalProperties: false,
-                  properties: {
-                    kind: { const: "evidence" },
-                    id: {
-                      type: "string",
-                      pattern:
-                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                    },
-                  },
-                  required: ["kind", "id"],
-                },
-                minItems: 1,
-                uniqueItems: true,
-              },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
             },
             required: [
               "kind",
@@ -1032,24 +777,7 @@ export const controlSchemas = [
                     properties: {
                       kind: { const: "known" },
                       value: { enum: ["clean", "annotated"] },
-                      evidence: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            kind: { const: "evidence" },
-                            id: {
-                              type: "string",
-                              pattern:
-                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                            },
-                          },
-                          required: ["kind", "id"],
-                        },
-                        minItems: 1,
-                        uniqueItems: true,
-                      },
+                      evidence: { $ref: "#/definitions/evidenceReferences" },
                       reasoning: { type: "string", minLength: 1 },
                     },
                     required: ["kind", "value", "evidence"],
@@ -1093,22 +821,7 @@ export const controlSchemas = [
                           properties: {
                             value: { enum: ["clean", "annotated"] },
                             evidence: {
-                              type: "array",
-                              items: {
-                                type: "object",
-                                additionalProperties: false,
-                                properties: {
-                                  kind: { const: "evidence" },
-                                  id: {
-                                    type: "string",
-                                    pattern:
-                                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                                  },
-                                },
-                                required: ["kind", "id"],
-                              },
-                              minItems: 1,
-                              uniqueItems: true,
+                              $ref: "#/definitions/evidenceReferences",
                             },
                             reasoning: { type: "string", minLength: 1 },
                           },
@@ -1129,24 +842,7 @@ export const controlSchemas = [
                     properties: {
                       kind: { const: "known" },
                       value: { enum: ["ungraded", "graded"] },
-                      evidence: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            kind: { const: "evidence" },
-                            id: {
-                              type: "string",
-                              pattern:
-                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                            },
-                          },
-                          required: ["kind", "id"],
-                        },
-                        minItems: 1,
-                        uniqueItems: true,
-                      },
+                      evidence: { $ref: "#/definitions/evidenceReferences" },
                       reasoning: { type: "string", minLength: 1 },
                     },
                     required: ["kind", "value", "evidence"],
@@ -1190,22 +886,7 @@ export const controlSchemas = [
                           properties: {
                             value: { enum: ["ungraded", "graded"] },
                             evidence: {
-                              type: "array",
-                              items: {
-                                type: "object",
-                                additionalProperties: false,
-                                properties: {
-                                  kind: { const: "evidence" },
-                                  id: {
-                                    type: "string",
-                                    pattern:
-                                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                                  },
-                                },
-                                required: ["kind", "id"],
-                              },
-                              minItems: 1,
-                              uniqueItems: true,
+                              $ref: "#/definitions/evidenceReferences",
                             },
                             reasoning: { type: "string", minLength: 1 },
                           },
@@ -1221,24 +902,7 @@ export const controlSchemas = [
             },
             required: ["content", "annotation", "grading"],
           },
-          evidence: {
-            type: "array",
-            items: {
-              type: "object",
-              additionalProperties: false,
-              properties: {
-                kind: { const: "evidence" },
-                id: {
-                  type: "string",
-                  pattern:
-                    "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                },
-              },
-              required: ["kind", "id"],
-            },
-            minItems: 1,
-            uniqueItems: true,
-          },
+          evidence: { $ref: "#/definitions/evidenceReferences" },
         },
         required: [
           "id",
@@ -1267,24 +931,7 @@ export const controlSchemas = [
                   provider: { type: "string", minLength: 1 },
                   upstreamId: { type: "string", minLength: 1 },
                   algorithm: { type: "string", minLength: 1 },
-                  evidence: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      additionalProperties: false,
-                      properties: {
-                        kind: { const: "evidence" },
-                        id: {
-                          type: "string",
-                          pattern:
-                            "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                        },
-                      },
-                      required: ["kind", "id"],
-                    },
-                    minItems: 1,
-                    uniqueItems: true,
-                  },
+                  evidence: { $ref: "#/definitions/evidenceReferences" },
                 },
                 required: [
                   "kind",
@@ -1301,24 +948,7 @@ export const controlSchemas = [
                   kind: { const: "acquisition" },
                   acquisitionId: { type: "string", minLength: 1 },
                   algorithm: { type: "string", minLength: 1 },
-                  evidence: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      additionalProperties: false,
-                      properties: {
-                        kind: { const: "evidence" },
-                        id: {
-                          type: "string",
-                          pattern:
-                            "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                        },
-                      },
-                      required: ["kind", "id"],
-                    },
-                    minItems: 1,
-                    uniqueItems: true,
-                  },
+                  evidence: { $ref: "#/definitions/evidenceReferences" },
                 },
                 required: ["kind", "acquisitionId", "algorithm", "evidence"],
               },
@@ -1329,24 +959,7 @@ export const controlSchemas = [
                   kind: { const: "legacy" },
                   algorithm: { type: "string", minLength: 1 },
                   originalId: { type: "string", minLength: 1 },
-                  evidence: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      additionalProperties: false,
-                      properties: {
-                        kind: { const: "evidence" },
-                        id: {
-                          type: "string",
-                          pattern:
-                            "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                        },
-                      },
-                      required: ["kind", "id"],
-                    },
-                    minItems: 1,
-                    uniqueItems: true,
-                  },
+                  evidence: { $ref: "#/definitions/evidenceReferences" },
                 },
                 required: ["kind", "algorithm", "originalId", "evidence"],
               },
@@ -1366,24 +979,7 @@ export const controlSchemas = [
             },
             minItems: 1,
           },
-          evidence: {
-            type: "array",
-            items: {
-              type: "object",
-              additionalProperties: false,
-              properties: {
-                kind: { const: "evidence" },
-                id: {
-                  type: "string",
-                  pattern:
-                    "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                },
-              },
-              required: ["kind", "id"],
-            },
-            minItems: 1,
-            uniqueItems: true,
-          },
+          evidence: { $ref: "#/definitions/evidenceReferences" },
         },
         required: ["id", "identity", "title", "locators", "evidence"],
       },
@@ -1433,24 +1029,7 @@ export const controlSchemas = [
               "other",
             ],
           },
-          evidence: {
-            type: "array",
-            items: {
-              type: "object",
-              additionalProperties: false,
-              properties: {
-                kind: { const: "evidence" },
-                id: {
-                  type: "string",
-                  pattern:
-                    "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                },
-              },
-              required: ["kind", "id"],
-            },
-            minItems: 1,
-            uniqueItems: true,
-          },
+          evidence: { $ref: "#/definitions/evidenceReferences" },
         },
         required: ["source", "artifact", "locator", "role", "evidence"],
       },
@@ -1503,46 +1082,12 @@ export const controlSchemas = [
                   ],
                 },
                 reason: { type: "string", minLength: 1 },
-                evidence: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "evidence" },
-                      id: {
-                        type: "string",
-                        pattern:
-                          "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                      },
-                    },
-                    required: ["kind", "id"],
-                  },
-                  minItems: 1,
-                  uniqueItems: true,
-                },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
               },
               required: ["role", "reason", "evidence"],
             },
           },
-          evidence: {
-            type: "array",
-            items: {
-              type: "object",
-              additionalProperties: false,
-              properties: {
-                kind: { const: "evidence" },
-                id: {
-                  type: "string",
-                  pattern:
-                    "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                },
-              },
-              required: ["kind", "id"],
-            },
-            minItems: 1,
-            uniqueItems: true,
-          },
+          evidence: { $ref: "#/definitions/evidenceReferences" },
         },
         required: [
           "id",
@@ -1574,24 +1119,7 @@ export const controlSchemas = [
                   pattern: "^topic:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
                 },
                 title: { type: "string", minLength: 1 },
-                evidence: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "evidence" },
-                      id: {
-                        type: "string",
-                        pattern:
-                          "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                      },
-                    },
-                    required: ["kind", "id"],
-                  },
-                  minItems: 1,
-                  uniqueItems: true,
-                },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
               },
               required: ["id", "title", "evidence"],
             },
@@ -1629,24 +1157,7 @@ export const controlSchemas = [
             type: "array",
             items: { $ref: "#/definitions/sourceUse" },
           },
-          evidence: {
-            type: "array",
-            items: {
-              type: "object",
-              additionalProperties: false,
-              properties: {
-                kind: { const: "evidence" },
-                id: {
-                  type: "string",
-                  pattern:
-                    "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                },
-              },
-              required: ["kind", "id"],
-            },
-            minItems: 1,
-            uniqueItems: true,
-          },
+          evidence: { $ref: "#/definitions/evidenceReferences" },
         },
         required: [
           "id",
@@ -1802,42 +1313,8 @@ export const controlSchemas = [
             properties: {
               kind: { const: "agent-assessed" },
               judgment: { enum: ["unaided-demonstrated", "needs-work"] },
-              ownerAttempt: {
-                type: "array",
-                items: {
-                  type: "object",
-                  additionalProperties: false,
-                  properties: {
-                    kind: { const: "evidence" },
-                    id: {
-                      type: "string",
-                      pattern:
-                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                    },
-                  },
-                  required: ["kind", "id"],
-                },
-                minItems: 1,
-                uniqueItems: true,
-              },
-              independentReview: {
-                type: "array",
-                items: {
-                  type: "object",
-                  additionalProperties: false,
-                  properties: {
-                    kind: { const: "evidence" },
-                    id: {
-                      type: "string",
-                      pattern:
-                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                    },
-                  },
-                  required: ["kind", "id"],
-                },
-                minItems: 1,
-                uniqueItems: true,
-              },
+              ownerAttempt: { $ref: "#/definitions/evidenceReferences" },
+              independentReview: { $ref: "#/definitions/evidenceReferences" },
               reasoning: { type: "string", minLength: 1 },
               limitations: {
                 type: "array",
@@ -1915,24 +1392,7 @@ export const controlSchemas = [
                   },
                   required: ["kind", "id"],
                 },
-                observations: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "evidence" },
-                      id: {
-                        type: "string",
-                        pattern:
-                          "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                      },
-                    },
-                    required: ["kind", "id"],
-                  },
-                  minItems: 1,
-                  uniqueItems: true,
-                },
+                observations: { $ref: "#/definitions/evidenceReferences" },
                 reasoning: { type: "string", minLength: 1 },
                 uncertainty: { $ref: "#/definitions/textClaim" },
               },
@@ -2043,24 +1503,7 @@ export const controlSchemas = [
                 },
                 uniqueItems: true,
               },
-              evidence: {
-                type: "array",
-                items: {
-                  type: "object",
-                  additionalProperties: false,
-                  properties: {
-                    kind: { const: "evidence" },
-                    id: {
-                      type: "string",
-                      pattern:
-                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                    },
-                  },
-                  required: ["kind", "id"],
-                },
-                minItems: 1,
-                uniqueItems: true,
-              },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
               supersedes: {
                 type: "array",
                 items: {
@@ -2133,24 +1576,7 @@ export const controlSchemas = [
                     properties: {
                       kind: { const: "established" },
                       value: { $ref: "#/definitions/target" },
-                      evidence: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            kind: { const: "evidence" },
-                            id: {
-                              type: "string",
-                              pattern:
-                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                            },
-                          },
-                          required: ["kind", "id"],
-                        },
-                        minItems: 1,
-                        uniqueItems: true,
-                      },
+                      evidence: { $ref: "#/definitions/evidenceReferences" },
                     },
                     required: ["kind", "value", "evidence"],
                   },
@@ -2185,24 +1611,7 @@ export const controlSchemas = [
                 },
                 uniqueItems: true,
               },
-              evidence: {
-                type: "array",
-                items: {
-                  type: "object",
-                  additionalProperties: false,
-                  properties: {
-                    kind: { const: "evidence" },
-                    id: {
-                      type: "string",
-                      pattern:
-                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                    },
-                  },
-                  required: ["kind", "id"],
-                },
-                minItems: 1,
-                uniqueItems: true,
-              },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
             },
             required: [
               "id",
@@ -2276,24 +1685,7 @@ export const controlSchemas = [
             minItems: 1,
           },
           rationale: { type: "string", minLength: 1 },
-          evidence: {
-            type: "array",
-            items: {
-              type: "object",
-              additionalProperties: false,
-              properties: {
-                kind: { const: "evidence" },
-                id: {
-                  type: "string",
-                  pattern:
-                    "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                },
-              },
-              required: ["kind", "id"],
-            },
-            minItems: 1,
-            uniqueItems: true,
-          },
+          evidence: { $ref: "#/definitions/evidenceReferences" },
           supersedes: {
             type: "array",
             items: {
@@ -2357,24 +1749,7 @@ export const controlSchemas = [
             },
             required: ["kind", "id"],
           },
-          evidence: {
-            type: "array",
-            items: {
-              type: "object",
-              additionalProperties: false,
-              properties: {
-                kind: { const: "evidence" },
-                id: {
-                  type: "string",
-                  pattern:
-                    "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                },
-              },
-              required: ["kind", "id"],
-            },
-            minItems: 1,
-            uniqueItems: true,
-          },
+          evidence: { $ref: "#/definitions/evidenceReferences" },
           supersedes: {
             type: "array",
             items: {
@@ -2483,24 +1858,7 @@ export const controlSchemas = [
             uniqueItems: true,
           },
           rationale: { type: "string", minLength: 1 },
-          evidence: {
-            type: "array",
-            items: {
-              type: "object",
-              additionalProperties: false,
-              properties: {
-                kind: { const: "evidence" },
-                id: {
-                  type: "string",
-                  pattern:
-                    "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                },
-              },
-              required: ["kind", "id"],
-            },
-            minItems: 1,
-            uniqueItems: true,
-          },
+          evidence: { $ref: "#/definitions/evidenceReferences" },
         },
         required: [
           "id",
@@ -2570,22 +1928,7 @@ export const controlSchemas = [
                             kind: { const: "known" },
                             value: { enum: ["needsAction", "completed"] },
                             evidence: {
-                              type: "array",
-                              items: {
-                                type: "object",
-                                additionalProperties: false,
-                                properties: {
-                                  kind: { const: "evidence" },
-                                  id: {
-                                    type: "string",
-                                    pattern:
-                                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                                  },
-                                },
-                                required: ["kind", "id"],
-                              },
-                              minItems: 1,
-                              uniqueItems: true,
+                              $ref: "#/definitions/evidenceReferences",
                             },
                             reasoning: { type: "string", minLength: 1 },
                           },
@@ -2630,22 +1973,7 @@ export const controlSchemas = [
                                 properties: {
                                   value: { enum: ["needsAction", "completed"] },
                                   evidence: {
-                                    type: "array",
-                                    items: {
-                                      type: "object",
-                                      additionalProperties: false,
-                                      properties: {
-                                        kind: { const: "evidence" },
-                                        id: {
-                                          type: "string",
-                                          pattern:
-                                            "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                                        },
-                                      },
-                                      required: ["kind", "id"],
-                                    },
-                                    minItems: 1,
-                                    uniqueItems: true,
+                                    $ref: "#/definitions/evidenceReferences",
                                   },
                                   reasoning: { type: "string", minLength: 1 },
                                 },
@@ -2659,24 +1987,7 @@ export const controlSchemas = [
                       ],
                     },
                     tombstone: { type: "boolean" },
-                    provenance: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        additionalProperties: false,
-                        properties: {
-                          kind: { const: "evidence" },
-                          id: {
-                            type: "string",
-                            pattern:
-                              "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                          },
-                        },
-                        required: ["kind", "id"],
-                      },
-                      minItems: 1,
-                      uniqueItems: true,
-                    },
+                    provenance: { $ref: "#/definitions/evidenceReferences" },
                   },
                   required: [
                     "providerId",
@@ -2687,24 +1998,7 @@ export const controlSchemas = [
                   ],
                 },
               },
-              evidence: {
-                type: "array",
-                items: {
-                  type: "object",
-                  additionalProperties: false,
-                  properties: {
-                    kind: { const: "evidence" },
-                    id: {
-                      type: "string",
-                      pattern:
-                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                    },
-                  },
-                  required: ["kind", "id"],
-                },
-                minItems: 1,
-                uniqueItems: true,
-              },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
             },
             required: [
               "id",
@@ -2773,22 +2067,7 @@ export const controlSchemas = [
                               enum: ["confirmed", "tentative", "cancelled"],
                             },
                             evidence: {
-                              type: "array",
-                              items: {
-                                type: "object",
-                                additionalProperties: false,
-                                properties: {
-                                  kind: { const: "evidence" },
-                                  id: {
-                                    type: "string",
-                                    pattern:
-                                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                                  },
-                                },
-                                required: ["kind", "id"],
-                              },
-                              minItems: 1,
-                              uniqueItems: true,
+                              $ref: "#/definitions/evidenceReferences",
                             },
                             reasoning: { type: "string", minLength: 1 },
                           },
@@ -2839,22 +2118,7 @@ export const controlSchemas = [
                                     ],
                                   },
                                   evidence: {
-                                    type: "array",
-                                    items: {
-                                      type: "object",
-                                      additionalProperties: false,
-                                      properties: {
-                                        kind: { const: "evidence" },
-                                        id: {
-                                          type: "string",
-                                          pattern:
-                                            "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                                        },
-                                      },
-                                      required: ["kind", "id"],
-                                    },
-                                    minItems: 1,
-                                    uniqueItems: true,
+                                    $ref: "#/definitions/evidenceReferences",
                                   },
                                   reasoning: { type: "string", minLength: 1 },
                                 },
@@ -2868,24 +2132,7 @@ export const controlSchemas = [
                       ],
                     },
                     tombstone: { type: "boolean" },
-                    provenance: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        additionalProperties: false,
-                        properties: {
-                          kind: { const: "evidence" },
-                          id: {
-                            type: "string",
-                            pattern:
-                              "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                          },
-                        },
-                        required: ["kind", "id"],
-                      },
-                      minItems: 1,
-                      uniqueItems: true,
-                    },
+                    provenance: { $ref: "#/definitions/evidenceReferences" },
                   },
                   required: [
                     "providerId",
@@ -2896,24 +2143,7 @@ export const controlSchemas = [
                   ],
                 },
               },
-              evidence: {
-                type: "array",
-                items: {
-                  type: "object",
-                  additionalProperties: false,
-                  properties: {
-                    kind: { const: "evidence" },
-                    id: {
-                      type: "string",
-                      pattern:
-                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                    },
-                  },
-                  required: ["kind", "id"],
-                },
-                minItems: 1,
-                uniqueItems: true,
-              },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
             },
             required: [
               "id",
@@ -2952,24 +2182,7 @@ export const controlSchemas = [
                     properties: {
                       kind: { const: "known" },
                       value: { type: "string", pattern: "^[0-9]{4}-[0-9]{4}$" },
-                      evidence: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            kind: { const: "evidence" },
-                            id: {
-                              type: "string",
-                              pattern:
-                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                            },
-                          },
-                          required: ["kind", "id"],
-                        },
-                        minItems: 1,
-                        uniqueItems: true,
-                      },
+                      evidence: { $ref: "#/definitions/evidenceReferences" },
                       reasoning: { type: "string", minLength: 1 },
                     },
                     required: ["kind", "value", "evidence"],
@@ -3016,22 +2229,7 @@ export const controlSchemas = [
                               pattern: "^[0-9]{4}-[0-9]{4}$",
                             },
                             evidence: {
-                              type: "array",
-                              items: {
-                                type: "object",
-                                additionalProperties: false,
-                                properties: {
-                                  kind: { const: "evidence" },
-                                  id: {
-                                    type: "string",
-                                    pattern:
-                                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                                  },
-                                },
-                                required: ["kind", "id"],
-                              },
-                              minItems: 1,
-                              uniqueItems: true,
+                              $ref: "#/definitions/evidenceReferences",
                             },
                             reasoning: { type: "string", minLength: 1 },
                           },
@@ -3052,24 +2250,7 @@ export const controlSchemas = [
                     properties: {
                       kind: { const: "known" },
                       value: { enum: [1, 2] },
-                      evidence: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            kind: { const: "evidence" },
-                            id: {
-                              type: "string",
-                              pattern:
-                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                            },
-                          },
-                          required: ["kind", "id"],
-                        },
-                        minItems: 1,
-                        uniqueItems: true,
-                      },
+                      evidence: { $ref: "#/definitions/evidenceReferences" },
                       reasoning: { type: "string", minLength: 1 },
                     },
                     required: ["kind", "value", "evidence"],
@@ -3113,22 +2294,7 @@ export const controlSchemas = [
                           properties: {
                             value: { enum: [1, 2] },
                             evidence: {
-                              type: "array",
-                              items: {
-                                type: "object",
-                                additionalProperties: false,
-                                properties: {
-                                  kind: { const: "evidence" },
-                                  id: {
-                                    type: "string",
-                                    pattern:
-                                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                                  },
-                                },
-                                required: ["kind", "id"],
-                              },
-                              minItems: 1,
-                              uniqueItems: true,
+                              $ref: "#/definitions/evidenceReferences",
                             },
                             reasoning: { type: "string", minLength: 1 },
                           },
@@ -3149,24 +2315,7 @@ export const controlSchemas = [
                     properties: {
                       kind: { const: "known" },
                       value: { enum: ["active", "past", "future"] },
-                      evidence: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            kind: { const: "evidence" },
-                            id: {
-                              type: "string",
-                              pattern:
-                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                            },
-                          },
-                          required: ["kind", "id"],
-                        },
-                        minItems: 1,
-                        uniqueItems: true,
-                      },
+                      evidence: { $ref: "#/definitions/evidenceReferences" },
                       reasoning: { type: "string", minLength: 1 },
                     },
                     required: ["kind", "value", "evidence"],
@@ -3210,22 +2359,7 @@ export const controlSchemas = [
                           properties: {
                             value: { enum: ["active", "past", "future"] },
                             evidence: {
-                              type: "array",
-                              items: {
-                                type: "object",
-                                additionalProperties: false,
-                                properties: {
-                                  kind: { const: "evidence" },
-                                  id: {
-                                    type: "string",
-                                    pattern:
-                                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                                  },
-                                },
-                                required: ["kind", "id"],
-                              },
-                              minItems: 1,
-                              uniqueItems: true,
+                              $ref: "#/definitions/evidenceReferences",
                             },
                             reasoning: { type: "string", minLength: 1 },
                           },
@@ -3251,24 +2385,7 @@ export const controlSchemas = [
                         type: "array",
                         items: { type: "string", minLength: 1 },
                       },
-                      evidence: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            kind: { const: "evidence" },
-                            id: {
-                              type: "string",
-                              pattern:
-                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                            },
-                          },
-                          required: ["kind", "id"],
-                        },
-                        minItems: 1,
-                        uniqueItems: true,
-                      },
+                      evidence: { $ref: "#/definitions/evidenceReferences" },
                       reasoning: { type: "string", minLength: 1 },
                     },
                     required: ["kind", "value", "evidence"],
@@ -3315,22 +2432,7 @@ export const controlSchemas = [
                               items: { type: "string", minLength: 1 },
                             },
                             evidence: {
-                              type: "array",
-                              items: {
-                                type: "object",
-                                additionalProperties: false,
-                                properties: {
-                                  kind: { const: "evidence" },
-                                  id: {
-                                    type: "string",
-                                    pattern:
-                                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                                  },
-                                },
-                                required: ["kind", "id"],
-                              },
-                              minItems: 1,
-                              uniqueItems: true,
+                              $ref: "#/definitions/evidenceReferences",
                             },
                             reasoning: { type: "string", minLength: 1 },
                           },
@@ -3354,24 +2456,7 @@ export const controlSchemas = [
                         type: "array",
                         items: { type: "string", minLength: 1 },
                       },
-                      evidence: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            kind: { const: "evidence" },
-                            id: {
-                              type: "string",
-                              pattern:
-                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                            },
-                          },
-                          required: ["kind", "id"],
-                        },
-                        minItems: 1,
-                        uniqueItems: true,
-                      },
+                      evidence: { $ref: "#/definitions/evidenceReferences" },
                       reasoning: { type: "string", minLength: 1 },
                     },
                     required: ["kind", "value", "evidence"],
@@ -3418,22 +2503,7 @@ export const controlSchemas = [
                               items: { type: "string", minLength: 1 },
                             },
                             evidence: {
-                              type: "array",
-                              items: {
-                                type: "object",
-                                additionalProperties: false,
-                                properties: {
-                                  kind: { const: "evidence" },
-                                  id: {
-                                    type: "string",
-                                    pattern:
-                                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                                  },
-                                },
-                                required: ["kind", "id"],
-                              },
-                              minItems: 1,
-                              uniqueItems: true,
+                              $ref: "#/definitions/evidenceReferences",
                             },
                             reasoning: { type: "string", minLength: 1 },
                           },
@@ -3470,24 +2540,7 @@ export const controlSchemas = [
                     additionalProperties: false,
                     properties: {
                       kind: { const: "flat" },
-                      evidence: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            kind: { const: "evidence" },
-                            id: {
-                              type: "string",
-                              pattern:
-                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                            },
-                          },
-                          required: ["kind", "id"],
-                        },
-                        minItems: 1,
-                        uniqueItems: true,
-                      },
+                      evidence: { $ref: "#/definitions/evidenceReferences" },
                     },
                     required: ["kind", "evidence"],
                   },
@@ -3502,24 +2555,7 @@ export const controlSchemas = [
                         minItems: 1,
                         uniqueItems: true,
                       },
-                      evidence: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            kind: { const: "evidence" },
-                            id: {
-                              type: "string",
-                              pattern:
-                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                            },
-                          },
-                          required: ["kind", "id"],
-                        },
-                        minItems: 1,
-                        uniqueItems: true,
-                      },
+                      evidence: { $ref: "#/definitions/evidenceReferences" },
                     },
                     required: ["kind", "groups", "evidence"],
                   },
@@ -3551,491 +2587,11 @@ export const controlSchemas = [
                   },
                 ],
               },
-              quizzes: {
-                oneOf: [
-                  {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "known" },
-                      value: { type: "boolean" },
-                      evidence: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            kind: { const: "evidence" },
-                            id: {
-                              type: "string",
-                              pattern:
-                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                            },
-                          },
-                          required: ["kind", "id"],
-                        },
-                        minItems: 1,
-                        uniqueItems: true,
-                      },
-                      reasoning: { type: "string", minLength: 1 },
-                    },
-                    required: ["kind", "value", "evidence"],
-                  },
-                  {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "unknown" },
-                      reason: { type: "string", minLength: 1 },
-                      evidence: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            kind: { const: "evidence" },
-                            id: {
-                              type: "string",
-                              pattern:
-                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                            },
-                          },
-                          required: ["kind", "id"],
-                        },
-                        uniqueItems: true,
-                      },
-                    },
-                    required: ["kind", "reason", "evidence"],
-                  },
-                  {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "disputed" },
-                      alternatives: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            value: { type: "boolean" },
-                            evidence: {
-                              type: "array",
-                              items: {
-                                type: "object",
-                                additionalProperties: false,
-                                properties: {
-                                  kind: { const: "evidence" },
-                                  id: {
-                                    type: "string",
-                                    pattern:
-                                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                                  },
-                                },
-                                required: ["kind", "id"],
-                              },
-                              minItems: 1,
-                              uniqueItems: true,
-                            },
-                            reasoning: { type: "string", minLength: 1 },
-                          },
-                          required: ["value", "evidence", "reasoning"],
-                        },
-                        minItems: 2,
-                      },
-                    },
-                    required: ["kind", "alternatives"],
-                  },
-                ],
-              },
-              tests: {
-                oneOf: [
-                  {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "known" },
-                      value: { type: "boolean" },
-                      evidence: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            kind: { const: "evidence" },
-                            id: {
-                              type: "string",
-                              pattern:
-                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                            },
-                          },
-                          required: ["kind", "id"],
-                        },
-                        minItems: 1,
-                        uniqueItems: true,
-                      },
-                      reasoning: { type: "string", minLength: 1 },
-                    },
-                    required: ["kind", "value", "evidence"],
-                  },
-                  {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "unknown" },
-                      reason: { type: "string", minLength: 1 },
-                      evidence: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            kind: { const: "evidence" },
-                            id: {
-                              type: "string",
-                              pattern:
-                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                            },
-                          },
-                          required: ["kind", "id"],
-                        },
-                        uniqueItems: true,
-                      },
-                    },
-                    required: ["kind", "reason", "evidence"],
-                  },
-                  {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "disputed" },
-                      alternatives: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            value: { type: "boolean" },
-                            evidence: {
-                              type: "array",
-                              items: {
-                                type: "object",
-                                additionalProperties: false,
-                                properties: {
-                                  kind: { const: "evidence" },
-                                  id: {
-                                    type: "string",
-                                    pattern:
-                                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                                  },
-                                },
-                                required: ["kind", "id"],
-                              },
-                              minItems: 1,
-                              uniqueItems: true,
-                            },
-                            reasoning: { type: "string", minLength: 1 },
-                          },
-                          required: ["value", "evidence", "reasoning"],
-                        },
-                        minItems: 2,
-                      },
-                    },
-                    required: ["kind", "alternatives"],
-                  },
-                ],
-              },
-              assignments: {
-                oneOf: [
-                  {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "known" },
-                      value: { type: "boolean" },
-                      evidence: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            kind: { const: "evidence" },
-                            id: {
-                              type: "string",
-                              pattern:
-                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                            },
-                          },
-                          required: ["kind", "id"],
-                        },
-                        minItems: 1,
-                        uniqueItems: true,
-                      },
-                      reasoning: { type: "string", minLength: 1 },
-                    },
-                    required: ["kind", "value", "evidence"],
-                  },
-                  {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "unknown" },
-                      reason: { type: "string", minLength: 1 },
-                      evidence: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            kind: { const: "evidence" },
-                            id: {
-                              type: "string",
-                              pattern:
-                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                            },
-                          },
-                          required: ["kind", "id"],
-                        },
-                        uniqueItems: true,
-                      },
-                    },
-                    required: ["kind", "reason", "evidence"],
-                  },
-                  {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "disputed" },
-                      alternatives: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            value: { type: "boolean" },
-                            evidence: {
-                              type: "array",
-                              items: {
-                                type: "object",
-                                additionalProperties: false,
-                                properties: {
-                                  kind: { const: "evidence" },
-                                  id: {
-                                    type: "string",
-                                    pattern:
-                                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                                  },
-                                },
-                                required: ["kind", "id"],
-                              },
-                              minItems: 1,
-                              uniqueItems: true,
-                            },
-                            reasoning: { type: "string", minLength: 1 },
-                          },
-                          required: ["value", "evidence", "reasoning"],
-                        },
-                        minItems: 2,
-                      },
-                    },
-                    required: ["kind", "alternatives"],
-                  },
-                ],
-              },
-              projects: {
-                oneOf: [
-                  {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "known" },
-                      value: { type: "boolean" },
-                      evidence: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            kind: { const: "evidence" },
-                            id: {
-                              type: "string",
-                              pattern:
-                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                            },
-                          },
-                          required: ["kind", "id"],
-                        },
-                        minItems: 1,
-                        uniqueItems: true,
-                      },
-                      reasoning: { type: "string", minLength: 1 },
-                    },
-                    required: ["kind", "value", "evidence"],
-                  },
-                  {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "unknown" },
-                      reason: { type: "string", minLength: 1 },
-                      evidence: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            kind: { const: "evidence" },
-                            id: {
-                              type: "string",
-                              pattern:
-                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                            },
-                          },
-                          required: ["kind", "id"],
-                        },
-                        uniqueItems: true,
-                      },
-                    },
-                    required: ["kind", "reason", "evidence"],
-                  },
-                  {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "disputed" },
-                      alternatives: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            value: { type: "boolean" },
-                            evidence: {
-                              type: "array",
-                              items: {
-                                type: "object",
-                                additionalProperties: false,
-                                properties: {
-                                  kind: { const: "evidence" },
-                                  id: {
-                                    type: "string",
-                                    pattern:
-                                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                                  },
-                                },
-                                required: ["kind", "id"],
-                              },
-                              minItems: 1,
-                              uniqueItems: true,
-                            },
-                            reasoning: { type: "string", minLength: 1 },
-                          },
-                          required: ["value", "evidence", "reasoning"],
-                        },
-                        minItems: 2,
-                      },
-                    },
-                    required: ["kind", "alternatives"],
-                  },
-                ],
-              },
-              labs: {
-                oneOf: [
-                  {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "known" },
-                      value: { type: "boolean" },
-                      evidence: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            kind: { const: "evidence" },
-                            id: {
-                              type: "string",
-                              pattern:
-                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                            },
-                          },
-                          required: ["kind", "id"],
-                        },
-                        minItems: 1,
-                        uniqueItems: true,
-                      },
-                      reasoning: { type: "string", minLength: 1 },
-                    },
-                    required: ["kind", "value", "evidence"],
-                  },
-                  {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "unknown" },
-                      reason: { type: "string", minLength: 1 },
-                      evidence: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            kind: { const: "evidence" },
-                            id: {
-                              type: "string",
-                              pattern:
-                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                            },
-                          },
-                          required: ["kind", "id"],
-                        },
-                        uniqueItems: true,
-                      },
-                    },
-                    required: ["kind", "reason", "evidence"],
-                  },
-                  {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "disputed" },
-                      alternatives: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            value: { type: "boolean" },
-                            evidence: {
-                              type: "array",
-                              items: {
-                                type: "object",
-                                additionalProperties: false,
-                                properties: {
-                                  kind: { const: "evidence" },
-                                  id: {
-                                    type: "string",
-                                    pattern:
-                                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                                  },
-                                },
-                                required: ["kind", "id"],
-                              },
-                              minItems: 1,
-                              uniqueItems: true,
-                            },
-                            reasoning: { type: "string", minLength: 1 },
-                          },
-                          required: ["value", "evidence", "reasoning"],
-                        },
-                        minItems: 2,
-                      },
-                    },
-                    required: ["kind", "alternatives"],
-                  },
-                ],
-              },
+              quizzes: { $ref: "#/definitions/booleanClaim" },
+              tests: { $ref: "#/definitions/booleanClaim" },
+              assignments: { $ref: "#/definitions/booleanClaim" },
+              projects: { $ref: "#/definitions/booleanClaim" },
+              labs: { $ref: "#/definitions/booleanClaim" },
               resourceCategories: {
                 type: "array",
                 items: {
@@ -4043,24 +2599,7 @@ export const controlSchemas = [
                   additionalProperties: false,
                   properties: {
                     name: { type: "string", minLength: 1 },
-                    evidence: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        additionalProperties: false,
-                        properties: {
-                          kind: { const: "evidence" },
-                          id: {
-                            type: "string",
-                            pattern:
-                              "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                          },
-                        },
-                        required: ["kind", "id"],
-                      },
-                      minItems: 1,
-                      uniqueItems: true,
-                    },
+                    evidence: { $ref: "#/definitions/evidenceReferences" },
                   },
                   required: ["name", "evidence"],
                 },
@@ -4085,24 +2624,7 @@ export const controlSchemas = [
                 integration: { type: "string", minLength: 1 },
                 role: { type: "string", minLength: 1 },
                 root: { type: "string", minLength: 1 },
-                evidence: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "evidence" },
-                      id: {
-                        type: "string",
-                        pattern:
-                          "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                      },
-                    },
-                    required: ["kind", "id"],
-                  },
-                  minItems: 1,
-                  uniqueItems: true,
-                },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
               },
               required: ["integration", "role", "root", "evidence"],
             },
@@ -4119,24 +2641,7 @@ export const controlSchemas = [
                 },
                 rule: { type: "string", minLength: 1 },
                 reason: { type: "string", minLength: 1 },
-                evidence: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "evidence" },
-                      id: {
-                        type: "string",
-                        pattern:
-                          "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                      },
-                    },
-                    required: ["kind", "id"],
-                  },
-                  minItems: 1,
-                  uniqueItems: true,
-                },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
               },
               required: ["id", "rule", "reason", "evidence"],
             },
@@ -4177,24 +2682,7 @@ export const controlSchemas = [
                   pattern: "^profile-claim:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
                 },
                 claim: { type: "string", minLength: 1 },
-                evidence: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "evidence" },
-                      id: {
-                        type: "string",
-                        pattern:
-                          "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                      },
-                    },
-                    required: ["kind", "id"],
-                  },
-                  minItems: 1,
-                  uniqueItems: true,
-                },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
                 reasoning: { type: "string", minLength: 1 },
               },
               required: ["id", "claim", "evidence"],
@@ -4223,24 +2711,7 @@ export const controlSchemas = [
                   ],
                 },
                 description: { type: "string", minLength: 1 },
-                evidence: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "evidence" },
-                      id: {
-                        type: "string",
-                        pattern:
-                          "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                      },
-                    },
-                    required: ["kind", "id"],
-                  },
-                  minItems: 1,
-                  uniqueItems: true,
-                },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
               },
               required: ["id", "label", "mode", "description", "evidence"],
             },
@@ -4293,24 +2764,7 @@ export const controlSchemas = [
                         ],
                       },
                       requirement: { type: "string", minLength: 1 },
-                      evidence: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            kind: { const: "evidence" },
-                            id: {
-                              type: "string",
-                              pattern:
-                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                            },
-                          },
-                          required: ["kind", "id"],
-                        },
-                        minItems: 1,
-                        uniqueItems: true,
-                      },
+                      evidence: { $ref: "#/definitions/evidenceReferences" },
                     },
                     required: ["kind", "requirement", "evidence"],
                   },
@@ -4330,24 +2784,7 @@ export const controlSchemas = [
                       timezone: { $ref: "#/definitions/textClaim" },
                       venue: { $ref: "#/definitions/textClaim" },
                       condition: { $ref: "#/definitions/textClaim" },
-                      evidence: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          additionalProperties: false,
-                          properties: {
-                            kind: { const: "evidence" },
-                            id: {
-                              type: "string",
-                              pattern:
-                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                            },
-                          },
-                          required: ["kind", "id"],
-                        },
-                        minItems: 1,
-                        uniqueItems: true,
-                      },
+                      evidence: { $ref: "#/definitions/evidenceReferences" },
                     },
                     required: [
                       "kind",
@@ -4361,24 +2798,7 @@ export const controlSchemas = [
                     ],
                   },
                 },
-                evidence: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "evidence" },
-                      id: {
-                        type: "string",
-                        pattern:
-                          "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                      },
-                    },
-                    required: ["kind", "id"],
-                  },
-                  minItems: 1,
-                  uniqueItems: true,
-                },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
               },
               required: [
                 "id",
@@ -4418,24 +2838,7 @@ export const controlSchemas = [
                   items: { type: "string", minLength: 1 },
                   minItems: 1,
                 },
-                evidence: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "evidence" },
-                      id: {
-                        type: "string",
-                        pattern:
-                          "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                      },
-                    },
-                    required: ["kind", "id"],
-                  },
-                  minItems: 1,
-                  uniqueItems: true,
-                },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
               },
               required: ["source", "rank", "governs", "evidence"],
             },
@@ -4448,24 +2851,7 @@ export const controlSchemas = [
               properties: {
                 path: { type: "string", minLength: 1 },
                 purpose: { type: "string", minLength: 1 },
-                evidence: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "evidence" },
-                      id: {
-                        type: "string",
-                        pattern:
-                          "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                      },
-                    },
-                    required: ["kind", "id"],
-                  },
-                  minItems: 1,
-                  uniqueItems: true,
-                },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
               },
               required: ["path", "purpose", "evidence"],
             },
@@ -4572,24 +2958,7 @@ export const controlSchemas = [
                 additionalProperties: false,
                 properties: {
                   kind: { const: "mapped" },
-                  evidence: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      additionalProperties: false,
-                      properties: {
-                        kind: { const: "evidence" },
-                        id: {
-                          type: "string",
-                          pattern:
-                            "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                        },
-                      },
-                      required: ["kind", "id"],
-                    },
-                    minItems: 1,
-                    uniqueItems: true,
-                  },
+                  evidence: { $ref: "#/definitions/evidenceReferences" },
                 },
                 required: ["kind", "evidence"],
               },
@@ -4632,24 +3001,7 @@ export const controlSchemas = [
                   pattern: "^teaching-week:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
                 },
                 label: { type: "string", minLength: 1 },
-                evidence: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "evidence" },
-                      id: {
-                        type: "string",
-                        pattern:
-                          "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                      },
-                    },
-                    required: ["kind", "id"],
-                  },
-                  minItems: 1,
-                  uniqueItems: true,
-                },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
               },
               required: ["id", "label", "evidence"],
             },
@@ -4732,24 +3084,7 @@ export const controlSchemas = [
               id: { type: "string", minLength: 1 },
               version: { type: "string", minLength: 1 },
               byteSha256: { type: "string", pattern: "^[a-f0-9]{64}$" },
-              evidence: {
-                type: "array",
-                items: {
-                  type: "object",
-                  additionalProperties: false,
-                  properties: {
-                    kind: { const: "evidence" },
-                    id: {
-                      type: "string",
-                      pattern:
-                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                    },
-                  },
-                  required: ["kind", "id"],
-                },
-                minItems: 1,
-                uniqueItems: true,
-              },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
             },
             required: ["id", "version", "byteSha256", "evidence"],
           },
@@ -4791,24 +3126,7 @@ export const controlSchemas = [
                   },
                   required: ["kind", "id"],
                 },
-                evidence: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "evidence" },
-                      id: {
-                        type: "string",
-                        pattern:
-                          "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                      },
-                    },
-                    required: ["kind", "id"],
-                  },
-                  minItems: 1,
-                  uniqueItems: true,
-                },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
               },
               required: ["id", "setting", "value", "ownerDecision", "evidence"],
             },
@@ -4898,24 +3216,7 @@ export const controlSchemas = [
                     },
                   ],
                 },
-                evidence: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "evidence" },
-                      id: {
-                        type: "string",
-                        pattern:
-                          "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                      },
-                    },
-                    required: ["kind", "id"],
-                  },
-                  minItems: 1,
-                  uniqueItems: true,
-                },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
               },
               required: [
                 "id",
@@ -4966,24 +3267,7 @@ export const controlSchemas = [
                   items: { type: "string", minLength: 1 },
                 },
                 uncertainty: { $ref: "#/definitions/textClaim" },
-                sources: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "evidence" },
-                      id: {
-                        type: "string",
-                        pattern:
-                          "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                      },
-                    },
-                    required: ["kind", "id"],
-                  },
-                  minItems: 1,
-                  uniqueItems: true,
-                },
+                sources: { $ref: "#/definitions/evidenceReferences" },
               },
               required: [
                 "id",
@@ -5057,122 +3341,9 @@ export const controlSchemas = [
                     },
                   ],
                 },
-                checked: {
-                  oneOf: [
-                    {
-                      type: "object",
-                      additionalProperties: false,
-                      properties: {
-                        kind: { const: "known" },
-                        value: { type: "boolean" },
-                        evidence: {
-                          type: "array",
-                          items: {
-                            type: "object",
-                            additionalProperties: false,
-                            properties: {
-                              kind: { const: "evidence" },
-                              id: {
-                                type: "string",
-                                pattern:
-                                  "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                              },
-                            },
-                            required: ["kind", "id"],
-                          },
-                          minItems: 1,
-                          uniqueItems: true,
-                        },
-                        reasoning: { type: "string", minLength: 1 },
-                      },
-                      required: ["kind", "value", "evidence"],
-                    },
-                    {
-                      type: "object",
-                      additionalProperties: false,
-                      properties: {
-                        kind: { const: "unknown" },
-                        reason: { type: "string", minLength: 1 },
-                        evidence: {
-                          type: "array",
-                          items: {
-                            type: "object",
-                            additionalProperties: false,
-                            properties: {
-                              kind: { const: "evidence" },
-                              id: {
-                                type: "string",
-                                pattern:
-                                  "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                              },
-                            },
-                            required: ["kind", "id"],
-                          },
-                          uniqueItems: true,
-                        },
-                      },
-                      required: ["kind", "reason", "evidence"],
-                    },
-                    {
-                      type: "object",
-                      additionalProperties: false,
-                      properties: {
-                        kind: { const: "disputed" },
-                        alternatives: {
-                          type: "array",
-                          items: {
-                            type: "object",
-                            additionalProperties: false,
-                            properties: {
-                              value: { type: "boolean" },
-                              evidence: {
-                                type: "array",
-                                items: {
-                                  type: "object",
-                                  additionalProperties: false,
-                                  properties: {
-                                    kind: { const: "evidence" },
-                                    id: {
-                                      type: "string",
-                                      pattern:
-                                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                                    },
-                                  },
-                                  required: ["kind", "id"],
-                                },
-                                minItems: 1,
-                                uniqueItems: true,
-                              },
-                              reasoning: { type: "string", minLength: 1 },
-                            },
-                            required: ["value", "evidence", "reasoning"],
-                          },
-                          minItems: 2,
-                        },
-                      },
-                      required: ["kind", "alternatives"],
-                    },
-                  ],
-                },
+                checked: { $ref: "#/definitions/booleanClaim" },
                 use: { type: "string", minLength: 1 },
-                evidence: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "evidence" },
-                      id: {
-                        type: "string",
-                        pattern:
-                          "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                      },
-                    },
-                    required: ["kind", "id"],
-                  },
-                  minItems: 1,
-                  uniqueItems: true,
-                },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
               },
               required: [
                 "id",
@@ -5245,24 +3416,7 @@ export const controlSchemas = [
                   required: ["kind", "id"],
                 },
                 sourceHash: { $ref: "#/definitions/hashClaim" },
-                evidence: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "evidence" },
-                      id: {
-                        type: "string",
-                        pattern:
-                          "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                      },
-                    },
-                    required: ["kind", "id"],
-                  },
-                  minItems: 1,
-                  uniqueItems: true,
-                },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
               },
               required: [
                 "id",
@@ -5401,24 +3555,7 @@ export const controlSchemas = [
                   items: { type: "string", minLength: 1 },
                   minItems: 1,
                 },
-                sources: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "evidence" },
-                      id: {
-                        type: "string",
-                        pattern:
-                          "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                      },
-                    },
-                    required: ["kind", "id"],
-                  },
-                  minItems: 1,
-                  uniqueItems: true,
-                },
+                sources: { $ref: "#/definitions/evidenceReferences" },
               },
               required: [
                 "id",
@@ -5497,24 +3634,7 @@ export const controlSchemas = [
                       additionalProperties: false,
                       properties: {
                         criterion: { type: "string", minLength: 1 },
-                        evidence: {
-                          type: "array",
-                          items: {
-                            type: "object",
-                            additionalProperties: false,
-                            properties: {
-                              kind: { const: "evidence" },
-                              id: {
-                                type: "string",
-                                pattern:
-                                  "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                              },
-                            },
-                            required: ["kind", "id"],
-                          },
-                          minItems: 1,
-                          uniqueItems: true,
-                        },
+                        evidence: { $ref: "#/definitions/evidenceReferences" },
                       },
                       required: ["criterion", "evidence"],
                     },
@@ -5526,24 +3646,7 @@ export const controlSchemas = [
                       additionalProperties: false,
                       properties: {
                         constraint: { type: "string", minLength: 1 },
-                        evidence: {
-                          type: "array",
-                          items: {
-                            type: "object",
-                            additionalProperties: false,
-                            properties: {
-                              kind: { const: "evidence" },
-                              id: {
-                                type: "string",
-                                pattern:
-                                  "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                              },
-                            },
-                            required: ["kind", "id"],
-                          },
-                          minItems: 1,
-                          uniqueItems: true,
-                        },
+                        evidence: { $ref: "#/definitions/evidenceReferences" },
                       },
                       required: ["constraint", "evidence"],
                     },
@@ -5555,46 +3658,12 @@ export const controlSchemas = [
                       additionalProperties: false,
                       properties: {
                         subject: { type: "string", minLength: 1 },
-                        evidence: {
-                          type: "array",
-                          items: {
-                            type: "object",
-                            additionalProperties: false,
-                            properties: {
-                              kind: { const: "evidence" },
-                              id: {
-                                type: "string",
-                                pattern:
-                                  "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                              },
-                            },
-                            required: ["kind", "id"],
-                          },
-                          minItems: 1,
-                          uniqueItems: true,
-                        },
+                        evidence: { $ref: "#/definitions/evidenceReferences" },
                       },
                       required: ["subject", "evidence"],
                     },
                   },
-                  evidence: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      additionalProperties: false,
-                      properties: {
-                        kind: { const: "evidence" },
-                        id: {
-                          type: "string",
-                          pattern:
-                            "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                        },
-                      },
-                      required: ["kind", "id"],
-                    },
-                    minItems: 1,
-                    uniqueItems: true,
-                  },
+                  evidence: { $ref: "#/definitions/evidenceReferences" },
                 },
                 required: [
                   "kind",
@@ -5626,24 +3695,7 @@ export const controlSchemas = [
                 },
                 statement: { type: "string", minLength: 1 },
                 standingAuthority: { const: false },
-                evidence: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      kind: { const: "evidence" },
-                      id: {
-                        type: "string",
-                        pattern:
-                          "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                      },
-                    },
-                    required: ["kind", "id"],
-                  },
-                  minItems: 1,
-                  uniqueItems: true,
-                },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
               },
               required: [
                 "id",
@@ -5673,24 +3725,7 @@ export const controlSchemas = [
             properties: {
               kind: { const: "known" },
               value: { type: "string", format: "native-nul-free-bytes" },
-              evidence: {
-                type: "array",
-                items: {
-                  type: "object",
-                  additionalProperties: false,
-                  properties: {
-                    kind: { const: "evidence" },
-                    id: {
-                      type: "string",
-                      pattern:
-                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                    },
-                  },
-                  required: ["kind", "id"],
-                },
-                minItems: 1,
-                uniqueItems: true,
-              },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
               reasoning: { type: "string", minLength: 1 },
             },
             required: ["kind", "value", "evidence"],
@@ -5733,24 +3768,7 @@ export const controlSchemas = [
                   additionalProperties: false,
                   properties: {
                     value: { type: "string", format: "native-nul-free-bytes" },
-                    evidence: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        additionalProperties: false,
-                        properties: {
-                          kind: { const: "evidence" },
-                          id: {
-                            type: "string",
-                            pattern:
-                              "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                          },
-                        },
-                        required: ["kind", "id"],
-                      },
-                      minItems: 1,
-                      uniqueItems: true,
-                    },
+                    evidence: { $ref: "#/definitions/evidenceReferences" },
                     reasoning: { type: "string", minLength: 1 },
                   },
                   required: ["value", "evidence", "reasoning"],
@@ -5770,24 +3788,7 @@ export const controlSchemas = [
             properties: {
               kind: { const: "known" },
               value: { type: "string", pattern: "^-?(0|[1-9][0-9]*)$" },
-              evidence: {
-                type: "array",
-                items: {
-                  type: "object",
-                  additionalProperties: false,
-                  properties: {
-                    kind: { const: "evidence" },
-                    id: {
-                      type: "string",
-                      pattern:
-                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                    },
-                  },
-                  required: ["kind", "id"],
-                },
-                minItems: 1,
-                uniqueItems: true,
-              },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
               reasoning: { type: "string", minLength: 1 },
             },
             required: ["kind", "value", "evidence"],
@@ -5830,24 +3831,87 @@ export const controlSchemas = [
                   additionalProperties: false,
                   properties: {
                     value: { type: "string", pattern: "^-?(0|[1-9][0-9]*)$" },
-                    evidence: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        additionalProperties: false,
-                        properties: {
-                          kind: { const: "evidence" },
-                          id: {
-                            type: "string",
-                            pattern:
-                              "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
-                          },
-                        },
-                        required: ["kind", "id"],
-                      },
-                      minItems: 1,
-                      uniqueItems: true,
+                    evidence: { $ref: "#/definitions/evidenceReferences" },
+                    reasoning: { type: "string", minLength: 1 },
+                  },
+                  required: ["value", "evidence", "reasoning"],
+                },
+                minItems: 2,
+              },
+            },
+            required: ["kind", "alternatives"],
+          },
+        ],
+      },
+      evidenceReferences: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            kind: { const: "evidence" },
+            id: {
+              type: "string",
+              pattern: "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+            },
+          },
+          required: ["kind", "id"],
+        },
+        minItems: 1,
+        uniqueItems: true,
+      },
+      booleanClaim: {
+        oneOf: [
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "known" },
+              value: { type: "boolean" },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
+              reasoning: { type: "string", minLength: 1 },
+            },
+            required: ["kind", "value", "evidence"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "unknown" },
+              reason: { type: "string", minLength: 1 },
+              evidence: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { const: "evidence" },
+                    id: {
+                      type: "string",
+                      pattern:
+                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
                     },
+                  },
+                  required: ["kind", "id"],
+                },
+                uniqueItems: true,
+              },
+            },
+            required: ["kind", "reason", "evidence"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "disputed" },
+              alternatives: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    value: { type: "boolean" },
+                    evidence: { $ref: "#/definitions/evidenceReferences" },
                     reasoning: { type: "string", minLength: 1 },
                   },
                   required: ["value", "evidence", "reasoning"],

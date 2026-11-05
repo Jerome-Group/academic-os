@@ -1354,7 +1354,8 @@
         },
         "identityBytesBase64": {
           "type": "string",
-          "format": "publication-base64"
+          "format": "publication-input-base64",
+          "maxLength": 11184812
         }
       },
       "required": ["requestId", "identityBytesBase64"]
@@ -1376,7 +1377,8 @@
         },
         "inputBytesBase64": {
           "type": "string",
-          "format": "publication-base64"
+          "format": "publication-input-base64",
+          "maxLength": 11184812
         }
       },
       "required": [

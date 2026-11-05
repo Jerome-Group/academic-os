@@ -13,6 +13,9 @@ import {
   realpathSync,
   renameSync,
   statSync,
+  truncateSync,
+  utimesSync,
+  chmodSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -21,6 +24,16 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { after, before, describe, it } from "node:test";
+import { PublicationStore } from "../../src/controls-publication/store.js";
+import { PublicationFailure } from "../../src/controls-publication/failure.js";
+import {
+  encodePublication,
+  sha256,
+} from "../../src/controls-publication/codec.js";
+import type {
+  JournalEvent,
+  PublicationRecord,
+} from "../../src/controls-publication/generated/publication-contract-1.js";
 import { withJournalMutationOwner } from "../../src/journal-mutation-owner.js";
 import type { ObjectIdentity } from "../../src/controls-publication/generated/publication-contract-1.js";
 import type {
@@ -1107,6 +1120,389 @@ describe("same-process publication native boundary", {
     ok(f().native.close(target));
     ok(f().native.close(target));
     failed(f().native.observe(target), "expired");
+  });
+  it("appends beyond 64 MiB and reads a stable bounded snapshot without a lifetime cap", () => {
+    const target = file("large-ledger", Buffer.alloc(64 * 1024 * 1024, 120));
+    const object = identity(target);
+    ok(
+      f().native.appendExact({
+        interval: f().interval,
+        file: target,
+        bytes: Buffer.from("!"),
+        expectedObject: object,
+        expectedLength: 64 * 1024 * 1024,
+      }),
+    );
+    assert.equal(
+      statSync(join(f().root, "anchor/large-ledger")).size,
+      64 * 1024 * 1024 + 1,
+    );
+    let result = ok(f().native.readLedger({ kind: "first", file: target }));
+    let offset = 0;
+    let windows = 0;
+    while (true) {
+      assert.equal(result.totalLength, 64 * 1024 * 1024 + 1);
+      assert.ok(result.bytes.byteLength <= 65536);
+      assert.equal(
+        result.bytes[0],
+        offset === result.totalLength - 1 ? 33 : 120,
+      );
+      offset += result.bytes.byteLength;
+      windows++;
+      if (offset === result.totalLength) break;
+      result = ok(
+        f().native.readLedger({
+          kind: "next",
+          file: target,
+          snapshot: result.snapshot,
+          offset,
+        }),
+      );
+    }
+    assert.equal(windows, 1025);
+    failed(
+      f().native.readLedger({
+        kind: "next",
+        file: target,
+        snapshot: result.snapshot,
+        offset,
+      }),
+      "unsafe-ancestry",
+    );
+    const expectedLength = Number.MAX_SAFE_INTEGER;
+    failed(
+      f().native.appendExact({
+        interval: f().interval,
+        file: target,
+        bytes: Buffer.from("!"),
+        expectedObject: object,
+        expectedLength,
+      }),
+      "unsafe-ancestry",
+    );
+    failed(
+      f().native.appendExact({
+        interval: f().interval,
+        file: target,
+        bytes: Buffer.from("!"),
+        expectedObject: object,
+        expectedLength: expectedLength - 1,
+      }),
+      "identity-changed",
+    );
+    for (const length of [-1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])
+      failed(
+        f().native.appendExact({
+          interval: f().interval,
+          file: target,
+          bytes: Buffer.from("!"),
+          expectedObject: object,
+          expectedLength: length,
+        }),
+        "unsafe-ancestry",
+      );
+    assert.equal(
+      statSync(join(f().root, "anchor/large-ledger")).size,
+      64 * 1024 * 1024 + 1,
+    );
+    writeFileSync(
+      join(f().root, "large-read.json"),
+      JSON.stringify({ windows, bytes: offset, perCallMaximum: 65536 }),
+    );
+  });
+  it("rejects forged, cross-file, out-of-order and expired snapshots", () => {
+    const target = file("snapshot-token", Buffer.alloc(65537)),
+      other = file("snapshot-other", Buffer.alloc(65537));
+    const first = ok(f().native.readLedger({ kind: "first", file: target }));
+    for (const snapshot of [{}, f().anchor, target])
+      failed(
+        Reflect.apply(f().native.readLedger, f().native, [
+          { kind: "next", file: target, snapshot, offset: 65536 },
+        ]),
+        "unsafe-ancestry",
+      );
+    failed(
+      f().native.readLedger({
+        kind: "next",
+        file: other,
+        snapshot: first.snapshot,
+        offset: 65536,
+      }),
+      "unsafe-ancestry",
+    );
+    for (const offset of [0, -1, 0.5, Number.MAX_SAFE_INTEGER + 1])
+      failed(
+        f().native.readLedger({
+          kind: "next",
+          file: target,
+          snapshot: first.snapshot,
+          offset,
+        }),
+        "unsafe-ancestry",
+      );
+    ok(f().native.close(target));
+    failed(
+      f().native.readLedger({
+        kind: "next",
+        file: target,
+        snapshot: first.snapshot,
+        offset: 65536,
+      }),
+      "expired",
+    );
+  });
+  it("rejects size, mtime, ctime and linkage changes between windows and during the final read", () => {
+    const mutations = [
+      "grow",
+      "truncate",
+      "mtime",
+      "ctime",
+      "replacement",
+      "parent",
+      "native-promotion",
+    ];
+    for (const mutation of mutations) {
+      const parentName = `snapshot-${mutation}`,
+        parent = directory(parentName);
+      const target = file("ledger", Buffer.alloc(65537, 120), parent),
+        path = join(f().root, "anchor", parentName, "ledger");
+      const first = ok(f().native.readLedger({ kind: "first", file: target }));
+      const stat = statSync(path);
+      if (mutation === "grow") truncateSync(path, 65538);
+      if (mutation === "truncate") truncateSync(path, 65536);
+      if (mutation === "mtime")
+        utimesSync(path, stat.atime, new Date(stat.mtimeMs - 1000));
+      if (mutation === "ctime") {
+        const before = statSync(path, { bigint: true });
+        chmodSync(path, 0o600);
+        const after = statSync(path, { bigint: true });
+        assert.equal(after.mtimeNs, before.mtimeNs);
+        assert.notEqual(after.ctimeNs, before.ctimeNs);
+      }
+      if (mutation === "replacement") {
+        renameSync(path, `${path}-retained`);
+        writeFileSync(path, Buffer.alloc(65537, 120), { mode: 0o600 });
+      }
+      if (mutation === "parent") {
+        renameSync(
+          join(f().root, "anchor", parentName),
+          join(f().root, "anchor", `${parentName}-retained`),
+        );
+        mkdirSync(join(f().root, "anchor", parentName), { mode: 0o700 });
+      }
+      if (mutation === "native-promotion")
+        ok(
+          f().native.promoteExclusive({
+            interval: f().interval,
+            sourceParent: parent,
+            sourceName: name("ledger"),
+            destinationParent: parent,
+            destinationName: name("promoted"),
+            expectedObject: identity(target),
+          }),
+        );
+      failed(
+        f().native.readLedger({
+          kind: "next",
+          file: target,
+          snapshot: first.snapshot,
+          offset: 65536,
+        }),
+        "identity-changed",
+      );
+    }
+    for (const edge of ["before-read", "after-read"]) {
+      const target = file(`final-${edge}`, Buffer.alloc(65537, 120));
+      const first = ok(f().native.readLedger({ kind: "first", file: target }));
+      f().native.setFixtureCheckpoint((hit) => {
+        if (hit === edge)
+          truncateSync(
+            join(f().root, `anchor/final-${edge}`),
+            edge === "before-read" ? 65536 : 65538,
+          );
+      });
+      failed(
+        f().native.readLedger({
+          kind: "next",
+          file: target,
+          snapshot: first.snapshot,
+          offset: 65536,
+        }),
+        edge === "before-read" ? "io" : "identity-changed",
+      );
+      f().native.setFixtureCheckpoint(undefined);
+    }
+  });
+  it("replays strict records across LF and UTF-8 windows and exposes no incomplete snapshot", () => {
+    const exclusions = ok(
+      f().native.observeExclusionRoots({
+        anchor: f().anchor,
+        requiredRepositoryAndSourcePaths: [Buffer.from(process.cwd())],
+      }),
+    );
+    const record: PublicationRecord = {
+      schemaVersion: 1,
+      kind: "file-claimed",
+      requestId: "replay",
+      attemptId: "replay",
+      path: "replay",
+      file: {
+        ...ok(f().native.observe(f().anchor.directory)),
+        object: {
+          ...identity(f().anchor.directory),
+          volumeUuid: "😀".repeat(32768),
+        },
+        location: {
+          parent: f().anchor.host.anchor,
+          rawNameBase64: Buffer.from("replay").toString("base64"),
+        },
+      },
+      planned: { byteLength: 0, byteSha256: "f".repeat(64) },
+    };
+    const event: JournalEvent = {
+      schemaVersion: 1,
+      sequence: 0,
+      previousEventByteSha256: null,
+      record,
+    };
+    const boundaryRecord = structuredClone(record);
+    boundaryRecord.file.object.volumeUuid = "f";
+    const boundaryEvent = { ...event, record: boundaryRecord };
+    const base = encodePublication(boundaryEvent).byteLength;
+    boundaryRecord.file.object.volumeUuid += "x".repeat(65535 - base);
+    const line = encodePublication(boundaryEvent);
+    assert.equal(line.byteLength, 65535);
+    let second = encodePublication({
+      ...event,
+      sequence: 1,
+      previousEventByteSha256: sha256(line),
+    });
+    while (((second[65536] ?? 0) & 0xc0) !== 0x80) {
+      record.file.object.volumeUuid = `x${record.file.object.volumeUuid}`;
+      second = encodePublication({
+        ...event,
+        sequence: 1,
+        previousEventByteSha256: sha256(line),
+      });
+    }
+    const bytes = Buffer.concat([
+      line,
+      Buffer.from("\n"),
+      second,
+      Buffer.from("\n"),
+    ]);
+    const load = (suffix: string, input: Uint8Array) => {
+      const store = new PublicationStore(
+        f().native,
+        f().anchor,
+        exclusions,
+        f().interval,
+      );
+      store.ledger = file(`replay-${suffix}`, Buffer.from(input));
+      return store;
+    };
+    const accepted = load("valid", bytes);
+    accepted.load();
+    assert.deepEqual(accepted.records(), [boundaryRecord, record]);
+    for (const [label, input] of [
+      ["torn", bytes.subarray(0, bytes.length - 1)],
+      ["duplicate", Buffer.from('{"schemaVersion":1,"schemaVersion":1}\n')],
+      ["utf8", Buffer.from([255, 10])],
+      [
+        "hash",
+        Buffer.concat([
+          line,
+          Buffer.from("\n"),
+          encodePublication({
+            ...event,
+            sequence: 1,
+            previousEventByteSha256: "0".repeat(64),
+          }),
+          Buffer.from("\n"),
+        ]),
+      ],
+      [
+        "sequence",
+        Buffer.concat([line, Buffer.from("\n"), line, Buffer.from("\n")]),
+      ],
+      [
+        "version",
+        Buffer.concat([
+          encodePublication({ ...event, schemaVersion: 2 }),
+          Buffer.from("\n"),
+        ]),
+      ],
+      ["canonical", Buffer.concat([Buffer.from(" "), line, Buffer.from("\n")])],
+      ["overlong", Buffer.alloc(8 * 1024 * 1024, 120)],
+    ] satisfies [string, Uint8Array][]) {
+      const store = load(label, input);
+      assert.throws(
+        () => store.load(),
+        (error) =>
+          error instanceof PublicationFailure &&
+          error.result.kind === "recovery-required" &&
+          error.result.code === "journal-recovery-required",
+      );
+      assert.deepEqual(store.records(), []);
+    }
+    const changed = load("changed", bytes);
+    let reads = 0;
+    f().native.setFixtureCheckpoint((edge) => {
+      if (edge === "after-read" && ++reads === 2)
+        truncateSync(join(f().root, "anchor/replay-changed"), bytes.length + 1);
+    });
+    assert.throws(() => changed.load(), PublicationFailure);
+    f().native.setFixtureCheckpoint(undefined);
+    assert.deepEqual(changed.records(), []);
+  });
+  it("appends the terminal sequence once and refuses any successor without changing evidence", () => {
+    const exclusions = ok(
+      f().native.observeExclusionRoots({
+        anchor: f().anchor,
+        requiredRepositoryAndSourcePaths: [Buffer.from(process.cwd())],
+      }),
+    );
+    const store = new PublicationStore(
+      f().native,
+      f().anchor,
+      exclusions,
+      f().interval,
+    );
+    store.ledger = file("academic-os-control-publication.jsonl");
+    store.ledgerClaim = store.claim(
+      f().anchor.directory,
+      "academic-os-control-publication.jsonl",
+      store.ledger,
+    );
+    Reflect.set(store, "nextSequence", Number.MAX_SAFE_INTEGER);
+    const record: PublicationRecord = {
+      schemaVersion: 1,
+      kind: "directory-claimed",
+      requestId: "terminal",
+      attemptId: "terminal",
+      directory: store.ledgerClaim,
+    };
+    store.append(record);
+    const before = readFileSync(
+      join(f().root, "anchor/academic-os-control-publication.jsonl"),
+    );
+    assert.equal(
+      JSON.parse(before.toString()).sequence,
+      Number.MAX_SAFE_INTEGER,
+    );
+    assert.throws(
+      () => store.append(record),
+      (error) =>
+        error instanceof PublicationFailure &&
+        error.result.kind === "recovery-required" &&
+        error.result.code === "durability-unavailable",
+    );
+    assert.deepEqual(
+      readFileSync(
+        join(f().root, "anchor/academic-os-control-publication.jsonl"),
+      ),
+      before,
+    );
   });
   it("cleans only the exact addon artifact and refuses a foreign binary", () => {
     const root = join(f().root, "cleaner"),

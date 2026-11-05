@@ -12,6 +12,7 @@ import {
   summary,
 } from "./candidate.js";
 import { freezeBytes } from "./codec.js";
+import { requireInputBytes } from "./limits.js";
 import { PublicationFailure, recover } from "./failure.js";
 import type {
   CreateResult,
@@ -63,6 +64,7 @@ export function createPublicationService(
   return {
     async create(input: CreateInput): Promise<CreateResult> {
       try {
+        requireInputBytes(input.identityBytes);
         if (
           !validateCreateInput({
             requestId: input.requestId,
@@ -93,16 +95,17 @@ export function createPublicationService(
       });
     },
     async publish(input: PublishInput): Promise<PublishResult> {
-      if (
-        !validatePublishInput({
-          candidateId: input.candidateId,
-          requestId: input.requestId,
-          expectedHead: input.expectedHead,
-          inputBytesBase64: freezeBytes(input.bundleBytes).bytesBase64,
-        })
-      )
-        return invalid(new Error("Invalid publish input."));
       try {
+        requireInputBytes(input.bundleBytes);
+        if (
+          !validatePublishInput({
+            candidateId: input.candidateId,
+            requestId: input.requestId,
+            expectedHead: input.expectedHead,
+            inputBytesBase64: freezeBytes(input.bundleBytes).bytesBase64,
+          })
+        )
+          return invalid(new Error("Invalid publish input."));
         const raw = parseBytes(input.bundleBytes, validateBundle);
         const identity = raw.controls.find(
           (control) => control.role === "module-identity",

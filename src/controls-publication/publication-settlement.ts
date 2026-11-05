@@ -11,7 +11,13 @@ import {
   sha256,
   thawBytes,
 } from "./codec.js";
-import { recover } from "./failure.js";
+import {
+  futureEventEnvelope,
+  maximumReceiptBytes,
+  normalPostIntentKinds,
+} from "./event-envelope.js";
+import { maximumEventBytes, requireFileBytes } from "./limits.js";
+import { recover, refuse } from "./failure.js";
 import type {
   HeadReady,
   PhysicalClaim,
@@ -118,6 +124,25 @@ export function prepareHead(
     pendingReceipt: freezeBytes(encodePublication(receipt)),
     receipt,
   };
+  const intentBytes = store.preflightRecord(intent);
+  requireFileBytes(intent.pendingReceipt.byteLength);
+  if (intent.pendingReceipt.byteLength > maximumReceiptBytes())
+    refuse(
+      "invalid-controls",
+      "Pending receipt exceeds the admitted intent envelope.",
+    );
+  const envelope = futureEventEnvelope();
+  let remainingBytes = intentBytes.byteLength + 1;
+  for (const kind of normalPostIntentKinds) {
+    const bound = envelope.get(kind);
+    if (bound === undefined || bound > maximumEventBytes)
+      refuse(
+        "invalid-controls",
+        "Publication suffix exceeds the event envelope.",
+      );
+    remainingBytes += bound;
+  }
+  store.requireAppendCapacity(remainingBytes, normalPostIntentKinds.length + 1);
   store.append(intent);
   return intent;
 }
@@ -284,17 +309,18 @@ export function settleIntent(
 }
 
 export function pendingIntents(store: PublicationStore): PublicationIntent[] {
+  const settled = new Set(
+    store
+      .records()
+      .flatMap((record) =>
+        record.kind === "settled" ? [record.requestId] : [],
+      ),
+  );
   return store
     .records()
     .filter(
       (record): record is PublicationIntent =>
-        record.kind === "publication-intent" &&
-        !store
-          .records()
-          .some(
-            (other) =>
-              other.kind === "settled" && other.requestId === record.requestId,
-          ),
+        record.kind === "publication-intent" && !settled.has(record.requestId),
     );
 }
 

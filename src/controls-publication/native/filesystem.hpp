@@ -66,7 +66,22 @@ struct Interval {
   std::shared_ptr<Anchor> anchor;
   bool active = true;
 };
+struct LedgerReadSnapshot {
+  std::shared_ptr<Handle> file;
+  Observation initial;
+  std::vector<std::pair<Identity, std::string>> linkage;
+  size_t totalLength;
+  size_t nextOffset = 0;
+  bool finished = false;
+  void* environment = nullptr;
+};
 constexpr size_t maximumBytes = 64 * 1024 * 1024;
+constexpr size_t ledgerReadWindow = 64 * 1024;
+uint64_t maximumFileOffset();
+size_t checkedLength(off_t length);
+size_t checkedEnd(size_t offset, size_t length);
+std::shared_ptr<LedgerReadSnapshot> startLedgerRead(const std::shared_ptr<Handle>& file);
+std::vector<uint8_t> readLedgerWindow(const std::shared_ptr<LedgerReadSnapshot>& snapshot, const std::shared_ptr<Handle>& file, size_t offset);
 std::string base64(const void* bytes, size_t length);
 void requireAccount();
 void component(const std::string& value);

@@ -6,7 +6,7 @@ import {
 } from "../controls/module-data-formats.js";
 import { safeRelativePath } from "../controls/read-controls.js";
 import { readStrictJson } from "../controls/strict-json.js";
-import { canonicalBase64 } from "./codec.js";
+import { base64DecodedLength, canonicalBase64 } from "./codec.js";
 import type {
   CreateResult,
   CreateWireInput,
@@ -19,9 +19,20 @@ import type {
 } from "./generated/publication-contract-1.js";
 import { publicationSchemas } from "./generated/schemas.js";
 
+import { maximumInputBase64Characters, maximumInputBytes } from "./limits.js";
+
+export function publicationInputBase64(value: string): boolean {
+  return (
+    value.length <= maximumInputBase64Characters &&
+    canonicalBase64(value) &&
+    base64DecodedLength(value) <= maximumInputBytes
+  );
+}
+
 export const publicationSchemaId = "urn:academic-os:publication-contract:1";
 const ajv = new Ajv({ allErrors: true, strict: true, validateFormats: true });
 ajv.addFormat("publication-base64", canonicalBase64);
+ajv.addFormat("publication-input-base64", publicationInputBase64);
 ajv.addFormat("publication-raw-name", (value: string) => {
   if (!canonicalBase64(value)) return false;
   const bytes = Buffer.from(value, "base64");

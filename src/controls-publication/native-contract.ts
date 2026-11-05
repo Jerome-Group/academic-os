@@ -5,6 +5,11 @@ import type {
   PhysicalClaim,
 } from "./generated/publication-contract-1.js";
 
+declare const nativeSnapshot: unique symbol;
+export interface NativeSnapshot {
+  readonly [nativeSnapshot]: true;
+}
+
 declare const directoryHandle: unique symbol;
 declare const regularHandle: unique symbol;
 declare const rawName: unique symbol;
@@ -60,6 +65,7 @@ export type NativeResult<T> =
 
 // Private same-process N-API contract. No method opens the SQLite sidecar.
 export interface PublicationNative {
+  readonly maximumFileOffset: number;
   resolveAccountAnchor(): NativeResult<ValidatedAccountAnchor>;
   component(bytes: Uint8Array): NativeResult<RawName>;
   componentBytes(name: RawName): Uint8Array;
@@ -111,6 +117,20 @@ export interface PublicationNative {
     maximumBytes: number;
     exactLength?: number;
   }): NativeResult<Uint8Array>;
+  readLedger(
+    input:
+      | { kind: "first"; file: RegularHandle }
+      | {
+          kind: "next";
+          file: RegularHandle;
+          snapshot: NativeSnapshot;
+          offset: number;
+        },
+  ): NativeResult<{
+    snapshot: NativeSnapshot;
+    totalLength: number;
+    bytes: Uint8Array;
+  }>;
   writeExact(input: {
     interval: MutationInterval;
     file: RegularHandle;

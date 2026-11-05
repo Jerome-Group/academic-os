@@ -937,7 +937,11 @@ export const publicationSchemas = [
             type: "string",
             pattern: "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
           },
-          identityBytesBase64: { type: "string", format: "publication-base64" },
+          identityBytesBase64: {
+            type: "string",
+            format: "publication-input-base64",
+            maxLength: 11184812,
+          },
         },
         required: ["requestId", "identityBytesBase64"],
       },
@@ -954,7 +958,11 @@ export const publicationSchemas = [
             pattern: "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
           },
           expectedHead: { $ref: "#/definitions/ExpectedHead" },
-          inputBytesBase64: { type: "string", format: "publication-base64" },
+          inputBytesBase64: {
+            type: "string",
+            format: "publication-input-base64",
+            maxLength: 11184812,
+          },
         },
         required: [
           "candidateId",

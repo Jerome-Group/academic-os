@@ -16,6 +16,7 @@ const methods = [
   "createDirectoryExclusive",
   "createRegularExclusive",
   "readBounded",
+  "readLedger",
   "writeExact",
   "appendExact",
   "syncFile",
@@ -34,6 +35,10 @@ export function isPublicationNative(
     value !== null &&
     "nativeBoundaryVersion" in value &&
     value.nativeBoundaryVersion === 1 &&
+    "maximumFileOffset" in value &&
+    typeof value.maximumFileOffset === "number" &&
+    Number.isSafeInteger(value.maximumFileOffset) &&
+    value.maximumFileOffset >= 0 &&
     methods.every(
       (method) =>
         method in value && typeof Reflect.get(value, method) === "function",

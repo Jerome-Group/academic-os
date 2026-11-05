@@ -146,7 +146,7 @@ std::string base64(const void* data, size_t length) {
   return result;
 }
 void requireAccount() { if (getuid() == 0 || getuid() != geteuid()) fail("unsupported-host"); }
-void component(const std::string& name) { if (name.empty() || name == "." || name == ".." || name.size() > NAME_MAX || name.find('/') != std::string::npos || name.find('\0') != std::string::npos) fail("unsafe-ancestry"); }
+void component(const std::string& name) { static_assert(NAME_MAX <= 255); if (name.empty() || name == "." || name == ".." || name.size() > NAME_MAX || name.find('/') != std::string::npos || name.find('\0') != std::string::npos) fail("unsafe-ancestry"); }
 Identity physicalIdentityFd(int fd) {
   struct stat st;
   syscallResult(fstat(fd, &st));
@@ -266,9 +266,63 @@ std::shared_ptr<Handle> createChild(const std::shared_ptr<Interval>& interval, c
   checkpoint("after-create-regular");
   return handle;
 }
+uint64_t maximumFileOffset() {
+  return std::min({uint64_t{9007199254740991}, static_cast<uint64_t>(std::numeric_limits<size_t>::max()), static_cast<uint64_t>(std::numeric_limits<off_t>::max())});
+}
+size_t checkedLength(off_t length) {
+  if (length < 0 || static_cast<uint64_t>(length) > maximumFileOffset()) fail("unsafe-ancestry");
+  return static_cast<size_t>(length);
+}
+size_t checkedEnd(size_t offset, size_t length) {
+  if (offset > maximumFileOffset() || length > maximumFileOffset() - offset) fail("unsafe-ancestry");
+  return offset + length;
+}
+bool sameSnapshot(const Observation& a, const Observation& b) {
+  return a.object == b.object && a.stat.st_size == b.stat.st_size &&
+    a.stat.st_mtimespec.tv_sec == b.stat.st_mtimespec.tv_sec && a.stat.st_mtimespec.tv_nsec == b.stat.st_mtimespec.tv_nsec &&
+    a.stat.st_ctimespec.tv_sec == b.stat.st_ctimespec.tv_sec && a.stat.st_ctimespec.tv_nsec == b.stat.st_ctimespec.tv_nsec;
+}
+std::shared_ptr<LedgerReadSnapshot> startLedgerRead(const std::shared_ptr<Handle>& file) {
+  auto initial = guard(file);
+  if (file->object.kind != "regular") fail("unsafe-ancestry");
+  auto result = std::make_shared<LedgerReadSnapshot>();
+  result->file = file;
+  for (auto current = file; current && current->parent; current = current->parent) result->linkage.emplace_back(current->parent->object, current->name);
+  result->totalLength = checkedLength(initial.stat.st_size);
+  result->initial = std::move(initial);
+  return result;
+}
+Observation guardSnapshot(const std::shared_ptr<LedgerReadSnapshot>& snapshot, const std::shared_ptr<Handle>& file) {
+  auto observed = guard(file);
+  size_t index = 0;
+  for (auto current = file; current && current->parent; current = current->parent) {
+    if (index >= snapshot->linkage.size() || !(snapshot->linkage[index].first == current->parent->object) || snapshot->linkage[index].second != current->name) fail("identity-changed");
+    index++;
+  }
+  if (index != snapshot->linkage.size() || !sameSnapshot(snapshot->initial, observed)) fail("identity-changed");
+  return observed;
+}
+std::vector<uint8_t> readLedgerWindow(const std::shared_ptr<LedgerReadSnapshot>& snapshot, const std::shared_ptr<Handle>& file, size_t offset) {
+  if (snapshot->file != file || snapshot->finished || offset != snapshot->nextOffset || offset > snapshot->totalLength) fail("unsafe-ancestry");
+  guardSnapshot(snapshot, file);
+  size_t length = std::min(ledgerReadWindow, snapshot->totalLength - offset);
+  size_t end = checkedEnd(offset, length);
+  std::vector<uint8_t> bytes(length);
+  checkpoint("before-read");
+  if (length) {
+    ssize_t count;
+    do { count = pread(file->descriptor.fd, bytes.data(), length, static_cast<off_t>(offset)); } while (count < 0 && errno == EINTR);
+    if (count < 0 || static_cast<size_t>(count) != length) fail("io");
+  }
+  checkpoint("after-read");
+  guardSnapshot(snapshot, file);
+  snapshot->nextOffset = end;
+  snapshot->finished = end == snapshot->totalLength;
+  return bytes;
+}
 std::vector<uint8_t> readExact(const std::shared_ptr<Handle>& handle, size_t maximum, size_t length) {
   auto before = guard(handle);
-  if (handle->object.kind != "regular" || maximum > maximumBytes || length > maximum || before.stat.st_size < 0 || static_cast<uint64_t>(before.stat.st_size) != length) fail("identity-changed");
+  if (handle->object.kind != "regular" || maximum > maximumBytes || length > maximum || checkedLength(before.stat.st_size) != length) fail("identity-changed");
   std::vector<uint8_t> bytes(length);
   size_t offset = 0;
   while (offset < length) {
@@ -280,7 +334,7 @@ std::vector<uint8_t> readExact(const std::shared_ptr<Handle>& handle, size_t max
   }
   checkpoint("after-read");
   auto after = guard(handle);
-  if (after.stat.st_size != before.stat.st_size || after.stat.st_mtimespec.tv_sec != before.stat.st_mtimespec.tv_sec || after.stat.st_mtimespec.tv_nsec != before.stat.st_mtimespec.tv_nsec) fail("identity-changed");
+  if (!sameSnapshot(before, after)) fail("identity-changed");
   return bytes;
 }
 void writeExact(const std::shared_ptr<Interval>& interval, const std::shared_ptr<Handle>& handle, const std::vector<uint8_t>& bytes, const Identity& expected, bool append, size_t expectedLength) {
@@ -288,11 +342,12 @@ void writeExact(const std::shared_ptr<Interval>& interval, const std::shared_ptr
   requireIdentity(handle->object, expected);
   if (!handle->writable || handle->object.kind != "regular" || bytes.size() > maximumBytes) fail("unsafe-ancestry");
   auto before = guard(handle);
-  if (append && (before.stat.st_size < 0 || static_cast<uint64_t>(before.stat.st_size) != expectedLength || expectedLength > maximumBytes - bytes.size())) fail("identity-changed");
+  size_t end = checkedEnd(append ? expectedLength : 0, bytes.size());
+  if (append && checkedLength(before.stat.st_size) != expectedLength) fail("identity-changed");
   size_t offset = 0;
   while (offset < bytes.size()) {
     checkpoint("before-write");
-    ssize_t count = pwrite(handle->descriptor.fd, bytes.data() + offset, bytes.size() - offset, (append ? expectedLength : 0) + offset);
+    ssize_t count = pwrite(handle->descriptor.fd, bytes.data() + offset, bytes.size() - offset, static_cast<off_t>(checkedEnd(append ? expectedLength : 0, offset)));
     if (count < 0 && errno == EINTR) continue;
     if (count <= 0) fail("io");
     offset += static_cast<size_t>(count);
@@ -301,12 +356,12 @@ void writeExact(const std::shared_ptr<Interval>& interval, const std::shared_ptr
   if (!append) {
     checkpoint("before-truncate");
     int result;
-    do { result = ftruncate(handle->descriptor.fd, bytes.size()); } while (result < 0 && errno == EINTR);
+    do { result = ftruncate(handle->descriptor.fd, static_cast<off_t>(end)); } while (result < 0 && errno == EINTR);
     syscallResult(result);
     checkpoint("after-truncate");
   }
   auto after = guard(handle);
-  if (static_cast<uint64_t>(after.stat.st_size) != bytes.size() + (append ? expectedLength : 0)) fail("identity-changed");
+  if (checkedLength(after.stat.st_size) != end) fail("identity-changed");
 }
 void sync(const std::shared_ptr<Interval>& interval, const std::shared_ptr<Handle>& handle) {
   guardInterval(interval, handle);

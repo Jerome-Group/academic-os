@@ -1,6 +1,6 @@
 import { decodeBundle, generationFiles } from "./bundle.js";
 import type { Candidate } from "./candidate.js";
-import { digest, encodePublication, freezeBytes } from "./codec.js";
+import { digest, freezeBytes } from "./codec.js";
 import { refuse } from "./failure.js";
 import type {
   ExpectedHead,
@@ -8,11 +8,6 @@ import type {
 } from "./generated/publication-contract-1.js";
 import { resolveExpectedHead } from "./publication-reader.js";
 import type { PublicationStore } from "./store.js";
-
-const planAndReceiptEncodingBudget = 4;
-const maximumNewPhysicalClaimBytes = 100_000;
-const protocolPhysicalClaimAllowance = 16;
-const smallProtocolEventAllowance = 64_000;
 
 export function freezePlan(
   store: PublicationStore,
@@ -79,20 +74,7 @@ export function freezePlan(
     files: generationFiles(bundle, candidate.admission.aggregate, generationId),
     nativeArtifactEffects: [],
   };
-  const directories = new Set(
-    plan.files.flatMap((file) =>
-      file.path
-        .split("/")
-        .slice(0, -1)
-        .map((_, index, parts) => parts.slice(0, index + 1).join("/")),
-    ),
-  );
-  store.requireCapacity(
-    planAndReceiptEncodingBudget * encodePublication(plan).byteLength +
-      (plan.files.length + directories.size + protocolPhysicalClaimAllowance) *
-        maximumNewPhysicalClaimBytes +
-      smallProtocolEventAllowance,
-  );
+  store.preflightRecord(plan);
   store.append(plan);
   return plan;
 }

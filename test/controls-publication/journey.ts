@@ -11,6 +11,7 @@ import {
   readFile,
   realpath,
   rename,
+  stat,
   symlink,
   unlink,
   writeFile,
@@ -40,6 +41,7 @@ const repository = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 export async function runPublicationJourney(
   evidenceParent = tmpdir(),
+  options: { largeHistory?: boolean } = {},
 ): Promise<string> {
   const evidence = await mkdtemp(
     join(await realpath(evidenceParent), "publication-journey-"),
@@ -60,16 +62,20 @@ export async function runPublicationJourney(
     await mkdir(path, { mode: 0o700 });
   const outcomes: object[] = [];
   function command(executable: string, args: string[], input?: string) {
+    const startedAt = new Date().toISOString();
     const result = spawnSync(executable, args, {
       cwd: repository,
       encoding: "utf8",
-      timeout: 60_000,
+      timeout: 120_000,
       maxBuffer: 16 * 1024 * 1024,
       ...(input === undefined ? {} : { input }),
     });
     outcomes.push({
       executable,
       args,
+      startedAt,
+      endedAt: new Date().toISOString(),
+      aliveAfter: alive(result.pid),
       status: result.status,
       pid: result.pid,
       signal: result.signal,
@@ -78,6 +84,15 @@ export async function runPublicationJourney(
       error: result.error?.message,
     });
     return result;
+  }
+  function alive(pid: number | undefined): boolean {
+    if (pid === undefined) return false;
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch {
+      return false;
+    }
   }
   async function record(): Promise<void> {
     await writeFile(
@@ -130,6 +145,7 @@ export async function runPublicationJourney(
         checkpointPath,
         JSON.stringify({ edge, occurrence, mode: "stop" }),
       );
+      const startedAt = new Date().toISOString();
       const child = spawn(process.execPath, args, {
         cwd: repository,
         stdio: ["ignore", "pipe", "pipe"],
@@ -152,6 +168,9 @@ export async function runPublicationJourney(
           outcomes.push({
             executable: process.execPath,
             args,
+            startedAt,
+            endedAt: new Date().toISOString(),
+            aliveAfter: alive(child.pid),
             pid: child.pid,
             status,
             signal,
@@ -344,6 +363,88 @@ const response = await dispatch(JSON.parse(readFileSync(0,"utf8"))); process.std
     if (creation.kind !== "created")
       throw new Error("Candidate creation failed.");
     const candidateId = creation.candidate.candidateId;
+    const largeHistory: {
+      requestId: string;
+      candidateId: string;
+      generationId: string;
+      inputBytes: number;
+      ledgerBytes: number;
+      receiptDigest: string;
+    }[] = [];
+    if (options.largeHistory) {
+      const identity = publicationFixture("Capacity history candidate");
+      const identityPath = join(inputs, "history-identity.json");
+      await writeFile(identityPath, identity.identityBytes);
+      const created = command(process.execPath, [
+        cli,
+        "controls",
+        "create-generated-candidate",
+        "--request",
+        "history-create",
+        "--identity",
+        identityPath,
+        "--json",
+      ]);
+      assert.equal(created.status, 0, created.stdout + created.stderr);
+      const historyCreation = parseBytes(
+        Buffer.from(created.stdout),
+        validateCreateResult,
+      );
+      assert.ok(historyCreation.kind === "created");
+      let expected: string | undefined;
+      while (
+        (await stat(join(anchor, "academic-os-control-publication.jsonl")))
+          .size <=
+        64 * 1024 * 1024
+      ) {
+        assert.ok(
+          largeHistory.length < 8,
+          "Actual admitted publications must cross the former cap within the finite fixture",
+        );
+        const requestId = `history-${largeHistory.length}`;
+        const fixture = publicationFixture(
+          `${requestId}${"X".repeat(2 * 1024 * 1024)}`,
+        );
+        const path = join(inputs, `${requestId}.json`);
+        await writeFile(path, fixture.bundleBytes);
+        const published = command(process.execPath, [
+          cli,
+          "controls",
+          "publish-generation",
+          "--candidate",
+          historyCreation.candidate.candidateId,
+          "--request",
+          requestId,
+          "--bundle",
+          path,
+          ...(expected === undefined
+            ? ["--expect-absent"]
+            : ["--expected-head", expected]),
+          "--json",
+        ]);
+        assert.equal(published.status, 0, published.stdout + published.stderr);
+        const result = parseBytes(
+          Buffer.from(published.stdout),
+          validatePublishResult,
+        );
+        assert.ok(result.kind === "published");
+        expected = result.receipt.selectedHead.head.byteSha256;
+        largeHistory.push({
+          requestId,
+          candidateId: historyCreation.candidate.candidateId,
+          generationId: result.receipt.selectedHead.generationId,
+          inputBytes: fixture.bundleBytes.byteLength,
+          ledgerBytes: (
+            await stat(join(anchor, "academic-os-control-publication.jsonl"))
+          ).size,
+          receiptDigest: digest(result.receipt),
+        });
+      }
+      await writeFile(
+        join(evidence, "large-history.json"),
+        JSON.stringify(largeHistory, null, 2),
+      );
+    }
     const publishA = command(process.execPath, [
       cli,
       "controls",
@@ -551,7 +652,7 @@ const response = await dispatch(JSON.parse(readFileSync(0,"utf8"))); process.std
       assert.equal(reboundResult.code, "request-conflict");
     const large = await publish(
       "capacity-request",
-      "X".repeat(1024 * 1024),
+      "X".repeat(3 * 1024 * 1024),
       resultB.receipt.selectedHead.head.byteSha256,
     );
     assert.equal(large.status, 2, large.stdout);
@@ -559,9 +660,9 @@ const response = await dispatch(JSON.parse(readFileSync(0,"utf8"))); process.std
       Buffer.from(large.stdout),
       validatePublishResult,
     );
-    assert.equal(capacity.kind, "recovery-required", large.stdout);
-    if (capacity.kind === "recovery-required")
-      assert.equal(capacity.code, "durability-unavailable");
+    assert.equal(capacity.kind, "refused", large.stdout);
+    if (capacity.kind === "refused")
+      assert.equal(capacity.code, "invalid-controls");
     assert.deepEqual(await readFile(ledger), ledgerBeforeNegatives);
     await writeFile(checkpointPath, JSON.stringify({ failBegin: true }));
     const beforeStoreFailure = await publish(
@@ -689,6 +790,126 @@ const response = await dispatch(JSON.parse(readFileSync(0,"utf8"))); process.std
         (event) =>
           event.record.kind === "orphan-attempt" &&
           event.record.requestId === "unclaimed-file",
+      ),
+    );
+    const oldExpectation = expected;
+    const oversizedTitle = "X".repeat(2_683_000);
+    const beforeIntentRefusal = await readFile(
+      join(root, "00 Module Admin/00 Module.json"),
+    );
+    const intentOversize = await publish(
+      "oversize-intent",
+      oversizedTitle,
+      oldExpectation,
+    );
+    assert.equal(intentOversize.status, 2, intentOversize.stdout);
+    const intentRefusal = parseBytes(
+      Buffer.from(intentOversize.stdout),
+      validatePublishResult,
+    );
+    assert.ok(
+      intentRefusal.kind === "refused" &&
+        intentRefusal.code === "invalid-controls",
+      intentOversize.stdout,
+    );
+    const afterIntentRefusal = await events();
+    assert.ok(
+      afterIntentRefusal.some(
+        (event) =>
+          event.record.kind === "publication-plan" &&
+          event.record.binding.requestId === "oversize-intent",
+      ),
+      "Exact complete plan fits before the larger exact intent refuses",
+    );
+    assert.ok(
+      !afterIntentRefusal.some(
+        (event) =>
+          event.record.kind === "publication-intent" &&
+          event.record.requestId === "oversize-intent",
+      ),
+    );
+    assert.deepEqual(
+      await readFile(join(root, "00 Module Admin/00 Module.json")),
+      beforeIntentRefusal,
+    );
+    const intervening = await publish(
+      "intervening-head",
+      "Distinct B after an unselected frozen A",
+      expected,
+    );
+    assert.equal(intervening.status, 0, intervening.stdout);
+    const changedHead = parseBytes(
+      Buffer.from(intervening.stdout),
+      validatePublishResult,
+    );
+    assert.ok(changedHead.kind === "published");
+    expected = changedHead.receipt.selectedHead.head.byteSha256;
+    const unselectedRetry = await publish(
+      "oversize-intent",
+      oversizedTitle,
+      oldExpectation,
+    );
+    assert.equal(unselectedRetry.status, 2, unselectedRetry.stdout);
+    const staleUnselected = parseBytes(
+      Buffer.from(unselectedRetry.stdout),
+      validatePublishResult,
+    );
+    assert.ok(
+      staleUnselected.kind === "refused" &&
+        staleUnselected.code === "stale-head",
+      unselectedRetry.stdout,
+    );
+    const createBoundary = publicationFixture().identity;
+    createBoundary.title = "";
+    createBoundary.title = "X".repeat(
+      8 * 1024 * 1024 - encodePublication(createBoundary).byteLength,
+    );
+    const exactIdentity = encodePublication(createBoundary);
+    assert.equal(exactIdentity.byteLength, 8 * 1024 * 1024);
+    const boundaryPath = join(inputs, "create-boundary.json");
+    await writeFile(boundaryPath, exactIdentity);
+    const beforeCreateRefusal = await readFile(ledger);
+    const stagingBeforeCreate = await readdir(
+      join(anchor, "academic-os-control-publication/staging"),
+    );
+    const oversizedCreate = command(process.execPath, [
+      cli,
+      "controls",
+      "create-generated-candidate",
+      "--request",
+      "oversize-create",
+      "--identity",
+      boundaryPath,
+      "--json",
+    ]);
+    assert.equal(oversizedCreate.status, 2, oversizedCreate.stdout);
+    const createRefusal = parseBytes(
+      Buffer.from(oversizedCreate.stdout),
+      validateCreateResult,
+    );
+    assert.ok(
+      createRefusal.kind === "refused" &&
+        createRefusal.code === "invalid-controls",
+      oversizedCreate.stdout,
+    );
+    assert.deepEqual(await readFile(ledger), beforeCreateRefusal);
+    assert.deepEqual(
+      await readdir(join(anchor, "academic-os-control-publication/staging")),
+      stagingBeforeCreate,
+    );
+    await writeFile(
+      join(evidence, "boundary-results.json"),
+      JSON.stringify(
+        {
+          intentRefusal,
+          staleUnselected,
+          createRefusal,
+          exactIdentityBytes: exactIdentity.byteLength,
+          unselectedPlanRetained: true,
+          noIntentOrSelectedChangeOnOversize: true,
+        },
+        null,
+        2,
       ),
     );
     const stoppedInput = join(inputs, "stopped-owner.json");
@@ -880,6 +1101,7 @@ const response = await dispatch(JSON.parse(readFileSync(0,"utf8"))); process.std
           settledPredecessorBeforeSuccessor: true,
           faultSchedules: 5,
           concurrentBootstrapAndStoppedStandaloneGate: true,
+          largeHistory,
           ledgerBytesAfterAAndB: ledgerBeforeNegatives.byteLength,
           ledgerBytesAfterFaults: (await readFile(ledger)).byteLength,
           releaseDigest: digest(manifest),

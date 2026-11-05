@@ -21,6 +21,7 @@ import type {
   PlannedFile,
   PublicationBundle,
 } from "./generated/publication-contract-1.js";
+import { requireFileBytes, requireInputBytes } from "./limits.js";
 import { parseBytes, validateBundle } from "./schema.js";
 
 export function moduleAggregate(identity: ModuleIdentity): ModuleAggregate {
@@ -39,6 +40,7 @@ export function decodeBundle(
   bytes: Uint8Array,
   aggregate: ModuleAggregate,
 ): PublicationBundle {
+  requireInputBytes(bytes);
   const bundle = parseBytes(bytes, validateBundle);
   const roles = new Set<string>();
   const paths = new Set<string>(["generation.json"]);
@@ -54,6 +56,7 @@ export function decodeBundle(
       );
     roles.add(control.role);
     paths.add(control.file);
+    requireFileBytes(control.bytes.byteLength);
     const raw = thawBytes(control.bytes);
     const value =
       control.role === "module-identity"
@@ -89,6 +92,7 @@ export function decodeBundle(
     PublicationBundle["dependencies"][number]
   >();
   for (const dependency of bundle.dependencies) {
+    requireFileBytes(dependency.bytes.byteLength);
     const raw = thawBytes(dependency.bytes);
     if (
       dependency.path !==
@@ -222,6 +226,7 @@ export function generationFiles(
       }),
     ),
   ];
+  for (const file of files) requireFileBytes(file.bytes.byteLength);
   validateCompleteFiles(files, aggregate);
   return files;
 }

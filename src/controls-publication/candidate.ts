@@ -7,6 +7,7 @@ import type {
   ModuleAggregate,
 } from "./generated/publication-contract-1.js";
 import type { DirectoryHandle } from "./native-contract.js";
+import { requireInputBytes } from "./limits.js";
 import { nativeValue, type PublicationStore, sameObject } from "./store.js";
 
 export type Candidate = {
@@ -79,6 +80,7 @@ export function createCandidate(
     releaseDigest: string;
   },
 ): GeneratedCandidateAdmission {
+  requireInputBytes(input.identityBytes);
   const identity = decodeIdentity(input.identityBytes);
   const aggregate = moduleAggregate(identity);
   const binding = {
@@ -124,15 +126,18 @@ export function createCandidate(
   }
   const candidates = catalogDirectory(store, "candidates");
   const staging = catalogDirectory(store, "staging");
-  if (!existing)
-    store.append({
+  if (!existing) {
+    const reservation: CandidateReservation = {
       schemaVersion: 1,
       kind: "candidate-reserved",
       candidateId,
       binding,
       aggregate,
       target: store.location(candidates, candidateId),
-    });
+    };
+    store.preflightRecord(reservation);
+    store.append(reservation);
+  }
   const stage = store.stage({
     requestId: input.requestId,
     purpose: "candidate",
@@ -229,16 +234,19 @@ export function recoverPendingCreates(
   store: PublicationStore,
   releaseDigest: string,
 ): void {
+  const admitted = new Set(
+    store
+      .records()
+      .flatMap((record) =>
+        record.kind === "generated-candidate-admitted"
+          ? [record.candidateId]
+          : [],
+      ),
+  );
   for (const record of store.records()) {
-    if (record.kind !== "candidate-reserved") continue;
     if (
-      store
-        .records()
-        .some(
-          (candidate) =>
-            candidate.kind === "generated-candidate-admitted" &&
-            candidate.candidateId === record.candidateId,
-        )
+      record.kind !== "candidate-reserved" ||
+      admitted.has(record.candidateId)
     )
       continue;
     if (record.binding.releaseDigest !== releaseDigest)
@@ -247,11 +255,12 @@ export function recoverPendingCreates(
         "Pending creation belongs to a different release.",
         record.binding.requestId,
       );
-    createCandidate(store, {
+    const candidate = createCandidate(store, {
       requestId: record.binding.requestId,
       identityBytes: thawBytes(record.binding.identityBytes),
       releaseDigest: record.binding.releaseDigest,
     });
+    admitted.add(candidate.candidateId);
   }
 }
 

@@ -7,6 +7,7 @@ import { it } from "node:test";
 import { pathToFileURL } from "node:url";
 import { ListToolsResultSchema } from "@modelcontextprotocol/sdk/types.js";
 import { Ajv } from "ajv";
+import { publicationInputBase64 } from "../../src/controls-publication/schema.js";
 import { canonicalBase64 } from "../../src/controls-publication/codec.js";
 import {
   validateCreateInput,
@@ -52,6 +53,7 @@ process.stdout.write(JSON.stringify(await dispatch({jsonrpc:"2.0",id:1,method:"t
   const listed = ListToolsResultSchema.parse(response.result);
   const ajv = new Ajv({ strict: true, allErrors: true });
   ajv.addFormat("publication-base64", canonicalBase64);
+  ajv.addFormat("publication-input-base64", publicationInputBase64);
   const publish = {
     candidateId: "candidate-a",
     requestId: "publish-a",

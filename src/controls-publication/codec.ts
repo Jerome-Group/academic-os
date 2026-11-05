@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 import { readStrictJson } from "../controls/strict-json.js";
+import { refuse } from "./failure.js";
+import { maximumEventBytes } from "./limits.js";
 import type { FrozenBytes } from "./generated/publication-contract-1.js";
 
 export const publicationEncoding = "academic-os-publication-json/1";
@@ -7,6 +9,8 @@ export const publicationEncoding = "academic-os-publication-json/1";
 export function encodePublication(value: unknown): Uint8Array {
   const source = encode(value, new Set());
   const bytes = Buffer.from(source, "utf8");
+  if (bytes.byteLength > maximumEventBytes)
+    refuse("invalid-controls", "Encoded publication JSON exceeds 8 MiB.");
   const checked = readStrictJson(bytes, publicationEncoding);
   if (checked.kind !== "read")
     throw new Error("Invalid publication JSON value.");
@@ -58,21 +62,41 @@ export function freezeBytes(bytes: Uint8Array): FrozenBytes {
   };
 }
 
-export function canonicalBase64(value: string): boolean {
+export function base64DecodedLength(value: string): number {
   return (
-    /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(
-      value,
-    ) && Buffer.from(value, "base64").toString("base64") === value
+    (value.length / 4) * 3 -
+    (value.endsWith("==") ? 2 : value.endsWith("=") ? 1 : 0)
+  );
+}
+
+export function canonicalBase64(value: string): boolean {
+  if (value.length % 4 !== 0) return false;
+  const padding = value.endsWith("==") ? 2 : value.endsWith("=") ? 1 : 0;
+  const end = value.length - padding;
+  let last = 0;
+  for (let index = 0; index < end; index++) {
+    const code = value.charCodeAt(index);
+    if (code >= 65 && code <= 90) last = code - 65;
+    else if (code >= 97 && code <= 122) last = code - 71;
+    else if (code >= 48 && code <= 57) last = code + 4;
+    else if (code === 43) last = 62;
+    else if (code === 47) last = 63;
+    else return false;
+  }
+  return (
+    padding === 0 ||
+    (end > 0 && (padding === 2 ? last % 16 === 0 : last % 4 === 0))
   );
 }
 
 export function thawBytes(value: FrozenBytes): Uint8Array {
-  const bytes = Buffer.from(value.bytesBase64, "base64");
   if (
     !canonicalBase64(value.bytesBase64) ||
-    bytes.byteLength !== value.byteLength ||
-    sha256(bytes) !== value.byteSha256
+    base64DecodedLength(value.bytesBase64) !== value.byteLength
   )
+    throw new Error("Frozen byte length or digest mismatch.");
+  const bytes = Buffer.from(value.bytesBase64, "base64");
+  if (sha256(bytes) !== value.byteSha256)
     throw new Error("Frozen byte length or digest mismatch.");
   return bytes;
 }

@@ -26,11 +26,15 @@ import type {
   RegularHandle,
   ValidatedAccountAnchor,
 } from "./native-contract.js";
+import {
+  maximumEventBytes,
+  maximumFileBytes,
+  requireFileBytes,
+} from "./limits.js";
 import { parseBytes, validateEvent } from "./schema.js";
 
 export const ledgerName = "academic-os-control-publication.jsonl";
 export const namespaceName = "academic-os-control-publication";
-const maximumLedgerBytes = 8 * 1024 * 1024;
 
 export function nativeValue<T>(result: NativeResult<T>): T {
   if (result.kind === "ok") return result.value;
@@ -75,7 +79,8 @@ type StageInput = {
 
 export class PublicationStore {
   readonly handles: (DirectoryHandle | RegularHandle)[] = [];
-  readonly events: JournalEvent[] = [];
+  private retainedRecords: PublicationRecord[] = [];
+  private nextSequence: number | null = 0;
   private ledgerLength = 0;
   private previousHash: string | null = null;
   ledger!: RegularHandle;
@@ -152,30 +157,50 @@ export class PublicationStore {
     if (this.interval === null) throw new Error("Read-only publication store.");
     return this.interval;
   }
-  records(): PublicationRecord[] {
-    return this.events.map((event) => event.record);
+  records(): readonly PublicationRecord[] {
+    return this.retainedRecords;
   }
-  requireCapacity(additionalBytes: number): void {
+  requireAppendCapacity(additionalBytes: number, additionalRows = 1): void {
     if (
       !Number.isSafeInteger(additionalBytes) ||
       additionalBytes < 0 ||
-      this.ledgerLength + additionalBytes > maximumLedgerBytes
+      additionalBytes > this.native.maximumFileOffset - this.ledgerLength ||
+      !Number.isSafeInteger(additionalRows) ||
+      additionalRows < 1 ||
+      this.nextSequence === null ||
+      additionalRows - 1 > Number.MAX_SAFE_INTEGER - this.nextSequence
     )
       recover(
         "durability-unavailable",
-        "The bounded publication ledger lacks capacity. No new event was appended.",
+        "Publication ledger offset or sequence is exhausted. Retained evidence requires recovery.",
       );
   }
-  append(record: PublicationRecord): void {
+  preflightRecord(record: PublicationRecord): Uint8Array {
+    this.requireAppendCapacity(0);
+    const sequence = this.nextSequence;
+    if (sequence === null)
+      recover("durability-unavailable", "Publication sequence is exhausted.");
     const event: JournalEvent = {
       schemaVersion: 1,
-      sequence: this.events.length,
+      sequence,
       previousEventByteSha256: this.previousHash,
       record,
     };
     const bytes = encodePublication(event);
+    if (bytes.byteLength >= maximumEventBytes)
+      refuse(
+        "invalid-controls",
+        "Encoded publication event including LF exceeds 8 MiB.",
+      );
     parseBytes(bytes, validateEvent);
-    this.requireCapacity(bytes.byteLength + 1);
+    this.requireAppendCapacity(bytes.byteLength + 1);
+    return bytes;
+  }
+  append(record: PublicationRecord): void {
+    const bytes = this.preflightRecord(record);
+    const sequence = this.nextSequence;
+    if (sequence === null)
+      recover("durability-unavailable", "Publication sequence is exhausted.");
     this.requireClaim(this.anchor.directory, ledgerName, this.ledgerClaim);
     nativeEffect(
       this.native.appendExact({
@@ -190,51 +215,103 @@ export class PublicationStore {
       this.native.syncFile({ interval: this.mutating(), file: this.ledger }),
       "durability-unavailable",
     );
-    this.events.push(event);
+    this.retainedRecords.push(record);
     this.ledgerLength += bytes.byteLength + 1;
     this.previousHash = sha256(bytes);
+    this.nextSequence =
+      sequence === Number.MAX_SAFE_INTEGER ? null : sequence + 1;
   }
-  load(bytes: Uint8Array): void {
-    if (bytes.byteLength === 0)
+  load(): void {
+    const records: PublicationRecord[] = [];
+    let sequence: number | null = 0;
+    let previousHash: string | null = null;
+    let offset = 0;
+    let fragments: Uint8Array[] = [];
+    let pendingLength = 0;
+    let result = nativeEffect(
+      this.native.readLedger({ kind: "first", file: this.ledger }),
+    );
+    const totalLength = result.totalLength;
+    if (totalLength === 0)
       refuse(
         "bootstrap-unclaimed",
         "Existing ledger has no durable initial claim.",
       );
-    if (bytes[bytes.byteLength - 1] !== 10)
-      recover("journal-recovery-required", "Ledger has an incomplete tail.");
-    let offset = 0;
-    for (let index = 0; index < bytes.length; index++) {
-      if (bytes[index] !== 10) continue;
-      const line = bytes.slice(offset, index);
-      let event: JournalEvent;
-      try {
-        event = parseBytes(line, validateEvent);
-      } catch {
-        recover(
-          "journal-recovery-required",
-          "Ledger event is not strict supported JSON.",
-        );
+    while (true) {
+      const chunk = result.bytes;
+      let start = 0;
+      for (let index = 0; index < chunk.byteLength; index++) {
+        if (chunk[index] !== 10) continue;
+        const length = pendingLength + index - start;
+        if (length >= maximumEventBytes)
+          recover(
+            "journal-recovery-required",
+            "Ledger event including LF exceeds 8 MiB.",
+          );
+        const line =
+          fragments.length === 0
+            ? chunk.subarray(start, index)
+            : Buffer.concat(
+                [...fragments, chunk.subarray(start, index)],
+                length,
+              );
+        let event: JournalEvent;
+        try {
+          event = parseBytes(line, validateEvent);
+        } catch {
+          recover(
+            "journal-recovery-required",
+            "Ledger event is not strict supported JSON.",
+          );
+        }
+        if (
+          sequence === null ||
+          event.sequence !== sequence ||
+          event.previousEventByteSha256 !== previousHash ||
+          !equalBytes(line, encodePublication(event))
+        )
+          recover(
+            "journal-recovery-required",
+            "Ledger sequence, chain or deterministic encoding differs.",
+          );
+        records.push(event.record);
+        previousHash = sha256(line);
+        sequence = sequence === Number.MAX_SAFE_INTEGER ? null : sequence + 1;
+        fragments = [];
+        pendingLength = 0;
+        start = index + 1;
       }
-      if (
-        event.sequence !== this.events.length ||
-        event.previousEventByteSha256 !== this.previousHash ||
-        !equalBytes(line, encodePublication(event))
-      )
+      const length = pendingLength + chunk.byteLength - start;
+      if (length >= maximumEventBytes)
         recover(
           "journal-recovery-required",
-          "Ledger sequence, chain or deterministic encoding differs.",
+          "Ledger unfinished event exceeds 8 MiB minus LF.",
         );
-      this.events.push(event);
-      this.previousHash = sha256(line);
-      offset = index + 1;
+      if (start < chunk.byteLength) fragments.push(chunk.subarray(start));
+      pendingLength = length;
+      offset += chunk.byteLength;
+      if (offset === totalLength) break;
+      result = nativeEffect(
+        this.native.readLedger({
+          kind: "next",
+          file: this.ledger,
+          snapshot: result.snapshot,
+          offset,
+        }),
+      );
     }
-    this.ledgerLength = bytes.byteLength;
+    if (pendingLength !== 0)
+      recover("journal-recovery-required", "Ledger has an incomplete tail.");
+    this.retainedRecords = records;
+    this.nextSequence = sequence;
+    this.previousHash = previousHash;
+    this.ledgerLength = totalLength;
   }
   read(file: RegularHandle, exactLength?: number): Uint8Array {
     return nativeEffect(
       this.native.readBounded({
         file,
-        maximumBytes: maximumLedgerBytes,
+        maximumBytes: maximumFileBytes,
         ...(exactLength === undefined ? {} : { exactLength }),
       }),
     );
@@ -566,6 +643,7 @@ export class PublicationStore {
       bytes: Uint8Array;
     },
   ): PhysicalClaim {
+    requireFileBytes(input.bytes.byteLength);
     const location = this.location(parent, name);
     const prior = this.records().find(
       (record): record is FileClaim =>
@@ -803,8 +881,8 @@ export function openStore(store: PublicationStore, create: boolean): void {
     store.syncDirectory(anchor);
   } else {
     store.ledger = store.openFile(anchor, ledgerName);
-    store.load(store.read(store.ledger));
-    const first = store.events[0]?.record;
+    store.load();
+    const first = store.records()[0];
     if (
       first?.kind !== "namespace-reserved" ||
       digest(first.host) !== digest(store.anchor.host)
@@ -818,7 +896,7 @@ export function openStore(store: PublicationStore, create: boolean): void {
         "durability-unavailable",
       );
   }
-  const reservation = store.events[0]?.record;
+  const reservation = store.records()[0];
   if (reservation?.kind !== "namespace-reserved")
     recover("journal-recovery-required", "Missing namespace reservation.");
   const prior = store

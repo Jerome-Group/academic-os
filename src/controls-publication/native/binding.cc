@@ -11,6 +11,7 @@
 
 namespace {
 using namespace publication;
+const napi_type_tag snapshotTag = {0x195f286931f553ac, 0xf448ecc510701abc};
 const napi_type_tag handleTag = {0x70344282929d11a4, 0x923abd139729b2d1};
 const napi_type_tag nameTag = {0x38498c72382914a2, 0x823a34ae4d894db7};
 const napi_type_tag anchorTag = {0x0982bce284292dba, 0xcaf5427938a49f2b};
@@ -31,11 +32,16 @@ std::string string(napi_env env, napi_value value) {
   check(napi_get_value_string_utf8(env, value, bytes.data(), bytes.size(), &length));
   return std::string(bytes.data(), length);
 }
-size_t size(napi_env env, napi_value value) {
+size_t offset(napi_env env, napi_value value) {
   double result;
   check(napi_get_value_double(env, value, &result));
-  if (!std::isfinite(result) || result < 0 || std::floor(result) != result || result > maximumBytes) fail("unsafe-ancestry");
+  if (!std::isfinite(result) || result < 0 || std::floor(result) != result || result > static_cast<double>(maximumFileOffset())) fail("unsafe-ancestry");
   return static_cast<size_t>(result);
+}
+size_t size(napi_env env, napi_value value) {
+  auto result = offset(env, value);
+  if (result > maximumBytes) fail("unsafe-ancestry");
+  return result;
 }
 std::vector<uint8_t> bytes(napi_env env, napi_value value) {
   napi_typedarray_type type;
@@ -89,6 +95,7 @@ Identity identity(napi_env env, napi_value input) {
   return {string(env, get(env, input, "kind")), string(env, get(env, input, "volumeUuid")), string(env, get(env, input, "device")), string(env, get(env, input, "inode")), string(env, get(env, input, "birthtimeNs"))};
 }
 napi_value metadata(napi_env env, const Observation& value) {
+  static_assert(sizeof(value.stat.st_uid) <= 4 && sizeof(value.stat.st_gid) <= 4 && sizeof(value.stat.st_mode) <= 4 && sizeof(value.stat.st_flags) <= 4 && sizeof(value.stat.st_nlink) <= 4);
   auto result = object(env);
   put(env, result, "uid", number(env, value.stat.st_uid)); put(env, result, "gid", number(env, value.stat.st_gid));
   put(env, result, "mode", number(env, value.stat.st_mode & 07777)); put(env, result, "flags", number(env, value.stat.st_flags)); put(env, result, "linkCount", number(env, value.stat.st_nlink));
@@ -117,7 +124,7 @@ napi_value anchorValue(napi_env env) {
   put(env, result, "ancestry", claims);
   return wrap(env, value, anchorTag, result);
 }
-const char* operations[] = {"resolveAccountAnchor", "component", "componentBytes", "observeAt", "observe", "openDirectoryNoFollow", "openRegularNoFollow", "requireLocation", "observeExclusionRoots", "requirePrivateLocalNonoverlap", "beginIntervalUnderHeldGate", "createDirectoryExclusive", "createRegularExclusive", "readBounded", "writeExact", "appendExact", "syncFile", "syncDirectory", "promoteExclusive", "replaceHeadGuarded", "expireAndDrain", "close"};
+const char* operations[] = {"resolveAccountAnchor", "component", "componentBytes", "observeAt", "observe", "openDirectoryNoFollow", "openRegularNoFollow", "requireLocation", "observeExclusionRoots", "requirePrivateLocalNonoverlap", "beginIntervalUnderHeldGate", "createDirectoryExclusive", "createRegularExclusive", "readBounded", "writeExact", "appendExact", "syncFile", "syncDirectory", "promoteExclusive", "replaceHeadGuarded", "expireAndDrain", "close", "readLedger"};
 napi_value invoke(napi_env env, size_t operation, size_t argc, napi_value* args) {
   auto input = argc ? args[0] : undefined(env);
   switch (operation) {
@@ -169,10 +176,10 @@ napi_value invoke(napi_env env, size_t operation, size_t argc, napi_value* args)
     case 13: {
       auto file = regular(env, get(env, input, "file")); auto maximum = size(env, get(env, input, "maximumBytes"));
       auto exact = get(env, input, "exactLength"); napi_valuetype type; check(napi_typeof(env, exact, &type));
-      auto length = type == napi_undefined ? static_cast<size_t>(guard(file).stat.st_size) : size(env, exact);
+      auto length = type == napi_undefined ? checkedLength(guard(file).stat.st_size) : size(env, exact);
       return byteArray(env, readExact(file, maximum, length));
     }
-    case 14: case 15: writeExact(interval(env, input), regular(env, get(env, input, "file")), bytes(env, get(env, input, "bytes")), identity(env, get(env, input, "expectedObject")), operation == 15, operation == 15 ? size(env, get(env, input, "expectedLength")) : 0); return undefined(env);
+    case 14: case 15: writeExact(interval(env, input), regular(env, get(env, input, "file")), bytes(env, get(env, input, "bytes")), identity(env, get(env, input, "expectedObject")), operation == 15, operation == 15 ? offset(env, get(env, input, "expectedLength")) : 0); return undefined(env);
     case 16: sync(interval(env, input), regular(env, get(env, input, "file"))); return undefined(env);
     case 17: sync(interval(env, input), directory(env, get(env, input, "directory"))); return undefined(env);
     case 18: promote(interval(env, input), directory(env, get(env, input, "sourceParent")), name(env, get(env, input, "sourceName")), directory(env, get(env, input, "destinationParent")), name(env, get(env, input, "destinationName")), identity(env, get(env, input, "expectedObject")), true); return undefined(env);
@@ -195,6 +202,29 @@ napi_value invoke(napi_env env, size_t operation, size_t argc, napi_value* args)
       checkpoint("after-expiry"); checkpoint("after-drain"); return undefined(env);
     }
     case 21: closeHandle(handle(env, input)); return undefined(env);
+    case 22: {
+      auto file = regular(env, get(env, input, "file"));
+      auto kind = string(env, get(env, input, "kind"));
+      std::shared_ptr<LedgerReadSnapshot> snapshot;
+      napi_value token;
+      size_t position = 0;
+      if (kind == "first") {
+        snapshot = startLedgerRead(file);
+        snapshot->environment = env;
+        token = wrap(env, snapshot, snapshotTag);
+      } else if (kind == "next") {
+        token = get(env, input, "snapshot");
+        snapshot = unwrap<LedgerReadSnapshot>(env, token, snapshotTag);
+        if (snapshot->environment != env) fail("unsafe-ancestry");
+        position = offset(env, get(env, input, "offset"));
+      } else fail("unsafe-ancestry");
+      auto data = readLedgerWindow(snapshot, file, position);
+      auto result = object(env);
+      put(env, result, "snapshot", token);
+      put(env, result, "totalLength", number(env, snapshot->totalLength));
+      put(env, result, "bytes", byteArray(env, data));
+      return result;
+    }
     default: fail("io");
   }
 }
@@ -203,7 +233,7 @@ napi_value dispatch(napi_env env, napi_callback_info info) {
   napi_get_cb_info(env, info, &argc, args, nullptr, &data);
   size_t operation = reinterpret_cast<uintptr_t>(data);
   try {
-    const size_t arities[] = {0,1,1,2,1,2,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+    const size_t arities[] = {0,1,1,2,1,2,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
     if (argc != arities[operation]) fail("unsafe-ancestry");
     napi_value value = invoke(env, operation, argc, args);
     if (operation == 2) return value;
@@ -238,6 +268,7 @@ napi_value setFixtureCheckpoint(napi_env env, napi_callback_info info) {
 #endif
 napi_value initialize(napi_env env, napi_value exports) {
   put(env, exports, "nativeBoundaryVersion", number(env, 1));
+  put(env, exports, "maximumFileOffset", number(env, maximumFileOffset()));
 #ifdef AOS_PUBLICATION_FIXTURE_ANCHOR
   put(env, exports, "buildKind", text(env, "fixture"));
 #else

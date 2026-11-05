@@ -23,6 +23,70 @@ afterEach(async () => {
 });
 
 describe("academic-os research-project CLI", () => {
+  for (const profile of ["ureca", "generic"] as const) {
+    for (const home of ["30 Deliverables", "90 Resources"]) {
+      it(`refuses an undeclared ${home} category for ${profile} [RP-ROOT-002]`, async () => {
+        const fixture = await seededFixture(profile);
+        const path = `${home}/99 Undeclared`;
+        await mkdir(join(fixture.projectRoot, path));
+        const payload = join(fixture.projectRoot, path, "source.txt");
+        await writeFile(payload, "Retained synthetic content\n");
+        const audit = await runCli(
+          "audit",
+          "--config",
+          fixture.configPath,
+          "--research-project",
+          "example-project",
+          "--json",
+        );
+        assert.equal(audit.exitCode, 1, audit.stdout + audit.stderr);
+        const report = JSON.parse(audit.stdout);
+        assert.equal(report.outcome, "deviation");
+        assert.ok(
+          report.findings.some(
+            (finding: { ruleId: string; path: string; status: string }) =>
+              finding.ruleId === "RP-ROOT-002" &&
+              finding.path === path &&
+              finding.status === "fail",
+          ),
+        );
+        assert.equal(
+          await readFile(payload, "utf8"),
+          "Retained synthetic content\n",
+        );
+      });
+    }
+    it(`retains ${profile} permitted interiors and direct category-root files [RP-ROOT-002]`, async () => {
+      const fixture = await seededFixture(profile);
+      const nested = [
+        "90 Resources/00 Unclassified/nested/deeper",
+        ...(profile === "ureca"
+          ? [
+              "30 Deliverables/10 Abstract/nested/deeper",
+              "90 Resources/20 Research Aids/nested",
+            ]
+          : []),
+      ];
+      for (const path of nested)
+        await mkdir(join(fixture.projectRoot, path), { recursive: true });
+      for (const home of ["30 Deliverables", "90 Resources"])
+        await writeFile(
+          join(fixture.projectRoot, home, "source.txt"),
+          "Synthetic source\n",
+        );
+      const audit = await runCli(
+        "audit",
+        "--config",
+        fixture.configPath,
+        "--research-project",
+        "example-project",
+        "--json",
+      );
+      assert.equal(audit.exitCode, 0, audit.stdout + audit.stderr);
+      assert.equal(JSON.parse(audit.stdout).outcome, "conformant");
+    });
+  }
+
   it("previews, applies, and audits one configured project [RP-SEED-002] [RP-AUDIT-002]", async () => {
     const fixture = await setupFixture();
     const target = [
@@ -223,7 +287,26 @@ describe("academic-os research-project CLI", () => {
   });
 });
 
-async function setupFixture() {
+async function seededFixture(profile: "ureca" | "generic") {
+  const fixture = await setupFixture(profile);
+  const seeded = await runCli(
+    "seed",
+    "--config",
+    fixture.configPath,
+    "--research-project",
+    "example-project",
+    "--profile",
+    fixture.profilePath,
+    "--definition",
+    fixture.definitionPath,
+    "--apply",
+    "--json",
+  );
+  assert.equal(seeded.exitCode, 0, seeded.stdout + seeded.stderr);
+  return fixture;
+}
+
+async function setupFixture(profile: "ureca" | "generic" = "ureca") {
   const root = await mkdtemp(join(tmpdir(), "academic-os-research-cli-"));
   temporaryRoots.push(root);
   const driveMount = join(root, "Drive");
@@ -249,7 +332,7 @@ async function setupFixture() {
           "example-project": {
             folder: "Example Project",
             status: "active",
-            profile: "ureca",
+            ...(profile === "ureca" ? { profile } : {}),
           },
         },
       },
@@ -257,7 +340,7 @@ async function setupFixture() {
   );
   const profilePath = join(root, "profile.md");
   const definitionPath = join(root, "definition.yaml");
-  await writeFile(profilePath, validProfile());
+  await writeFile(profilePath, validProfile(profile));
   await writeFile(
     definitionPath,
     `contract_version: 3
@@ -266,7 +349,7 @@ project:
   folder: Example Project
   title: Synthetic project
   status: active
-profile: ureca
+profile: ${profile}
 evidence:
   identity: owner-supplied
   confirmation: unresolved
@@ -275,7 +358,7 @@ evidence:
   return { root, configPath, profilePath, definitionPath, projectRoot };
 }
 
-function validProfile(): string {
+function validProfile(profile: "ureca" | "generic"): string {
   return `# Example Project — Synthetic project
 
 ## Identity
@@ -286,7 +369,7 @@ function validProfile(): string {
 | Folder | Example Project | owner-supplied |
 | Title | Synthetic project | owner-supplied |
 | Status | active | owner-supplied |
-| Programme profile | ureca | official-source |
+| Programme profile | ${profile} | official-source |
 
 ## Purpose and Questions
 

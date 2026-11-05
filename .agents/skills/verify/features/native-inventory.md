@@ -22,6 +22,9 @@ On macOS the native journey checks dot files, scratch directories, `Icon\r`, `.D
 It observes raw link targets, actual ACL payloads, flags, birthtime, xattrs and resource-fork bytes.
 It refuses source changes and root or external hardlink aliases, leaves outward targets unchanged, and marks FIFO metadata incomplete without opening the FIFO.
 It checks exclusive private logs outside source and repository.
+Case and Unicode aliases of source and disposable repository roots must refuse before namespace or modification/change times advance.
+Native `ln -P` fixtures retain internal symlink hardlink groups and refuse external symlink aliases.
+Portable accounting also retains non-directory special-file hardlink relations without establishing native metadata coverage.
 
 A non-UTF8 filename is attempted. A filesystem rejection with `EILSEQ` is reported as unreachable native filename coverage.
 Portable schema and aggregation tests still exercise exact non-UTF8 path bytes. Raw non-UTF8 symlink targets are exercised natively.

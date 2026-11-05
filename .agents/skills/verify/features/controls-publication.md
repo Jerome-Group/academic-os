@@ -13,6 +13,12 @@ retained-original and shared-preference byte. It exercises predecessor settlemen
 unclaimed interruption, foreign final objects, root replacement, stopped-owner exclusion,
 request rebinding and stale heads.
 
+Parent-barrier regressions interrupt namespace, catalog and nested generation directory claims.
+Each retries two actual native sync failures before successful publication. Native identity
+traces establish the required parent sync and inspect's zero mutation, append or sync effects.
+Ledger comparisons establish that inspect preserves publisher bytes. These checks establish
+required barriers, not observed survival after power loss.
+
 Admission checks cover independent 8 MiB raw-input, individual-file and encoded-event limits.
 LF counts toward the event limit. A raw input at its ceiling can still exceed the exact create,
 plan or intent limit. Refused create staging stays unchanged. A refused intent retains its

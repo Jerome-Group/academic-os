@@ -105,6 +105,7 @@ export const cliCapabilities: Capability[] = [
         "test/controls-publication/publication.test.ts",
         "test/controls-publication/capacity.test.ts",
         "test/controls-publication/native.test.ts",
+        "test/controls-publication/durability.test.ts",
         "test/controls-publication/import-boundary.test.ts",
         "test/controls-publication/publication-journey.test.ts",
       ],

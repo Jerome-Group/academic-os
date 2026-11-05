@@ -22,6 +22,7 @@ function isStoredCalendarProposal(
     !nonempty(value.id) ||
     !nonempty(value.idempotencyKey) ||
     !member(value.status, ["ready", "stale", "promoted"]) ||
+    (value.staleReason !== undefined && !nonempty(value.staleReason)) ||
     !isRecord(value.source) ||
     !nonempty(value.source.kind) ||
     !nonempty(value.source.reference) ||

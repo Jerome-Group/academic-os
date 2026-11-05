@@ -261,6 +261,207 @@ for (const expired of [false, true]) {
   });
 }
 
+for (const expired of [false, true]) {
+  it(`invalidates a publicly prepared cancellation after ${expired ? "complete recovery confirms absence" : "sparse incremental deletion"}`, async () => {
+    const event: CalendarEvent = {
+      ...victim,
+      organizer: { email: "owner@example.test", self: true },
+      attendees: [],
+    };
+    const f = await fixture(event);
+    const prepared = await prepare(f, {
+      operation: "cancel",
+      calendarRole: "Academic",
+      eventId: event.id,
+    });
+    assert.equal(prepared.outcome, "ready");
+    const before = JSON.parse(await readFile(f.proposalsPath, "utf8"));
+    assert.equal(before.proposals[0].id, prepared.proposal.id);
+    assert.equal(before.proposals[0].status, "ready");
+    if (expired) {
+      f.provider.expiredSyncTokens = ["academic-sync"];
+      f.provider.events.academic = [];
+    } else {
+      f.provider.incrementalEvents.academic = {
+        "academic-sync": [{ id: event.id, status: "cancelled" }],
+      };
+    }
+    await refresh(f);
+    const after = await mirror(f);
+    assert.deepEqual(after.items, []);
+    assert.deepEqual(after.tombstones, [
+      {
+        access: "owned",
+        event,
+        deletedAt: after.lastSuccessfulRefresh,
+      },
+    ]);
+    const saved = JSON.parse(await readFile(f.proposalsPath, "utf8"));
+    assert.deepEqual(saved.proposals[0], {
+      ...before.proposals[0],
+      status: "stale",
+      staleReason: "live-item-deleted",
+    });
+    const requests = academicRequests(f);
+    assert.equal(requests[0]?.params.syncToken, "academic-sync");
+    assert.equal(requests.length, expired ? 2 : 1);
+    if (expired) assert.equal(requests[1]?.params.timeMin, october);
+  });
+}
+
+it("invalidates a public series edit when its separately bound master is deleted", async () => {
+  const master: CalendarEvent = {
+    ...victim,
+    id: "master",
+    recurrence: ["RRULE:FREQ=WEEKLY;COUNT=3"],
+    organizer: { email: "owner@example.test", self: true },
+    attendees: [],
+  };
+  const occurrence: CalendarEvent = {
+    ...master,
+    id: "occurrence",
+    recurringEventId: master.id,
+    originalStartTime: { dateTime: "2026-10-15T10:00:00+08:00" },
+  };
+  delete occurrence.recurrence;
+  const f = await fixture(master);
+  f.provider.events.academic = [master, occurrence];
+  f.provider.incrementalEvents.academic = { "academic-sync": [occurrence] };
+  await refresh(f);
+  const prepared = await prepare(f, {
+    operation: "update",
+    calendarRole: "Academic",
+    eventId: occurrence.id,
+    recurrenceScope: "entire-series",
+    patch: { summary: "Changed series title" },
+  });
+  assert.equal(prepared.proposal.sourceItem.eventId, occurrence.id);
+  const before = JSON.parse(await readFile(f.proposalsPath, "utf8"));
+  f.provider.incrementalEvents.academic = {
+    "academic-sync": [{ id: master.id, status: "cancelled" }],
+  };
+  await refresh(f);
+  const saved = JSON.parse(await readFile(f.proposalsPath, "utf8"));
+  assert.deepEqual(saved.proposals[0], {
+    ...before.proposals[0],
+    status: "stale",
+    staleReason: "live-item-deleted",
+  });
+  assert.deepEqual(
+    (await mirror(f)).items.map(({ event }) => event.id),
+    [occurrence.id],
+  );
+});
+
+for (const duringPromotion of [false, true]) {
+  it(`requires re-preview for a zero-prefix original after deletion ${duringPromotion ? "during Promotion refresh" : "before Promotion"}`, async () => {
+    const event: CalendarEvent = {
+      ...victim,
+      organizer: { email: "owner@example.test", self: true },
+      attendees: [],
+    };
+    const f = await fixture(event);
+    const prepared = await prepare(f, {
+      operation: "update",
+      calendarRole: "Academic",
+      eventId: event.id,
+      patch: { summary: "Changed title" },
+    });
+    f.provider.incrementalEvents.academic = {
+      "academic-sync": [{ id: event.id, status: "cancelled" }],
+    };
+    if (!duringPromotion) {
+      f.provider.events.academic = [];
+      await refresh(f);
+      f.provider.events.academic = [event];
+      f.provider.incrementalEvents.academic = { "academic-sync": [event] };
+    }
+    const beforePromotion = await readFile(f.proposalsPath, "utf8");
+    const report = await cli(f, "promote", 3, [prepared.proposal.id]);
+    assert.equal(report.outcome, "stale");
+    assert.match(report.reason, /exact accepted plan prefix/u);
+    const saved = JSON.parse(await readFile(f.proposalsPath, "utf8"));
+    assert.deepEqual(saved.proposals[0], {
+      ...prepared.proposal,
+      status: "stale",
+      staleReason: "live-item-deleted",
+    });
+    if (!duringPromotion)
+      assert.equal(await readFile(f.proposalsPath, "utf8"), beforePromotion);
+    assert.deepEqual(f.provider.events.academic, [event]);
+  });
+}
+
+it("preserves unrelated, other-calendar and terminal public proposals during deletion", async () => {
+  const event: CalendarEvent = {
+    ...victim,
+    organizer: { email: "owner@example.test", self: true },
+    attendees: [],
+  };
+  const f = await fixture(event);
+  const unrelated = { ...event, id: "unrelated" };
+  f.provider.events.academic = [event, unrelated];
+  f.provider.events.commitments = [event];
+  f.provider.incrementalEvents.academic = { "academic-sync": [unrelated] };
+  f.provider.incrementalEvents.commitments = { "commitments-sync": [event] };
+  await refresh(f);
+  const selected = (
+    await prepare(f, {
+      operation: "cancel",
+      calendarRole: "Academic",
+      eventId: event.id,
+    })
+  ).proposal;
+  const otherCalendar = (
+    await prepare(f, {
+      operation: "cancel",
+      calendarRole: "Commitments",
+      eventId: event.id,
+    })
+  ).proposal;
+  const otherEvent = (
+    await prepare(f, {
+      operation: "cancel",
+      calendarRole: "Academic",
+      eventId: unrelated.id,
+    })
+  ).proposal;
+  const terminal = { ...selected, status: "promoted" };
+  const alreadyStale = {
+    ...selected,
+    status: "stale",
+    staleReason: "retained",
+  };
+  const preserved = [otherCalendar, otherEvent, terminal, alreadyStale];
+  await writeFile(
+    f.proposalsPath,
+    JSON.stringify({
+      schemaVersion: 1,
+      proposals: [selected, ...preserved],
+    }),
+  );
+  f.provider.incrementalEvents.academic = {
+    "academic-sync": [
+      {
+        id: event.id,
+        status: "cancelled",
+      },
+    ],
+  };
+  f.provider.incrementalEvents.commitments = { "commitments-sync": [] };
+  await refresh(f);
+  const saved = JSON.parse(await readFile(f.proposalsPath, "utf8"));
+  assert.deepEqual(saved.proposals, [
+    { ...selected, status: "stale", staleReason: "live-item-deleted" },
+    ...preserved,
+  ]);
+  const firstBytes = await readFile(f.proposalsPath, "utf8");
+  const firstTombstones = (await mirror(f)).tombstones;
+  await refresh(f);
+  assert.equal(await readFile(f.proposalsPath, "utf8"), firstBytes);
+  assert.deepEqual((await mirror(f)).tombstones, firstTombstones);
+});
+
 interface Provider {
   calendars: Array<{
     id: string;
@@ -287,7 +488,7 @@ interface Provider {
   }>;
 }
 
-async function fixture() {
+async function fixture(initialEvent: CalendarEvent = victim) {
   const root = await mkdtemp(join(tmpdir(), "academic-os-calendar-binding-"));
   roots.push(root);
   const driveMount = join(root, "Drive");
@@ -302,7 +503,7 @@ async function fixture() {
       timeZone: "Asia/Singapore",
       ...(role === "Academic" ? { primary: true } : {}),
     })),
-    events: { academic: [victim], commitments: [], routine: [] },
+    events: { academic: [initialEvent], commitments: [], routine: [] },
     incrementalEvents: {
       academic: { "academic-sync": [] },
       commitments: { "commitments-sync": [] },
@@ -358,10 +559,10 @@ async function cli(
     },
     "calendar",
     command,
+    ...args,
     "--config",
     f.configPath,
     "--json",
-    ...args,
   );
   assert.equal(result.exitCode, exitCode, JSON.stringify(result));
   f.provider = JSON.parse(await readFile(f.providerPath, "utf8"));
@@ -422,6 +623,19 @@ async function pending(f: Fixture) {
   });
   await writeFile(f.proposalsPath, value);
   return value;
+}
+
+async function prepare(f: Fixture, item: Record<string, unknown>) {
+  const inputPath = join(f.config.stateRoot, "proposal-input.json");
+  await writeFile(
+    inputPath,
+    JSON.stringify({
+      schemaVersion: 1,
+      source: { kind: "instruction", reference: "synthetic-request" },
+      item,
+    }),
+  );
+  return await cli(f, "propose", 0, ["--input", inputPath]);
 }
 
 async function assertProposalRefused(f: Fixture) {

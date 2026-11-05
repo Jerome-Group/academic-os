@@ -507,13 +507,14 @@ export interface CalendarRoutineMigrationProposalCandidate {
   conflictSummary: { blockers: 0; warnings: 0 };
 }
 
-export type CalendarProposalCandidate =
+export type CalendarProposalCandidate = (
   | CalendarCreateProposalCandidate
   | CalendarBulkCreateProposalCandidate
   | CalendarChangeProposalCandidate
   | CalendarCancelProposalCandidate
   | CalendarRestoreProposalCandidate
-  | CalendarRoutineMigrationProposalCandidate;
+  | CalendarRoutineMigrationProposalCandidate
+) & { staleReason?: string };
 
 export type CalendarProposal = CalendarProposalCandidate & { status: "ready" };
 export type CalendarStoredProposal = CalendarProposalCandidate & {

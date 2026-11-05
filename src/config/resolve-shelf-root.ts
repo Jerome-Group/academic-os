@@ -2,24 +2,16 @@ import { lstat, realpath } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 
 import { OperationalError } from "../mounted/index.js";
+import type { ServiceConfig } from "./types.js";
 import { isContainedBy } from "../mounted/is-contained-by.js";
 // The shelf is a path into the Owner's coursework, so it is configured rather than known here,
 // and configured relative to the Drive mount for the same reason every semester root is.
-export async function resolveShelfRoot(config: {
-  driveMount: unknown;
-  textbooks?: unknown;
-}): Promise<string> {
-  if (typeof config.driveMount !== "string" || !isAbsolute(config.driveMount)) {
-    throw new OperationalError(
-      "invalid-config",
-      "driveMount must be an absolute path.",
-    );
-  }
-  const shelfRoot = isObject(config.textbooks)
-    ? config.textbooks.shelfRoot
-    : undefined;
+export async function resolveShelfRoot(
+  config: Pick<ServiceConfig, "driveMount" | "textbooks">,
+): Promise<string> {
+  const shelfRoot = config.textbooks?.shelfRoot;
   if (
-    typeof shelfRoot !== "string" ||
+    shelfRoot === undefined ||
     shelfRoot.length === 0 ||
     isAbsolute(shelfRoot)
   ) {
@@ -63,8 +55,4 @@ async function existingDirectory(path: string, role: string): Promise<string> {
       `Configured ${role} cannot be resolved: ${path}.`,
     );
   }
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

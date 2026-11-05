@@ -1,0 +1,423 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "urn:academic-os:configuration:1",
+  "title": "LoadedConfig",
+  "oneOf": [
+    {
+      "$ref": "#/definitions/LocalConfig"
+    },
+    {
+      "$ref": "#/definitions/AcademicConfig"
+    },
+    {
+      "$ref": "#/definitions/ServiceConfig"
+    }
+  ],
+  "definitions": {
+    "ConfiguredModule": {
+      "type": "object",
+      "properties": {
+        "semester": {
+          "type": "string",
+          "minLength": 1
+        },
+        "module": {
+          "type": "string",
+          "pattern": "^[A-Z]{2,4}[0-9]{4}[A-Z]?$"
+        }
+      },
+      "required": ["semester", "module"],
+      "additionalProperties": false,
+      "title": "ConfiguredModule"
+    },
+    "SemesterConfig": {
+      "type": "object",
+      "properties": {
+        "root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": ["active", "past", "future"]
+        },
+        "modules": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z]{2,4}[0-9]{4}[A-Z]?$"
+          }
+        }
+      },
+      "required": ["root", "status", "modules"],
+      "additionalProperties": false,
+      "title": "SemesterConfig"
+    },
+    "ResearchProjectConfig": {
+      "type": "object",
+      "properties": {
+        "folder": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!\\.{1,2}$)[^/\\\\]+$",
+          "format": "trimmed-string"
+        },
+        "status": {
+          "enum": ["active", "inactive"]
+        },
+        "profile": {
+          "const": "ureca"
+        },
+        "taskListTitle": {
+          "type": "string",
+          "minLength": 1,
+          "format": "trimmed-string"
+        }
+      },
+      "required": ["folder", "status"],
+      "additionalProperties": false,
+      "title": "ResearchProjectConfig"
+    },
+    "ResearchConfig": {
+      "type": "object",
+      "properties": {
+        "root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "projects": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "additionalProperties": {
+            "$ref": "#/definitions/ResearchProjectConfig"
+          }
+        }
+      },
+      "required": ["root", "projects"],
+      "additionalProperties": false,
+      "title": "ResearchConfig"
+    },
+    "CredentialsConfig": {
+      "type": "object",
+      "properties": {
+        "scheduledRead": {
+          "type": "string",
+          "format": "absolute-path"
+        },
+        "interactiveWrite": {
+          "type": "string",
+          "format": "absolute-path"
+        }
+      },
+      "required": ["scheduledRead", "interactiveWrite"],
+      "additionalProperties": false,
+      "title": "CredentialsConfig"
+    },
+    "CalendarConfig": {
+      "type": "object",
+      "properties": {
+        "managementHorizon": {
+          "type": "string",
+          "format": "iso-instant"
+        },
+        "credentials": {
+          "$ref": "#/definitions/CredentialsConfig"
+        }
+      },
+      "required": ["managementHorizon", "credentials"],
+      "additionalProperties": false,
+      "title": "CalendarConfig"
+    },
+    "TaskPlanningConfig": {
+      "type": "object",
+      "properties": {
+        "releaseRoot": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "\\S",
+          "format": "absolute-path"
+        },
+        "manifestSha256": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "sourceCommit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "privateRoot": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "\\S",
+          "format": "absolute-path"
+        },
+        "environment": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "\\S"
+        },
+        "accountId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "\\S"
+        },
+        "sourceIdentity": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "\\S"
+        },
+        "catalogSourcePath": {
+          "type": "string",
+          "format": "absolute-path"
+        }
+      },
+      "required": [
+        "releaseRoot",
+        "manifestSha256",
+        "sourceCommit",
+        "privateRoot",
+        "environment",
+        "accountId",
+        "sourceIdentity"
+      ],
+      "additionalProperties": false,
+      "title": "TaskPlanningConfig"
+    },
+    "TasksConfig": {
+      "type": "object",
+      "properties": {
+        "credentials": {
+          "$ref": "#/definitions/CredentialsConfig"
+        },
+        "planning": {
+          "$ref": "#/definitions/TaskPlanningConfig"
+        }
+      },
+      "required": ["credentials"],
+      "additionalProperties": false,
+      "title": "TasksConfig"
+    },
+    "RoutineConfig": {
+      "type": "object",
+      "properties": {
+        "codexPath": {
+          "type": "string",
+          "format": "absolute-path"
+        },
+        "ghPath": {
+          "type": "string",
+          "format": "absolute-path"
+        }
+      },
+      "required": ["codexPath", "ghPath"],
+      "additionalProperties": false,
+      "title": "RoutineConfig"
+    },
+    "TextbooksConfig": {
+      "type": "object",
+      "properties": {
+        "shelfRoot": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["shelfRoot"],
+      "additionalProperties": false,
+      "title": "TextbooksConfig"
+    },
+    "RepairConfig": {
+      "type": "object",
+      "properties": {
+        "driveRecoveryRootId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "snapshotRoot": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["driveRecoveryRootId", "snapshotRoot"],
+      "additionalProperties": false,
+      "title": "RepairConfig"
+    },
+    "ServiceConfig": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "driveMount": {
+          "type": "string",
+          "format": "absolute-path"
+        },
+        "stateRoot": {
+          "type": "string",
+          "format": "absolute-path"
+        },
+        "calendar": {
+          "$ref": "#/definitions/CalendarConfig"
+        },
+        "tasks": {
+          "$ref": "#/definitions/TasksConfig"
+        },
+        "routine": {
+          "$ref": "#/definitions/RoutineConfig"
+        },
+        "textbooks": {
+          "$ref": "#/definitions/TextbooksConfig"
+        }
+      },
+      "required": ["driveMount", "stateRoot"],
+      "additionalProperties": false,
+      "title": "ServiceConfig"
+    },
+    "LocalConfig": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "driveMount": {
+          "type": "string",
+          "format": "absolute-path"
+        },
+        "stateRoot": {
+          "type": "string",
+          "format": "absolute-path"
+        },
+        "calendar": {
+          "$ref": "#/definitions/CalendarConfig"
+        },
+        "tasks": {
+          "$ref": "#/definitions/TasksConfig"
+        },
+        "routine": {
+          "$ref": "#/definitions/RoutineConfig"
+        },
+        "textbooks": {
+          "$ref": "#/definitions/TextbooksConfig"
+        },
+        "semester": {
+          "type": "string",
+          "minLength": 1
+        },
+        "module": {
+          "type": "string",
+          "pattern": "^[A-Z]{2,4}[0-9]{4}[A-Z]?$"
+        },
+        "semesterRoots": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "driveApi": {
+          "type": "object",
+          "properties": {
+            "moduleFolderId": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["moduleFolderId"],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "driveMount",
+        "stateRoot",
+        "semester",
+        "module",
+        "semesterRoots"
+      ],
+      "additionalProperties": false,
+      "title": "LocalConfig"
+    },
+    "AcademicConfig": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "driveMount": {
+          "type": "string",
+          "format": "absolute-path"
+        },
+        "stateRoot": {
+          "type": "string",
+          "format": "absolute-path"
+        },
+        "calendar": {
+          "$ref": "#/definitions/CalendarConfig"
+        },
+        "tasks": {
+          "$ref": "#/definitions/TasksConfig"
+        },
+        "routine": {
+          "$ref": "#/definitions/RoutineConfig"
+        },
+        "textbooks": {
+          "$ref": "#/definitions/TextbooksConfig"
+        },
+        "activeSemester": {
+          "type": "string",
+          "minLength": 1
+        },
+        "semesters": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/SemesterConfig"
+          }
+        },
+        "research": {
+          "$ref": "#/definitions/ResearchConfig"
+        },
+        "seedTarget": {
+          "$ref": "#/definitions/ConfiguredModule"
+        },
+        "driveApi": {
+          "type": "object",
+          "properties": {
+            "moduleFolderIds": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "researchProjectFolderIds": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": ["moduleFolderIds"],
+          "additionalProperties": false
+        },
+        "repair": {
+          "$ref": "#/definitions/RepairConfig"
+        }
+      },
+      "required": ["driveMount", "stateRoot", "activeSemester", "semesters"],
+      "additionalProperties": false,
+      "title": "AcademicConfig"
+    }
+  }
+}

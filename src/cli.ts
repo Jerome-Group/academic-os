@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { runConfigValidateCommand } from "./commands/config-validate-command.js";
 import { runCapabilitiesCommand } from "./capabilities/command.js";
 import { runModuleInspectCommand } from "./commands/module-inspect-command.js";
 import { runAuditCommand } from "./commands/audit-command.js";
@@ -50,6 +51,8 @@ try {
     arguments_[0] === "help"
   ) {
     await runCapabilitiesCommand(["capabilities", "index", "--json"]);
+  } else if (arguments_[0] === "config" && arguments_[1] === "validate") {
+    await runConfigValidateCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "seed") {
     await runSeedCommand(arguments_, json);
   } else if (arguments_[0] === "repair") {

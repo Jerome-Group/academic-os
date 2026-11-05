@@ -1,4 +1,4 @@
-import { type AcademicConfig, loadLocalConfig } from "../config/index.js";
+import { loadLocalConfig } from "../config/index.js";
 import { runImportStatus, type ImportStatusReport } from "../imports/index.js";
 import { OperationalError } from "../mounted/index.js";
 import { parseArgumentTokens } from "./argument-tokens.js";
@@ -20,7 +20,7 @@ export async function runImportsStatusCommand(
     );
   }
   const report = await runImportStatus({
-    config: loaded as AcademicConfig,
+    config: loaded,
     observedAt: new Date().toISOString(),
     maxAgeHours: parsed.maxAgeHours,
   });

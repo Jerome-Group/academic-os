@@ -105,54 +105,19 @@ function driveApiTarget(
   module: string,
 ): Pick<LocalConfig, "driveApi"> | Record<string, never> {
   const moduleFolderIds = config.driveApi?.moduleFolderIds;
-  if (
-    typeof moduleFolderIds !== "object" ||
-    moduleFolderIds === null ||
-    Array.isArray(moduleFolderIds)
-  ) {
-    return {};
-  }
-  const semesterFolderIds = moduleFolderIds[semester];
-  if (
-    typeof semesterFolderIds !== "object" ||
-    semesterFolderIds === null ||
-    Array.isArray(semesterFolderIds)
-  ) {
-    return {};
-  }
-  const moduleFolderId = semesterFolderIds[module];
+  const semesterFolderIds = moduleFolderIds?.[semester];
+  const moduleFolderId = semesterFolderIds?.[module];
   return typeof moduleFolderId !== "string" || moduleFolderId.length === 0
     ? {}
     : { driveApi: { moduleFolderId } };
 }
 
 function validateCohortConfig(config: AcademicConfig): void {
-  if (
-    typeof config.activeSemester !== "string" ||
-    config.activeSemester.length === 0 ||
-    typeof config.semesters !== "object" ||
-    config.semesters === null ||
-    Array.isArray(config.semesters)
-  ) {
-    throw new OperationalError(
-      "invalid-config",
-      "activeSemester and semesters must declare the monitoring cohort.",
-    );
-  }
   for (const [semester, value] of Object.entries(config.semesters)) {
     if (
-      typeof value !== "object" ||
-      value === null ||
-      !["active", "past", "future"].includes(value.status) ||
-      typeof value.root !== "string" ||
       value.root.length === 0 ||
       isAbsolute(value.root) ||
-      normalize(value.root).startsWith("..") ||
-      !Array.isArray(value.modules) ||
-      !value.modules.every(
-        (module) =>
-          typeof module === "string" && /^[A-Z]{2,4}\d{4}[A-Z]?$/u.test(module),
-      )
+      normalize(value.root).startsWith("..")
     ) {
       throw new OperationalError(
         "invalid-config",

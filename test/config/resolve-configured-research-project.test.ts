@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   type AcademicConfig,
+  validateConfig,
   resolveConfiguredResearchProject,
 } from "../../src/config/index.js";
 
@@ -56,10 +57,7 @@ describe("resolveConfiguredResearchProject", () => {
       "URECA Y2": { folder: "URECA Y2", status: "active" },
     };
 
-    assert.throws(
-      () => resolveConfiguredResearchProject(malformed, "URECA Y2"),
-      /Research project keys must be lowercase stable slugs/u,
-    );
+    assert.throws(() => validateConfig(malformed), /pattern constraint/u);
   });
 
   it("rejects case-folded folder collisions", () => {

@@ -69,9 +69,25 @@ function cli(
 
 export const cliCapabilities: Capability[] = [
   {
+    ...cli("config validate", [], [], null, [
+      "test/config/configuration-boundary.test.ts",
+      "test/config/configuration-cli.test.ts",
+    ]),
+    prerequisites: [
+      "Node >=24",
+      "npm ci && npm run build",
+      "readable configuration file",
+    ],
+    reads: ["configuration bytes"],
+    result:
+      "Validated local, cohort or service shape and format version only; no path, credential or provider payload; validation failure exits 2.",
+  },
+  {
     ...cli("module inspect", [], [], null, [
       "test/controls/read-controls.test.ts",
       "test/controls/module-inspect-cli.test.ts",
+      "test/config/configuration-boundary.test.ts",
+      "test/config/configuration-cli.test.ts",
     ]),
     invocation:
       "node dist/src/cli.js module inspect --root <module-root> --json",

@@ -299,6 +299,11 @@ it("distinguishes configured executable readiness from PATH presence and mainten
       config,
       JSON.stringify({
         activeSemester: "SYNTHETIC",
+        driveMount: join(root, "mount"),
+        stateRoot: join(root, "state"),
+        semesters: {
+          SYNTHETIC: { root: "Modules", status: "active", modules: [] },
+        },
         routine: { codexPath: executable, ghPath: join(root, "missing-gh") },
       }),
     );
@@ -438,6 +443,10 @@ it("refuses logs through aliases into a configured academic mount", async () => 
         JSON.stringify({
           activeSemester: "SYNTHETIC",
           driveMount,
+          stateRoot: join(root, "state"),
+          semesters: {
+            SYNTHETIC: { root: "Modules", status: "active", modules: [] },
+          },
           routine: {
             codexPath: join(root, "missing-codex"),
             ghPath: join(root, "missing-gh"),

@@ -3,20 +3,15 @@ import { isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { OperationalError } from "../mounted/index.js";
+import type { ServiceConfig } from "./types.js";
 import { isContainedBy } from "../mounted/is-contained-by.js";
 
 // Private state is what the Owner's coursework and this public repository must both never carry,
 // so every command that writes any resolves its root through here rather than trusting the path.
-export async function resolveStateRoot(config: {
-  driveMount: unknown;
-  stateRoot: unknown;
-}): Promise<string> {
-  if (
-    typeof config.driveMount !== "string" ||
-    typeof config.stateRoot !== "string" ||
-    !isAbsolute(config.driveMount) ||
-    !isAbsolute(config.stateRoot)
-  ) {
+export async function resolveStateRoot(
+  config: Pick<ServiceConfig, "driveMount" | "stateRoot">,
+): Promise<string> {
+  if (!isAbsolute(config.driveMount) || !isAbsolute(config.stateRoot)) {
     throw new OperationalError(
       "invalid-config",
       "driveMount and stateRoot must be absolute paths.",

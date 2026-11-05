@@ -1,6 +1,6 @@
 import { lstat, realpath } from "node:fs/promises";
 import { basename, resolve } from "node:path";
-import { loadLocalConfig } from "../config/index.js";
+import { loadLocalConfig, requireLocalConfig } from "../config/index.js";
 import { resolveConfiguredAuditTarget } from "../cohort/index.js";
 import { readControls } from "../controls/index.js";
 import { inspectMountedModule, OperationalError } from "../mounted/index.js";
@@ -58,7 +58,7 @@ async function inspectConfigured(
   const target =
     "activeSemester" in config
       ? resolveConfiguredAuditTarget(config, semester ?? "", module ?? "")
-      : config;
+      : requireLocalConfig(config);
   if (
     !("activeSemester" in config) &&
     semester !== undefined &&

@@ -645,6 +645,30 @@ export const cliCapabilities: Capability[] = [
 
 export function capabilityIndex(): object {
   const actions = [...cliCapabilities];
+  actions.push({
+    id: "controls publication standalone",
+    surface: "script",
+    invocation:
+      "npm run controls-publication:standalone -- <absolute-output-directory>",
+    prerequisites: [
+      "npm ci && npm run build",
+      "unchanged built source bindings",
+      "production native addon on supported Darwin",
+    ],
+    reads: [
+      "built release manifest",
+      "shared source and production native artifact",
+    ],
+    writes: ["standalone package under the explicit output directory"],
+    riskFlags: ["writes-release-artifact"],
+    preview: null,
+    implementation: "scripts/build-control-publication-standalone.mjs",
+    tests: ["test/controls-publication/standalone-package.test.ts"],
+    status: "supported",
+    health: "not-observed",
+    result:
+      "Standalone CLI with the host release identity and production addon. Package creation loads no publication authority or Module target.",
+  });
   for (const tool of createPublicationTools())
     actions.push({
       id: tool.name,

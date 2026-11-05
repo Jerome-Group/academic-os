@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { chmod, copyFile, mkdir, readFile } from "node:fs/promises";
+import { chmod, copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { isAbsolute, join, resolve } from "node:path";
 import { build } from "esbuild";
@@ -40,6 +40,7 @@ if (process.platform === "darwin") {
     throw new Error("Publication native artifact differs from its release.");
 }
 await mkdir(join(output, "native"), { recursive: true, mode: 0o700 });
+await writeFile(join(output, "native/package.json"), '{"type":"module"}\n');
 await build({
   entryPoints: ["src/controls-publication/standalone.ts"],
   outfile: join(output, "publication.mjs"),

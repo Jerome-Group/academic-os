@@ -387,6 +387,59 @@ describe("academic-os research-project CLI", () => {
     }
   });
 
+  it("previews, publishes, replays and audits a CRLF Meeting without changing its bytes", async () => {
+    const fixture = await setupFixture({ existing: false, generic: true });
+    const files = researchMeetingInitialFiles().map((file) =>
+      file.destination === initialMeetingNotePath && file.encoding === "utf8"
+        ? { ...file, contents: file.contents.replaceAll("\n", "\r\n") }
+        : file,
+    );
+    const manifest = await writeIntakeManifest(fixture.root, files);
+    const target = meetingSeedArguments(fixture, manifest);
+
+    const preview = await runCli(...target, "--json");
+    assert.equal(preview.exitCode, 0, preview.stdout);
+    assert.equal(JSON.parse(preview.stdout).outcome, "preview");
+    assert.deepEqual(await readdir(fixture.researchRoot), []);
+    assert.deepEqual(await readdir(fixture.stateRoot), []);
+
+    const applied = await runCli(...target, "--apply", "--json");
+    assert.equal(applied.exitCode, 0, applied.stdout);
+    assert.equal(JSON.parse(applied.stdout).outcome, "completed");
+    await assertIntakeBytes(fixture.projectRoot, files);
+    const journal = await onlyJournal(fixture.stateRoot);
+
+    const replay = await runCli(...target, "--apply", "--resume", "--json");
+    assert.equal(replay.exitCode, 0, replay.stdout);
+    assert.equal(JSON.parse(replay.stdout).outcome, "completed");
+    assert.deepEqual(JSON.parse(replay.stdout).operations, []);
+    assert.deepEqual(
+      (await onlyJournal(fixture.stateRoot)).bytes,
+      journal.bytes,
+    );
+    await assertIntakeBytes(fixture.projectRoot, files);
+
+    const audit = await runCli(
+      "audit",
+      "--config",
+      fixture.configPath,
+      "--research-project",
+      "example-project",
+      "--json",
+    );
+    assert.equal(audit.exitCode, 0, audit.stdout);
+    const report = JSON.parse(audit.stdout);
+    assert.equal(report.outcome, "conformant");
+    assert.equal(report.contractVersion, 3);
+    assert.equal(
+      report.findings.find(
+        ({ ruleId }: { ruleId: string }) => ruleId === "RP-MEETINGS-001",
+      ).status,
+      "pass",
+    );
+    await assertIntakeBytes(fixture.projectRoot, files);
+  });
+
   it("refuses invalid Meeting intake before publication", async () => {
     const cases: Array<{
       name: string;
@@ -408,14 +461,43 @@ describe("academic-os research-project CLI", () => {
             ? {
                 destination: file.destination,
                 encoding: "utf8",
-                contents: initialMeetingNote.replace(
-                  "date: 2026-11-06",
-                  "date: 2026-11-07",
-                ),
+                contents: initialMeetingNote
+                  .replace("date: 2026-11-06", "date: 2026-11-07")
+                  .replaceAll("\n", "\r\n"),
               }
             : file,
         ),
         message: /date must be 2026-11-06/u,
+      },
+      {
+        name: "incomplete CRLF front matter",
+        files: researchMeetingInitialFiles().map((file) =>
+          file.destination === initialMeetingNotePath &&
+          file.encoding === "utf8"
+            ? {
+                ...file,
+                contents: file.contents
+                  .replace("\n---\n", "\n")
+                  .replaceAll("\n", "\r\n"),
+              }
+            : file,
+        ),
+        message: /requires YAML front matter/u,
+      },
+      {
+        name: "malformed CRLF YAML",
+        files: researchMeetingInitialFiles().map((file) =>
+          file.destination === initialMeetingNotePath &&
+          file.encoding === "utf8"
+            ? {
+                ...file,
+                contents: file.contents
+                  .replace("participants:", "participants: [")
+                  .replaceAll("\n", "\r\n"),
+              }
+            : file,
+        ),
+        message: /front matter is not valid YAML/u,
       },
       {
         name: "missing schedule",

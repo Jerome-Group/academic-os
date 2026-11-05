@@ -1131,6 +1131,7 @@ export function capabilityIndex(): object {
         ...(profile === "publication-formal"
           ? [
               "Darwin; Apple clang and current Node N-API headers; private local fixture evidence parent",
+              "follow .agents/skills/control-publication/SKILL.md",
             ]
           : []),
       ],
@@ -1144,8 +1145,8 @@ export function capabilityIndex(): object {
       tests: [
         "test/capabilities/capabilities.test.ts",
         "test/capabilities/build-provenance.test.ts",
-        ...(profile === "publication-formal"
-          ? [".agents/skills/control-publication/run.mjs"]
+        ...(["formal", "publication-formal"].includes(profile)
+          ? ["test/capabilities/workflow-checks.test.ts"]
           : []),
       ],
       status: "supported",

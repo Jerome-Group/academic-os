@@ -18,6 +18,9 @@ implementation or verification. Agent-facing document changes load `writing-for-
 Fix evidenced defects with a regression at the public seam. Independent review precedes the pull
 request. Resolve findings, run required checks against the exact head, tick delivered issue
 criteria and report drift under [`acceptance-criteria.md`](acceptance-criteria.md).
+Product checks run locally through [capability profiles](capabilities.md) and the project verify
+skill. Retain the exact source revision and relevant outcomes before delivery. Hosted Organisation
+conformance supplies separate policy evidence.
 `CONTRIBUTING.md` owns issue, branch, pull-request and attribution requirements. Merge authority
 comes from the Owner's current request.
 

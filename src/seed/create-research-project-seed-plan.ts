@@ -4,16 +4,18 @@ import { validateResearchProjectDefinition } from "../conformance/validate-resea
 import { OperationalError } from "../operational-error.js";
 import type {
   ResearchProjectInitialFile,
+  ResearchProjectInitialIntake,
   ResearchProjectSeedPlan,
   SeedOperation,
 } from "./types.js";
 
 const profilePath = "00 Project Admin/00 Project Profile.md";
 const definitionPath = "00 Project Admin/10 Project Definition.yaml";
-const callerOwnedOverrides = new Set([
-  "00 Project Admin/20 Source Register.yaml",
-  "00 Project Admin/50 Deliverable Register.yaml",
-  "10 Source Materials/references.bib",
+const callerOwnedControls = new Map<string, 1 | 2>([
+  ["00 Project Admin/20 Source Register.yaml", 1],
+  ["00 Project Admin/50 Deliverable Register.yaml", 1],
+  ["10 Source Materials/references.bib", 1],
+  ["20 Supervisor Meetings/SCHEDULE.md", 2],
 ]);
 const commonOpenInteriors = [
   "10 Source Materials/10 Programme and Project",
@@ -30,7 +32,7 @@ export function createResearchProjectSeedPlan(input: {
   profile: string;
   definition: string;
   contract: ResearchProjectContract;
-  initialFiles?: readonly ResearchProjectInitialFile[];
+  initialIntake?: ResearchProjectInitialIntake;
 }): ResearchProjectSeedPlan {
   const selectedProfile = input.target.profile ?? "generic";
   const structure = uniqueStructure([
@@ -61,7 +63,7 @@ export function createResearchProjectSeedPlan(input: {
   const operations = initialFileOperations({
     structure,
     contents,
-    initialFiles: input.initialFiles ?? [],
+    intake: input.initialIntake ?? { policyVersion: 1, files: [] },
     selectedProfile,
   });
   return {
@@ -71,6 +73,9 @@ export function createResearchProjectSeedPlan(input: {
       folder: input.target.folder,
     },
     contractVersion: input.contract.version,
+    ...(input.initialIntake?.policyVersion === 2
+      ? { intakePolicyVersion: input.initialIntake.policyVersion }
+      : {}),
     blockers: [
       ...definitionBlockers,
       ...(missingBodies.length === 0
@@ -86,7 +91,7 @@ export function createResearchProjectSeedPlan(input: {
 function initialFileOperations(input: {
   structure: ReadonlyArray<readonly [string, "directory" | "file"]>;
   contents: ReadonlyMap<string, string>;
-  initialFiles: readonly ResearchProjectInitialFile[];
+  intake: ResearchProjectInitialIntake;
   selectedProfile: string;
 }): SeedOperation[] {
   const operations = new Map<string, SeedOperation>(
@@ -107,7 +112,7 @@ function initialFileOperations(input: {
     input.structure,
     input.selectedProfile,
   );
-  for (const initialFile of input.initialFiles) {
+  for (const initialFile of input.intake.files) {
     const destination = requireCanonicalDestination(initialFile.destination);
     const canonical = canonicalPathIdentity(destination);
     if (canonicalDestinations.has(canonical)) {
@@ -121,10 +126,11 @@ function initialFileOperations(input: {
         `${destination} remains controlled by the dedicated --profile and --definition flags.`,
       );
     }
-    if (destination.startsWith("00 Project Admin/")) {
-      if (!callerOwnedOverrides.has(destination)) {
+    const requiredPolicy = callerOwnedControls.get(destination);
+    if (requiredPolicy !== undefined) {
+      if (input.intake.policyVersion < requiredPolicy) {
         throw invalidInitialFile(
-          `Initial intake cannot add to closed Project Admin: ${destination}.`,
+          `Caller-owned control ${destination} requires initial-intake policy v${requiredPolicy}; select manifest schemaVersion ${requiredPolicy}.`,
         );
       }
       if (initialFile.encoding !== "utf8") {
@@ -136,15 +142,10 @@ function initialFileOperations(input: {
       initialFileDestinations.add(destination);
       continue;
     }
-    if (destination === "10 Source Materials/references.bib") {
-      if (initialFile.encoding !== "utf8") {
-        throw invalidInitialFile(
-          "Caller-owned control 10 Source Materials/references.bib requires utf8 encoding.",
-        );
-      }
-      operations.set(destination, textOperation(destination, initialFile));
-      initialFileDestinations.add(destination);
-      continue;
+    if (destination.startsWith("00 Project Admin/")) {
+      throw invalidInitialFile(
+        `Initial intake cannot add to closed Project Admin: ${destination}.`,
+      );
     }
     const existing = operations.get(destination);
     if (existing !== undefined) {

@@ -34,7 +34,7 @@ Native process fixtures check exclusive moves, original captures, interruption/d
 They inspect resulting records, checkpoints and fixture files and inject failures at existing adapters.
 The compiled launcher fixture previews the real installer with an owned config and toolchain `PATH`.
 It decodes the emitted plist with `/usr/bin/plutil` on macOS or `/usr/bin/python3` and standard-library `plistlib` on Linux.
-Linux CI requires that Python3 decoder. The process regression has no platform skip.
+Local Linux verification requires that Python3 decoder. The process regression has no platform skip.
 The fixture starts the compiled runner under a fresh minimal scheduler environment, overlaid only with the decoded plist environment.
 It runs real `npm ci`, `npm run`, bare `node` and a bare executable outside Node's directory, whose path contains spaces and `&`.
 It checks the selected Node executable, custom command output, an unrelated inherited variable and a completed private launcher receipt.

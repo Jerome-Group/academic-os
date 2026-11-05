@@ -14,14 +14,31 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 
-import type { AcademicConfig } from "../../src/config/index.js";
+import {
+  type AcademicConfig,
+  resolveConfiguredResearchProject,
+} from "../../src/config/index.js";
 import { loadResearchProjectContract } from "../../src/contract/load-research-project-contract.js";
 import { seedMountedResearchProject } from "../../src/mounted/index.js";
-import { createResearchProjectSeedPlan } from "../../src/seed/index.js";
+import {
+  createResearchProjectSeedPlan,
+  type ResearchProjectInitialFile,
+  type ResearchProjectInitialIntake,
+} from "../../src/seed/index.js";
 import { recordResearchBehaviorEvidence } from "../support/rule-evidence.js";
 
 import { seedOwnershipTests } from "../support/seed-ownership.js";
 import { assertSeedPartialRootIdentity } from "../support/seed-partial-root-identity.js";
+import {
+  auditProjectedResearchProjectSeedTarget,
+  auditResearchProjectSeedRoot,
+} from "../../src/mounted/research-project-seed-target-state.js";
+import {
+  initialMeetingNote,
+  initialMeetingNotePath,
+  initialSchedulePath,
+  researchMeetingInitialFiles,
+} from "../support/research-meeting-intake.js";
 
 const temporaryRoots: string[] = [];
 
@@ -242,13 +259,16 @@ describe("seedMountedResearchProject", () => {
 
   it("previews binary intake without exposing bytes and writes exact bytes", async () => {
     const fixture = await researchSeedFixture({
-      initialFiles: [
-        {
-          destination: "10 Source Materials/20 Core Sources/source.pdf",
-          encoding: "binary",
-          contentsBase64: "AP8KgEE=",
-        },
-      ],
+      initialIntake: {
+        policyVersion: 1,
+        files: [
+          {
+            destination: "10 Source Materials/20 Core Sources/source.pdf",
+            encoding: "binary",
+            contentsBase64: "AP8KgEE=",
+          },
+        ],
+      },
     });
 
     const preview = await seedMountedResearchProject(
@@ -299,13 +319,16 @@ describe("seedMountedResearchProject", () => {
 
   it("refuses an intake conflict before creating any planned file", async () => {
     const fixture = await researchSeedFixture({
-      initialFiles: [
-        {
-          destination: "10 Source Materials/20 Core Sources/source.pdf",
-          encoding: "binary",
-          contentsBase64: "AP8=",
-        },
-      ],
+      initialIntake: {
+        policyVersion: 1,
+        files: [
+          {
+            destination: "10 Source Materials/20 Core Sources/source.pdf",
+            encoding: "binary",
+            contentsBase64: "AP8=",
+          },
+        ],
+      },
     });
     const core = join(
       fixture.projectRoot,
@@ -332,13 +355,16 @@ describe("seedMountedResearchProject", () => {
 
   it("binds binary intake bytes into the resumable plan digest", async () => {
     const fixture = await researchSeedFixture({
-      initialFiles: [
-        {
-          destination: "10 Source Materials/20 Core Sources/source.pdf",
-          encoding: "binary",
-          contentsBase64: "AP8=",
-        },
-      ],
+      initialIntake: {
+        policyVersion: 1,
+        files: [
+          {
+            destination: "10 Source Materials/20 Core Sources/source.pdf",
+            encoding: "binary",
+            contentsBase64: "AP8=",
+          },
+        ],
+      },
     });
     let interrupted = false;
     await assert.rejects(
@@ -376,14 +402,134 @@ describe("seedMountedResearchProject", () => {
     );
     assert.equal(resumed.outcome, "completed");
   });
+
+  it("audits planned binary-encoded Meeting notes and reads actual staged and published notes", async () => {
+    const files = researchMeetingInitialFiles().map(
+      (file): ResearchProjectInitialFile =>
+        file.destination === initialMeetingNotePath
+          ? {
+              destination: file.destination,
+              encoding: "binary",
+              contentsBase64:
+                Buffer.from(initialMeetingNote).toString("base64"),
+            }
+          : file,
+    );
+    const fixture = await researchSeedFixture({
+      existing: false,
+      initialIntake: { policyVersion: 2, files },
+    });
+    const project = resolveConfiguredResearchProject(
+      fixture.config,
+      "ureca-y2",
+    );
+    const target = {
+      kind: "research-project" as const,
+      projectKey: project.key,
+      folder: project.folder,
+      parentRoot: fixture.researchRoot,
+      projectRoot: fixture.projectRoot,
+    };
+    assert.deepEqual(
+      await auditProjectedResearchProjectSeedTarget({
+        target,
+        project,
+        plan: fixture.plan,
+      }),
+      [],
+    );
+    const applied = await seedMountedResearchProject(
+      fixture.config,
+      fixture.plan,
+      "apply",
+    );
+    assert.equal(applied.outcome, "completed", applied.evidence.join(" "));
+    assert.deepEqual(
+      await auditResearchProjectSeedRoot({
+        root: fixture.projectRoot,
+        project,
+      }),
+      [],
+    );
+    await writeFile(
+      join(fixture.projectRoot, initialMeetingNotePath),
+      initialMeetingNote.replace("status: planned", "status: invalid"),
+    );
+    const failed = await auditResearchProjectSeedRoot({
+      root: fixture.projectRoot,
+      project,
+    });
+    assert.match(
+      failed.join(" "),
+      /Meeting.md status must be scaffold, planned/u,
+    );
+    assert.doesNotMatch(failed.join(" "), /No readable meeting note/u);
+  });
+
+  it("resumes a staged complete Meeting only with the same policy and exact approved bytes", async () => {
+    const files = researchMeetingInitialFiles();
+    const fixture = await researchSeedFixture({
+      existing: false,
+      initialIntake: { policyVersion: 2, files },
+    });
+    await assert.rejects(
+      seedMountedResearchProject(fixture.config, fixture.plan, "apply", {
+        checkpoint: async ({ checkpoint }) => {
+          if (checkpoint === "before-publication")
+            throw new Error("synthetic complete Meeting interruption");
+        },
+      }),
+      /synthetic complete Meeting interruption/u,
+    );
+    await assert.rejects(access(fixture.projectRoot));
+    const changed = structuredClone(fixture.plan);
+    const schedule = changed.operations.find(
+      ({ path }) => path === initialSchedulePath,
+    );
+    assert.ok(schedule);
+    schedule.contents = `${schedule.contents ?? ""}\nChanged approved bytes.\n`;
+    const refused = await seedMountedResearchProject(
+      fixture.config,
+      changed,
+      "apply",
+      { resume: true },
+    );
+    assert.equal(refused.outcome, "blocked");
+    assert.match(refused.evidence.join(" "), /approved plan changed/u);
+    const changedPolicy = structuredClone(fixture.plan);
+    delete changedPolicy.intakePolicyVersion;
+    const refusedPolicy = await seedMountedResearchProject(
+      fixture.config,
+      changedPolicy,
+      "apply",
+      { resume: true },
+    );
+    assert.equal(refusedPolicy.outcome, "blocked");
+    assert.match(refusedPolicy.evidence.join(" "), /approved plan changed/u);
+    await assert.rejects(access(fixture.projectRoot));
+    const resumed = await seedMountedResearchProject(
+      fixture.config,
+      fixture.plan,
+      "apply",
+      { resume: true },
+    );
+    assert.equal(resumed.outcome, "completed", resumed.evidence.join(" "));
+    for (const file of files) {
+      assert.deepEqual(
+        await readFile(join(fixture.projectRoot, file.destination)),
+        file.encoding === "utf8"
+          ? Buffer.from(file.contents)
+          : Buffer.from(file.contentsBase64, "base64"),
+      );
+    }
+    assert.deepEqual(await readdir(fixture.researchRoot), ["URECA Y2"]);
+  });
 });
 
 async function researchSeedFixture(
   options: {
     existing?: boolean;
-    initialFiles?: Parameters<
-      typeof createResearchProjectSeedPlan
-    >[0]["initialFiles"];
+    initialIntake?: ResearchProjectInitialIntake;
   } = {},
 ) {
   const root = await mkdtemp(join(tmpdir(), "academic-os-research-seed-"));
@@ -442,9 +588,9 @@ evidence:
     profile: validResearchProfile(),
     definition,
     contract,
-    ...(options.initialFiles === undefined
+    ...(options.initialIntake === undefined
       ? {}
-      : { initialFiles: options.initialFiles }),
+      : { initialIntake: options.initialIntake }),
   });
   return { config, plan, projectRoot, researchRoot, stateRoot };
 }

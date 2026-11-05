@@ -16,9 +16,9 @@ only after rule-specific behavioural assertions pass. Test names and function-en
 not provide evidence. The gate has a regression proving one omitted rule fails the comparison.
 A missing, unobserved or failing rule behaviour fails the gate. `test/privacy/`
 checks both ignore rules and the tracked tree for credentials, academic contents and private
-runtime state. CI runs format, lint, typecheck, tests, rule coverage and privacy as parallel jobs
-bounded to nine minutes; the one-minute fan-in keeps the workflow critical path within ten
-minutes.
+runtime state. At V1 acceptance, CI ran format, lint, typecheck, tests, rule coverage and privacy
+as parallel jobs bounded to nine minutes, with a one-minute fan-in. Product verification now runs
+locally under [ADR-0047](adr/0047-product-verification-runs-locally.md).
 
 ## Read-only real-module acceptance
 

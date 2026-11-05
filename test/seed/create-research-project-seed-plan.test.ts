@@ -10,6 +10,10 @@ import {
   createResearchProjectSeedPlan,
   type ResearchProjectContract,
 } from "../../src/seed/index.js";
+import {
+  initialMeetingSchedule,
+  initialSchedulePath,
+} from "../support/research-meeting-intake.js";
 
 const target: ResolvedResearchProject = {
   key: "ureca-y2",
@@ -84,29 +88,32 @@ describe("createResearchProjectSeedPlan", () => {
       definition,
       profile,
       contract,
-      initialFiles: [
-        {
-          destination: "00 Project Admin/20 Source Register.yaml",
-          encoding: "utf8",
-          contents: "sources: []\n",
-        },
-        {
-          destination: "00 Project Admin/50 Deliverable Register.yaml",
-          encoding: "utf8",
-          contents: "deliverables: []\n",
-        },
-        {
-          destination: "10 Source Materials/references.bib",
-          encoding: "utf8",
-          contents: "% approved initial bibliography\n",
-        },
-        {
-          destination:
-            "10 Source Materials/20 Core Sources/representation-theory/book.pdf",
-          encoding: "binary",
-          contentsBase64: "AP8=",
-        },
-      ],
+      initialIntake: {
+        policyVersion: 1,
+        files: [
+          {
+            destination: "00 Project Admin/20 Source Register.yaml",
+            encoding: "utf8",
+            contents: "sources: []\n",
+          },
+          {
+            destination: "00 Project Admin/50 Deliverable Register.yaml",
+            encoding: "utf8",
+            contents: "deliverables: []\n",
+          },
+          {
+            destination: "10 Source Materials/references.bib",
+            encoding: "utf8",
+            contents: "% approved initial bibliography\n",
+          },
+          {
+            destination:
+              "10 Source Materials/20 Core Sources/representation-theory/book.pdf",
+            encoding: "binary",
+            contentsBase64: "AP8=",
+          },
+        ],
+      },
     });
 
     assert.equal(
@@ -190,11 +197,14 @@ describe("createResearchProjectSeedPlan", () => {
             definition,
             profile,
             contract,
-            initialFiles: testCase.destinations.map((destination) => ({
-              destination,
-              encoding: "utf8" as const,
-              contents: `case ${index}\n`,
-            })),
+            initialIntake: {
+              policyVersion: 1,
+              files: testCase.destinations.map((destination) => ({
+                destination,
+                encoding: "utf8" as const,
+                contents: `case ${index}\n`,
+              })),
+            },
           }),
         testCase.message,
       );
@@ -213,11 +223,78 @@ describe("createResearchProjectSeedPlan", () => {
             definition,
             profile,
             contract,
-            initialFiles: [
-              { destination, encoding: "utf8", contents: "replacement\n" },
-            ],
+            initialIntake: {
+              policyVersion: 1,
+              files: [
+                { destination, encoding: "utf8", contents: "replacement\n" },
+              ],
+            },
           }),
         /dedicated --profile and --definition/u,
+      );
+    }
+  });
+
+  it("binds only explicit policy v2 while preserving legacy plan identity", () => {
+    const input = { target, definition, profile, contract };
+    const legacy = createResearchProjectSeedPlan(input);
+    assert.equal(Object.hasOwn(legacy, "intakePolicyVersion"), false);
+    assert.equal(
+      JSON.stringify(
+        createResearchProjectSeedPlan({
+          ...input,
+          initialIntake: { policyVersion: 1, files: [] },
+        }),
+      ),
+      JSON.stringify(legacy),
+    );
+    const schedule = {
+      destination: initialSchedulePath,
+      encoding: "utf8" as const,
+      contents: initialMeetingSchedule,
+    };
+    assert.throws(
+      () =>
+        createResearchProjectSeedPlan({
+          ...input,
+          initialIntake: { policyVersion: 1, files: [schedule] },
+        }),
+      /requires initial-intake policy v2/u,
+    );
+    const version2 = createResearchProjectSeedPlan({
+      ...input,
+      initialIntake: { policyVersion: 2, files: [schedule] },
+    });
+    assert.equal(version2.intakePolicyVersion, 2);
+    assert.equal(
+      version2.operations.find(({ path }) => path === initialSchedulePath)
+        ?.contents,
+      initialMeetingSchedule,
+    );
+  });
+
+  it("requires UTF-8 for every caller-owned control in policy v2", () => {
+    for (const destination of [
+      "00 Project Admin/20 Source Register.yaml",
+      "00 Project Admin/50 Deliverable Register.yaml",
+      "10 Source Materials/references.bib",
+      initialSchedulePath,
+    ]) {
+      assert.throws(
+        () =>
+          createResearchProjectSeedPlan({
+            target,
+            definition,
+            profile,
+            contract,
+            initialIntake: {
+              policyVersion: 2,
+              files: [
+                { destination, encoding: "binary", contentsBase64: "AP8=" },
+              ],
+            },
+          }),
+        /requires utf8 encoding/u,
       );
     }
   });

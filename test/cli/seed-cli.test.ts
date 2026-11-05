@@ -95,6 +95,103 @@ async function seedFixture(): Promise<{
 }
 
 describe("academic-os seed", () => {
+  it("refuses Research-only identity and policy fields in a saved Module plan", async () => {
+    const fixture = await seedFixture();
+    const args = [
+      "seed",
+      "--config",
+      fixture.configPath,
+      "--profile",
+      fixture.profilePath,
+      "--definition",
+      fixture.definitionPath,
+      "--apply",
+      "--json",
+    ];
+    const applied = await runCli(...args);
+    assert.equal(applied.exitCode, 0, applied.stdout);
+    const journalRoot = join(
+      fixture.localConfig.stateRoot,
+      "journals",
+      "seeds",
+    );
+    const journals = await readdir(journalRoot);
+    assert.equal(journals.length, 1);
+    const journalPath = join(journalRoot, journals[0] ?? "missing");
+    const original = await readFile(journalPath, "utf8");
+    const entries = await readdir(fixture.moduleRoot, { recursive: true });
+    const profile = await readFile(
+      join(fixture.moduleRoot, "00 Module Admin/00 Module Profile.md"),
+    );
+    for (const researchFields of [
+      { intakePolicyVersion: 1 },
+      { intakePolicyVersion: 2 },
+      { intakePolicyVersion: 3 },
+      { contractVersion: 3 },
+      {
+        target: {
+          kind: "research-project",
+          key: "example-project",
+          folder: "Example Project",
+        },
+      },
+    ]) {
+      const events = original
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line));
+      Object.assign(events[0].plan, researchFields);
+      const changed = `${events.map((event) => JSON.stringify(event)).join("\n")}\n`;
+      await writeFile(journalPath, changed);
+      const refused = await runCli(...args, "--resume");
+      assert.equal(refused.exitCode, 1, refused.stdout);
+      assert.match(
+        JSON.parse(refused.stdout).evidence.join(" "),
+        /ambiguous journal entry/u,
+      );
+      assert.equal(await readFile(journalPath, "utf8"), changed);
+      assert.deepEqual(
+        await readdir(fixture.moduleRoot, { recursive: true }),
+        entries,
+      );
+      assert.deepEqual(
+        await readFile(
+          join(fixture.moduleRoot, "00 Module Admin/00 Module Profile.md"),
+        ),
+        profile,
+      );
+    }
+    const changedEvents = original
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    const savedProfile = changedEvents[0].plan.operations.find(
+      ({ path }: { path: string }) =>
+        path === "00 Module Admin/00 Module Profile.md",
+    );
+    assert.ok(savedProfile);
+    savedProfile.contents = "Changed bytes in the saved private plan.\n";
+    const changedBytes = `${changedEvents.map((event) => JSON.stringify(event)).join("\n")}\n`;
+    await writeFile(journalPath, changedBytes);
+    const refusedBytes = await runCli(...args, "--resume");
+    assert.equal(refusedBytes.exitCode, 1, refusedBytes.stdout);
+    assert.match(
+      JSON.parse(refusedBytes.stdout).evidence.join(" "),
+      /stored plan does not match its recorded digest/u,
+    );
+    assert.equal(await readFile(journalPath, "utf8"), changedBytes);
+    assert.deepEqual(
+      await readFile(
+        join(fixture.moduleRoot, "00 Module Admin/00 Module Profile.md"),
+      ),
+      profile,
+    );
+    await writeFile(journalPath, original);
+    const resumed = await runCli(...args, "--resume");
+    assert.equal(resumed.exitCode, 0, resumed.stdout);
+    assert.equal(JSON.parse(resumed.stdout).outcome, "completed");
+  });
+
   it("previews every vanilla creation without changing the semester root [MF-SEED-001]", async () => {
     const fixture = await seedFixture();
 

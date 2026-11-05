@@ -68,6 +68,27 @@ function cli(
 }
 
 export const cliCapabilities: Capability[] = [
+  {
+    ...cli("module inspect", [], [], null, [
+      "test/controls/read-controls.test.ts",
+      "test/controls/module-inspect-cli.test.ts",
+    ]),
+    invocation:
+      "node dist/src/cli.js module inspect --root <module-root> --json",
+    prerequisites: [
+      "Node >=24",
+      "npm ci && npm run build",
+      "physical module root or explicit configured target",
+    ],
+    reads: ["safe mounted control bytes; immutable canonical references"],
+    result:
+      "Detected shape, exact procedure hashes, supported control reads and incomplete coverage; refusal exits 2; no writes.",
+    options: {
+      "--root": "Portable physical module root; exclusive with --config",
+      "--config":
+        "Private config; academic config also requires --semester and --module",
+    },
+  },
   cli(
     "audit",
     ["private audit observation history"],

@@ -1,8 +1,8 @@
 {
-  "syncRevision": "bda3c541f90ed16ab2945cc17fef13431a05d4da",
-  "lastInspectedRevision": "bda3c541f90ed16ab2945cc17fef13431a05d4da",
+  "syncRevision": "857b6c49217541afd226cfcd99bbff598b08d354",
+  "lastInspectedRevision": "857b6c49217541afd226cfcd99bbff598b08d354",
   "outcome": "updated",
-  "reason": "Meeting intake commits b9fca19 and bda3c54 reject unsupported saved policies and mixed plan identities. All 23 covered files were inspected; only the seed journal parser changes a hash. Ownership transitions, properties and bounds are unchanged. The full candidate passed all model, runtime, mutation and restored controls. Parser completeness remains outside the formal claim.",
+  "reason": "Meeting intake commits b9fca19, bda3c54 and 857b6c4 validate saved policy and plan variants, then recompute the stored plan digest before continuation. All 23 covered files were inspected; only the seed journal parser changes a hash. Ownership transitions, properties and bounds remain unchanged. The full candidate passed all model, runtime, mutation and restored controls. Parser completeness remains outside the formal claim.",
   "files": [
     "src/mounted/seed-mounted-module.ts",
     "src/mounted/seed-mounted-research-project.ts",
@@ -33,7 +33,7 @@
     "src/mounted/seed-mounted-research-project.ts": "b5aee6dd3f0dd469301420182362db9d7ed939bfa05190c66b126283febb18f5",
     "src/mounted/seed-mounted-target.ts": "25dcf40b4501108249dd1b9964ab58c8cf0252a447ccb5a80929667201f85817",
     "src/mounted/execute-seed-operations.ts": "aaae11b752b42847c966d95d7eb1fcdeccbec99edaba101c6e117bd1bb71f432",
-    "src/mounted/seed-operation-journal.ts": "c8cf357fbca4fe90009ab490065e5651a6be7e688290dc6959f62305c5f5796f",
+    "src/mounted/seed-operation-journal.ts": "3186e68ed9703189e767f55e5f6a9e8d0ccf15bed5adc615cc57ef04bd503106",
     "src/mounted/seed-target-state.ts": "7eba622f1cabe949344028372ee6fee5bfcfe6aa2a3804c4aa09f4603b34ebca",
     "src/mounted/seed-ownership.ts": "9228e89919dc7d0dc0b6159c089497f9f177f9aa36d45611d2832545470687f2",
     "src/journal-mutation-owner.ts": "0e0123904932abca3bcb70c7a63503789c1b7fffa99f66e67e83c8ddeb885b1c",

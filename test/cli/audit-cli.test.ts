@@ -321,7 +321,17 @@ describe("academic-os audit", () => {
       outcome: "operational-failure",
       error: {
         code: "invalid-config",
-        message: `Configuration cannot be read: ${missingConfig}.`,
+        message:
+          "Configuration / requires a readable configuration file. Check the supplied configuration path and permissions.",
+        diagnostics: [
+          {
+            code: "unreadable-config",
+            pointer: "",
+            expected: "a readable configuration file",
+            remediation:
+              "Check the supplied configuration path and permissions.",
+          },
+        ],
       },
     });
 

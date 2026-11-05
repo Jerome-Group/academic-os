@@ -21,7 +21,9 @@
     "seed-ownership:check": "node .agents/skills/seed-ownership/run.mjs",
     "check": "npm run build && node dist/src/cli.js capabilities check --profile full --json",
     "controls:generate": "node scripts/generate-control-types.mjs",
-    "controls:check": "node scripts/generate-control-types.mjs --check"
+    "controls:check": "node scripts/generate-control-types.mjs --check",
+    "config:generate": "node scripts/generate-config-types.mjs",
+    "config:check": "node scripts/generate-config-types.mjs --check"
   },
   "engines": {
     "node": ">=24"

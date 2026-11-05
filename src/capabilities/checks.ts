@@ -12,6 +12,7 @@ export const checkProfiles = {
     "build",
     "cheatsheet-runtime:check",
     "controls:check",
+    "config:check",
   ],
   tests: ["test"],
   privacy: ["privacy:check"],
@@ -20,6 +21,7 @@ export const checkProfiles = {
   formal: ["seed-ownership:check"],
   full: [
     "controls:check",
+    "config:check",
     "format:check",
     "lint",
     "build",
@@ -153,7 +155,7 @@ export async function runChecks(
 
 const workflowTests = {
   discovery: {
-    areas: ["capabilities", "controls", "naming"],
+    areas: ["capabilities", "controls", "config", "naming"],
     cli: /^(argument-safety|offering-readiness-cli)\.test\.js$/u,
   },
   imports: {

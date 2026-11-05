@@ -1,36 +1,21 @@
 import { readFile } from "node:fs/promises";
+import { ConfigurationError } from "./configuration-error.js";
+import { parseConfig } from "./parse-config.js";
+import type { LoadedConfig } from "./types.js";
 
-import { OperationalError, type LocalConfig } from "../mounted/index.js";
-import type { AcademicConfig } from "./types.js";
-
-export async function loadLocalConfig(
-  path: string,
-): Promise<LocalConfig | AcademicConfig> {
-  let contents: string;
+export async function loadLocalConfig(path: string): Promise<LoadedConfig> {
+  let contents: Uint8Array;
   try {
-    contents = await readFile(path, "utf8");
+    contents = await readFile(path);
   } catch {
-    throw new OperationalError(
-      "invalid-config",
-      `Configuration cannot be read: ${path}.`,
-    );
+    throw new ConfigurationError([
+      {
+        code: "unreadable-config",
+        pointer: "",
+        expected: "a readable configuration file",
+        remediation: "Check the supplied configuration path and permissions.",
+      },
+    ]);
   }
-
-  let value: unknown;
-  try {
-    value = JSON.parse(contents);
-  } catch {
-    throw new OperationalError(
-      "invalid-config",
-      `Configuration is not valid JSON: ${path}.`,
-    );
-  }
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new OperationalError(
-      "invalid-config",
-      "Configuration must be a JSON object.",
-    );
-  }
-
-  return value as LocalConfig | AcademicConfig;
+  return parseConfig(contents);
 }

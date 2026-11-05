@@ -263,6 +263,7 @@ authorize_user_credentials() {
 
 write_private_config() {
   local horizon="$1" temporary
+  run_cli config validate --config "$CONFIG_PATH" --json
   temporary=$(mktemp "$SECRETS_DIR/academic-os.config.json.XXXXXX")
   jq \
     --arg horizon "$horizon" \
@@ -276,6 +277,10 @@ write_private_config() {
       }
     }' \
     "$CONFIG_PATH" > "$temporary"
+  if ! run_cli config validate --config "$temporary" --json; then
+    rm -f "$temporary"
+    return 1
+  fi
   chmod 600 "$temporary"
   mv "$temporary" "$CONFIG_PATH"
 }
@@ -289,6 +294,8 @@ require_command jq
 require_command node
 require_command npm
 [[ -f "$CONFIG_PATH" ]] || { warn "private config is missing: $CONFIG_PATH"; exit 1; }
+(cd "$REPO_ROOT" && npm run build)
+run_cli config validate --config "$CONFIG_PATH" --json
 [[ -f "$READ_CLIENT_PATH" ]] || { warn "read OAuth client is missing: $READ_CLIENT_PATH"; exit 1; }
 [[ -f "$WRITE_CLIENT_PATH" ]] || { warn "write OAuth client is missing: $WRITE_CLIENT_PATH"; exit 1; }
 validate_client_file "$READ_CLIENT_PATH" || { warn "invalid read OAuth client JSON"; exit 1; }
@@ -308,6 +315,7 @@ authorize_user_credentials "write" "$WRITE_CLIENT_PATH" "$WRITE_SCOPES" "$WRITE_
 
 stage "Configure private academic-os Calendar paths" 3
 default_horizon="$(TZ=Asia/Singapore date '+%Y-%m-%dT00:00:00+08:00')"
+run_cli config validate --config "$CONFIG_PATH" --json
 current_drive_mount=$(jq -er '.driveMount' "$CONFIG_PATH")
 current_state_root=$(jq -er '.stateRoot' "$CONFIG_PATH")
 management_horizon=""
@@ -318,7 +326,6 @@ write_private_config "$management_horizon"
 note "Updated only the private calendar block in $CONFIG_PATH."
 
 stage "Preview Owned-calendar setup" 3
-(cd "$REPO_ROOT" && npm run build)
 say "The next report is read-only; it will not create calendars."
 run_cli calendar setup --config "$CONFIG_PATH" --json
 

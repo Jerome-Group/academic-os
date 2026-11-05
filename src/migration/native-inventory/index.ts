@@ -78,7 +78,17 @@ export async function inventoryNativeRoot(root: string) {
         });
       records.push(value);
     }
-    return assembleNativeInventory({ ...common, records });
+    const report = assembleNativeInventory({ ...common, records });
+    if (
+      Buffer.byteLength(JSON.stringify(report, null, 2)) + 1 >
+      inventoryLimits.outputBytes
+    )
+      return assembleNativeInventory({
+        ...common,
+        records: [],
+        failure: "inventory-result-limit",
+      });
+    return report;
   } catch {
     return assembleNativeInventory({
       ...common,

@@ -38,8 +38,8 @@ Dataless entries are refused before content reads, preventing intentional placeh
 Cross-device entries and regular files with links outside complete root membership refuse.
 Unknown entry kinds, unsupported metadata, unreadable entries and collection limits prevent a complete result.
 
-The adapter permits 256 levels, one million entries, 32 MiB per retained attribute and 256 MiB of helper output.
-The helper process is killed after 120 seconds or output overflow. Such failures return incomplete diagnostics, never a truncated successful manifest.
+The adapter permits 256 levels, one million entries, 32 MiB per retained attribute and 256 MiB each for helper output and the serialized result.
+The helper process is killed after 120 seconds or output overflow. Such failures and oversized serialized results return incomplete diagnostics, never a truncated successful manifest.
 Diagnostics retain at most 128 entries with an explicit omitted count.
 `observed` exits zero. `incomplete` and `refused` exit two.
 

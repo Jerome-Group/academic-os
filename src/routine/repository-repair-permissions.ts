@@ -1,11 +1,10 @@
+import { randomUUID } from "node:crypto";
+
 export function repositoryPermissionProfile(
   access: "write" | "read",
   fixtureRoot?: string,
 ): { name: string; configuration: string } {
-  const name =
-    access === "write"
-      ? "academic-os-repository"
-      : "academic-os-repository-review";
+  const name = `academic-os-repository-${access}-${randomUUID()}`;
   const filesystem = [
     '":tmpdir" = "read"',
     '":slash_tmp" = "read"',

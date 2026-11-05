@@ -316,17 +316,24 @@ test("scope restrictions and exact sandbox argv preserve critical boundaries", (
   ])
     assert.equal(eligibleRepositoryRepairPaths([path]), false);
   const args = repositorySandboxArguments("/fixture", ["node", "fixture.js"]);
+  const profileName = args[2];
+  assert.ok(profileName);
+  assert.match(profileName, /^academic-os-repository-write-[0-9a-f-]{36}$/u);
+  assert.notEqual(
+    repositorySandboxArguments("/fixture", ["node", "fixture.js"])[2],
+    profileName,
+  );
   assert.deepEqual(args.slice(0, 6), [
     "sandbox",
     "-P",
-    "academic-os-repository",
+    profileName,
     "--include-managed-config",
     "-C",
     "/fixture",
   ]);
   assert.ok(
     args.includes(
-      'permissions.academic-os-repository={ extends = ":workspace", filesystem = { ":tmpdir" = "read", ":slash_tmp" = "read" }, network = { enabled = false } }',
+      `permissions.${profileName}={ extends = ":workspace", filesystem = { ":tmpdir" = "read", ":slash_tmp" = "read" }, network = { enabled = false } }`,
     ),
   );
   assert.equal(
@@ -345,7 +352,7 @@ test("scope restrictions and exact sandbox argv preserve critical boundaries", (
   );
   assert.ok(
     fixtureArgs.includes(
-      'permissions.academic-os-repository={ extends = ":workspace", filesystem = { ":tmpdir" = "read", ":slash_tmp" = "read", "/owned-fixture-temp" = "write" }, network = { enabled = false } }',
+      `permissions.${fixtureArgs[2]}={ extends = ":workspace", filesystem = { ":tmpdir" = "read", ":slash_tmp" = "read", "/owned-fixture-temp" = "write" }, network = { enabled = false } }`,
     ),
   );
   assert.equal(
@@ -870,7 +877,7 @@ test("production worker explicitly supplies packaged helpers, Node/npm search an
     );
     await writeFile(
       codex,
-      `#!/usr/bin/env node\nimport fs from 'node:fs';const a=process.argv.slice(2);if(a.includes('features')){for(const n of ['plugins','apps','remote_plugin','hooks','browser_use','browser_use_external','computer_use'])console.log(n+' stable false');}else if(a.includes('mcp'))console.log('[]');else{fs.writeFileSync(${JSON.stringify(capture)},JSON.stringify({args:a,temp:process.env.TMPDIR,credentialKeys:Object.keys(process.env).filter(k=>/TOKEN|SECRET|PASSWORD/.test(k))}));fs.writeFileSync(a[a.indexOf('--output-last-message')+1],JSON.stringify(a.includes('default_permissions=\"academic-os-repository-review\"')?{approved:true,findings:[]}:{summary:'fixture'}));}\n`,
+      `#!/usr/bin/env node\nimport fs from 'node:fs';const a=process.argv.slice(2);if(a.includes('features')){for(const n of ['plugins','apps','remote_plugin','hooks','browser_use','browser_use_external','computer_use'])console.log(n+' stable false');}else if(a.includes('mcp'))console.log('[]');else{fs.writeFileSync(${JSON.stringify(capture)},JSON.stringify({args:a,temp:process.env.TMPDIR,credentialKeys:Object.keys(process.env).filter(k=>/TOKEN|SECRET|PASSWORD/.test(k))}));fs.writeFileSync(a[a.indexOf('--output-last-message')+1],JSON.stringify(a.some(v=>v.startsWith('default_permissions=\"academic-os-repository-read-'))?{approved:true,findings:[]}:{summary:'fixture'}));}\n`,
       { mode: 0o700 },
     );
     await runRepositoryRepairSession({
@@ -900,9 +907,19 @@ test("production worker explicitly supplies packaged helpers, Node/npm search an
       captured.args.includes('shell_environment_policy.inherit="none"'),
     );
     assert.equal(captured.args.includes("--allow-unix-socket"), false);
+    const repairSelection = captured.args.find((value) =>
+      /^default_permissions="academic-os-repository-write-[0-9a-f-]{36}"$/u.test(
+        value,
+      ),
+    );
+    assert.ok(repairSelection);
+    const repairName = repairSelection.slice(
+      'default_permissions="'.length,
+      -1,
+    );
     assert.ok(
       captured.args.includes(
-        `permissions.academic-os-repository={ extends = ":workspace", filesystem = { ":tmpdir" = "read", ":slash_tmp" = "read", ${JSON.stringify(f.fixtureRoot)} = "write" }, network = { enabled = false } }`,
+        `permissions.${repairName}={ extends = ":workspace", filesystem = { ":tmpdir" = "read", ":slash_tmp" = "read", ${JSON.stringify(f.fixtureRoot)} = "write" }, network = { enabled = false } }`,
       ),
     );
     assert.ok(configured("PATH").split(":").includes(helpers));
@@ -932,14 +949,20 @@ test("production worker explicitly supplies packaged helpers, Node/npm search an
     const reviewed = JSON.parse(await readFile(capture, "utf8")) as {
       args: string[];
     };
-    assert.ok(
-      reviewed.args.includes(
-        'default_permissions="academic-os-repository-review"',
+    const reviewSelection = reviewed.args.find((value) =>
+      /^default_permissions="academic-os-repository-read-[0-9a-f-]{36}"$/u.test(
+        value,
       ),
     );
+    assert.ok(reviewSelection);
+    const reviewName = reviewSelection.slice(
+      'default_permissions="'.length,
+      -1,
+    );
+    assert.notEqual(reviewName, repairName);
     assert.ok(
       reviewed.args.includes(
-        'permissions.academic-os-repository-review={ extends = ":read-only", filesystem = { ":tmpdir" = "read", ":slash_tmp" = "read" }, network = { enabled = false } }',
+        `permissions.${reviewName}={ extends = ":read-only", filesystem = { ":tmpdir" = "read", ":slash_tmp" = "read" }, network = { enabled = false } }`,
       ),
     );
     for (const args of [captured.args, reviewed.args]) {

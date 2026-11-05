@@ -40,3 +40,28 @@ export async function resolveModuleFile(
   }
   return canonicalTarget;
 }
+
+export async function resolveNewModuleDirectory(
+  moduleRoot: string,
+  path: string,
+): Promise<string> {
+  if (
+    isAbsolute(path) ||
+    path.includes("\\") ||
+    path.split("/").some((part) => part === "" || part === "." || part === "..")
+  )
+    throw new Error(
+      "Evidence directory must be a normalized module-relative path.",
+    );
+  let candidate = await realpath(moduleRoot);
+  const segments = path.split("/");
+  for (const segment of segments.slice(0, -1)) {
+    candidate = join(candidate, segment);
+    const metadata = await lstat(candidate);
+    if (metadata.isSymbolicLink() || !metadata.isDirectory())
+      throw new Error(
+        "Evidence directory traverses a symbolic link or non-directory.",
+      );
+  }
+  return join(candidate, segments.at(-1) ?? "");
+}

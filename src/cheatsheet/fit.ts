@@ -157,5 +157,8 @@ export function planCheatsheetFit(input: {
     };
   }
 
-  return { kind: "accept", reason: "Coverage and measured constraints pass." };
+  return {
+    kind: "accept",
+    reason: "Coverage and supplied fit constraints pass.",
+  };
 }

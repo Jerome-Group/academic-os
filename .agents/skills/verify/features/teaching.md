@@ -29,13 +29,27 @@ Learning-material tests and preparation API/shipped-helper fixtures assert Sourc
 Portable-build fixtures reject host-local inputs and caller search-path dependencies and ignore user latexmk configuration; recorded inputs remain bound to the release and trusted TeX distribution.
 CLI journeys assert gap reporting, human/JSON output, read-only behavior, sibling retention and symlink refusal.
 The subprocess journey invokes the shipped cheatsheet runtime through preparation, audit, fitting, verification and review packaging.
-It checks stale sources, interrupted authoring and package retries.
+It checks stale sources, interrupted authoring, staged regeneration, explicit reference presentation, frozen mathematics preservation and package retries.
+Run the helper doctor through the same executable discovery as verify/package-review.
+The navigation fixture compiles the complete shared specimen and checks all eight actual column starts
+against the printed orientation/continuation guides; full-page and enlarged-column review remains separate.
+Require retained build identity, AUX/log, visible-font XML, full XML including hidden/off-page text and page renders
+from a fresh module-relative evidence directory. Every inspected artifact must name the current
+TeX/PDF hash; inspect a targeted mutation's actual semantic failure, restore, then require a pass.
+The semantic-interface fixture compiles nested breakable blocks, typed example/exercise references,
+run-in proof stages, configurable navigation and native body sizes without blank paragraphs.
 A package CLI fixture checks exact 16 MiB binary source bytes and provenance.
 Publication function tests check partial evidence and preservation of concurrent bytes.
 
 ## Gotchas
 
-Fit measurements in the synthetic journey are fixture inputs.
+Fit observations distinguish measured, manual and unknown evidence; fixture inputs remain synthetic.
+Source enumeration, prior-content preservation, mathematical sufficiency, selected proof checks,
+layout and portability are separate verdicts. Reviewers independently read sources and inspect every
+full page plus enlarged columns at the frozen PDF hash. A count, keyword hit or label is not that review.
+Installed rollout proof requires per-host file hashes, finder/schema, client catalog and an installed
+runtime synthetic journey. A repository-only journey or a schema response cannot establish those.
+Do not overwrite module-editable TeX while refreshing pinned procedures.
 Compilation and source hashes do not establish mathematical correctness or acceptable rendered pages.
 The journey intentionally leaves semantic review unreviewed. Preserve that result.
 Router document assertions do not measure the quality of a model-led teaching session.

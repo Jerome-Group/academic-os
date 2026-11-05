@@ -48,7 +48,19 @@ export interface ResolvedCalendarConfig extends CalendarConfig {
   stateRoot: string;
 }
 
+export interface TaskPlanningConfig {
+  catalogSourcePath?: string;
+  releaseRoot: string;
+  manifestSha256: string;
+  sourceCommit: string;
+  privateRoot: string;
+  environment: string;
+  accountId: string;
+  sourceIdentity: string;
+}
+
 export interface TasksConfig {
+  planning?: TaskPlanningConfig;
   credentials: {
     scheduledRead: string;
     interactiveWrite: string;

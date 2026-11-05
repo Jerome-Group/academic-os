@@ -73,7 +73,7 @@ describe("Google Tasks adapter", () => {
     );
   });
 
-  it("reads completed, hidden and deleted tasks across every page", async () => {
+  it("reads completed, hidden, deleted and assigned tasks across every page", async () => {
     const requests: TasksHttpRequest[] = [];
     const requester: TasksRequester = {
       request: async <T>(request: TasksHttpRequest) => {
@@ -100,6 +100,7 @@ describe("Google Tasks adapter", () => {
           params?.showCompleted === true &&
           params?.showDeleted === true &&
           params?.showHidden === true &&
+          params?.showAssigned === true &&
           params?.maxResults === 100,
       ),
     );

@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "kind": "emmy-academic-planning-compact-runtime",
+  "sourceCommit": "9235befe03916b776ba40c6234d9e83716667b3f",
+  "unchangedDependencyBase": "aef45b9bd76b5a8bfd2acf6ac1ae304562b21f54",
+  "entrypoint": "scripts/academic-os-planning.mjs",
+  "node": ">=24",
+  "files": {
+    "scripts/academic-os-planning.mjs": {
+      "bytes": 1419,
+      "sha256": "8b7547a1eeb97766c8fcfd84df23ddafc5c2ddca5a72fd033af2aea76129d1fe"
+    },
+    "src/academic-os-planning-io.mjs": {
+      "bytes": 2709,
+      "sha256": "a057b69992c0583124d6eee0733d895d4e5e39511b8f8be67e59060c170b9cb9"
+    },
+    "src/academic-os-planning.mjs": {
+      "bytes": 13952,
+      "sha256": "801eec670d87638f4fff400cd356c1914c420427e22f6b96941ffa08130d9ba2"
+    },
+    "src/academic-os-task-plan.mjs": {
+      "bytes": 16591,
+      "sha256": "f9de68cc9a6ef273c5a5a62eb71f51dadc53664de1964027041e06df15ba6dbd"
+    },
+    "src/bounded-json.mjs": {
+      "bytes": 2439,
+      "sha256": "4bf4230dd0b8775f56482cf429112c1a7456f83b78cad19ae05e1b00987e8a71"
+    },
+    "src/briefing.mjs": {
+      "bytes": 34633,
+      "sha256": "60302276c764e166f8a537a20a2a1440cfc8295c8b6603208e5095c252e25d7e"
+    },
+    "src/calendar-policy.mjs": {
+      "bytes": 10883,
+      "sha256": "f6bdd4dd5a385e148ef70458be6ffd94edc3737a2207f388b7b910acd871a88a"
+    },
+    "src/cloud-schema.mjs": {
+      "bytes": 7229,
+      "sha256": "2179301f012a5832b597f493f9744df8d86f60427d2bbac0664f4f6fd95853bd"
+    },
+    "src/fleet-schema.mjs": {
+      "bytes": 17691,
+      "sha256": "9777fdbf75f0c5856ff6f7107514a088bd2518fc087f8e99482f063cd4f14621"
+    },
+    "src/fleet-state.mjs": {
+      "bytes": 35171,
+      "sha256": "42967f379a5129bf59a874c3e9a5cb56d0d68278eb7b1022a0444a837b48b8ab"
+    },
+    "src/guidance-pin.mjs": {
+      "bytes": 9689,
+      "sha256": "8199ac97f92207d28641f19186ae260f71936bbaefca4404a3dc46b7520f7774"
+    },
+    "src/metadata.mjs": {
+      "bytes": 12883,
+      "sha256": "47c235f7812da1aa072c8ab2385520c05d8e31aa3c207cade96922cf2e11b3ec"
+    },
+    "src/morning-presentation.mjs": {
+      "bytes": 12506,
+      "sha256": "36d171d854c34b3062da02e9c9ac5b095e509164e2c674bf0dd4ccae1268a343"
+    },
+    "src/morning.mjs": {
+      "bytes": 54657,
+      "sha256": "5ab414da033e9eb5aa191d1491ffac9ecc6209dbf09887aefdd9221107a003d6"
+    },
+    "src/records.mjs": {
+      "bytes": 46757,
+      "sha256": "54b5fe2a72f322ec082f5c2449e155c6eb530a40c66f01488e9e591a101919ba"
+    },
+    "src/work.mjs": {
+      "bytes": 14657,
+      "sha256": "3870696da8a7539c527873649fb3ad37dae8453c1432c22cc71463248d3ab9d1"
+    }
+  },
+  "privatePolicyIncluded": false,
+  "fixturesIncluded": false
+}

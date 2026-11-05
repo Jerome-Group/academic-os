@@ -161,6 +161,16 @@ it("discovers formal verification prerequisites and observes the selected Java e
   assert.match(formal.invocation, /--profile formal --json/u);
   assert.ok(formal.prerequisites.some((item) => item.includes("Java 21")));
   assert.match(formal.result, /expected counterexamples are required/iu);
+  const publisher = index.actions.find(
+    ({ id }) => id === "quality publication-formal",
+  );
+  assert.ok(publisher);
+  assert.match(publisher.invocation, /--profile publication-formal --json/u);
+  assert.ok(
+    publisher.prerequisites.includes(
+      "follow .agents/skills/control-publication/SKILL.md",
+    ),
+  );
   const root = await mkdtemp(join(tmpdir(), "academic-formal-health-"));
   try {
     const java = join(root, "selected-java");

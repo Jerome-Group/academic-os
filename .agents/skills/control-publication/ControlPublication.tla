@@ -230,6 +230,7 @@ Restart(w) ==
        selectedCount>>
 RetryExpectedHead(w) ==
   /\ gate = w /\ pc[w] = 58
+  /\ ((intent \ {w}) \subseteq settled \/ Broken = "predecessor")
   /\ (head[target[w]] = expected[w] \/ Broken = "expected")
   /\ pc' = [pc EXCEPT ![w] = IF progress[w] = 19 THEN 18 ELSE progress[w]]
   /\ UNCHANGED <<target,gate,boot,progress,expected,head,complete,intent,observed,
@@ -237,6 +238,12 @@ RetryExpectedHead(w) ==
        selectedOld,selectedCount>>
 RetryStaleHead(w) ==
   /\ gate = w /\ pc[w] = 58 /\ head[target[w]] # expected[w]
+  /\ pc' = [pc EXCEPT ![w] = 60] /\ rejected' = rejected \cup {w}
+  /\ UNCHANGED <<target,gate,boot,progress,expected,head,complete,intent,observed,
+       receipt,settled,active,outstanding,replaced,crashed,restarted,
+       selectedOld,selectedCount>>
+RetryPendingRefusal(w) ==
+  /\ gate = w /\ pc[w] = 58 /\ ~((intent \ {w}) \subseteq settled)
   /\ pc' = [pc EXCEPT ![w] = 60] /\ rejected' = rejected \cup {w}
   /\ UNCHANGED <<target,gate,boot,progress,expected,head,complete,intent,observed,
        receipt,settled,active,outstanding,replaced,crashed,restarted,
@@ -272,7 +279,7 @@ Next == Replacement \/ \E w \in Writers:
   ReceiptPromotionGuard(w) \/ ReceiptPromotionSyscall(w) \/ ReceiptSourceParentSync(w) \/
   ReceiptDestinationParentSync(w) \/ ReceiptReadback(w) \/ Settlement(w) \/
   Expiry(w) \/ Drain(w) \/ Release(w) \/ RejectReplacement(w) \/ Crash(w) \/ Restart(w) \/
-  ExistingNamespaceClaimReplay(w) \/ ReplayedNamespaceParentSync(w) \/ RetryExpectedHead(w) \/ RetryStaleHead(w)
+  ExistingNamespaceClaimReplay(w) \/ ReplayedNamespaceParentSync(w) \/ RetryExpectedHead(w) \/ RetryStaleHead(w) \/ RetryPendingRefusal(w)
 OneOwner == Cardinality(active) <= 1
 SelectedComplete == \A c \in Candidates: head[c] # 0 => head[c] \in complete
 SuccessAfterReadback == settled \subseteq (observed \cap receipt)

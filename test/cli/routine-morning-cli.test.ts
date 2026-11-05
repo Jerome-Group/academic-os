@@ -52,6 +52,7 @@ describe("academic-os routine morning", () => {
       stateRoot: "/state",
       semester: "Y2S1",
       module: "AB1234",
+      semesterRoots: { Y2S1: "Modules/Y2S1" },
     });
 
     const result = await runCli(

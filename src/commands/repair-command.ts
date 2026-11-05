@@ -3,7 +3,11 @@ import { lstat, readFile, realpath, stat, unlink } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveConfiguredAuditTarget } from "../cohort/index.js";
-import { type AcademicConfig, loadLocalConfig } from "../config/index.js";
+import {
+  type LoadedConfig,
+  type AcademicConfig,
+  loadLocalConfig,
+} from "../config/index.js";
 import {
   type LocalConfig,
   OperationalError,
@@ -233,9 +237,7 @@ async function readRepairPlan(path: string): Promise<RepairPlan> {
   return value as RepairPlan;
 }
 
-function requireAcademicConfig(
-  config: LocalConfig | AcademicConfig,
-): AcademicConfig {
+function requireAcademicConfig(config: LoadedConfig): AcademicConfig {
   if (!("activeSemester" in config)) {
     throw new OperationalError(
       "invalid-config",

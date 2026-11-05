@@ -1,5 +1,7 @@
 import { posix } from "node:path";
 
+import { artifactHomes } from "../contract/artifact-homes.js";
+
 import { learningWorkspacePaths } from "../contract/learning-workspace.js";
 import { universalStructurePaths } from "../contract/universal-structure.js";
 import { isGovernedControlHome, moduleControlPaths } from "./control-paths.js";
@@ -20,12 +22,12 @@ export const fixedPaths = new Map(
   ]),
 );
 
-export const assessmentHomes = new Set([
-  "30 Assessments/10 Quizzes",
-  "30 Assessments/20 Tests",
-  "30 Assessments/30 Midterms",
-  "30 Assessments/40 Finals",
-  "30 Assessments/50 Assignments",
+export const assessmentHomes = new Set<string>([
+  artifactHomes.quiz,
+  artifactHomes.test,
+  artifactHomes.midterm,
+  artifactHomes.final,
+  artifactHomes.assignment,
 ]);
 
 export const curatedRoots = [

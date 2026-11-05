@@ -1,6 +1,7 @@
 import { fileURLToPath } from "node:url";
 
 import { applyConfiguredTaskPlan } from "../tasks/configured-task-executor.js";
+import { createNamingTools } from "./naming-tools.js";
 import { createMcpDispatcher } from "./dispatch-mcp-message.js";
 import {
   OPERATIONS_PORT,
@@ -68,7 +69,11 @@ export async function createConfiguredOperationsTools(
     throw new Error("Official module register tool unavailable.");
   const { config } = await loadCohortTasksConfig(configPath);
   const completion = createConfiguredCompletionPlanning(config, readRegister);
-  return [...guarded, ...createModuleCompletionTools(completion?.port)];
+  return [
+    ...guarded,
+    ...createModuleCompletionTools(completion?.port),
+    ...createNamingTools(),
+  ];
 }
 
 async function runFromCommandLine(): Promise<void> {

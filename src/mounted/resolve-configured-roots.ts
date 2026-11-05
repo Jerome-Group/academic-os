@@ -98,7 +98,7 @@ function validateConfigValues(config: LocalConfig): void {
     semester: config.semester,
     semesterRoot: config.semesterRoots?.[config.semester] ?? "",
   });
-  if (typeof config.module !== "string" || config.module.length === 0) {
+  if (config.module.length === 0) {
     throw new OperationalError(
       "invalid-config",
       "module must be a non-empty string.",
@@ -108,16 +108,6 @@ function validateConfigValues(config: LocalConfig): void {
     throw new OperationalError(
       "invalid-config",
       `Module must be an uppercase module code, received ${config.module}.`,
-    );
-  }
-  if (
-    typeof config.semesterRoots !== "object" ||
-    config.semesterRoots === null ||
-    Array.isArray(config.semesterRoots)
-  ) {
-    throw new OperationalError(
-      "invalid-config",
-      "semesterRoots must be an object.",
     );
   }
 }

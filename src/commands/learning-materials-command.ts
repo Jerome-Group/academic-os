@@ -1,4 +1,4 @@
-import { type AcademicConfig, loadLocalConfig } from "../config/index.js";
+import { loadLocalConfig } from "../config/index.js";
 import {
   runLearningMaterials,
   type LearningMaterialsReport,
@@ -20,7 +20,7 @@ export async function runLearningMaterialsCommand(
       "Learning materials requires the active cohort configuration.",
     );
   }
-  const report = await runLearningMaterials(loaded as AcademicConfig);
+  const report = await runLearningMaterials(loaded);
   process.stdout.write(
     json ? `${JSON.stringify(report, null, 2)}\n` : `${renderHuman(report)}\n`,
   );

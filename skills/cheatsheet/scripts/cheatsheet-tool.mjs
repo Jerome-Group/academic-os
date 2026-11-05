@@ -9508,6 +9508,21 @@ function citesImporterInterior(citation, importerRoots) {
   return !importerLandmarks.has(citation.slice(separator + 1));
 }
 
+// src/contract/artifact-homes.ts
+var artifactHomes = {
+  lecture: "10 Learning Materials/10 Lecture Materials",
+  "personal-note": "10 Learning Materials/30 Personal Notes",
+  tutorial: "20 Tutorials",
+  quiz: "30 Assessments/10 Quizzes",
+  test: "30 Assessments/20 Tests",
+  midterm: "30 Assessments/30 Midterms",
+  final: "30 Assessments/40 Finals",
+  assignment: "30 Assessments/50 Assignments",
+  project: "40 Projects and Labs/10 Projects",
+  lab: "40 Projects and Labs/20 Labs",
+  resource: "90 Resources"
+};
+
 // src/contract/universal-structure.ts
 var universalStructurePaths = [
   ["00 Module Admin", "directory"],
@@ -9518,16 +9533,16 @@ var universalStructurePaths = [
   ["00 Module Admin/40 Source Map.yaml", "file"],
   ["00 Module Admin/50 Textbook Register.yaml", "file"],
   ["10 Learning Materials", "directory"],
-  ["10 Learning Materials/10 Lecture Materials", "directory"],
+  [artifactHomes.lecture, "directory"],
   ["10 Learning Materials/20 Textbook Chapters", "directory"],
-  ["10 Learning Materials/30 Personal Notes", "directory"],
-  ["20 Tutorials", "directory"],
+  [artifactHomes["personal-note"], "directory"],
+  [artifactHomes.tutorial, "directory"],
   ["30 Assessments", "directory"],
-  ["30 Assessments/30 Midterms", "directory"],
-  ["30 Assessments/40 Finals", "directory"],
+  [artifactHomes.midterm, "directory"],
+  [artifactHomes.final, "directory"],
   ["40 Projects and Labs", "directory"],
   ["70 Learning", "directory"],
-  ["90 Resources", "directory"],
+  [artifactHomes.resource, "directory"],
   ["90 Resources/00 Unclassified", "directory"],
   [".scratch", "directory"],
   ["NTULearn", "directory"],
@@ -11362,6 +11377,17 @@ import { basename as basename2, dirname as dirname3, join as join7, resolve as r
 import { lstat as lstat2, mkdir as mkdir2, readFile as readFile9, readdir as readdir2, writeFile as writeFile3 } from "node:fs/promises";
 import { dirname as dirname2, isAbsolute as isAbsolute4, join as join6, relative as relative3, resolve as resolve3 } from "node:path";
 
+// src/conformance/contextual-structure.ts
+var assessmentPaths = {
+  quizzes: artifactHomes.quiz,
+  tests: artifactHomes.test,
+  assignments: artifactHomes.assignment
+};
+var workspacePaths = {
+  projects: artifactHomes.project,
+  labs: artifactHomes.lab
+};
+
 // src/contract/learning-workspace.ts
 var learningWorkspacePaths = [
   ["70 Learning/10 Lectures", "directory"],
@@ -11430,6 +11456,13 @@ var fixedPaths = new Map(
     path
   ])
 );
+var assessmentHomes = /* @__PURE__ */ new Set([
+  artifactHomes.quiz,
+  artifactHomes.test,
+  artifactHomes.midterm,
+  artifactHomes.final,
+  artifactHomes.assignment
+]);
 
 // src/conformance/research-project-controls/meetings.ts
 var import_yaml3 = __toESM(require_dist(), 1);

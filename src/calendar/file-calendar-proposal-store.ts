@@ -76,14 +76,21 @@ export function createFileCalendarProposalStore(
           ({ calendarRole, eventId }) => `${calendarRole}\0${eventId}`,
         ),
       );
+      const exactDeletedKeys = new Set(
+        deletedItems.map(
+          ({ calendarId, eventId }) => `${calendarId}\0${eventId}`,
+        ),
+      );
       let changed = false;
       const proposals = value.proposals.map((proposal) => {
         if (
           !isJsonObject(proposal) ||
           proposal.status !== "ready" ||
-          !Array.isArray(proposal.liveVersions) ||
-          !proposal.liveVersions.some((version) =>
-            isDeletedDependency(version, deletedKeys, legacyDeletedKeys),
+          !hasDeletedSource(
+            proposal,
+            deletedKeys,
+            exactDeletedKeys,
+            legacyDeletedKeys,
           )
         ) {
           return proposal;
@@ -102,6 +109,38 @@ export function createFileCalendarProposalStore(
       });
     },
   };
+}
+
+function hasDeletedSource(
+  proposal: Record<string, unknown>,
+  deletedKeys: ReadonlySet<string>,
+  exactDeletedKeys: ReadonlySet<string>,
+  legacyDeletedKeys: ReadonlySet<string>,
+): boolean {
+  const review = proposal.review;
+  if (
+    isJsonObject(review) &&
+    review.schemaVersion === 2 &&
+    Array.isArray(review.originals) &&
+    review.originals.some(
+      (original) =>
+        isJsonObject(original) &&
+        isJsonObject(original.ref) &&
+        typeof original.ref.calendarId === "string" &&
+        typeof original.ref.eventId === "string" &&
+        exactDeletedKeys.has(
+          `${original.ref.calendarId}\0${original.ref.eventId}`,
+        ),
+    )
+  )
+    return true;
+  return (
+    isDeletedDependency(proposal.sourceItem, deletedKeys, legacyDeletedKeys) ||
+    (Array.isArray(proposal.liveVersions) &&
+      proposal.liveVersions.some((version) =>
+        isDeletedDependency(version, deletedKeys, legacyDeletedKeys),
+      ))
+  );
 }
 
 async function readProposalState(

@@ -62,7 +62,13 @@ export async function promoteCalendarProposal(
       proposal.id,
       "Legacy Calendar Proposal requires re-preview. Its saved intervals, digest and counts cannot authorize publication.",
     );
-  if (recorded === undefined && proposal.status !== "ready")
+  const deletionInvalidated =
+    proposal.status === "stale" && proposal.staleReason === "live-item-deleted";
+  if (
+    recorded === undefined &&
+    proposal.status !== "ready" &&
+    !deletionInvalidated
+  )
     throw new OperationalError(
       "invalid-target",
       "Calendar Promote requires an existing ready Proposal ID.",
@@ -116,6 +122,17 @@ export async function promoteCalendarProposal(
       ...(recorded === undefined ? {} : { completed: true }),
     });
   let assessment = await assess();
+  if (
+    recorded === undefined &&
+    deletionInvalidated &&
+    assessment.outcome === "ready" &&
+    assessment.acceptedStepCount === 0
+  )
+    return refused(
+      proposal.id,
+      "stale",
+      "A deleted dependency requires re-preview unless current provider state proves an exact accepted plan prefix.",
+    );
   while (assessment.outcome === "ready" && assessment.remainingStepCount > 0) {
     const accepted = assessment.acceptedStepCount;
     try {

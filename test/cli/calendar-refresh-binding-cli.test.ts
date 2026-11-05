@@ -353,6 +353,35 @@ it("invalidates a public series edit when its separately bound master is deleted
   );
 });
 
+it("requires re-preview when a deleted source returns without an accepted plan prefix", async () => {
+  const event: CalendarEvent = {
+    ...victim,
+    organizer: { email: "owner@example.test", self: true },
+    attendees: [],
+  };
+  const f = await fixture(event);
+  const prepared = await prepare(f, {
+    operation: "update",
+    calendarRole: "Academic",
+    eventId: event.id,
+    patch: { summary: "Changed title" },
+  });
+  f.provider.events.academic = [];
+  f.provider.incrementalEvents.academic = {
+    "academic-sync": [{ id: event.id, status: "cancelled" }],
+  };
+  await refresh(f);
+  const staleBytes = await readFile(f.proposalsPath, "utf8");
+  assert.equal(JSON.parse(staleBytes).proposals[0].status, "stale");
+  f.provider.events.academic = [event];
+  f.provider.incrementalEvents.academic = { "academic-sync": [event] };
+  const report = await cli(f, "promote", 3, [prepared.proposal.id]);
+  assert.equal(report.outcome, "stale");
+  assert.match(report.reason, /exact accepted plan prefix/u);
+  assert.equal(await readFile(f.proposalsPath, "utf8"), staleBytes);
+  assert.deepEqual(f.provider.events.academic, [event]);
+});
+
 it("preserves unrelated, other-calendar and terminal public proposals during deletion", async () => {
   const event: CalendarEvent = {
     ...victim,
@@ -520,10 +549,10 @@ async function cli(
     },
     "calendar",
     command,
+    ...args,
     "--config",
     f.configPath,
     "--json",
-    ...args,
   );
   assert.equal(result.exitCode, exitCode, JSON.stringify(result));
   f.provider = JSON.parse(await readFile(f.providerPath, "utf8"));

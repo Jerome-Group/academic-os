@@ -27,7 +27,11 @@ import type {
   CloseoutPlan,
   Preparation,
 } from "../../src/module-activity/generated/workflow.js";
-import { activityFixture, activitySubmission } from "./fixtures.js";
+import {
+  activityFixture,
+  activityJudgment,
+  activitySubmission,
+} from "./fixtures.js";
 
 const repository = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -255,6 +259,18 @@ export function loadPublicationNative(){const value=createRequire(import.meta.ur
   initialRecords.binding.bytes = freezeBytes(
     encodeCanonicalJson(initialRecords.value),
   );
+  const ledger = join(anchor, "academic-os-control-publication.jsonl");
+  async function unchangedLedger(name: string, before: Uint8Array) {
+    const after = await readFile(ledger);
+    await writeFile(join(evidence, `${name}-before.jsonl`), before);
+    await writeFile(join(evidence, `${name}-after.jsonl`), after);
+    assert.deepEqual(
+      after,
+      before,
+      `${name} leaves publication ledger unchanged`,
+    );
+  }
+  const beforeInitialRefusal = await readFile(ledger);
   const initialRefusal = await publish(
     forbiddenInitial,
     "initial-history-bypass",
@@ -266,6 +282,7 @@ export function loadPublicationNative(){const value=createRequire(import.meta.ur
     initialRefusal.evidence.join(" "),
     /Direct initial protocol enablement requires empty/,
   );
+  await unchangedLedger("initial-refusal", beforeInitialRefusal);
   const h0 = await publish(baseline, "baseline");
   assert.equal(h0.kind, "published");
   const unavailable = await activity(
@@ -288,6 +305,22 @@ export function loadPublicationNative(){const value=createRequire(import.meta.ur
   aw.binding.bytes = freezeBytes(encodeCanonicalJson(aw.value));
   ar.value.activityCloseouts = [];
   ar.binding.bytes = freezeBytes(encodeCanonicalJson(ar.value));
+  const alteredAdoption = structuredClone(adopted);
+  const alteredRecords = value(alteredAdoption, "learning-records");
+  alteredRecords.value.records[0].parsedTarget.reason = "Rewritten history.";
+  alteredRecords.binding.bytes = freezeBytes(
+    encodeCanonicalJson(alteredRecords.value),
+  );
+  const beforeAdoptionRefusal = await readFile(ledger);
+  const adoptionRefusal = await publish(
+    alteredAdoption,
+    "adopt-with-history-rewrite",
+    h0.currentHead.head.byteSha256,
+    2,
+  );
+  assert.equal(adoptionRefusal.code, "evidence-mismatch");
+  assert.match(adoptionRefusal.evidence.join(" "), /cannot rewrite historical/);
+  await unchangedLedger("adoption-refusal", beforeAdoptionRefusal);
   const h1 = await publish(adopted, "adopt", h0.currentHead.head.byteSha256);
   assert.equal(h1.kind, "published");
   const prepareRequest = {
@@ -309,6 +342,102 @@ export function loadPublicationNative(){const value=createRequire(import.meta.ur
     activitySubmission(a.preparation as Preparation, "stale-b"),
   );
   assert.equal(stale.kind, "planned");
+  const beforeFailureMatrix = await readFile(ledger);
+  const locator = { evidenceId: "evidence:synthetic", locator: "extension" };
+  for (const { input, code } of [
+    {
+      input: {
+        ...prepareRequest,
+        selection: { kind: "earliest-uncovered", activity: "lecture" },
+      },
+      code: "unsupported-native-source",
+    },
+    {
+      input: {
+        ...prepareRequest,
+        selection: {
+          kind: "exact",
+          target: {
+            kind: "revision",
+            unit: { kind: "unit", id: "unit:foreign" },
+            topics: [{ kind: "topic", id: "topic:one" }],
+          },
+        },
+      },
+      code: "foreign-target",
+    },
+    {
+      input: {
+        ...prepareRequest,
+        selection: {
+          kind: "exact",
+          target: {
+            kind: "revision",
+            unit: { kind: "unit", id: "unit:one" },
+            topics: [
+              { kind: "topic", id: "topic:one" },
+              { kind: "topic", id: "topic:two" },
+            ],
+          },
+        },
+      },
+      code: "unsupported-procedure",
+    },
+    {
+      input: {
+        ...prepareRequest,
+        sessionInstructions: [activityJudgment("scope-membership", digest({}))],
+      },
+      code: "preference-conflict",
+    },
+    {
+      input: {
+        ...prepareRequest,
+        requested: {
+          kind: "extension",
+          official: "whole-target",
+          additional: [locator, locator],
+          request: activityJudgment("requested-extension", digest({})),
+        },
+      },
+      code: "scope-ambiguous",
+    },
+  ]) {
+    const refused = await activity("prepare", input, 2);
+    assert.equal(refused.code, code);
+  }
+  for (const { input, code } of [
+    {
+      input: {
+        ...submissionA,
+        preparation: {
+          ...submissionA.preparation,
+          releaseDigest: "0".repeat(64),
+        },
+      },
+      code: "release-conflict",
+    },
+    {
+      input: {
+        ...submissionA,
+        supersedes: ["learning-record:missing"],
+        supersessionJudgment: activityJudgment("supersession", digest({})),
+      },
+      code: "foreign-supersession",
+    },
+    {
+      input: {
+        ...submissionA,
+        supersedes: ["learning-record:missing", "learning-record:missing"],
+        supersessionJudgment: activityJudgment("supersession", digest({})),
+      },
+      code: "illegal-transition",
+    },
+  ]) {
+    const refused = await activity("submit", input, 2);
+    assert.equal(refused.code, code);
+  }
+  await unchangedLedger("failure-matrix", beforeFailureMatrix);
 
   const { createModuleActivityTools } = await import(
     pathToFileURL(join(host, "src/module-activity/actions.js")).href
@@ -360,6 +489,45 @@ export function loadPublicationNative(){const value=createRequire(import.meta.ur
       ).length,
       3,
     );
+    const beforeReadOnlyActions = await readFile(ledger);
+    const mcpPreparation = await mcp("tools/call", {
+      name: "module_activity_prepare",
+      arguments: prepareRequest,
+    });
+    assert.equal(mcpPreparation.result.isError, false);
+    assert.deepEqual(mcpPreparation.result.structuredContent, a);
+    const unsupportedUnderstanding = activitySubmission(
+      a.preparation as Preparation,
+      "missing-understanding-attempt",
+    );
+    unsupportedUnderstanding.evidence.understanding = {
+      kind: "agent-assessed",
+      judgment: activityJudgment(
+        "unaided-understanding",
+        digest(a.preparation),
+      ),
+      attemptEvidenceId: "missing",
+      independentReview: activityJudgment(
+        "unaided-understanding",
+        digest(a.preparation),
+      ),
+      scope: ["topic:one"],
+      status: "unaided-demonstrated",
+    };
+    const understandingRefusal = await mcp("tools/call", {
+      name: "module_activity_submit",
+      arguments: unsupportedUnderstanding,
+    });
+    assert.equal(understandingRefusal.result.isError, true);
+    assert.equal(
+      understandingRefusal.result.structuredContent.code,
+      "evidence-mismatch",
+    );
+    assert.match(
+      understandingRefusal.result.structuredContent.evidence.join(" "),
+      /understanding-evidence-missing/,
+    );
+    await unchangedLedger("read-only-actions", beforeReadOnlyActions);
     await writeFile(checkpoint, JSON.stringify({ edge: "after-head-rename" }));
     const closeAPath = await packet("close-a", { plan: planA.plan });
     const killed = await command(
@@ -416,6 +584,7 @@ export function loadPublicationNative(){const value=createRequire(import.meta.ur
     assert.equal(currentValue.records.length, 3);
     assert.equal(currentValue.activityCloseouts.length, 2);
     assert.deepEqual(currentValue.records[0], records.value.records[0]);
+    const beforeRawRefusals = await readFile(ledger);
     const invalidBundle = JSON.parse(
       Buffer.from(bPlan.bundleBytes.bytesBase64, "base64").toString(),
     );
@@ -462,6 +631,22 @@ export function loadPublicationNative(){const value=createRequire(import.meta.ur
       2,
     );
     assert.equal(forgedRefused.code, "evidence-mismatch");
+    const unsupportedChange = JSON.parse(
+      Buffer.from(bPlan.bundleBytes.bytesBase64, "base64").toString(),
+    );
+    const changedMap = value(unsupportedChange, "source-map");
+    changedMap.value.units[0].label = "Unsupported standing change.";
+    changedMap.binding.bytes = freezeBytes(
+      encodeCanonicalJson(changedMap.value),
+    );
+    const effectRefusal = await publish(
+      unsupportedChange,
+      "raw-unsupported-effect",
+      current.currentHead.head.byteSha256,
+      2,
+    );
+    assert.equal(effectRefusal.code, "unsupported-effect");
+    await unchangedLedger("raw-refusals", beforeRawRefusals);
     const limitPath = join(inputs, "oversized.json");
     await writeFile(limitPath, " ".repeat(8_388_609));
     const limitResult = JSON.parse(
@@ -490,6 +675,50 @@ export function loadPublicationNative(){const value=createRequire(import.meta.ur
     assert.equal(rebindPlan.kind, "planned");
     const conflict = await activity("close", { plan: rebindPlan.plan }, 2);
     assert.equal(conflict.code, "request-conflict");
+    const blockFixture = activityFixture(true);
+    const blockIdentity = await packet("block-identity", blockFixture.identity);
+    const blockCandidate = JSON.parse(
+      (
+        await command([
+          cli,
+          "controls",
+          "create-generated-candidate",
+          "--identity",
+          blockIdentity,
+          "--request",
+          "fixture-block-create",
+          "--json",
+        ])
+      ).stdout,
+    );
+    assert.equal(blockCandidate.kind, "created");
+    const blockBundle = await packet("block-bundle", blockFixture.bundle);
+    const blockPublished = JSON.parse(
+      (
+        await command([
+          cli,
+          "controls",
+          "publish-generation",
+          "--candidate",
+          blockCandidate.candidate.candidateId,
+          "--request",
+          "block-baseline",
+          "--bundle",
+          blockBundle,
+          "--expect-absent",
+          "--json",
+        ])
+      ).stdout,
+    );
+    assert.equal(blockPublished.kind, "published");
+    const beforeGroupingRefusal = await readFile(ledger);
+    const grouping = await activity(
+      "prepare",
+      { ...prepareRequest, candidateId: blockCandidate.candidate.candidateId },
+      2,
+    );
+    assert.equal(grouping.code, "grouping-required");
+    await unchangedLedger("grouping-refusal", beforeGroupingRefusal);
     const extracted = join(evidence, "extracted-reader.mjs");
     await build({
       entryPoints: [join(repository, "src/controls/index.ts")],
@@ -529,13 +758,18 @@ export function loadPublicationNative(){const value=createRequire(import.meta.ur
           journeys: [
             "protocol-free unknown history",
             "adoption",
+            "history-rewriting adoption refuses without plan append",
             "CLI prepare submit close",
-            "HTTP MCP output schemas submit close",
+            "HTTP MCP output schemas prepare submit close",
+            "HTTP MCP understanding without attempt refuses without write",
+            "public preparation and submission failure matrix without writes",
+            "contiguous block requires explicit grouping",
             "coverage without unaided attempt",
             "selected-before-receipt kill",
             "pending A settles before stale B refusal",
             "completed A after B original receipt and logical replay",
             "raw protocol removal refusal",
+            "raw history and check forgery refuse without plan append",
             "request rebinding refusal",
             "extracted current and pinned reader",
           ],

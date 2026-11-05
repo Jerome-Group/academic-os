@@ -48,6 +48,9 @@ The native operations are synchronous. Expiry/drain tests establish ordering; no
 Kernel exclusion, account discovery, native syscall behavior and filesystem durability remain runtime premises.
 The model is neither implementation equivalence nor a universal power-loss theorem.
 Existing seed evidence is checked for applicability only and supplies no publisher proof.
+Pure Module transition validation precedes only new publication plans. Matching retries retain their original binding and settlement behavior.
+The publisher model assumes admitted payloads. It has no Module history variables and proves no history-preservation theorem.
+Run the separate `module-activity` workflow for source-bound public transition refusals and exact ledger readbacks.
 
 ## Maintain
 

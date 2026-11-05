@@ -1,10 +1,11 @@
 import { Ajv, type ValidateFunction } from "ajv";
 import { controlSchemas } from "../controls/generated/schemas.js";
+import { activitySchemas } from "../module-activity/generated/schemas.js";
 import { namingSchemas } from "./generated/schemas.js";
 import type { NamingRequest } from "./types.js";
 
 const ajv = new Ajv({ allErrors: true, strict: true, validateFormats: false });
-for (const schema of [...controlSchemas, ...namingSchemas])
+for (const schema of [...controlSchemas, ...activitySchemas, ...namingSchemas])
   ajv.addSchema(schema);
 const validator = ajv.getSchema<NamingRequest>(
   "urn:academic-os:naming-request:1",

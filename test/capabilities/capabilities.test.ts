@@ -23,6 +23,7 @@ import {
   observeProcess,
   privateProcessDiagnostics,
 } from "../../src/capabilities/checks.js";
+import { createModuleActivityTools } from "../../src/module-activity/actions.js";
 import { createMcpDispatcher } from "../../src/operations/index.js";
 import { runCli, runCliWithEnvironment } from "../support/run-cli.js";
 
@@ -103,7 +104,7 @@ it("reports complete capability usage with executable workflow names", async () 
   assert.equal(actions.length, 4);
   for (const action of actions)
     assert.deepEqual(action.usage, [
-      "Usage: academic-os capabilities index|health|check|verify [health: --config <private-config>] [--profile fast|tests|privacy|templates|coverage|formal|publication|full] [--workflow discovery|imports|recovery|services|teaching|maintenance] [--log <private-new-file>] [--json]",
+      "Usage: academic-os capabilities index|health|check|verify [health: --config <private-config>] [--profile fast|tests|privacy|templates|coverage|formal|publication|module-activity|full] [--workflow module-activity|discovery|imports|recovery|services|teaching|maintenance] [--log <private-new-file>] [--json]",
     ]);
 });
 
@@ -201,6 +202,7 @@ it("describes MCP result fields returned by Operations", async () => {
   const dispatch = createMcpDispatcher({
     serverInfo: { name: "fixture", title: "Fixture", version: "1" },
     tools: [
+      ...createModuleActivityTools(),
       {
         name: "observe",
         title: "Observe",
@@ -217,14 +219,26 @@ it("describes MCP result fields returned by Operations", async () => {
     params: { name: "observe" },
   });
   assert.ok(response?.result !== null && typeof response?.result === "object");
+  const schemaResponse = await dispatch({
+    jsonrpc: "2.0",
+    id: 2,
+    method: "tools/call",
+    params: { name: "module_activity_submit", arguments: {} },
+  });
+  assert.ok(
+    schemaResponse?.result && typeof schemaResponse.result === "object",
+  );
   for (const action of actions) {
+    const actual: object = action.id.startsWith("module_activity_")
+      ? schemaResponse.result
+      : response.result;
     const fields = action.result.match(
       /\b(?:structuredContent|content|isError)\b/gu,
     );
     assert.ok(fields !== null, `${action.id} describes no MCP result fields`);
     for (const field of fields)
       assert.ok(
-        Object.hasOwn(response.result, field),
+        Object.hasOwn(actual, field),
         `${action.id} advertises absent result field ${field}`,
       );
   }

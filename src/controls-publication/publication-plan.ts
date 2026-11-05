@@ -1,6 +1,7 @@
+import { validateControlTransition } from "../controls/index.js";
 import { decodeBundle, generationFiles } from "./bundle.js";
 import type { Candidate } from "./candidate.js";
-import { digest, freezeBytes } from "./codec.js";
+import { digest, freezeBytes, thawBytes } from "./codec.js";
 import { refuse } from "./failure.js";
 import type {
   ExpectedHead,
@@ -59,6 +60,49 @@ export function freezePlan(
     candidate,
     input.expectedHead,
   );
+  const previous =
+    previousHead.kind === "selected"
+      ? store
+          .records()
+          .find(
+            (record): record is PublicationPlan =>
+              record.kind === "publication-plan" &&
+              record.generationId === previousHead.generationId &&
+              record.binding.candidateId === input.candidateId,
+          )
+      : undefined;
+  if (previousHead.kind === "selected" && !previous)
+    refuse("unowned-output", "Owned predecessor has no retained plan.");
+  const observations = (files: PublicationPlan["files"]) => ({
+    moduleCode: candidate.admission.aggregate.moduleCode,
+    files: files.map((file) => ({
+      kind: "file" as const,
+      path: file.path,
+      bytes: thawBytes(file.bytes),
+    })),
+  });
+  const issues = validateControlTransition({
+    before: previous ? observations(previous.files) : undefined,
+    proposed: observations(
+      generationFiles(
+        bundle,
+        candidate.admission.aggregate,
+        "transition-validation-only",
+      ),
+    ),
+    request: {
+      candidateId: input.candidateId,
+      requestId: input.requestId,
+      releaseDigest: input.releaseDigest,
+    },
+  });
+  if (issues.length)
+    refuse(
+      issues.some((issue) => issue.code === "unsupported-effect")
+        ? "unsupported-effect"
+        : "evidence-mismatch",
+      issues.map((issue) => issue.evidence).join(" "),
+    );
   const generationId = `generation-${digest({ encoding: "academic-os-publication-request/1", binding, admission: digest(candidate.admission), previousHead })}`;
   const plan: PublicationPlan = {
     schemaVersion: 1,

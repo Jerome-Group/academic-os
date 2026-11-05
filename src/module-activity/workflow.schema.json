@@ -1,0 +1,2114 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "urn:academic-os:module-activity:1",
+  "title": "ModuleActivityContract",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "actions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "prepare": {
+          "$ref": "#/definitions/PrepareInput"
+        },
+        "submit": {
+          "$ref": "#/definitions/SubmitInput"
+        },
+        "close": {
+          "$ref": "#/definitions/CloseInput"
+        }
+      },
+      "required": ["prepare", "submit", "close"]
+    }
+  },
+  "required": ["actions"],
+  "definitions": {
+    "FrozenBytes": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "byteLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "byteSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "bytesBase64": {
+          "type": "string",
+          "format": "publication-base64"
+        }
+      },
+      "required": ["byteLength", "byteSha256", "bytesBase64"]
+    },
+    "SourceLocator": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "evidenceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["evidenceId", "locator"]
+    },
+    "Judgment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "coverage",
+            "scope-membership",
+            "requested-extension",
+            "grouping",
+            "unaided-understanding",
+            "artifact-reuse",
+            "artifact-split",
+            "mathematics",
+            "visual",
+            "owner-request-attestation",
+            "supersession",
+            "artifact-not-required"
+          ]
+        },
+        "author": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subjectDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "evidenceIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "reasoning": {
+          "type": "string",
+          "minLength": 1
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0
+        },
+        "authority": {
+          "const": "attributed-claim"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "author",
+        "subjectDigest",
+        "evidenceIds",
+        "reasoning",
+        "limitations",
+        "authority"
+      ]
+    },
+    "RequestedScope": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "official"
+            }
+          },
+          "required": ["kind"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "extension"
+            },
+            "official": {
+              "const": "whole-target"
+            },
+            "additional": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/SourceLocator"
+              },
+              "minItems": 1
+            },
+            "request": {
+              "$ref": "#/definitions/Judgment"
+            }
+          },
+          "required": ["kind", "official", "additional", "request"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "selection"
+            },
+            "members": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1
+            },
+            "membership": {
+              "$ref": "#/definitions/Judgment"
+            }
+          },
+          "required": ["kind", "members", "membership"]
+        }
+      ]
+    },
+    "Target": {
+      "$ref": "#/definitions/DataTarget"
+    },
+    "Selection": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "exact"
+            },
+            "target": {
+              "$ref": "#/definitions/Target"
+            }
+          },
+          "required": ["kind", "target"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "earliest-uncovered"
+            },
+            "activity": {
+              "enum": ["lecture", "tutorial", "revision", "past-paper"]
+            }
+          },
+          "required": ["kind", "activity"]
+        }
+      ]
+    },
+    "PrepareInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "candidateId": {
+          "$ref": "#/definitions/candidateId"
+        },
+        "selection": {
+          "$ref": "#/definitions/Selection"
+        },
+        "requested": {
+          "$ref": "#/definitions/RequestedScope"
+        },
+        "sessionInstructions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Judgment"
+          }
+        }
+      },
+      "required": ["candidateId", "selection", "requested"]
+    },
+    "ObservedFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bytes": {
+          "$ref": "#/definitions/FrozenBytes"
+        }
+      },
+      "required": ["path", "bytes"]
+    },
+    "Procedure": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "profile": {
+          "enum": ["single-topic-revision", "contiguous-block-revision"]
+        },
+        "evidenceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bytes": {
+          "$ref": "#/definitions/FrozenBytes"
+        },
+        "profileRegistryDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "bindingId": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "profile",
+        "evidenceId",
+        "bytes",
+        "profileRegistryDigest",
+        "bindingId"
+      ]
+    },
+    "OfficialScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "target": {
+          "$ref": "#/definitions/Target"
+        },
+        "membership": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "declared"
+                },
+                "orderedMembers": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 1
+                },
+                "evidenceIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": ["kind", "orderedMembers", "evidenceIds"]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "opaque"
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "evidenceIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": ["kind", "text", "evidenceIds"]
+            }
+          ]
+        },
+        "governingUnit": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "known"
+                },
+                "unitId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "evidenceIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": ["kind", "unitId", "evidenceIds"]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "unknown"
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": ["kind", "reason"]
+            }
+          ]
+        }
+      },
+      "required": ["target", "membership", "governingUnit"]
+    },
+    "PreferenceBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sharedId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sharedVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sharedByteSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "local": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "absent"
+                }
+              },
+              "required": ["kind"]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "bound"
+                },
+                "controlByteSha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "acceptedDecisionIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 0
+                }
+              },
+              "required": ["kind", "controlByteSha256", "acceptedDecisionIds"]
+            }
+          ]
+        },
+        "sessionInstructions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Judgment"
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "sharedId",
+        "sharedVersion",
+        "sharedByteSha256",
+        "local",
+        "sessionInstructions"
+      ]
+    },
+    "Preparation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "kind": {
+          "const": "module-activity-preparation"
+        },
+        "preparationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidateId": {
+          "$ref": "#/definitions/candidateId"
+        },
+        "moduleId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "releaseDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "baseHeadByteSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "baseGenerationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ObservedFile"
+          },
+          "minItems": 1
+        },
+        "procedure": {
+          "$ref": "#/definitions/Procedure"
+        },
+        "preferences": {
+          "$ref": "#/definitions/PreferenceBinding"
+        },
+        "official": {
+          "$ref": "#/definitions/OfficialScope"
+        },
+        "requested": {
+          "$ref": "#/definitions/RequestedScope"
+        },
+        "orderedSources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SourceLocator"
+          },
+          "minItems": 0
+        },
+        "writes": {
+          "const": [
+            "learning-records:append",
+            "evidence:append",
+            "retained-inputs:create"
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "preparationId",
+        "candidateId",
+        "moduleId",
+        "releaseDigest",
+        "baseHeadByteSha256",
+        "baseGenerationId",
+        "files",
+        "procedure",
+        "preferences",
+        "official",
+        "requested",
+        "orderedSources",
+        "writes"
+      ]
+    },
+    "EvidencePacket": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bytes": {
+          "$ref": "#/definitions/FrozenBytes"
+        },
+        "role": {
+          "enum": [
+            "coverage-account",
+            "source-extract",
+            "owner-attempt-claim",
+            "independent-review-claim",
+            "judgment",
+            "historical-claim"
+          ]
+        }
+      },
+      "required": ["id", "bytes", "role"]
+    },
+    "Coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requested": {
+          "enum": ["none", "partial", "covered"]
+        },
+        "official": {
+          "enum": ["unknown", "partial", "covered"]
+        },
+        "coveredMembers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0
+        },
+        "judgment": {
+          "$ref": "#/definitions/Judgment"
+        }
+      },
+      "required": ["requested", "official", "coveredMembers", "judgment"]
+    },
+    "Understanding": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unassessed"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["kind", "reason"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "agent-assessed"
+            },
+            "judgment": {
+              "$ref": "#/definitions/Judgment"
+            },
+            "attemptEvidenceId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "independentReview": {
+              "$ref": "#/definitions/Judgment"
+            },
+            "scope": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1
+            },
+            "status": {
+              "enum": ["unaided-demonstrated", "needs-work"]
+            }
+          },
+          "required": [
+            "kind",
+            "judgment",
+            "attemptEvidenceId",
+            "independentReview",
+            "scope",
+            "status"
+          ]
+        }
+      ]
+    },
+    "Assessment": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unassessed"
+            }
+          },
+          "required": ["kind"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "retained-claim"
+            },
+            "assessmentId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidenceIds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1
+            },
+            "official": {
+              "const": false
+            }
+          },
+          "required": ["kind", "assessmentId", "evidenceIds", "official"]
+        }
+      ]
+    },
+    "ArtifactOutcome": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "not-required"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "judgment": {
+              "$ref": "#/definitions/Judgment"
+            }
+          },
+          "required": ["kind", "reason", "judgment"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "parked"
+            },
+            "output": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "retainedSourceEvidenceIds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 0
+            }
+          },
+          "required": ["kind", "output", "reason", "retainedSourceEvidenceIds"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "reused-claim"
+            },
+            "artifactId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "contentSha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "judgment": {
+              "$ref": "#/definitions/Judgment"
+            },
+            "admission": {
+              "const": "retained-claim-only"
+            }
+          },
+          "required": [
+            "kind",
+            "artifactId",
+            "contentSha256",
+            "judgment",
+            "admission"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unsupported"
+            },
+            "output": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["kind", "output", "reason"]
+        }
+      ]
+    },
+    "ProviderOutcome": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "not-requested"
+            }
+          },
+          "required": ["kind"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "enum": ["parked", "conflict"]
+            },
+            "provider": {
+              "enum": ["tasks", "calendar"]
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["kind", "provider", "reason"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "retained-verification-claim"
+            },
+            "provider": {
+              "enum": ["tasks", "calendar"]
+            },
+            "evidenceIds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1
+            },
+            "authority": {
+              "const": "unverified-by-this-action"
+            }
+          },
+          "required": ["kind", "provider", "evidenceIds", "authority"]
+        }
+      ]
+    },
+    "ActivityEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "packets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EvidencePacket"
+          },
+          "minItems": 1
+        },
+        "coverage": {
+          "$ref": "#/definitions/Coverage"
+        },
+        "understanding": {
+          "$ref": "#/definitions/Understanding"
+        },
+        "assessment": {
+          "$ref": "#/definitions/Assessment"
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ArtifactOutcome"
+          },
+          "minItems": 0
+        },
+        "providers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProviderOutcome"
+          },
+          "minItems": 0
+        },
+        "unresolved": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "packets",
+        "coverage",
+        "understanding",
+        "assessment",
+        "artifacts",
+        "providers",
+        "unresolved"
+      ]
+    },
+    "SubmitInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "preparation": {
+          "$ref": "#/definitions/Preparation"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "evidence": {
+          "$ref": "#/definitions/ActivityEvidence"
+        },
+        "supersedes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0
+        },
+        "date": {
+          "$ref": "#/definitions/DateClaim"
+        },
+        "supersessionJudgment": {
+          "$ref": "#/definitions/Judgment"
+        }
+      },
+      "required": [
+        "preparation",
+        "requestId",
+        "evidence",
+        "supersedes",
+        "date"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "supersedes": {
+                "minItems": 1,
+                "type": "array"
+              }
+            }
+          },
+          "then": {
+            "required": ["supersessionJudgment"],
+            "properties": {
+              "supersessionJudgment": {
+                "$ref": "#/definitions/Judgment"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "LogicalCloseout": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "recordId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "preparationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "const": "generated-control-evidence-only"
+        },
+        "coverage": {
+          "$ref": "#/definitions/Coverage"
+        },
+        "understanding": {
+          "$ref": "#/definitions/Understanding"
+        },
+        "assessment": {
+          "$ref": "#/definitions/Assessment"
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ArtifactOutcome"
+          },
+          "minItems": 0
+        },
+        "providers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProviderOutcome"
+          },
+          "minItems": 0
+        },
+        "sessionStatus": {
+          "enum": ["complete", "partial", "parked"]
+        },
+        "unresolved": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0
+        },
+        "checks": {
+          "$ref": "#/definitions/DeterministicChecks"
+        }
+      },
+      "required": [
+        "requestId",
+        "recordId",
+        "preparationId",
+        "scope",
+        "coverage",
+        "understanding",
+        "assessment",
+        "artifacts",
+        "providers",
+        "sessionStatus",
+        "unresolved",
+        "checks"
+      ]
+    },
+    "CloseoutPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "kind": {
+          "const": "module-activity-closeout-plan"
+        },
+        "encoding": {
+          "const": "academic-os-activity-plan/1"
+        },
+        "planId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidateId": {
+          "$ref": "#/definitions/candidateId"
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "releaseDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "preparation": {
+          "$ref": "#/definitions/Preparation"
+        },
+        "evidence": {
+          "$ref": "#/definitions/ActivityEvidence"
+        },
+        "supersedes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0
+        },
+        "logicalResult": {
+          "$ref": "#/definitions/LogicalCloseout"
+        },
+        "expectedHead": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "digest"
+            },
+            "headByteSha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": ["kind", "headByteSha256"]
+        },
+        "bundleBytes": {
+          "$ref": "#/definitions/FrozenBytes"
+        },
+        "date": {
+          "$ref": "#/definitions/DateClaim"
+        },
+        "exactWrites": {
+          "$ref": "#/definitions/ExactWrites"
+        },
+        "supersessionJudgment": {
+          "$ref": "#/definitions/Judgment"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "encoding",
+        "planId",
+        "candidateId",
+        "requestId",
+        "releaseDigest",
+        "preparation",
+        "evidence",
+        "supersedes",
+        "logicalResult",
+        "expectedHead",
+        "bundleBytes",
+        "date",
+        "exactWrites"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "supersedes": {
+                "minItems": 1,
+                "type": "array"
+              }
+            }
+          },
+          "then": {
+            "required": ["supersessionJudgment"],
+            "properties": {
+              "supersessionJudgment": {
+                "$ref": "#/definitions/Judgment"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "CloseInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "plan": {
+          "$ref": "#/definitions/CloseoutPlan"
+        }
+      },
+      "required": ["plan"]
+    },
+    "Problem": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "enum": ["needs-judgment", "refused", "unsupported"]
+            },
+            "code": {
+              "enum": [
+                "missing-prerequisite",
+                "unsupported-procedure",
+                "unsupported-native-source",
+                "scope-ambiguous",
+                "grouping-required",
+                "preference-conflict",
+                "owner-evidence-required",
+                "invalid-packet",
+                "illegal-transition",
+                "foreign-target",
+                "foreign-supersession",
+                "release-conflict"
+              ]
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1
+            }
+          },
+          "required": ["kind", "code", "evidence"]
+        },
+        {
+          "$ref": "#/definitions/Refused"
+        },
+        {
+          "$ref": "#/definitions/RecoveryRequired"
+        }
+      ]
+    },
+    "PrepareResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "prepared"
+            },
+            "preparation": {
+              "$ref": "#/definitions/Preparation"
+            }
+          },
+          "required": ["kind", "preparation"]
+        },
+        {
+          "$ref": "#/definitions/Problem"
+        }
+      ]
+    },
+    "SubmitResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "planned"
+            },
+            "plan": {
+              "$ref": "#/definitions/CloseoutPlan"
+            }
+          },
+          "required": ["kind", "plan"]
+        },
+        {
+          "$ref": "#/definitions/Problem"
+        }
+      ]
+    },
+    "PublisherReceiptBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "receiptId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "planDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "selectedGenerationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "selectedHeadByteSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "requestId",
+        "receiptId",
+        "planDigest",
+        "selectedGenerationId",
+        "selectedHeadByteSha256"
+      ]
+    },
+    "CloseResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "published"
+            },
+            "logicalResult": {
+              "$ref": "#/definitions/LogicalCloseout"
+            },
+            "publication": {
+              "$ref": "#/definitions/PublisherReceiptBinding"
+            },
+            "replayed": {
+              "type": "boolean"
+            },
+            "currentHead": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "generationId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "headByteSha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": ["generationId", "headByteSha256"]
+            }
+          },
+          "required": [
+            "kind",
+            "logicalResult",
+            "publication",
+            "replayed",
+            "currentHead"
+          ]
+        },
+        {
+          "$ref": "#/definitions/Problem"
+        }
+      ]
+    },
+    "StoredCloseout": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "preparationDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "submissionDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "plannerReleaseDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "preparationEvidenceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "submissionEvidenceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "logicalResult": {
+          "$ref": "#/definitions/LogicalCloseout"
+        },
+        "official": {
+          "$ref": "#/definitions/OfficialScope"
+        },
+        "requested": {
+          "$ref": "#/definitions/RequestedScope"
+        },
+        "supersedes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "supersessionJudgment": {
+          "$ref": "#/definitions/Judgment"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "preparationDigest",
+        "submissionDigest",
+        "plannerReleaseDigest",
+        "preparationEvidenceId",
+        "submissionEvidenceId",
+        "logicalResult",
+        "official",
+        "requested",
+        "supersedes",
+        "id"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "supersedes": {
+                "minItems": 1,
+                "type": "array"
+              }
+            }
+          },
+          "then": {
+            "required": ["supersessionJudgment"],
+            "properties": {
+              "supersessionJudgment": {
+                "$ref": "#/definitions/Judgment"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "DateClaim": {
+      "$ref": "#/definitions/DataDateClaim"
+    },
+    "DeterministicObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "deterministic-observation"
+        },
+        "subjectDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "checkerReleaseDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "result": {
+          "const": "pass"
+        }
+      },
+      "required": ["kind", "subjectDigest", "checkerReleaseDigest", "result"]
+    },
+    "DeterministicChecks": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "selected-byte-closure": {
+          "$ref": "#/definitions/DeterministicObservation"
+        },
+        "procedure-preference-bindings": {
+          "$ref": "#/definitions/DeterministicObservation"
+        },
+        "target-source-scope": {
+          "$ref": "#/definitions/DeterministicObservation"
+        },
+        "write-ceiling": {
+          "$ref": "#/definitions/DeterministicObservation"
+        },
+        "evidence-reference-byte-bindings": {
+          "$ref": "#/definitions/DeterministicObservation"
+        },
+        "append-supersession": {
+          "$ref": "#/definitions/DeterministicObservation"
+        },
+        "outcome-separation": {
+          "$ref": "#/definitions/DeterministicObservation"
+        }
+      },
+      "required": [
+        "selected-byte-closure",
+        "procedure-preference-bindings",
+        "target-source-scope",
+        "write-ceiling",
+        "evidence-reference-byte-bindings",
+        "append-supersession",
+        "outcome-separation"
+      ]
+    },
+    "AppendRegion": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "role": {
+              "const": "learning-records"
+            },
+            "collection": {
+              "const": "records"
+            },
+            "entryId": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["role", "collection", "entryId"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "role": {
+              "const": "learning-records"
+            },
+            "collection": {
+              "const": "activityCloseouts"
+            },
+            "entryId": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["role", "collection", "entryId"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "role": {
+              "const": "evidence"
+            },
+            "collection": {
+              "const": "entries"
+            },
+            "entryId": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["role", "collection", "entryId"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "role": {
+              "const": "retained-inputs"
+            },
+            "collection": {
+              "const": "dependencies"
+            },
+            "entryId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "byteSha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": ["role", "collection", "entryId", "path", "byteSha256"]
+        }
+      ]
+    },
+    "ExactWrites": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "preservedRoles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ControlRole"
+          },
+          "uniqueItems": true
+        },
+        "regions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AppendRegion"
+          },
+          "minItems": 4,
+          "uniqueItems": true
+        }
+      },
+      "required": ["preservedRoles", "regions"]
+    },
+    "ActivityProtocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "const": "urn:academic-os:module-activity:1"
+        },
+        "bindingId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "procedureEvidenceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profileRegistryDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "schema",
+        "bindingId",
+        "procedureEvidenceId",
+        "profileRegistryDigest"
+      ]
+    },
+    "candidateId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+    },
+    "requestId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+    },
+    "ControlRole": {
+      "enum": [
+        "module-identity",
+        "definition",
+        "profile",
+        "evidence",
+        "artifacts",
+        "source-map",
+        "terms",
+        "decisions",
+        "preferences",
+        "learning-records",
+        "revisit",
+        "glossary",
+        "resources",
+        "textbooks",
+        "curation",
+        "provider-mirrors",
+        "verification",
+        "learning-workspace"
+      ]
+    },
+    "Refused": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "refused"
+        },
+        "code": {
+          "enum": [
+            "busy",
+            "unsupported-host",
+            "unsafe-namespace",
+            "bootstrap-unclaimed",
+            "unknown-candidate",
+            "root-replaced",
+            "request-conflict",
+            "stale-head",
+            "invalid-controls",
+            "evidence-mismatch",
+            "unsupported-effect",
+            "unowned-output"
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": ["kind", "code", "evidence"]
+    },
+    "RecoveryRequired": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "recovery-required"
+        },
+        "code": {
+          "enum": [
+            "uncertain-claim",
+            "uncertain-publication",
+            "durability-unavailable",
+            "journal-recovery-required"
+          ]
+        },
+        "requestId": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "retainedPlanDigest": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "code",
+        "requestId",
+        "retainedPlanDigest",
+        "evidence"
+      ]
+    },
+    "DataTarget": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "lecture"
+            },
+            "unit": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "unit"
+                },
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+                }
+              },
+              "required": ["kind", "id"]
+            }
+          },
+          "required": ["kind", "unit"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "tutorial"
+            },
+            "unit": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "unit"
+                },
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+                }
+              },
+              "required": ["kind", "id"]
+            },
+            "block": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "tutorial-block"
+                },
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+                }
+              },
+              "required": ["kind", "id"]
+            }
+          },
+          "required": ["kind", "unit", "block"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "revision"
+            },
+            "unit": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "unit"
+                },
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+                }
+              },
+              "required": ["kind", "id"]
+            },
+            "topics": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "topic"
+                  },
+                  "id": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+                  }
+                },
+                "required": ["kind", "id"]
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          },
+          "required": ["kind", "unit", "topics"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "past-paper"
+            },
+            "paper": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "artifact"
+                },
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+                }
+              },
+              "required": ["kind", "id"]
+            },
+            "questions": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          },
+          "required": ["kind", "paper", "questions"]
+        }
+      ]
+    },
+    "DataDateClaim": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "known"
+            },
+            "value": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+              "format": "module-calendar-date"
+            },
+            "evidence": {
+              "$ref": "#/definitions/DataEvidenceReferences"
+            },
+            "reasoning": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["kind", "value", "evidence"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unknown"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "evidence"
+                  },
+                  "id": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+                  }
+                },
+                "required": ["kind", "id"]
+              },
+              "uniqueItems": true
+            }
+          },
+          "required": ["kind", "reason", "evidence"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "disputed"
+            },
+            "alternatives": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                    "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                    "format": "module-calendar-date"
+                  },
+                  "evidence": {
+                    "$ref": "#/definitions/DataEvidenceReferences"
+                  },
+                  "reasoning": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": ["value", "evidence", "reasoning"]
+              },
+              "minItems": 2
+            }
+          },
+          "required": ["kind", "alternatives"]
+        }
+      ]
+    },
+    "DataEvidenceReferences": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "evidence"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+          }
+        },
+        "required": ["kind", "id"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "ByteBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "byteLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "byteSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": ["byteLength", "byteSha256"]
+    },
+    "PreparationDescriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "encoding": {
+          "const": "academic-os-activity-preparation-descriptor/1"
+        },
+        "preparation": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": 1
+            },
+            "kind": {
+              "const": "module-activity-preparation"
+            },
+            "preparationId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "candidateId": {
+              "$ref": "#/definitions/candidateId"
+            },
+            "moduleId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "releaseDigest": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "baseHeadByteSha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "baseGenerationId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "procedure": {
+              "$ref": "#/definitions/Procedure"
+            },
+            "preferences": {
+              "$ref": "#/definitions/PreferenceBinding"
+            },
+            "official": {
+              "$ref": "#/definitions/OfficialScope"
+            },
+            "requested": {
+              "$ref": "#/definitions/RequestedScope"
+            },
+            "orderedSources": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/SourceLocator"
+              },
+              "minItems": 0
+            },
+            "writes": {
+              "const": [
+                "learning-records:append",
+                "evidence:append",
+                "retained-inputs:create"
+              ]
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "kind",
+            "preparationId",
+            "candidateId",
+            "moduleId",
+            "releaseDigest",
+            "baseHeadByteSha256",
+            "baseGenerationId",
+            "procedure",
+            "preferences",
+            "official",
+            "requested",
+            "orderedSources",
+            "writes"
+          ]
+        },
+        "filesDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": ["encoding", "preparation", "filesDigest"]
+    },
+    "SubmissionDescriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requestId": {
+          "$ref": "#/definitions/requestId"
+        },
+        "evidence": {
+          "$ref": "#/definitions/ActivityEvidence"
+        },
+        "supersedes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0
+        },
+        "date": {
+          "$ref": "#/definitions/DateClaim"
+        },
+        "supersessionJudgment": {
+          "$ref": "#/definitions/Judgment"
+        },
+        "encoding": {
+          "const": "academic-os-activity-submission/1"
+        },
+        "preparationDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "requestId",
+        "evidence",
+        "supersedes",
+        "date",
+        "encoding",
+        "preparationDigest"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "supersedes": {
+                "minItems": 1,
+                "type": "array"
+              }
+            }
+          },
+          "then": {
+            "required": ["supersessionJudgment"],
+            "properties": {
+              "supersessionJudgment": {
+                "$ref": "#/definitions/Judgment"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "description": "Module activity generated-control evidence protocol."
+}

@@ -413,6 +413,44 @@ export type Understanding =
       reasoning: string;
       limitations: string[];
     };
+export type StoredCloseout = {
+  schemaVersion: 1;
+  requestId: string;
+  preparationDigest: string;
+  submissionDigest: string;
+  plannerReleaseDigest: string;
+  preparationEvidenceId: string;
+  submissionEvidenceId: string;
+  logicalResult: LogicalCloseout;
+  official: OfficialScope;
+  requested:
+    | {
+        kind: "official";
+      }
+    | {
+        kind: "extension";
+        official: "whole-target";
+        /**
+         * @minItems 1
+         */
+        additional: [SourceLocator, ...SourceLocator[]];
+        request: Judgment;
+      }
+    | {
+        kind: "selection";
+        /**
+         * @minItems 1
+         */
+        members: [string, ...string[]];
+        membership: Judgment;
+      };
+  /**
+   * @minItems 0
+   */
+  supersedes: string[];
+  id: string;
+  supersessionJudgment?: Judgment;
+};
 export type ProviderMirror =
   | {
       id: string;
@@ -1427,6 +1465,7 @@ export interface LearningRecordsControl {
   role: "learning-records";
   records: LearningRecord[];
   assessments: Assessment[];
+  activityCloseouts?: StoredCloseout[];
 }
 export interface Assessment {
   id: string;
@@ -1475,6 +1514,242 @@ export interface Assessment {
     id: string;
   };
   limitations: string[];
+}
+export interface LogicalCloseout {
+  requestId: string;
+  recordId: string;
+  preparationId: string;
+  scope: "generated-control-evidence-only";
+  coverage: Coverage;
+  understanding:
+    | {
+        kind: "unassessed";
+        reason: string;
+      }
+    | {
+        kind: "agent-assessed";
+        judgment: Judgment;
+        attemptEvidenceId: string;
+        independentReview: Judgment;
+        /**
+         * @minItems 1
+         */
+        scope: [string, ...string[]];
+        status: "unaided-demonstrated" | "needs-work";
+      };
+  assessment:
+    | {
+        kind: "unassessed";
+      }
+    | {
+        kind: "retained-claim";
+        assessmentId: string;
+        /**
+         * @minItems 1
+         */
+        evidenceIds: [string, ...string[]];
+        official: false;
+      };
+  /**
+   * @minItems 0
+   */
+  artifacts: (
+    | {
+        kind: "not-required";
+        reason: string;
+        judgment: Judgment;
+      }
+    | {
+        kind: "parked";
+        output: string;
+        reason: string;
+        /**
+         * @minItems 0
+         */
+        retainedSourceEvidenceIds: string[];
+      }
+    | {
+        kind: "reused-claim";
+        artifactId: string;
+        contentSha256: string;
+        judgment: Judgment;
+        admission: "retained-claim-only";
+      }
+    | {
+        kind: "unsupported";
+        output: string;
+        reason: string;
+      }
+  )[];
+  /**
+   * @minItems 0
+   */
+  providers: (
+    | {
+        kind: "not-requested";
+      }
+    | {
+        kind: "parked" | "conflict";
+        provider: "tasks" | "calendar";
+        reason: string;
+      }
+    | {
+        kind: "retained-verification-claim";
+        provider: "tasks" | "calendar";
+        /**
+         * @minItems 1
+         */
+        evidenceIds: [string, ...string[]];
+        authority: "unverified-by-this-action";
+      }
+  )[];
+  sessionStatus: "complete" | "partial" | "parked";
+  /**
+   * @minItems 0
+   */
+  unresolved: string[];
+  checks: DeterministicChecks;
+}
+export interface Coverage {
+  requested: "none" | "partial" | "covered";
+  official: "unknown" | "partial" | "covered";
+  /**
+   * @minItems 0
+   */
+  coveredMembers: string[];
+  judgment: Judgment;
+}
+export interface Judgment {
+  id: string;
+  kind:
+    | "coverage"
+    | "scope-membership"
+    | "requested-extension"
+    | "grouping"
+    | "unaided-understanding"
+    | "artifact-reuse"
+    | "artifact-split"
+    | "mathematics"
+    | "visual"
+    | "owner-request-attestation"
+    | "supersession"
+    | "artifact-not-required";
+  author: string;
+  subjectDigest: string;
+  /**
+   * @minItems 1
+   */
+  evidenceIds: [string, ...string[]];
+  reasoning: string;
+  /**
+   * @minItems 0
+   */
+  limitations: string[];
+  authority: "attributed-claim";
+}
+export interface DeterministicChecks {
+  "selected-byte-closure": DeterministicObservation;
+  "procedure-preference-bindings": DeterministicObservation;
+  "target-source-scope": DeterministicObservation;
+  "write-ceiling": DeterministicObservation;
+  "evidence-reference-byte-bindings": DeterministicObservation;
+  "append-supersession": DeterministicObservation;
+  "outcome-separation": DeterministicObservation;
+}
+export interface DeterministicObservation {
+  kind: "deterministic-observation";
+  subjectDigest: string;
+  checkerReleaseDigest: string;
+  result: "pass";
+}
+export interface OfficialScope {
+  target:
+    | {
+        kind: "lecture";
+        unit: {
+          kind: "unit";
+          id: string;
+        };
+      }
+    | {
+        kind: "tutorial";
+        unit: {
+          kind: "unit";
+          id: string;
+        };
+        block: {
+          kind: "tutorial-block";
+          id: string;
+        };
+      }
+    | {
+        kind: "revision";
+        unit: {
+          kind: "unit";
+          id: string;
+        };
+        /**
+         * @minItems 1
+         */
+        topics: [
+          {
+            kind: "topic";
+            id: string;
+          },
+          ...{
+            kind: "topic";
+            id: string;
+          }[],
+        ];
+      }
+    | {
+        kind: "past-paper";
+        paper: {
+          kind: "artifact";
+          id: string;
+        };
+        /**
+         * @minItems 1
+         */
+        questions: [string, ...string[]];
+      };
+  membership:
+    | {
+        kind: "declared";
+        /**
+         * @minItems 1
+         */
+        orderedMembers: [string, ...string[]];
+        /**
+         * @minItems 1
+         */
+        evidenceIds: [string, ...string[]];
+      }
+    | {
+        kind: "opaque";
+        text: string;
+        /**
+         * @minItems 1
+         */
+        evidenceIds: [string, ...string[]];
+      };
+  governingUnit:
+    | {
+        kind: "known";
+        unitId: string;
+        /**
+         * @minItems 1
+         */
+        evidenceIds: [string, ...string[]];
+      }
+    | {
+        kind: "unknown";
+        reason: string;
+      };
+}
+export interface SourceLocator {
+  evidenceId: string;
+  locator: string;
 }
 export interface RevisitControl {
   $schema: "urn:academic-os:module-data:1";
@@ -1670,4 +1945,11 @@ export interface LearningWorkspaceControl {
     standingAuthority: false;
     evidence: EvidenceReferences;
   }[];
+  activityProtocol?: ActivityProtocol;
+}
+export interface ActivityProtocol {
+  schema: "urn:academic-os:module-activity:1";
+  bindingId: string;
+  procedureEvidenceId: string;
+  profileRegistryDigest: string;
 }

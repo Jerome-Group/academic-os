@@ -39,13 +39,16 @@ import { runTextbooksMigrateCommand } from "./commands/textbooks-migrate-command
 import { runTextbooksReconcileCommand } from "./commands/textbooks-reconcile-command.js";
 import { runTextbooksSweepCommand } from "./commands/textbooks-sweep-command.js";
 import { runControlsPublicationCommand } from "./controls-publication/command.js";
+import { runModuleActivityCommand } from "./module-activity/command.js";
 import { OperationalError } from "./mounted/index.js";
 
 const arguments_ = process.argv.slice(2);
 const json = arguments_.includes("--json");
 
 try {
-  if (arguments_[0] === "controls") {
+  if (arguments_[0] === "module" && arguments_[1] === "activity") {
+    await runModuleActivityCommand(arguments_.slice(2));
+  } else if (arguments_[0] === "controls") {
     await runControlsPublicationCommand(arguments_.slice(1));
   } else if (arguments_[0] === "capabilities") {
     await runCapabilitiesCommand(arguments_);

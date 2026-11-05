@@ -11,8 +11,7 @@ import {
   recoverPendingCreates,
   summary,
 } from "./candidate.js";
-import { freezeBytes } from "./codec.js";
-import { requireInputBytes } from "./limits.js";
+import { freezeBytes, thawBytes } from "./codec.js";
 import { PublicationFailure, recover } from "./failure.js";
 import type {
   CreateResult,
@@ -24,6 +23,7 @@ import type {
   PublishWireInput,
   Readiness,
 } from "./generated/publication-contract-1.js";
+import { requireInputBytes } from "./limits.js";
 import { type RuntimeContext, withPublicationOwner } from "./owner.js";
 import {
   completedReceipt,
@@ -212,3 +212,32 @@ export const publishGeneratedControls = (
 export const inspectGeneratedCandidate = (
   input: InspectInput,
 ): Promise<InspectResult> => createPublicationService().inspect(input);
+
+export type {
+  ModuleAggregate,
+  PublicationBundle,
+} from "./generated/publication-contract-1.js";
+export function validateGeneratedBundle(input: {
+  bundleBytes: Uint8Array;
+  aggregate: import("./generated/publication-contract-1.js").ModuleAggregate;
+}) {
+  try {
+    const bundle = decodeBundle(input.bundleBytes, input.aggregate);
+    const files = generationFiles(
+      bundle,
+      input.aggregate,
+      "activity-validation-only",
+    );
+    return {
+      kind: "validated" as const,
+      bundle,
+      files: files.map((file) => ({
+        kind: "file" as const,
+        path: file.path,
+        bytes: thawBytes(file.bytes),
+      })),
+    };
+  } catch (error) {
+    return invalid(error);
+  }
+}

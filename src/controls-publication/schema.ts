@@ -6,6 +6,7 @@ import {
 } from "../controls/module-data-formats.js";
 import { safeRelativePath } from "../controls/read-controls.js";
 import { readStrictJson } from "../controls/strict-json.js";
+import { activitySchemas } from "../module-activity/generated/schemas.js";
 import { base64DecodedLength, canonicalBase64 } from "./codec.js";
 import type {
   CreateResult,
@@ -47,7 +48,11 @@ ajv.addFormat("publication-raw-name", (value: string) => {
 ajv.addFormat("publication-relative-path", safeRelativePath);
 ajv.addFormat("module-calendar-date", moduleCalendarDate);
 ajv.addFormat("native-nul-free-bytes", nativeNulFreeBytes);
-for (const schema of [...controlSchemas, ...publicationSchemas])
+for (const schema of [
+  ...controlSchemas,
+  ...activitySchemas,
+  ...publicationSchemas,
+])
   ajv.addSchema(schema);
 
 function validator<T>(name: string): ValidateFunction<T> {

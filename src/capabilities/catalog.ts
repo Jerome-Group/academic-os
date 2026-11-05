@@ -1,4 +1,8 @@
 import { createPublicationTools } from "../controls-publication/tools.js";
+import {
+  createModuleActivityTools,
+  moduleActivityActions,
+} from "../module-activity/actions.js";
 import { checkProfiles } from "./checks.js";
 
 export interface Capability {
@@ -69,6 +73,28 @@ function cli(
 }
 
 export const cliCapabilities: Capability[] = [
+  ...moduleActivityActions.map(
+    (action): Capability => ({
+      id: action.cli.join(" "),
+      surface: "cli",
+      invocation: `node dist/src/cli.js ${action.cli.join(" ")} --input <packet.json> --json`,
+      prerequisites: [...action.prerequisites],
+      reads: ["selected and portable exact Module control closure"],
+      writes: [...action.effects],
+      riskFlags: action.id.endsWith("close")
+        ? ["writes-state", "generated-candidate-only"]
+        : [],
+      preview: null,
+      implementation: "src/module-activity/actions.ts",
+      tests: [
+        "test/module-activity/module-activity.test.ts",
+        "test/module-activity/journey.test.ts",
+      ],
+      status: "supported",
+      health: "not-observed",
+      result: `Strict ${action.input} to ${action.output}; actual CLI/MCP schema validated output; generated control evidence only.`,
+    }),
+  ),
   ...[
     "create-generated-candidate",
     "publish-generation",
@@ -707,6 +733,32 @@ export function capabilityIndex(): object {
       result:
         "MCP content text contains the strict generated result schema; isError marks refusal or recovery. Complete graph and immutable evidence or explicit refusal/recovery. No historical or live target admission.",
     });
+  for (const action of moduleActivityActions) {
+    const tool = createModuleActivityTools().find(
+      (tool) => tool.name === action.mcp,
+    );
+    if (!tool) throw new Error("Missing Module activity action handler.");
+    actions.push({
+      id: action.mcp,
+      surface: "mcp",
+      invocation: `tools/call ${action.mcp}`,
+      prerequisites: [...action.prerequisites],
+      reads: ["exact selected or retained Module control bytes"],
+      writes: [...action.effects],
+      riskFlags: action.id.endsWith("close")
+        ? ["generated-candidates-only", "writes-state"]
+        : [],
+      preview: null,
+      implementation: "src/module-activity/actions.ts",
+      tests: [
+        "test/module-activity/module-activity.test.ts",
+        "test/module-activity/journey.test.ts",
+      ],
+      status: "supported",
+      health: "not-observed",
+      result: `${action.output} with actual outputSchema, validated structuredContent and explicit refusal or recovery.`,
+    });
+  }
   for (const operation of [
     "schema",
     "doctor",

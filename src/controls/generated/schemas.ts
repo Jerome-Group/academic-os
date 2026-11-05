@@ -3162,6 +3162,12 @@ export const controlSchemas = [
             type: "array",
             items: { $ref: "#/definitions/assessment" },
           },
+          activityCloseouts: {
+            type: "array",
+            items: {
+              $ref: "urn:academic-os:module-activity:1#/definitions/StoredCloseout",
+            },
+          },
         },
         required: [
           "$schema",
@@ -3705,6 +3711,9 @@ export const controlSchemas = [
                 "evidence",
               ],
             },
+          },
+          activityProtocol: {
+            $ref: "urn:academic-os:module-activity:1#/definitions/ActivityProtocol",
           },
         },
         required: [

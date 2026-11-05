@@ -31,7 +31,12 @@ export interface SchemaOperationTool {
   title: string;
   description: string;
   inputSchema: { type: "object"; [key: string]: unknown };
-  call(input: unknown): Promise<OperationToolResult>;
+  maximumResponseBytes?: number;
+  outputSchema?: { type: "object"; [key: string]: unknown };
+  call(
+    input: unknown,
+    envelope?: { jsonRpcId: string | number | null },
+  ): Promise<OperationToolResult>;
 }
 
 export type ServedOperationTool = OperationTool | SchemaOperationTool;

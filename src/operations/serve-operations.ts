@@ -10,7 +10,7 @@ import type { McpDispatcher } from "./dispatch-mcp-message.js";
 export const OPERATIONS_ENDPOINT_PATH = "/mcp";
 export const OPERATIONS_PORT = 8765;
 
-const MAXIMUM_BODY_BYTES = 1_000_000;
+const MAXIMUM_BODY_BYTES = 8_388_608;
 const PARSE_ERROR = -32700;
 
 export interface OperationsServerHandle {
@@ -101,7 +101,7 @@ async function handle(
   if (!(request.headers["content-type"] ?? "").includes("application/json")) {
     return writeText(response, 415, "This endpoint takes application/json.");
   }
-  let body: string;
+  let body: Uint8Array;
   try {
     body = await readBody(request);
   } catch {
@@ -109,7 +109,9 @@ async function handle(
   }
   let message: unknown;
   try {
-    message = JSON.parse(body);
+    message = JSON.parse(
+      new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(body),
+    );
   } catch {
     return writeJson(response, 400, {
       jsonrpc: "2.0",
@@ -125,7 +127,7 @@ async function handle(
   writeJson(response, 200, answer);
 }
 
-async function readBody(request: IncomingMessage): Promise<string> {
+async function readBody(request: IncomingMessage): Promise<Uint8Array> {
   const chunks: Buffer[] = [];
   let bytes = 0;
   for await (const chunk of request) {
@@ -133,7 +135,7 @@ async function readBody(request: IncomingMessage): Promise<string> {
     if (bytes > MAXIMUM_BODY_BYTES) throw new Error("Body too large.");
     chunks.push(chunk as Buffer);
   }
-  return Buffer.concat(chunks).toString("utf8");
+  return Buffer.concat(chunks);
 }
 
 function readPath(request: IncomingMessage): string {

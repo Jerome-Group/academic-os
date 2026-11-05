@@ -136,6 +136,7 @@ export const cliCapabilities: Capability[] = [
     [
       "test/cli/curation-migrate-cli.test.ts",
       "test/cli/curation-completion-cli.test.ts",
+      "test/cli/curation-register-ownership-cli.test.ts",
     ],
   ),
   cli(
@@ -149,6 +150,7 @@ export const cliCapabilities: Capability[] = [
     [
       "test/curation/plan-curation-rederivation.test.ts",
       "test/cli/curation-completion-cli.test.ts",
+      "test/cli/curation-register-ownership-cli.test.ts",
     ],
   ),
   cli(
@@ -177,6 +179,7 @@ export const cliCapabilities: Capability[] = [
     [
       "test/cli/calendar-propose-cli.test.ts",
       "test/cli/calendar-occupancy-cli.test.ts",
+      "test/cli/calendar-refresh-binding-cli.test.ts",
     ],
   ),
   cli(
@@ -319,6 +322,7 @@ export const cliCapabilities: Capability[] = [
   ),
   cli("textbooks sweep", ["private shelf review sheet"], [], null, [
     "test/textbooks/plan-shelf-sweep.test.ts",
+    "test/cli/textbooks-migrate-cli.test.ts",
   ]),
   cli(
     "textbooks migrate",
@@ -337,6 +341,7 @@ export const cliCapabilities: Capability[] = [
       "test/textbooks/open-file-shelf.test.ts",
       "test/textbooks/shelf-preservation-process.test.ts",
       "test/cli/textbooks-preservation-cli.test.ts",
+      "test/cli/textbooks-migrate-cli.test.ts",
     ],
   ),
   {
@@ -352,6 +357,7 @@ export const cliCapabilities: Capability[] = [
       [
         "test/textbooks/shelf-preservation-process.test.ts",
         "test/cli/textbooks-preservation-cli.test.ts",
+        "test/cli/textbooks-migrate-cli.test.ts",
       ],
     ),
     invocation:

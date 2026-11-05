@@ -7,6 +7,7 @@ An agent discovers supported actions and reads importer lifecycle, counts and fr
 - Index and help expose the same supported actions, prerequisites, effects and test mappings.
 - Health distinguishes local tools from unobserved credentials and services.
 - Module inspection reports legacy declarations, exact procedure hashes, ordered reads and refused canonical references without writing history.
+- Candidate validation checks a complete canonical module data graph, including references, supersession and ordered activity targets.
 - Import status reports each declared root, including missing, malformed, stale and failed receipts.
 - Import preflight compares active Module declarations with NTULearn course destinations and reports file-wide collisions.
 - Offering readiness combines local control, import, learning-material and Task-binding evidence for the active cohort.
@@ -15,6 +16,7 @@ An agent discovers supported actions and reads importer lifecycle, counts and fr
 ## How to get to it (user POV)
 
 Use CLI `module inspect --root <physical-module-root>` or `module inspect --config <private-config>` with an explicit configured target.
+Use `module validate --root <candidate-module-root> --json` for a separate full data candidate. Legacy and identity-only candidates refuse validation while remaining inspectable.
 Use CLI `--help`, `capabilities index`, `capabilities health`, `capabilities check`, `imports status`, `imports preflight` or `offering readiness`.
 The captured index supplies their current invocation and prerequisites.
 
@@ -31,6 +33,7 @@ node dist/src/cli.js capabilities check --profile full --json --log "$aos_proof/
 
 Require passed outcomes for verification and profile results. Help returns `indexed`; health returns `observed`.
 The discovery journey also drives portable and configured module inspection. It checks legacy declaration order and unknown partial claims, canonical envelope reads with incomplete coverage, missing/changed generations, linked heads and unchanged fixture bytes. Canonical target audit refuses before writing observation history.
+The same journey validates full candidates through portable and configured CLI routes. It asserts complete role requirements, exact selected byte hashes, duplicate identities, missing and wrong-kind references, supersession cycles and revision blocks crossing unit boundaries. Public cases retain unknown historical target/status, distinguish coverage from unaided understanding and provider state, and cover native metadata, provisional assessments and evidence-backed decisions. Fixture manifests prove inspection and candidate validation leave bytes unchanged.
 The mapped CLI journeys assert help parity, unsafe-log refusals, human/JSON import parity and receipt freshness.
 The duplicate cohort-mapping importer fixture compares mounted fixture UTF-8 contents before and after.
 The duplicate-flag fixture checks argument refusal without a file comparison. Successful import journeys assert output and classifications.
@@ -41,7 +44,7 @@ Preflight CLI fixtures check exact roots, declaration ambiguity, aliases, collis
 ## Gotchas
 
 An index entry marked `mapped` is not a successful run.
-A supported canonical envelope read covers head, generation and module identity only. Full canonical conformance, workflows and migration remain unavailable. Legacy observations preserve reported status without asserting completion or mastery.
+Generation1 reads cover head, generation and identity only. Generation2 validates the module data graph. Its readiness fields explicitly report publication, workflows, module conformance and migration as unimplemented. Schema and graph validity do not verify native artifact contents, evidence truth or corpus completeness. Legacy observations preserve reported status without asserting completion or mastery.
 Mounted observations reject detected file or ancestor identity changes before returning bytes. The scheduled parent-swap fixture proves that interleaving only; pathname checks do not provide atomic traversal against arbitrary concurrent swaps.
 A current receipt proves a producer observation, not exhaustive NTULearn visibility or current attachment bytes.
 Readiness covers local controls and recorded Task binding. Live Google access, Task freshness, destination preflight and learning mastery remain unverified.

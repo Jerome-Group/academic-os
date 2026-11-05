@@ -271,6 +271,29 @@ describe("complete-set artifact naming", () => {
     );
   });
 
+  it("preserves exact evidenced Resource categories without inventing numeric prefixes", () => {
+    for (const directory of [
+      "90 Resources/Reference",
+      "90 Resources/École Références/Collected",
+      "90 Resources/10 Reference/Nested",
+    ])
+      assert.ok(
+        resolvedPath(
+          resolveArtifactNames(
+            request([
+              artifact({
+                destination: {
+                  category: "resource",
+                  directory,
+                  evidence: ["evidence:declared-category"],
+                },
+              }),
+            ]),
+          ),
+        ).startsWith(`${directory}/`),
+      );
+  });
+
   it("resolves complete-set collisions using accepted meaning independent of enumeration", () => {
     const first = artifact({
       disambiguators: [

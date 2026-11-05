@@ -1,4 +1,4 @@
-import { planNamingJson } from "../naming/index.js";
+import { planNamingText } from "../naming/index.js";
 import type { OperationTool } from "./types.js";
 
 export function createNamingTools(): OperationTool[] {
@@ -17,9 +17,7 @@ export function createNamingTools(): OperationTool[] {
         },
       ],
       call: async (input) => {
-        const report = planNamingJson(
-          Buffer.from(input.get("request") ?? "", "utf8"),
-        );
+        const report = planNamingText(input.get("request") ?? "");
         return { report, failed: report.outcome !== "resolved" };
       },
     },

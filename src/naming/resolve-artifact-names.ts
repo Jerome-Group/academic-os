@@ -17,6 +17,24 @@ import {
   supportsNamingUnicode,
 } from "./unicode.js";
 
+export function planNamingText(source: string): NamingPlan {
+  if (!source.isWellFormed())
+    return {
+      outcome: "refused",
+      diagnostics: [
+        {
+          kind: "problem",
+          code: "invalid-unicode-string",
+          pointer: "",
+          message:
+            "Naming JSON text must contain Unicode scalar values. Refuse malformed code units before UTF-8 encoding can replace source evidence.",
+          evidence: [],
+        },
+      ],
+    };
+  return planNamingJson(Buffer.from(source, "utf8"));
+}
+
 export function planNamingJson(bytes: Uint8Array): NamingPlan {
   const read = readStrictJson(bytes, "naming-request");
   if (read.kind === "invalid")

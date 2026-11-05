@@ -91,11 +91,7 @@ export function isArtifactDestination(artifact: NamingArtifact): boolean {
     )
   )
     return false;
-  if (category === "resource")
-    return (
-      /^[0-9]{2} /u.test(segments[0] ?? "") &&
-      isUnicodeCategory([...(segments[0] ?? "")][3] ?? "", "upper")
-    );
+  if (category === "resource") return segments.length > 0;
   if (category === "project" || category === "lab")
     return workspaceChildSet.has(segments[0] ?? "");
   if (category === "personal-note" && segments[0] === "support") return false;

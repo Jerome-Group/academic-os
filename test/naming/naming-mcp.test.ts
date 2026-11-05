@@ -87,6 +87,27 @@ it("plans through actual configured Operations HTTP and official MCP SDK without
       arguments: { request: '{"schemaVersion":1,"schemaVersion":2}' },
     });
     assert.equal(lexical.isError, true);
+    const literalCodeUnit = JSON.stringify(input).replace(
+      "Synthetic source title",
+      String.fromCharCode(0xd800),
+    );
+    const malformed = await client.callTool({
+      name: "naming_plan",
+      arguments: { request: literalCodeUnit },
+    });
+    assert.equal(malformed.isError, true);
+    assert.match(JSON.stringify(malformed.content), /invalid-unicode-string/u);
+    assert.equal(JSON.stringify(malformed.content).includes("\ufffd"), false);
+    const escapedCodeUnit = JSON.stringify(input).replace(
+      "Synthetic source title",
+      "\\ud800",
+    );
+    const escaped = await client.callTool({
+      name: "naming_plan",
+      arguments: { request: escapedCodeUnit },
+    });
+    assert.equal(escaped.isError, true);
+    assert.match(JSON.stringify(escaped.content), /invalid-json-bytes/u);
     assert.deepEqual(await readFile(configPath), before);
     assert.deepEqual(await readdir(root), ["config.json"]);
   } finally {

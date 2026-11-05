@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { lstat, realpath } from "node:fs/promises";
 import { dirname } from "node:path";
 import { runMaintenanceProcess } from "./maintenance-process.js";
+import { repositoryPermissionProfile } from "./repository-repair-permissions.js";
 
 export async function repositoryFixtureRoot(
   cwd: string,
@@ -64,29 +65,17 @@ export function repositorySandboxArguments(
   command: string[],
   fixtureRoot?: string,
 ): string[] {
+  const profile = repositoryPermissionProfile("write", fixtureRoot);
   return [
     "sandbox",
     "-P",
-    ":workspace",
+    profile.name,
     "--include-managed-config",
     "-C",
     cwd,
     "-c",
-    'sandbox_mode="workspace-write"',
-    "-c",
-    "sandbox_workspace_write.network_access=false",
-    "-c",
-    "sandbox_workspace_write.exclude_tmpdir_env_var=true",
-    "-c",
-    "sandbox_workspace_write.exclude_slash_tmp=true",
-    ...(fixtureRoot === undefined
-      ? []
-      : [
-          "-c",
-          `sandbox_workspace_write.writable_roots=${JSON.stringify([fixtureRoot])}`,
-          "--allow-unix-socket",
-          fixtureRoot,
-        ]),
+    profile.configuration,
+    ...(fixtureRoot === undefined ? [] : ["--allow-unix-socket", fixtureRoot]),
     "--",
     ...command,
   ];

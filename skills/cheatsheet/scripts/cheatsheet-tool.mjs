@@ -11092,6 +11092,29 @@ function pagesFrom(pdfinfo) {
   }
   return Number(match[1]);
 }
+async function portraitA4Info({
+  pdf,
+  cwd,
+  label
+}) {
+  const pageCount = pagesFrom(await command("pdfinfo", [pdf], cwd));
+  if (pageCount < 1) throw new Error(`${label} has no pages.`);
+  const pdfinfo = await command(
+    "pdfinfo",
+    ["-f", "1", "-l", String(pageCount), "-box", pdf],
+    cwd
+  );
+  const sizes = [...pdfinfo.matchAll(/^Page\s+(\d+) size:\s+(.+)$/gmu)];
+  const rotations = [...pdfinfo.matchAll(/^Page\s+(\d+) rot:\s+(-?\d+)$/gmu)];
+  if (sizes.length !== pageCount || rotations.length !== pageCount)
+    throw new Error(`${label} has incomplete per-page geometry evidence.`);
+  for (let index = 0; index < pageCount; index += 1) {
+    const page = String(index + 1);
+    if (sizes[index]?.[1] !== page || rotations[index]?.[1] !== page || !/^595\.\d+ x 841\.\d+ pts \(A4\)$/u.test(sizes[index]?.[2] ?? "") || Number(rotations[index]?.[2]) % 180 !== 0)
+      throw new Error(`${label} page ${page} is not portrait A4.`);
+  }
+  return { pdfinfo, pageCount };
+}
 function assertPageLimit(pages, constraints) {
   if (constraints.pages.exact !== void 0 && pages !== constraints.pages.exact) {
     throw new Error(
@@ -11232,12 +11255,19 @@ async function verifyPortableCheatsheetRelease(input) {
         `Release body size ${bodyPointSize}pt is below the ${input.constraints.bodyPt.floor}pt floor.`
       );
     }
-    const pdfinfo = await command("pdfinfo", [builtPdf], buildRoot);
-    if (!/^Page size:\s+595\.\d+ x 841\.\d+ pts \(A4\)$/mu.test(pdfinfo)) {
-      throw new Error("Release is not portrait A4.");
-    }
-    const pageCount = pagesFrom(pdfinfo);
+    const { pdfinfo, pageCount } = await portraitA4Info({
+      pdf: builtPdf,
+      cwd: buildRoot,
+      label: "Rebuilt PDF"
+    });
     assertPageLimit(pageCount, input.constraints);
+    const releasedGeometry = await portraitA4Info({
+      pdf: referencePdf,
+      cwd: referenceRoot,
+      label: "Released PDF"
+    });
+    if (releasedGeometry.pageCount !== pageCount)
+      throw new Error("Released PDF does not match the isolated source build.");
     const fontsEmbedded = fontsAreEmbedded(
       await command("pdffonts", [builtPdf], buildRoot)
     );

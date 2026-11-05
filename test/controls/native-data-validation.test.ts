@@ -53,13 +53,13 @@ function directory(controls: ModuleDataControl[]) {
   const root = entry(controls);
   root.kind = "directory";
   root.pathBytesBase64 = Buffer.from("native").toString("base64");
-  const first = {
+  const first: ReturnType<typeof entry> = {
     ...structuredClone(root),
     kind: "file" as const,
     pathBytesBase64: Buffer.from("native/a").toString("base64"),
     hardlinkGroup: known("inode-1"),
   };
-  const second = {
+  const second: ReturnType<typeof entry> = {
     ...structuredClone(first),
     pathBytesBase64: Buffer.from("native/b").toString("base64"),
   };
@@ -176,6 +176,44 @@ describe("native representation consistency through the public control owner", (
       JSON.stringify(observed.diagnostics),
     );
   });
+  it("requires every nonroot immediate parent to be an included directory without following links", () => {
+    for (const kind of ["missing", "file", "symlink", "special"] as const)
+      refuses((controls) => {
+        const { root, first, second } = directory(controls);
+        first.pathBytesBase64 = Buffer.from("native/a").toString("base64");
+        second.pathBytesBase64 =
+          Buffer.from("native/a/child").toString("base64");
+        if (kind === "missing")
+          artifact(controls).representation.entries = [root, second];
+        else {
+          first.kind = kind;
+          if (kind === "symlink")
+            first.symlinkTargetBytesBase64 = known(
+              Buffer.from("/external").toString("base64"),
+            );
+          if (kind === "special") first.specialType = known("fifo");
+        }
+      }, "invalid-native-entry-parent");
+    const observed = result((controls) => {
+      const { first, second } = directory(controls);
+      first.kind = "directory";
+      first.hardlinkGroup = unknown();
+      first.pathBytesBase64 = Buffer.concat([
+        Buffer.from("native/"),
+        Buffer.from([255]),
+      ]).toString("base64");
+      second.pathBytesBase64 = Buffer.concat([
+        Buffer.from("native/"),
+        Buffer.from([255, 47, 254]),
+      ]).toString("base64");
+    });
+    assert.equal(
+      observed.kind,
+      "canonical",
+      JSON.stringify(observed.diagnostics),
+    );
+  });
+
   it("refuses known hardlink data and inode metadata conflicts while accepting unknown or disputed evidence", () => {
     for (const field of [
       "data",

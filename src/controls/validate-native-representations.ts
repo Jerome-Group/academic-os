@@ -48,8 +48,18 @@ export function validateNativeRepresentations(
         `${pointer}/bundleMembers`,
         "Only directory and native-bundle representations can contain artifact members.",
       );
-    for (const [offset, entry] of representation.entries.entries()) {
+    const paths = new Map(entries.map((item) => [item.raw, item.entry]));
+    for (const [offset, { entry, raw }] of entries.entries()) {
       const entryPointer = `${pointer}/entries/${offset}`;
+      if (
+        raw !== root?.raw &&
+        paths.get(raw.slice(0, raw.lastIndexOf("/")))?.kind !== "directory"
+      )
+        problem(
+          "invalid-native-entry-parent",
+          `${entryPointer}/pathBytesBase64`,
+          "Every nonroot entry requires an included directory at its immediate raw-path parent. Native representations never descend through files, symlinks or special entries.",
+        );
       if (entry.xattrs.kind === "known") {
         const names = new Set<string>();
         for (const [

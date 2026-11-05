@@ -214,6 +214,55 @@ describe("read-only module inspection through the compiled CLI", () => {
     }
   });
 
+  it("refuses missing and nondirectory native parents through module validate without following links", async () => {
+    for (const kind of ["missing", "file", "symlink", "special"] as const) {
+      const controls = moduleDataControls();
+      const artifact = controlFor(controls, "artifacts").artifacts[0];
+      assert.ok(artifact);
+      const root = artifact.representation.entries[0];
+      assert.ok(root);
+      root.kind = "directory";
+      root.pathBytesBase64 = Buffer.from("native").toString("base64");
+      const parent = {
+        ...structuredClone(root),
+        pathBytesBase64: Buffer.from("native/a").toString("base64"),
+      };
+      if (kind !== "missing") parent.kind = kind;
+      if (kind === "symlink")
+        parent.symlinkTargetBytesBase64 = known(
+          Buffer.from("/external/missing").toString("base64"),
+        );
+      if (kind === "special") parent.specialType = known("fifo");
+      const child = {
+        ...structuredClone(root),
+        kind: "file" as const,
+        pathBytesBase64: Buffer.from("native/a/child").toString("base64"),
+      };
+      artifact.representation.kind = "directory";
+      artifact.representation.entries =
+        kind === "missing" ? [root, child] : [root, parent, child];
+      const target = await fixture(moduleDataFixture(controls));
+      const before = await manifest(target.root);
+      const observed = await runCli(
+        "module",
+        "validate",
+        "--root",
+        target.moduleRoot,
+        "--json",
+      );
+      assert.equal(observed.exitCode, 2, `${kind}: ${observed.stdout}`);
+      const report = JSON.parse(observed.stdout);
+      assert.equal(report.outcome, "refused");
+      assert.ok(
+        report.diagnostics.some(
+          (item: { code: string }) =>
+            item.code === "invalid-native-entry-parent",
+        ),
+      );
+      assert.deepEqual(await manifest(target.root), before);
+    }
+  });
+
   it("refuses partial candidates and cross-unit targets through the same CLI owner without writes", async () => {
     const controls = moduleDataControls();
     const record = controlFor(controls, "learning-records").records[1];

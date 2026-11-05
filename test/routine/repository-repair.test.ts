@@ -308,6 +308,7 @@ test("scope restrictions and exact sandbox argv preserve critical boundaries", (
   );
   for (const path of [
     "src/security.ts",
+    "src/routine/repository-repair-permissions.ts",
     "docs/module-folder-contract.md",
     "skills/a.ts",
     "src/../package.json",
@@ -315,15 +316,30 @@ test("scope restrictions and exact sandbox argv preserve critical boundaries", (
   ])
     assert.equal(eligibleRepositoryRepairPaths([path]), false);
   const args = repositorySandboxArguments("/fixture", ["node", "fixture.js"]);
+  const profileName = args[2];
+  assert.ok(profileName);
+  assert.match(profileName, /^academic-os-repository-write-[0-9a-f-]{36}$/u);
+  assert.notEqual(
+    repositorySandboxArguments("/fixture", ["node", "fixture.js"])[2],
+    profileName,
+  );
   assert.deepEqual(args.slice(0, 6), [
     "sandbox",
     "-P",
-    ":workspace",
+    profileName,
     "--include-managed-config",
     "-C",
     "/fixture",
   ]);
-  assert.ok(args.includes("sandbox_workspace_write.network_access=false"));
+  assert.ok(
+    args.includes(
+      `permissions.${profileName}={ extends = ":workspace", filesystem = { ":tmpdir" = "read", ":slash_tmp" = "read" }, network = { enabled = false } }`,
+    ),
+  );
+  assert.equal(
+    args.some((argument) => argument.startsWith("sandbox_")),
+    false,
+  );
   assert.equal(args.includes("--allow-unix-socket"), false);
   const fixtureArgs = repositorySandboxArguments(
     "/fixture",
@@ -334,7 +350,11 @@ test("scope restrictions and exact sandbox argv preserve critical boundaries", (
     fixtureArgs[fixtureArgs.indexOf("--allow-unix-socket") + 1],
     "/owned-fixture-temp",
   );
-  assert.ok(args.includes("sandbox_workspace_write.exclude_slash_tmp=true"));
+  assert.ok(
+    fixtureArgs.includes(
+      `permissions.${fixtureArgs[2]}={ extends = ":workspace", filesystem = { ":tmpdir" = "read", ":slash_tmp" = "read", "/owned-fixture-temp" = "write" }, network = { enabled = false } }`,
+    ),
+  );
   assert.equal(
     args.includes("--dangerously-bypass-approvals-and-sandbox"),
     false,
@@ -857,7 +877,7 @@ test("production worker explicitly supplies packaged helpers, Node/npm search an
     );
     await writeFile(
       codex,
-      `#!/usr/bin/env node\nimport fs from 'node:fs';const a=process.argv.slice(2);if(a.includes('features')){for(const n of ['plugins','apps','remote_plugin','hooks','browser_use','browser_use_external','computer_use'])console.log(n+' stable false');}else if(a.includes('mcp'))console.log('[]');else{fs.writeFileSync(${JSON.stringify(capture)},JSON.stringify({args:a,temp:process.env.TMPDIR,credentialKeys:Object.keys(process.env).filter(k=>/TOKEN|SECRET|PASSWORD/.test(k))}));fs.writeFileSync(a[a.indexOf('--output-last-message')+1],JSON.stringify(a.includes('read-only')?{approved:true,findings:[]}:{summary:'fixture'}));}\n`,
+      `#!/usr/bin/env node\nimport fs from 'node:fs';const a=process.argv.slice(2);if(a.includes('features')){for(const n of ['plugins','apps','remote_plugin','hooks','browser_use','browser_use_external','computer_use'])console.log(n+' stable false');}else if(a.includes('mcp'))console.log('[]');else{fs.writeFileSync(${JSON.stringify(capture)},JSON.stringify({args:a,temp:process.env.TMPDIR,credentialKeys:Object.keys(process.env).filter(k=>/TOKEN|SECRET|PASSWORD/.test(k))}));fs.writeFileSync(a[a.indexOf('--output-last-message')+1],JSON.stringify(a.some(v=>v.startsWith('default_permissions=\"academic-os-repository-read-'))?{approved:true,findings:[]}:{summary:'fixture'}));}\n`,
       { mode: 0o700 },
     );
     await runRepositoryRepairSession({
@@ -887,9 +907,19 @@ test("production worker explicitly supplies packaged helpers, Node/npm search an
       captured.args.includes('shell_environment_policy.inherit="none"'),
     );
     assert.equal(captured.args.includes("--allow-unix-socket"), false);
+    const repairSelection = captured.args.find((value) =>
+      /^default_permissions="academic-os-repository-write-[0-9a-f-]{36}"$/u.test(
+        value,
+      ),
+    );
+    assert.ok(repairSelection);
+    const repairName = repairSelection.slice(
+      'default_permissions="'.length,
+      -1,
+    );
     assert.ok(
       captured.args.includes(
-        `sandbox_workspace_write.writable_roots=${JSON.stringify([f.fixtureRoot])}`,
+        `permissions.${repairName}={ extends = ":workspace", filesystem = { ":tmpdir" = "read", ":slash_tmp" = "read", ${JSON.stringify(f.fixtureRoot)} = "write" }, network = { enabled = false } }`,
       ),
     );
     assert.ok(configured("PATH").split(":").includes(helpers));
@@ -919,16 +949,29 @@ test("production worker explicitly supplies packaged helpers, Node/npm search an
     const reviewed = JSON.parse(await readFile(capture, "utf8")) as {
       args: string[];
     };
-    assert.equal(
-      reviewed.args.some((a) =>
-        a.startsWith("sandbox_workspace_write.writable_roots="),
+    const reviewSelection = reviewed.args.find((value) =>
+      /^default_permissions="academic-os-repository-read-[0-9a-f-]{36}"$/u.test(
+        value,
       ),
-      false,
     );
-    assert.equal(
-      reviewed.args[reviewed.args.indexOf("--sandbox") + 1],
-      "read-only",
+    assert.ok(reviewSelection);
+    const reviewName = reviewSelection.slice(
+      'default_permissions="'.length,
+      -1,
     );
+    assert.notEqual(reviewName, repairName);
+    assert.ok(
+      reviewed.args.includes(
+        `permissions.${reviewName}={ extends = ":read-only", filesystem = { ":tmpdir" = "read", ":slash_tmp" = "read" }, network = { enabled = false } }`,
+      ),
+    );
+    for (const args of [captured.args, reviewed.args]) {
+      assert.equal(args.includes("--sandbox"), false);
+      assert.equal(
+        args.some((value) => value.startsWith("sandbox_")),
+        false,
+      );
+    }
   } finally {
     await f.close();
   }

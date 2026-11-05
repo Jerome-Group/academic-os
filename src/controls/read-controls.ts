@@ -6,11 +6,18 @@ import {
   generationSchemaId,
   headSchemaId,
   identitySchemaId,
+  moduleDataGenerationSchemaId,
+  moduleDataSchemaId,
   schemaDiagnostics,
   validateGeneration,
   validateHead,
   validateIdentity,
+  validateModuleDataGeneration,
+  validateModuleData,
 } from "./schema-registry.js";
+import type { ControlGeneration } from "./generated/control-generation-1.js";
+import type { ModuleDataGeneration } from "./generated/control-generation-2.js";
+import { validateModuleGraph } from "./validate-module-graph.js";
 import { readStrictJson } from "./strict-json.js";
 import {
   diagnostic,
@@ -80,7 +87,9 @@ export function readControls(input: ControlReadInput): ControlRead {
         "/generation/file",
       ),
     );
-  if (head.generation.schema !== generationSchemaId)
+  const fullModuleData =
+    head.generation.schema === moduleDataGenerationSchemaId;
+  if (head.generation.schema !== generationSchemaId && !fullModuleData)
     diagnostics.push(unsupportedSchema(moduleHeadPath, head.generation.schema));
   if (diagnostics.length) return refuse();
   const generationObservation = referenced(
@@ -92,12 +101,25 @@ export function readControls(input: ControlReadInput): ControlRead {
   const generationValue =
     generationObservation === undefined
       ? undefined
-      : decode(generationObservation, generationSchemaId, diagnostics);
-  if (!validateGeneration(generationValue)) {
-    diagnostics.push(...schemaDiagnostics(validateGeneration, generationPath));
-    return refuse();
+      : decode(generationObservation, head.generation.schema, diagnostics);
+  let generation: ControlGeneration | ModuleDataGeneration;
+  if (fullModuleData) {
+    if (!validateModuleDataGeneration(generationValue)) {
+      diagnostics.push(
+        ...schemaDiagnostics(validateModuleDataGeneration, generationPath),
+      );
+      return refuse();
+    }
+    generation = generationValue;
+  } else {
+    if (!validateGeneration(generationValue)) {
+      diagnostics.push(
+        ...schemaDiagnostics(validateGeneration, generationPath),
+      );
+      return refuse();
+    }
+    generation = generationValue;
   }
-  const generation = generationValue;
   if (
     generation.module !== head.module ||
     generation.moduleCode !== head.moduleCode ||
@@ -141,11 +163,14 @@ export function readControls(input: ControlReadInput): ControlRead {
     }
     roles.add(ref.role);
     paths.add(path);
-    if (ref.schema !== identitySchemaId) {
+    if (
+      ref.schema !== identitySchemaId &&
+      !(fullModuleData && ref.schema === moduleDataSchemaId)
+    ) {
       diagnostics.push(unsupportedSchema(path, ref.schema));
       continue;
     }
-    if (ref.role !== "module-identity") {
+    if (ref.role !== "module-identity" && !fullModuleData) {
       diagnostics.push(
         diagnostic(
           "unsupported-control-role",
@@ -159,6 +184,43 @@ export function readControls(input: ControlReadInput): ControlRead {
     const file = referenced(input.files, path, ref.byteSha256, diagnostics);
     const value =
       file === undefined ? undefined : decode(file, ref.schema, diagnostics);
+    if (ref.schema === moduleDataSchemaId) {
+      if (!validateModuleData(value)) {
+        diagnostics.push(...schemaDiagnostics(validateModuleData, path));
+        continue;
+      }
+      if (value.role !== ref.role) {
+        diagnostics.push(
+          diagnostic(
+            "conflicting-control-role",
+            path,
+            `Declared role ${ref.role} conflicts with control role ${value.role}.`,
+            "Bind each schema-validated control to its exact role in the generation.",
+          ),
+        );
+        continue;
+      }
+      if (value.module !== head.module || value.moduleCode !== head.moduleCode)
+        diagnostics.push(
+          identityConflict(
+            path,
+            "Control identity conflicts with the selected head.",
+          ),
+        );
+      controls.push({ role: value.role, path, value });
+      continue;
+    }
+    if (ref.role !== "module-identity") {
+      diagnostics.push(
+        diagnostic(
+          "conflicting-control-role",
+          path,
+          `The identity schema cannot fulfill ${ref.role}.`,
+          "Use module-identity for the identity schema.",
+        ),
+      );
+      continue;
+    }
     if (!validateIdentity(value)) {
       diagnostics.push(...schemaDiagnostics(validateIdentity, path));
       continue;
@@ -182,22 +244,43 @@ export function readControls(input: ControlReadInput): ControlRead {
       ),
     );
   if (diagnostics.length) return refuse();
+  if (fullModuleData)
+    diagnostics.push(...validateModuleGraph(controls, generationPath));
+  if (diagnostics.length) return refuse();
   return {
     kind: "canonical",
     shape: { kind: "canonical", head, generation },
     evidence,
     controls,
     diagnostics,
-    coverage: "incomplete-module-contract",
-    unsupportedReads: [
-      "definition",
-      "profile",
-      "source-map",
-      "learning-records",
-      "workflows",
-      "module-conformance",
-      "migration-readiness",
+    readiness: {
+      publication: "not-implemented",
+      workflows: "not-implemented",
+      moduleConformance: "not-implemented",
+      migration: "not-implemented",
+    },
+    limitations: [
+      "Validation binds selected control bytes and recorded graph relationships. It does not verify native artifact contents, evidence truth, upstream provider state or corpus completeness.",
     ],
+    coverage: fullModuleData
+      ? "validated-module-data"
+      : "incomplete-module-contract",
+    unsupportedReads: fullModuleData
+      ? [
+          "publication",
+          "workflows",
+          "module-conformance",
+          "migration-readiness",
+        ]
+      : [
+          "definition",
+          "profile",
+          "source-map",
+          "learning-records",
+          "workflows",
+          "module-conformance",
+          "migration-readiness",
+        ],
   };
 }
 

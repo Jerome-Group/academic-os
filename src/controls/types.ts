@@ -2,6 +2,20 @@ import type { SourceMapUnitEntry } from "../conformance/source-map.js";
 import type { ModuleHead } from "./generated/module-head-1.js";
 import type { ControlGeneration } from "./generated/control-generation-1.js";
 import type { ModuleIdentity } from "./generated/module-identity-1.js";
+import type { ModuleDataGeneration } from "./generated/control-generation-2.js";
+import type { ModuleDataControl } from "./generated/module-data-1.js";
+
+export type CanonicalControl =
+  | {
+      readonly role: "module-identity";
+      readonly path: string;
+      readonly value: ModuleIdentity;
+    }
+  | {
+      readonly role: ModuleDataControl["role"];
+      readonly path: string;
+      readonly value: ModuleDataControl;
+    };
 
 export type ControlObservation =
   | { readonly kind: "file"; readonly path: string; readonly bytes: Uint8Array }
@@ -85,17 +99,20 @@ export type ControlRead =
       readonly shape: {
         readonly kind: "canonical";
         readonly head: ModuleHead;
-        readonly generation: ControlGeneration;
+        readonly generation: ControlGeneration | ModuleDataGeneration;
       };
       readonly evidence: readonly ControlEvidence[];
-      readonly controls: readonly {
-        readonly role: "module-identity";
-        readonly path: string;
-        readonly value: ModuleIdentity;
-      }[];
+      readonly controls: readonly CanonicalControl[];
       readonly diagnostics: readonly ControlDiagnostic[];
-      readonly coverage: "incomplete-module-contract";
+      readonly coverage: "incomplete-module-contract" | "validated-module-data";
       readonly unsupportedReads: readonly string[];
+      readonly readiness: {
+        readonly publication: "not-implemented";
+        readonly workflows: "not-implemented";
+        readonly moduleConformance: "not-implemented";
+        readonly migration: "not-implemented";
+      };
+      readonly limitations: readonly string[];
     }
   | {
       readonly kind: "unsupported";

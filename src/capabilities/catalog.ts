@@ -69,6 +69,25 @@ function cli(
 
 export const cliCapabilities: Capability[] = [
   {
+    ...cli("module validate", [], [], null, [
+      "test/controls/module-data.test.ts",
+      "test/controls/module-inspect-cli.test.ts",
+    ]),
+    invocation:
+      "node dist/src/cli.js module validate --root <candidate-module-root> --json",
+    implementation: "src/commands/module-inspect-command.ts",
+    prerequisites: [
+      "Node >=24",
+      "npm ci && npm run build",
+      "complete isolated candidate module-data generation2",
+    ],
+    reads: [
+      "safe candidate control bytes; selected byte hashes; closed module graph",
+    ],
+    result:
+      "Validated module data or structured refusal. Publication, workflows, module conformance and migration readiness remain unimplemented; no writes.",
+  },
+  {
     ...cli("module inspect", [], [], null, [
       "test/controls/read-controls.test.ts",
       "test/controls/module-inspect-cli.test.ts",
@@ -82,7 +101,7 @@ export const cliCapabilities: Capability[] = [
     ],
     reads: ["safe mounted control bytes; immutable canonical references"],
     result:
-      "Detected shape, exact procedure hashes, supported control reads and incomplete coverage; refusal exits 2; no writes.",
+      "Detected legacy or canonical shape, exact selected byte hashes, typed data and explicit unsupported capabilities; identity-only reads remain partial; refusal exits 2; no writes.",
     options: {
       "--root": "Portable physical module root; exclusive with --config",
       "--config":

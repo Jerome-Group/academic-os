@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "$id": "urn:academic-os:control-generation:2",
+  "title": "ModuleDataGeneration",
+  "properties": {
+    "$schema": {
+      "const": "urn:academic-os:control-generation:2"
+    },
+    "schemaVersion": {
+      "const": 2
+    },
+    "module": {
+      "type": "string",
+      "pattern": "^module:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+    },
+    "moduleCode": {
+      "type": "string",
+      "pattern": "^[A-Z]{2,4}[0-9]{4}[A-Z]?$"
+    },
+    "generationId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"
+    },
+    "controls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "file": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          },
+          "byteSha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "role": {
+            "enum": [
+              "module-identity",
+              "definition",
+              "profile",
+              "evidence",
+              "artifacts",
+              "source-map",
+              "terms",
+              "decisions",
+              "preferences",
+              "learning-records",
+              "revisit",
+              "glossary",
+              "resources",
+              "textbooks",
+              "curation",
+              "provider-mirrors",
+              "verification",
+              "learning-workspace"
+            ]
+          }
+        },
+        "required": ["file", "schema", "byteSha256", "role"]
+      }
+    },
+    "coverage": {
+      "const": "module-data"
+    }
+  },
+  "required": [
+    "$schema",
+    "schemaVersion",
+    "module",
+    "moduleCode",
+    "generationId",
+    "controls",
+    "coverage"
+  ]
+}

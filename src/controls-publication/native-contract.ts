@@ -109,7 +109,7 @@ export interface PublicationNative {
   readBounded(input: {
     file: RegularHandle;
     maximumBytes: number;
-    exactLength: number;
+    exactLength?: number;
   }): NativeResult<Uint8Array>;
   writeExact(input: {
     interval: MutationInterval;

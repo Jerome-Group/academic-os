@@ -5,6 +5,7 @@ The CLI audits configured folders, previews changes and publishes approved contr
 ## Sub-features
 
 - Module and Research-project seeding preview before publication.
+- Research manifest v2 supplies an approved complete Meeting and its caller-owned schedule. Manifest v1 keeps its original plan identity and meeting-free behavior.
 - Interrupted seed publication requires explicit `--apply --resume` against the claimed destination.
 - Seed and repair apply hold one same-host owner for the exact journal before continuation reads and effects; reliable private SQLite locking is required.
 - Audit and cohort audit report contract violations and retain observations.
@@ -28,7 +29,11 @@ node dist/src/cli.js capabilities verify --workflow recovery --json --log "$aos_
 ```
 
 Require a passed outcome. The existing CLI journeys check preview leaves the destination absent, apply publishes a conformant Module and audit reads it back.
-Research-project journeys check profile-derived folders and supplied initial files.
+Research-project journeys check profile-derived folders, meeting-free seeding and complete manifest-v2 Meeting intake.
+They compare exact note, schedule and binary payload bytes after publication and replay, then audit the result through the compiled CLI.
+Missing or invalid notes, inconsistent schedules, binary schedule controls, pinned replacements, existing-content conflicts and unsupported policies refuse before publication.
+Saved-plan cases reject mixed Module and Research identities, including a supported policy attached to the wrong variant, without changing the journal or target.
+Mounted fixtures also exercise staged Meeting interruption and exact-plan resume, including refusal after schedule bytes or policy identity change.
 The Module seed CLI journey interrupts publication and proves explicit resume completes it.
 Pinned-refresh journeys compare backups and resulting bytes and reject changed preconditions.
 Recovery selects all mounted, repair, seed and pinned suites, including competing, missing and replaced root claims.

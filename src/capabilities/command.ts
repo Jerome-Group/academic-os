@@ -86,6 +86,8 @@ export async function runCapabilitiesCommand(
           (line) =>
             (!action.id.startsWith("tasks ") ||
               line.includes(`academic-os ${action.id} `)) &&
+            (!action.id.startsWith("module ") ||
+              line.includes(`academic-os ${action.id} `)) &&
             (!action.id.startsWith("cheatsheet ") ||
               line.includes(
                 `cheatsheet-tool ${action.id.slice("cheatsheet ".length)}`,

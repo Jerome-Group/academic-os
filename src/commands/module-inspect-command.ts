@@ -13,7 +13,10 @@ export async function runModuleInspectCommand(
   json: boolean,
 ): Promise<void> {
   const operation = arguments_[0] === "validate" ? "validate" : "inspect";
-  const usage = `Usage: academic-os module ${operation} (--root <module-root> | --config <path> [--semester <semester> --module <module>]) [--json]`;
+  const usage =
+    operation === "validate"
+      ? "Usage: academic-os module validate (--root <module-root> | --config <path> [--semester <semester> --module <module>]) [--json]"
+      : "Usage: academic-os module inspect (--root <module-root> | --config <path> [--semester <semester> --module <module>]) [--json]";
   const { values } = parseArgumentTokens({
     arguments: arguments_,
     command: operation,

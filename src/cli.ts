@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
+import { runNamingPlanCommand } from "./commands/naming-plan-command.js";
 import { runCapabilitiesCommand } from "./capabilities/command.js";
+import { runModuleInspectCommand } from "./commands/module-inspect-command.js";
 import { runAuditCommand } from "./commands/audit-command.js";
 import { runCalendarPromoteCommand } from "./commands/calendar-promote-command.js";
 import { runCalendarProposeCommand } from "./commands/calendar-propose-command.js";
@@ -23,6 +25,12 @@ import {
   isTaskOperation,
   runTasksOperateCommand,
 } from "./commands/tasks-operate-command.js";
+import { runTasksRecordLifecycleCommand } from "./commands/tasks-record-lifecycle-command.js";
+import { runTasksPublishCompletionCatalogCommand } from "./commands/tasks-publish-completion-catalog-command.js";
+import { runTasksApplyPlanCommand } from "./commands/tasks-apply-plan-command.js";
+import { runTasksRecoveryCommand } from "./commands/tasks-recovery-command.js";
+import { runTasksRestoreCommand } from "./commands/tasks-restore-command.js";
+import { runTasksStatusCommand } from "./commands/tasks-status-command.js";
 import { runTasksProvisionCommand } from "./commands/tasks-provision-command.js";
 import { runTasksRefreshCommand } from "./commands/tasks-refresh-command.js";
 import { runTextbooksCatchUpCommand } from "./commands/textbooks-catch-up-command.js";
@@ -43,6 +51,8 @@ try {
     arguments_[0] === "help"
   ) {
     await runCapabilitiesCommand(["capabilities", "index", "--json"]);
+  } else if (arguments_[0] === "naming" && arguments_[1] === "plan") {
+    await runNamingPlanCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "seed") {
     await runSeedCommand(arguments_, json);
   } else if (arguments_[0] === "repair") {
@@ -61,6 +71,24 @@ try {
     await runCalendarProposeCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "calendar" && arguments_[1] === "promote") {
     await runCalendarPromoteCommand(arguments_.slice(1), json);
+  } else if (
+    arguments_[0] === "tasks" &&
+    arguments_[1] === "record-lifecycle"
+  ) {
+    await runTasksRecordLifecycleCommand(arguments_.slice(1), json);
+  } else if (
+    arguments_[0] === "tasks" &&
+    arguments_[1] === "publish-completion-catalog"
+  ) {
+    await runTasksPublishCompletionCatalogCommand(arguments_.slice(1), json);
+  } else if (arguments_[0] === "tasks" && arguments_[1] === "apply-plan") {
+    await runTasksApplyPlanCommand(arguments_.slice(1), json);
+  } else if (arguments_[0] === "tasks" && arguments_[1] === "recovery") {
+    await runTasksRecoveryCommand(arguments_.slice(1), json);
+  } else if (arguments_[0] === "tasks" && arguments_[1] === "restore") {
+    await runTasksRestoreCommand(arguments_.slice(1), json);
+  } else if (arguments_[0] === "tasks" && arguments_[1] === "status") {
+    await runTasksStatusCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "tasks" && arguments_[1] === "provision") {
     await runTasksProvisionCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "tasks" && arguments_[1] === "refresh") {
@@ -95,6 +123,8 @@ try {
     await runLearningMaterialsCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "offering" && arguments_[1] === "readiness") {
     await runOfferingReadinessCommand(arguments_.slice(1), json);
+  } else if (arguments_[0] === "module" && arguments_[1] === "inspect") {
+    await runModuleInspectCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "audit") {
     await runAuditCommand(arguments_, json);
   } else {

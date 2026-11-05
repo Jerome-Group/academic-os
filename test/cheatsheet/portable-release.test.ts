@@ -215,6 +215,105 @@ it("rejects hidden scaling before compilation", async () => {
   );
 });
 
+for (const secondPage of [
+  {
+    name: "Letter",
+    width: "612bp",
+    height: "792bp",
+    rotation: 0,
+    valid: false,
+  },
+  {
+    name: "landscape A4",
+    width: "297mm",
+    height: "210mm",
+    rotation: 0,
+    valid: false,
+  },
+  {
+    name: "rotated A4",
+    width: "210mm",
+    height: "297mm",
+    rotation: 90,
+    valid: false,
+  },
+  {
+    name: "portrait A4",
+    width: "210mm",
+    height: "297mm",
+    rotation: 0,
+    valid: true,
+  },
+]) {
+  it(`checks a ${secondPage.name} second page in the actual PDF`, {
+    skip: !latexAvailable,
+  }, async () => {
+    const root = await mkdtemp(join(tmpdir(), "portable-page-geometry-"));
+    const twoPages = source.replace(
+      "\\end{document}",
+      `\\newpage
+\\pdfpagewidth=${secondPage.width}
+\\pdfpageheight=${secondPage.height}
+\\pdfpageattr{/Rotate ${secondPage.rotation}}
+Second page of the portable mathematical source: $x^2\\ge0$.
+\\end{document}`,
+    );
+    try {
+      await writeFile(join(root, "sheet.tex"), twoPages);
+      await run(
+        "latexmk",
+        [
+          "-norc",
+          "-pdf",
+          "-interaction=nonstopmode",
+          "-halt-on-error",
+          "sheet.tex",
+        ],
+        { cwd: root },
+      );
+      const { stdout: geometry } = await run(
+        "pdfinfo",
+        ["-f", "1", "-l", "2", "-box", "sheet.pdf"],
+        { cwd: root },
+      );
+      assert.match(geometry, /^Pages:\s+2$/mu);
+      assert.match(
+        geometry,
+        /^Page\s+1 size:\s+595\.\d+ x 841\.\d+ pts \(A4\)$/mu,
+      );
+      assert.match(
+        geometry,
+        secondPage.name === "Letter"
+          ? /^Page\s+2 size:\s+612 x 792 pts \(letter\)$/mu
+          : secondPage.width === "210mm"
+            ? /^Page\s+2 size:\s+595\.\d+ x 841\.\d+ pts \(A4\)$/mu
+            : /^Page\s+2 size:\s+841\.\d+ x 595\.\d+ pts \(A4\)$/mu,
+      );
+      assert.match(
+        geometry,
+        new RegExp(`^Page\\s+2 rot:\\s+${secondPage.rotation}$`, "mu"),
+      );
+      const releasedPdf = await readFile(join(root, "sheet.pdf"));
+      const verify = () =>
+        verifyPortableCheatsheetRelease({
+          source: twoPages,
+          releasedPdf,
+          filename: "sheet.tex",
+          constraints: { ...constraints, pages: { exact: 2 } },
+        });
+      if (secondPage.valid) {
+        const result = await verify();
+        assert.equal(result.pageCount, 2);
+        assert.ok(result.evidence.includes("2 portrait A4 pages"));
+      } else {
+        await assert.rejects(verify, /page 2.*portrait A4/iu);
+      }
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+}
+
 it("preserves the released PDF reference when the release is named released.tex", {
   skip: !latexAvailable,
 }, async () => {

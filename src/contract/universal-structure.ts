@@ -1,3 +1,5 @@
+import { artifactHomes } from "./artifact-homes.js";
+
 export const universalStructurePaths = [
   ["00 Module Admin", "directory"],
   ["00 Module Admin/00 Module Profile.md", "file"],
@@ -7,16 +9,16 @@ export const universalStructurePaths = [
   ["00 Module Admin/40 Source Map.yaml", "file"],
   ["00 Module Admin/50 Textbook Register.yaml", "file"],
   ["10 Learning Materials", "directory"],
-  ["10 Learning Materials/10 Lecture Materials", "directory"],
+  [artifactHomes.lecture, "directory"],
   ["10 Learning Materials/20 Textbook Chapters", "directory"],
-  ["10 Learning Materials/30 Personal Notes", "directory"],
-  ["20 Tutorials", "directory"],
+  [artifactHomes["personal-note"], "directory"],
+  [artifactHomes.tutorial, "directory"],
   ["30 Assessments", "directory"],
-  ["30 Assessments/30 Midterms", "directory"],
-  ["30 Assessments/40 Finals", "directory"],
+  [artifactHomes.midterm, "directory"],
+  [artifactHomes.final, "directory"],
   ["40 Projects and Labs", "directory"],
   ["70 Learning", "directory"],
-  ["90 Resources", "directory"],
+  [artifactHomes.resource, "directory"],
   ["90 Resources/00 Unclassified", "directory"],
   [".scratch", "directory"],
   ["NTULearn", "directory"],

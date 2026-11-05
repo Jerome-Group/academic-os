@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { delimiter, dirname, join } from "node:path";
 import { codexSearchDirectories } from "./codex-search-path.js";
+import { repositoryPermissionProfile } from "./repository-repair-permissions.js";
 import {
   repositoryFixtureRoot,
   runRepositoryProcess,
@@ -157,6 +158,10 @@ export async function runRepositoryRepairSession(input: {
     }),
     { flag: "wx", mode: 0o600 },
   );
+  const profile = repositoryPermissionProfile(
+    reviewHead === undefined ? "write" : "read",
+    temporaryRoot,
+  );
   const args = [
     ...isolation,
     "exec",
@@ -167,11 +172,9 @@ export async function runRepositoryRepairSession(input: {
     "-c",
     'approval_policy="never"',
     "-c",
-    "sandbox_workspace_write.network_access=false",
+    `default_permissions=${JSON.stringify(profile.name)}`,
     "-c",
-    "sandbox_workspace_write.exclude_tmpdir_env_var=true",
-    "-c",
-    "sandbox_workspace_write.exclude_slash_tmp=true",
+    profile.configuration,
     "-c",
     'shell_environment_policy.inherit="none"',
     ...Object.entries({
@@ -190,14 +193,6 @@ export async function runRepositoryRepairSession(input: {
       "-c",
       `shell_environment_policy.set.${name}=${JSON.stringify(value)}`,
     ]),
-    ...(reviewHead === undefined
-      ? [
-          "-c",
-          `sandbox_workspace_write.writable_roots=${JSON.stringify([temporaryRoot])}`,
-        ]
-      : []),
-    "--sandbox",
-    reviewHead === undefined ? "workspace-write" : "read-only",
     "--ephemeral",
     "--json",
     "--output-schema",

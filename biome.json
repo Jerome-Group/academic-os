@@ -6,7 +6,9 @@
       "!!dist",
       "!!node_modules",
       "!!.audit",
-      "!!skills/cheatsheet/scripts/cheatsheet-tool.mjs"
+      "!!skills/cheatsheet/scripts/cheatsheet-tool.mjs",
+      "!!vendor/emmy-planning/9235befe/runtime",
+      "!!test/support/emmy-planning-fixtures/verification"
     ]
   },
   "formatter": {

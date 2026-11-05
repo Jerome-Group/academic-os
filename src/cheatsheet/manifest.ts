@@ -1,4 +1,5 @@
 import { parse } from "yaml";
+import { parseCheatsheetConstruction } from "./construction.js";
 
 import {
   type CheatsheetAuthoringAuthority,
@@ -64,8 +65,17 @@ function authoringAt(value: unknown): CheatsheetAuthoringAuthority {
       kind: "self-contained",
       path: relativePathAt(authoring.path, "authoring.path"),
       sha256: sha256At(authoring.sha256, "authoring.sha256"),
+      ...(authoring.construction === undefined
+        ? {}
+        : {
+            construction: parseCheatsheetConstruction(authoring.construction),
+          }),
     };
   }
+  if (authoring.construction !== undefined)
+    throw new Error(
+      "Construction provenance requires self-contained authority.",
+    );
   if (authoring.kind !== "fragments") {
     throw new Error("authoring.kind must be self-contained or fragments.");
   }
@@ -120,12 +130,64 @@ function constraintsAt(value: unknown): CheatsheetConstraints {
       "preferred body size must be at or above its positive floor.",
     );
   }
+  let layout:
+    | {
+        marginsMm: Record<"left" | "right" | "top" | "bottom", number>;
+        headerBottomMm: number;
+        footerTopMm: number;
+      }
+    | undefined;
+  if (constraints.layout !== undefined) {
+    const raw = objectAt(constraints.layout, "constraints.layout");
+    const rawMargins = objectAt(
+      raw.margins_mm,
+      "constraints.layout.margins_mm",
+    );
+    const nonnegative = (value: unknown, name: string) => {
+      const number = numberAt(value, name);
+      if (number < 0) throw new Error(`${name} must be nonnegative.`);
+      return number;
+    };
+    const marginsMm = {
+      left: nonnegative(rawMargins.left, "constraints.layout.margins_mm.left"),
+      right: nonnegative(
+        rawMargins.right,
+        "constraints.layout.margins_mm.right",
+      ),
+      top: nonnegative(rawMargins.top, "constraints.layout.margins_mm.top"),
+      bottom: nonnegative(
+        rawMargins.bottom,
+        "constraints.layout.margins_mm.bottom",
+      ),
+    };
+    const headerBottomMm = nonnegative(
+      raw.header_bottom_mm,
+      "constraints.layout.header_bottom_mm",
+    );
+    const footerTopMm = nonnegative(
+      raw.footer_top_mm,
+      "constraints.layout.footer_top_mm",
+    );
+    if (
+      marginsMm.left + marginsMm.right >= 210 ||
+      marginsMm.top + marginsMm.bottom >= 297 ||
+      headerBottomMm > marginsMm.top ||
+      297 - marginsMm.bottom > footerTopMm ||
+      footerTopMm > 297 ||
+      headerBottomMm >= footerTopMm
+    )
+      throw new Error(
+        "Declared A4 body margins overlap furniture bands or leave no body area.",
+      );
+    layout = { marginsMm, headerBottomMm, footerTopMm };
+  }
   return {
     paper: "A4",
     pages: exact === undefined ? { maximum: pageLimit } : { exact: pageLimit },
     color: "monochrome",
     columns,
     bodyPt: { preferred, floor },
+    ...(layout === undefined ? {} : { layout }),
   };
 }
 
@@ -152,14 +214,41 @@ function sourcesAt(value: unknown): CheatsheetSource[] {
     if (!Array.isArray(source.locators) || source.locators.length === 0) {
       throw new Error(`sources[${index}].locators must not be empty.`);
     }
+    const locators = source.locators.map((locator, locatorIndex) =>
+      stringAt(locator, `sources[${index}].locators[${locatorIndex}]`),
+    );
+    if (new Set(locators).size !== locators.length)
+      throw new Error(`sources[${index}].locators must be unique.`);
+    let requiredLocators: string[] | undefined;
+    if (source.required_locators !== undefined) {
+      if (
+        !Array.isArray(source.required_locators) ||
+        source.required_locators.length === 0
+      )
+        throw new Error(
+          `sources[${index}].required_locators must enumerate source items and subparts.`,
+        );
+      requiredLocators = source.required_locators.map((locator, locatorIndex) =>
+        stringAt(
+          locator,
+          `sources[${index}].required_locators[${locatorIndex}]`,
+        ),
+      );
+      if (
+        new Set(requiredLocators).size !== requiredLocators.length ||
+        requiredLocators.some((locator) => !locators.includes(locator))
+      )
+        throw new Error(
+          `sources[${index}].required_locators must be unique members of locators.`,
+        );
+    }
     return {
       id,
       path: relativePathAt(source.path, `sources[${index}].path`),
       sha256: sha256At(source.sha256, `sources[${index}].sha256`),
       authority: source.authority as CheatsheetSource["authority"],
-      locators: source.locators.map((locator, locatorIndex) =>
-        stringAt(locator, `sources[${index}].locators[${locatorIndex}]`),
-      ),
+      locators,
+      ...(requiredLocators === undefined ? {} : { requiredLocators }),
     };
   });
 }

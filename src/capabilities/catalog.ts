@@ -68,6 +68,52 @@ function cli(
 }
 
 export const cliCapabilities: Capability[] = [
+  {
+    id: "naming plan",
+    surface: "cli",
+    invocation:
+      "node dist/src/cli.js naming plan --input <private-json> --json",
+    prerequisites: [
+      "Node >=24 with Unicode >=16 normalization",
+      "npm ci && npm run build",
+      "schema-valid accepted metadata and complete occupied set",
+    ],
+    reads: ["private naming request JSON"],
+    writes: [],
+    riskFlags: [],
+    preview: null,
+    implementation: "src/commands/naming-plan-command.ts",
+    tests: [
+      "test/naming/resolve-artifact-names.test.ts",
+      "test/naming/naming-plan-cli.test.ts",
+      "test/naming/unicode-data.test.ts",
+    ],
+    status: "supported",
+    health: "not-observed",
+    result:
+      "Resolved, unresolved or refused proposal; unresolved/refused exit 2. Admission stays unavailable pending contract 8 activation; no writes.",
+  },
+  {
+    ...cli("module inspect", [], [], null, [
+      "test/controls/read-controls.test.ts",
+      "test/controls/module-inspect-cli.test.ts",
+    ]),
+    invocation:
+      "node dist/src/cli.js module inspect --root <module-root> --json",
+    prerequisites: [
+      "Node >=24",
+      "npm ci && npm run build",
+      "physical module root or explicit configured target",
+    ],
+    reads: ["safe mounted control bytes; immutable canonical references"],
+    result:
+      "Detected shape, exact procedure hashes, supported control reads and incomplete coverage; refusal exits 2; no writes.",
+    options: {
+      "--root": "Portable physical module root; exclusive with --config",
+      "--config":
+        "Private config; academic config also requires --semester and --module",
+    },
+  },
   cli(
     "audit",
     ["private audit observation history"],
@@ -136,6 +182,7 @@ export const cliCapabilities: Capability[] = [
     [
       "test/cli/curation-migrate-cli.test.ts",
       "test/cli/curation-completion-cli.test.ts",
+      "test/cli/curation-register-ownership-cli.test.ts",
     ],
   ),
   cli(
@@ -149,6 +196,7 @@ export const cliCapabilities: Capability[] = [
     [
       "test/curation/plan-curation-rederivation.test.ts",
       "test/cli/curation-completion-cli.test.ts",
+      "test/cli/curation-register-ownership-cli.test.ts",
     ],
   ),
   cli(
@@ -177,6 +225,7 @@ export const cliCapabilities: Capability[] = [
     [
       "test/cli/calendar-propose-cli.test.ts",
       "test/cli/calendar-occupancy-cli.test.ts",
+      "test/cli/calendar-refresh-binding-cli.test.ts",
     ],
   ),
   cli(
@@ -208,7 +257,11 @@ export const cliCapabilities: Capability[] = [
   ),
   cli(
     "tasks refresh",
-    ["mounted task register content"],
+    [
+      "mounted task register content",
+      "private per-target refresh receipts",
+      "private versioned Task recovery history",
+    ],
     ["Google Tasks read credentials"],
     null,
     [
@@ -219,9 +272,9 @@ export const cliCapabilities: Capability[] = [
   ...["create", "change", "complete", "cancel"].map((action) =>
     cli(
       `tasks ${action}`,
-      ["Google Tasks", "mounted task register content"],
+      [],
       [
-        "exact Module or Research-project target; Google Tasks write and read credentials",
+        "retired direct-write alias; use tasks apply-plan and a fresh tasks refresh token",
       ],
       null,
       [
@@ -229,6 +282,70 @@ export const cliCapabilities: Capability[] = [
         "test/cli/research-tasks-cli.test.ts",
       ],
     ),
+  ),
+  {
+    ...cli(
+      "tasks apply-plan",
+      [
+        "Google Tasks",
+        "mounted task register content",
+        "private operation/lifecycle journals, recovery history and refresh receipts",
+      ],
+      [
+        "immutable TaskExecutionPlan v1; fresh snapshot; canonical private state; Google Tasks read/write credentials",
+      ],
+      null,
+      [
+        "test/cli/tasks-apply-plan-cli.test.ts",
+        "test/cli/tasks-recovery-cli.test.ts",
+        "test/cli/research-tasks-cli.test.ts",
+      ],
+    ),
+    invocation:
+      "node dist/src/cli.js tasks apply-plan --config <private-config> --plan <private-plan.json> --json",
+  },
+  cli(
+    "tasks publish-completion-catalog",
+    ["private completion catalog and original source acquisition evidence"],
+    [
+      "configured private source file; pinned producer; exact environment/account/source identity; no provider calls",
+    ],
+    null,
+    ["test/operations/configured-module-completion.test.ts"],
+  ),
+  cli(
+    "tasks record-lifecycle",
+    ["private owner lifecycle evidence"],
+    ["exact terminal owner decision JSON; no provider mutation"],
+    null,
+    ["test/cli/tasks-apply-plan-cli.test.ts"],
+  ),
+  cli(
+    "tasks recovery",
+    [],
+    ["configured private recovery history; no provider calls"],
+    null,
+    ["test/cli/tasks-recovery-cli.test.ts"],
+  ),
+  cli(
+    "tasks restore",
+    [
+      "Google Tasks with --apply",
+      "task register",
+      "private recovery and lifecycle receipts",
+    ],
+    [
+      "exact task-restore/1 plan; owner approval reference; fresh snapshot; native timing limitation acknowledged",
+    ],
+    "omit --apply",
+    ["test/cli/tasks-recovery-cli.test.ts"],
+  ),
+  cli(
+    "tasks status",
+    [],
+    ["private refresh receipts; no provider access"],
+    null,
+    ["test/cli/tasks-apply-plan-cli.test.ts"],
   ),
   cli(
     "textbooks catch-up",
@@ -251,6 +368,7 @@ export const cliCapabilities: Capability[] = [
   ),
   cli("textbooks sweep", ["private shelf review sheet"], [], null, [
     "test/textbooks/plan-shelf-sweep.test.ts",
+    "test/cli/textbooks-migrate-cli.test.ts",
   ]),
   cli(
     "textbooks migrate",
@@ -269,6 +387,7 @@ export const cliCapabilities: Capability[] = [
       "test/textbooks/open-file-shelf.test.ts",
       "test/textbooks/shelf-preservation-process.test.ts",
       "test/cli/textbooks-preservation-cli.test.ts",
+      "test/cli/textbooks-migrate-cli.test.ts",
     ],
   ),
   {
@@ -284,6 +403,7 @@ export const cliCapabilities: Capability[] = [
       [
         "test/textbooks/shelf-preservation-process.test.ts",
         "test/cli/textbooks-preservation-cli.test.ts",
+        "test/cli/textbooks-migrate-cli.test.ts",
       ],
     ),
     invocation:
@@ -447,6 +567,10 @@ export function capabilityIndex(): object {
   const actions = [...cliCapabilities];
   for (const operation of [
     "schema",
+    "doctor",
+    "present-references",
+    "preservation",
+    "regeneration-check",
     "prepare",
     "audit",
     "fit",
@@ -459,7 +583,9 @@ export function capabilityIndex(): object {
       invocation: `node dist/src/cheatsheet/cli.js ${operation} (see schema for arguments)`,
       prerequisites: [
         "npm ci && npm run build",
-        "synthetic fixture or explicitly authorized Module",
+        ...(["schema", "doctor"].includes(operation)
+          ? []
+          : ["synthetic fixture or explicitly authorized Module"]),
         ...(["verify", "package-review"].includes(operation)
           ? [
               "latexmk and Poppler executables",
@@ -467,24 +593,24 @@ export function capabilityIndex(): object {
             ]
           : []),
       ],
-      reads:
-        operation === "schema"
-          ? []
-          : ["Module context, sources, manifest and release evidence"],
+      reads: ["schema", "doctor"].includes(operation)
+        ? []
+        : ["Module context, sources, manifest and release evidence"],
       writes: ["package-review"].includes(operation)
         ? [
             "explicit local destination; retained claim/partial evidence after interrupted publication",
             "isolated temporary compilation/rendering",
           ]
         : operation === "verify"
-          ? ["isolated temporary compilation/rendering"]
+          ? [
+              "isolated temporary compilation/rendering; optional exclusive retained build-evidence directory",
+            ]
           : [],
-      riskFlags:
-        operation === "schema"
-          ? []
-          : operation === "package-review"
-            ? ["academic-content", "requires-destination-authorization"]
-            : ["academic-content"],
+      riskFlags: ["schema", "doctor"].includes(operation)
+        ? []
+        : operation === "package-review"
+          ? ["academic-content", "requires-destination-authorization"]
+          : ["academic-content"],
       preview: null,
       implementation: "src/cheatsheet/cli.ts",
       tests: [
@@ -492,6 +618,10 @@ export function capabilityIndex(): object {
         "test/cheatsheet/portable-release.test.ts",
         "test/cheatsheet/package-publication.test.ts",
         "test/cheatsheet/prepare.test.ts",
+        "test/cheatsheet/measurement-evidence.test.ts",
+        "test/cheatsheet/layout-evidence.test.ts",
+        "test/cheatsheet/authoring-evidence.test.ts",
+        "test/cheatsheet/references-revision.test.ts",
       ],
       status: "supported",
       health: "not-observed",
@@ -499,6 +629,25 @@ export function capabilityIndex(): object {
         "JSON; schema exposes inputs; semantic/mathematical review remains separate evidence.",
     });
   }
+  actions.push({
+    id: "naming_plan",
+    surface: "mcp",
+    invocation: "MCP tools/call naming_plan",
+    prerequisites: [
+      "configured Operations server",
+      "schema-valid accepted naming JSON and complete occupied set",
+    ],
+    reads: ["request JSON supplied by caller"],
+    writes: [],
+    riskFlags: [],
+    preview: null,
+    implementation: "src/operations/naming-tools.ts",
+    tests: ["test/naming/naming-mcp.test.ts"],
+    status: "supported",
+    health: "not-observed",
+    result:
+      "Same complete-set proposal as naming plan; unresolved/refused are isError results. Admission stays unavailable pending contract 8 activation.",
+  });
   for (const prefix of ["tasks", "research_tasks"])
     for (const operation of ["create", "change", "complete", "read_register"]) {
       actions.push({
@@ -511,8 +660,14 @@ export function capabilityIndex(): object {
         reads: ["configured target/task state", "Google Tasks provider"],
         writes:
           operation === "read_register"
-            ? ["mounted task register and private freshness evidence"]
-            : ["Google Tasks", "mounted task register"],
+            ? [
+                "mounted task register, private freshness evidence and recovery history",
+              ]
+            : [
+                "Google Tasks",
+                "mounted task register",
+                "private operation/lifecycle journals, recovery history and refresh receipts",
+              ],
         riskFlags:
           operation === "read_register"
             ? ["writes-state", "mounted-write"]
@@ -522,10 +677,13 @@ export function capabilityIndex(): object {
                 "requires-target-authorization",
               ],
         preview: null,
-        implementation: "src/operations/task-tools.ts",
+        implementation: "src/operations/task-plan-tools.ts",
         tests: [
           "test/operations/task-tools.test.ts",
           "test/operations/research-task-tools.test.ts",
+          "test/operations/task-plan-tools.test.ts",
+          "test/cli/tasks-apply-plan-cli.test.ts",
+          "test/cli/tasks-recovery-cli.test.ts",
         ],
         status: "supported",
         health: "not-observed",
@@ -533,6 +691,85 @@ export function capabilityIndex(): object {
           "MCP content containing JSON text and isError; transport errors remain distinct.",
       });
     }
+  for (const name of ["tasks_apply_plan", "tasks_sync_capabilities"])
+    actions.push({
+      id: name,
+      surface: "mcp",
+      invocation: `MCP tools/call ${name}`,
+      prerequisites: [
+        "Operations protocol task-plan/1; exact target; fresh snapshot for mutation",
+      ],
+      reads:
+        name === "tasks_apply_plan"
+          ? ["Google Tasks", "private lifecycle/journal"]
+          : [],
+      writes:
+        name === "tasks_apply_plan"
+          ? [
+              "Google Tasks",
+              "mounted register",
+              "private operation/lifecycle journals, recovery history and refresh receipts",
+            ]
+          : [],
+      riskFlags:
+        name === "tasks_apply_plan"
+          ? ["external-write", "writes-state", "requires-target-authorization"]
+          : [],
+      preview: null,
+      implementation: "src/operations/task-plan-tools.ts",
+      tests: [
+        "test/operations/task-plan-tools.test.ts",
+        "test/tasks/task-execution.test.ts",
+      ],
+      status: "supported",
+      health: "not-observed",
+      result:
+        "MCP content containing JSON text and isError; versioned exact-plan result. Conflicts never silently replan. Native timing unavailable until verified adapter.",
+    });
+  for (const name of [
+    "tasks_completion_capabilities",
+    "tasks_discover_completion",
+    "tasks_prepare_completion",
+  ]) {
+    const observes = name !== "tasks_completion_capabilities";
+    actions.push({
+      id: name,
+      surface: "mcp",
+      invocation: `MCP tools/call ${name}`,
+      prerequisites: [
+        "configured Operations server",
+        ...(observes
+          ? [
+              "configured private catalog; pinned producer; exact module/list/task; original current authority",
+            ]
+          : []),
+      ],
+      reads: observes
+        ? ["Google Tasks", "configured private source catalog"]
+        : [],
+      writes: observes
+        ? [
+            "mounted register, private recovery snapshots and refresh receipt",
+            ...(name === "tasks_prepare_completion"
+              ? ["private immutable prepared packet and acquisition evidence"]
+              : []),
+          ]
+        : [],
+      riskFlags: observes
+        ? ["writes-state", "requires-target-authorization"]
+        : [],
+      preview: null,
+      implementation: "src/operations/module-completion-tools.ts",
+      tests: [
+        "test/operations/module-completion-tools.test.ts",
+        "test/operations/configured-module-completion.test.ts",
+      ],
+      status: "supported",
+      health: "not-observed",
+      result:
+        "MCP content containing JSON text and isError; status, code or retained original producer call; optional source integration availability; no task mutation.",
+    });
+  }
   for (const name of [
     "calendar-refresh",
     "state-refresh",

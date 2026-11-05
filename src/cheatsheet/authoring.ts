@@ -1,46 +1,60 @@
-import { readFile } from "node:fs/promises";
-import { sha256 } from "../checksum.js";
-import { resolveModuleFile } from "./module-path.js";
+import { sha256Bytes } from "../checksum.js";
+import {
+  constructionFor,
+  proveCheatsheetConstruction,
+} from "./construction.js";
+import { readCheatsheetModuleText } from "./exact-text.js";
 import type { CheatsheetAuthoringAuthority } from "./types.js";
 
-async function provedText(
-  root: string,
-  path: string,
-  digest: string,
-): Promise<string> {
-  const body = await readFile(await resolveModuleFile(root, path), "utf8");
-  if (sha256(body) !== digest) {
+async function provedText(root: string, path: string, digest: string) {
+  const read = await readCheatsheetModuleText(root, path);
+  if (read.sha256 !== digest)
     throw new Error(`${path} no longer matches its declared SHA-256.`);
-  }
-  return body;
+  return read;
 }
 
 export async function buildCheatsheetReleaseSource(input: {
   moduleRoot: string;
   authoring: CheatsheetAuthoringAuthority;
-}): Promise<{ source: string; sha256: string; inputs: string[] }> {
+}): Promise<{
+  source: string;
+  bytes: Uint8Array;
+  sha256: string;
+  inputs: string[];
+}> {
   if (input.authoring.kind === "self-contained") {
-    const source = await provedText(
+    const read = await provedText(
       input.moduleRoot,
       input.authoring.path,
       input.authoring.sha256,
     );
+    const construction = constructionFor(input.authoring);
+    if (construction !== undefined) {
+      if (construction.outputTexSha256 !== read.sha256)
+        throw new Error(
+          "Construction output differs from the authoritative release.",
+        );
+      await proveCheatsheetConstruction(input.moduleRoot, construction);
+    }
     return {
-      source,
-      sha256: sha256(source),
+      source: read.text,
+      bytes: read.bytes,
+      sha256: read.sha256,
       inputs: [input.authoring.path],
     };
   }
   const fragments = await Promise.all(
     input.authoring.fragments.map(async (fragment) => ({
       path: fragment.path,
-      body: await provedText(input.moduleRoot, fragment.path, fragment.sha256),
+      ...(await provedText(input.moduleRoot, fragment.path, fragment.sha256)),
     })),
   );
-  const source = `${fragments.map(({ body }) => body.trimEnd()).join("\n\n")}\n`;
+  const source = `${fragments.map(({ text }) => text.trimEnd()).join("\n\n")}\n`;
+  const bytes = Buffer.from(source, "utf8");
   return {
     source,
-    sha256: sha256(source),
+    bytes,
+    sha256: sha256Bytes(bytes),
     inputs: fragments.map(({ path }) => path),
   };
 }

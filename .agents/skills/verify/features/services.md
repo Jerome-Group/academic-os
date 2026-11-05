@@ -4,7 +4,12 @@ The CLI and Operations server read and update target-specific Tasks and Calendar
 
 ## Sub-features
 
-- Task list provisioning, refresh and operations preserve exact Module or Research-project identity.
+- Task list provisioning, verified generation receipts and exact-plan operations preserve Module or Research-project identity.
+- Guarded MCP compatibility names negotiate task-plan/1; current clients obtain read snapshots and retain exact operation IDs.
+- Module completion discovers source context and accepts a labelled module-agent attestation of an explicit Owner instruction for one exact task; it resolves a standing source with no prelisted authorization through the real producer. The serialized journey rejects inferred/wrong/stale attestations, missing bindings, policy/prerequisite conflicts and changed source before send, then proves uncertain recovery and replay without a second mutation.
+- Module completion also discovers and prepares an exact producer-authorized task plan. The local catalog publisher shares ownership with the first send; retained packets and effect fences preserve recovery across changed authority.
+- Versioned Task recovery history and preview/apply recreation use isolated provider fixtures; interrupted sends retain exact source claims and snapshot references.
+- Private lifecycle decisions prevent source-occurrence resurrection; native timing contract fixtures refuse missing/unsupported evidence.
 - Synthetic Calendar setup checks exact owner access, preview and idempotent role binding. Refresh retains per-calendar stale data and tombstones.
 - Proposal and promotion reassess one exact mutation plan, ownership and relevant availability; recovery authorizes only an exact accepted prefix.
 - Calendar proposals cover academic timetables, Routine migration, recurring edits, cancellation and restoration.
@@ -28,6 +33,21 @@ node dist/src/cli.js capabilities verify --workflow services --json --log "$aos_
 
 Require a passed outcome. CLI journeys preload fake Google providers at the production adapter boundary and assert stored provider state and refreshed files.
 They cover task mutations, Calendar proposal/promotion and failure handling.
+The real-producer suites default to the reviewed runtime in `vendor/emmy-planning/9235befe/runtime`
+and byte-pinned synthetic helpers in `test/support/emmy-planning-fixtures/verification`.
+They run in normal CI without private paths, credentials or provider access; missing or changed
+bundled inputs fail rather than skip. Exact provenance and the sibling MIT notice are recorded in
+[`UPSTREAM.md`](../../../../vendor/emmy-planning/9235befe/UPSTREAM.md).
+`ACADEMIC_OS_TEST_EMMY_RELEASE` and `ACADEMIC_OS_TEST_EMMY_FIXTURES` preserve explicit private
+path overrides for the same reviewed pins. Run both compiled suites and require zero skips:
+
+```sh
+node --test dist/test/operations/emmy-planning-process.test.js dist/test/operations/configured-module-completion.test.js
+```
+
+Retain the producer revision and manifest digest with the evidence. Check publication refusal,
+exact identity, original-packet retention and recovery without a second mutation. A configured
+local source and its digest do not authenticate cloud authorship or current cloud selection.
 Calendar journeys also assert nonmutating timetable/Routine previews, later recurrence conflicts, new blockers after preview, owner revalidation and Research-project milestone evidence refusals.
 Accepted writes require exact normalized content and identity; omitted/regular default event types are equivalent, while mismatches still refuse.
 Receipt process fixtures cover competing and killed owners across duplicate-read, append and sync boundaries without PID takeover. This coordinates receipts, not all provider mutations.
@@ -40,7 +60,7 @@ The installer-to-morning-runner PATH journey belongs to maintenance.
 Busy recurrence checks require complete finite supported DAILY/WEEKLY expansion in UTC or Singapore; unsupported rules, zones or exhausted bounds refuse.
 Cancellation, transparent milestones and occupancy-preserving edits are exempt from busy expansion. Routine recurrence warnings cover the anchor only.
 Restore covers the retained writable resource, without unavailable exception replay. Google observation/write races remain possible.
-Synthetic Google state does not establish real authorization, account data or live service availability.
+Synthetic Google state does not establish real authorization, account data or live service availability. Native timing remains an unactivated separate contract; configured dated/timed writes refuse until its adapter is verified. Client tool-schema migration and real native placement acceptance remain deployment prerequisites.
 The temporary HTTP service uses an injected echo tool. Task tools have separate domain tests.
 This does not prove the production resident server against Google.
 In the known TCP-denying repository sandbox, `ACADEMIC_OS_REPOSITORY_FIXTURE_TRANSPORT=unix` selects Unix sockets and asserts default TCP fails with `EPERM`.
@@ -48,3 +68,5 @@ Record that narrower transport evidence. Do not use the override on a normal hos
 Real launchd installation, Tailnet reachability and scheduled host PATH require an authorized macOS-host pass.
 Interactive `credentials authorize` and `calendar local setup` have no synthetic journey. `calendar setup` does.
 Live Tasks, disposable Calendar, resident Operations and native scheduler journeys require their own scoped targets, readback and cleanup evidence. Retain dated live observations separately from general fixture coverage.
+
+Task recovery fixtures prove historical capture, retention, guarded recreation, completion preservation and new-ID reconciliation. They prove neither native scheduling recovery nor an independent storage-disaster copy. See [Task recovery](../../../../docs/task-recovery.md) for approved operator conduct.

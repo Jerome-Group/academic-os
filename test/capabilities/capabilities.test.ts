@@ -303,7 +303,11 @@ it("distinguishes configured executable readiness from PATH presence and mainten
       }),
     );
     const result = await runCliWithEnvironment(
-      { PATH: root, JAVA: join(root, "missing-java") },
+      {
+        PATH: root,
+        ACADEMIC_OS_TOOL_PATH: root,
+        JAVA: join(root, "missing-java"),
+      },
       "capabilities",
       "health",
       "--config",

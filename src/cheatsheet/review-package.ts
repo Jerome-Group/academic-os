@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { lstat, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 
+import { constructionFor } from "./construction.js";
+import { decodeCheatsheetText } from "./exact-text.js";
 import { sha256Bytes } from "../checksum.js";
 import {
   assertCheatsheetReleaseReady,
@@ -68,7 +70,7 @@ export async function createCheatsheetReviewPackage(input: {
     await addFile({
       root: staging,
       path: texName,
-      bytes: evidence.releaseSource,
+      bytes: evidence.releaseBytes,
       checksums,
     });
     await addFile({
@@ -80,13 +82,13 @@ export async function createCheatsheetReviewPackage(input: {
     await addFile({
       root: staging,
       path: "evidence/manifest.yaml",
-      bytes: evidence.manifestText,
+      bytes: evidence.manifestBytes,
       checksums,
     });
     await addFile({
       root: staging,
       path: "evidence/coverage.csv",
-      bytes: evidence.coverageText,
+      bytes: evidence.coverageBytes,
       checksums,
     });
     const authoringFiles: string[] = [];
@@ -132,8 +134,41 @@ export async function createCheatsheetReviewPackage(input: {
         authoringFiles.push(bundlePath);
       }
     }
+    const construction = constructionFor(evidence.manifest.authoring);
+    if (construction !== undefined) {
+      const packagedInputs = [];
+      for (const [index, inputFile] of [
+        construction.recipe,
+        ...construction.inputs,
+      ].entries()) {
+        const bytes = await readFile(
+          await resolveModuleFile(input.moduleRoot, inputFile.path),
+        );
+        if (sha256Bytes(bytes) !== inputFile.sha256)
+          throw new Error(`${inputFile.path} changed before packaging.`);
+        const packagedPath = `construction/${String(index).padStart(4, "0")}/${basename(inputFile.path)}`;
+        await addFile({ root: staging, path: packagedPath, bytes, checksums });
+        authoringFiles.push(packagedPath);
+        packagedInputs.push({
+          ...inputFile,
+          role: index === 0 ? "recipe" : "input",
+          packagedPath,
+        });
+      }
+      const provenancePath = "evidence/construction-provenance.json";
+      await addFile({
+        root: staging,
+        path: provenancePath,
+        bytes: `${JSON.stringify({ ...construction, packagedInputs }, null, 2)}\n`,
+        checksums,
+      });
+      authoringFiles.push(provenancePath);
+    }
     const verification = await verifyPortableCheatsheetRelease({
-      source: await readFile(join(staging, texName), "utf8"),
+      source: decodeCheatsheetText(
+        await readFile(join(staging, texName)),
+        texName,
+      ),
       releasedPdf: await readFile(join(staging, pdfName)),
       filename: texName,
       constraints: evidence.manifest.constraints,

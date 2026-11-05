@@ -6,6 +6,7 @@
   \input{../../templates/mathematics-cheatsheet-preamble.tex}%
 }
 \SheetSetup{title={MHXXXX <Test name> Cheatsheet}}
+\renewcommand{\SheetNavigationGap}{2mm}
 
 % Course-neutral dense objects cover every semantic role so populated sheets can preserve the interface.
 \newcommand{\CorpusFoundations}{%
@@ -100,7 +101,8 @@ For a real symmetric form, Sylvester's law says the counts of positive, negative
 \Topic{Topology and measure essentials}
 Open sets are closed under arbitrary unions and finite intersections. Closed sets reverse these operations. The closure $\overline A$ is the smallest closed set containing $A$; the interior $A^\circ$ is the largest open set contained in $A$; the boundary is $\partial A=\overline A\setminus A^\circ$. A point lies in $\overline A$ iff every neighborhood meets $A$.
 \end{minipage}
-\needspace{12pt}\Statement{Theorem}{13B}{A continuous image of a compact space is compact; a continuous real-valued function on a nonempty compact space attains its maximum and minimum.}
+\columnbreak\ContinueBlock{ANA-D topology and measure}
+\Statement{Theorem}{13B}{A continuous image of a compact space is compact; a continuous real-valued function on a nonempty compact space attains its maximum and minimum.}
 \Proof{Pull back an open cover of the image to an open cover of the domain, take a finite subcover, then push it forward. A compact subset of $\mathbb R$ is closed and bounded, so its supremum and infimum belong to it.}
 Measure rules: countable additivity for disjoint sets implies monotonicity, continuity from below $\mu(\bigcup A_n)=\lim\mu(A_n)$ for $A_n\uparrow$, and continuity from above for $A_n\downarrow$ when $\mu(A_1)<\infty$. Fatou gives $\int\liminf f_n\le\liminf\int f_n$ for $f_n\ge0$.
 \CompactTable{\begin{tabular}{@{}p{.25\linewidth}p{.32\linewidth}p{.34\linewidth}@{}}\toprule theorem&functions&conclusion\\\midrule monotone conv.&$0\le f_n\uparrow f$&$\int f_n\uparrow\int f$\\ Fatou&$f_n\ge0$&lower semicontinuity\\ dominated conv.&$f_n\to f$, $|f_n|\le g\in L^1$&integrals converge\\ Fubini&absolute integrability&iterations agree\\\bottomrule\end{tabular}}
@@ -266,12 +268,18 @@ This gives Cauchy estimates, Liouville's theorem, and the fundamental theorem of
 \Worked{W13 [MIX-I]}{residue}{Evaluate the positively oriented $\oint_{|z|=2}\frac{e^z}{z(z-1)}\,dz$.}{Both simple poles lie inside. Their residues are $-1$ and $e$, so the integral is $2\pi i(e-1)$.}}
 
 \begin{document}
+\SheetSetup{top-navigation={p.1: c1 Foundations / algebra; c2 Linear algebra / calculus; c3 Calculus / analysis; c4 Topology / MIX-H,I / Q5(b)},bottom-navigation={Next: p.2 c1 Q5(b) conclusion / probability; c2 Conditional expectation / discrete; c3 Q8 / algebra; c4 Final checks / optional tools.}}
 \begin{CheatSheet}
 \setbox0=\hbox{\ReportMathFonts}
 \SheetMap{\SheetMapItem{FND-A}{Foundations}\enspace
 \SheetMapItem{ALG-B}{Algebra}\enspace
 \SheetMapItem{CAL-C}{Calculus}\enspace
-\SheetMapItem{PRB-E}{Probability}}
+\SheetMapItem{ANA-D}{Analysis}\enspace
+\SheetMapItem{PRB-E}{Probability}\enspace
+\SheetMapItem{DSP-F}{Discrete}\enspace
+\SheetMapItem{ABS-G}{Abstract}\enspace
+\SheetMapItem{MIX-H}{MIX-H/I p.1 c4}\enspace
+\SheetMapItem{MIX-I2}{Optional tools p.2 c4}}
 
 \MajorBlock{FND-A}{Foundations: sets, maps, induction, and proof patterns}
 \Topic{Sets, quantifiers, and functions}
@@ -297,7 +305,8 @@ An extremal proof selects a smallest or largest counterexample. Verify that the 
 \Statement{Definition}{4}{A subset $W\subseteq V$ is a subspace when $0\in W$ and $au+bv\in W$ for all $u,v\in W$ and scalars $a,b$. Equivalently, $W$ is nonempty and closed under arbitrary linear combinations of two elements.}
 \FormalStatement{Theorem}{5}{ALG-B}{basis extension}{Every linearly independent list in a finite-dimensional vector space extends to a basis; every spanning list contains a basis. Consequently all bases have the same length, denoted $\dim V$.}
 \Proof{Add vectors from a fixed finite spanning list until the independent list spans. The exchange lemma bounds any independent list by the spanning-list length, so this terminates. Deleting redundant vectors from a spanning list gives a basis; exchange then shows all bases have equal length.}
-\columnbreak\begin{minipage}[t]{\linewidth}
+\columnbreak\ContinueBlock{ALG-B linear algebra}
+\begin{minipage}[t]{\linewidth}
 \Identity{ALG-B dimension formula}{\dim(U+W)=\dim U+\dim W-\dim(U\cap W)}
 \Proof{Choose a basis $c_1,\dots,c_r$ of $U\cap W$, extend it by $u_1,\dots,u_p$ to $U$ and by $w_1,\dots,w_q$ to $W$. The concatenated list $c,u,w$ spans $U+W$. If a linear combination vanishes, move the $u$-part to the $W$ side; it lies in $U\cap W$, and independence in each extended basis makes all coefficients zero. Count.}
 \end{minipage}
@@ -340,6 +349,7 @@ Hence a bound $|f^{(n+1)}|\le M$ gives error at most $M|x-a|^{n+1}/(n+1)!$.}
 \end{aligned}
 \]
 For improper integrals, introduce limits before applying algebra: $\int_1^\infty f=\lim_{R\to\infty}\int_1^R f$. Absolute convergence implies convergence; conditional convergence does not justify arbitrary rearrangement.
+\columnbreak\ContinueBlock{CAL-C integration}
 \begin{minipage}[t]{\linewidth}
 \Topic{Improper-integral tests}
 \CompactTable{\begin{tabular}{@{}lll@{}}\toprule Integral/test&Condition&Conclusion\\\midrule $\int_1^\infty x^{-p}dx$&$p>1$&converges\\ $\int_0^1x^{-p}dx$&$p<1$&converges\\ comparison&$0\le f\le g$, $\int g<\infty$&$\int f<\infty$\\ limit comparison&$f/g\to c\in(0,\infty)$&same behavior\\\bottomrule\end{tabular}}
@@ -389,6 +399,7 @@ The first and third terms are at most $L\delta$, and the middle term is controll
 
 \end{CheatSheet}
 \newpage
+\SheetSetup{top-navigation={p.2: c1 Q5(b) conclusion / probability; c2 Conditional expectation / discrete; c3 Q8 conclusion / abstract algebra; c4 Final checks / optional tools},bottom-navigation={Illustrative extensions: abstract / field tools and MIX-I2 worked examples. Set assessed scope from the actual source manifest.}}
 \begin{CheatSheet}
 \Continuation{Q5(b) [ANA-D]}With $\delta=\varepsilon/(3L)$, each summand is at most $\varepsilon/3$. Hence $\lVert f_n-f\rVert_\infty<\varepsilon$ for all sufficiently large $n$. If $L=0$, every $f_n$ and $f$ is constant, and convergence at one point is already uniform. Compactness is used precisely to make the net finite.
 \Alternative{contradiction by subsequences}{If convergence were not uniform, choose $n_k\uparrow\infty$ and $x_k$ with $|f_{n_k}(x_k)-f(x_k)|\ge\varepsilon_0$. A convergent subsequence $x_{k_j}\to x$ and the common Lipschitz bound reduce the error to the pointwise error at $x$, contradiction.}
@@ -431,7 +442,7 @@ The moment generating function $M_X(t)=\mathbb E(e^{tX})$, when finite on a neig
 \QuestionPart{b}{weak law}{PRB-E2}{Give a bound and limit.}{Chebyshev yields $\mathbb P(|\bar X_n-\mu|\ge\varepsilon)\le\sigma^2/(n\varepsilon^2)\to0$. Thus $\bar X_n\to\mu$ in probability. This proof does not assert almost-sure convergence or a central-limit approximation.}
 \Alternative{bounded observations}{If independent $X_i\in[a,b]$ with $a<b$, Hoeffding gives $2\exp[-2n\varepsilon^2/(b-a)^2]$. If $a=b$, the variables are deterministic.}
 \columnbreak\Topic{Conditional expectation}
-\Continuation{PRB-E2 conditional expectation}
+\SourceRef{PRB-E2}
 \Statement{Definition}{16}{For $X\in L^1$ and sub-sigma-algebra $\mathcal G\subseteq\mathcal F$, $\mathbb E[X\mid\mathcal G]$ is a $\mathcal G$-measurable integrable $Y$ satisfying $\int_GY\,d\mathbb P=\int_GX\,d\mathbb P$ for every $G\in\mathcal G$. It is unique a.s.}
 Key rules: $\mathbb E(\mathbb E[X\mid\mathcal G])=\mathbb EX$; if $Z$ is bounded and $\mathcal G$-measurable, $\mathbb E[ZX\mid\mathcal G]=Z\mathbb E[X\mid\mathcal G]$; and for $\mathcal H\subseteq\mathcal G$, $\mathbb E(\mathbb E[X\mid\mathcal G]\mid\mathcal H)=\mathbb E[X\mid\mathcal H]$.
 \Example{7}{If $X,Y$ are jointly normal, then $\mathbb E[X\mid Y]=\mathbb EX+\operatorname{Cov}(X,Y)\operatorname{Var}(Y)^{-1}(Y-\mathbb EY)$ when $\operatorname{Var}(Y)>0$. The linear formula relies on joint normality; zero covariance alone does not usually imply independence.}
@@ -467,7 +478,7 @@ For a genuine order-$k$ recurrence $a_n=c_1a_{n-1}+\cdots+c_ka_{n-k}$ with $c_k\
 \begin{minipage}[t]{\linewidth}
 \QuestionPart{a}{resonant recurrence}{DSP-F}{Find the general form.}{The characteristic polynomial is $(r-2)^2$, so $a_n^{(h)}=(A+Bn)2^n$. Since the forcing $2^n$ resonates with multiplicity two, try $a_n^{(p)}=Cn^2 2^n$. Substitution gives $2C\,2^n=2^n$, hence $C=1/2$.}
 \end{minipage}
-\columnbreak\Continuation{Q8(b) [DSP-F]}\QuestionPart{b}{initial data}{DSP-F}{Determine constants.}{$a_0=A=0$. Then $a_1=(B+1/2)2=1$, so $B=0$. Therefore $a_n=n^2 2^{n-1}$. Directly check both initial values and one recurrence index.}
+\columnbreak\Continuation{Q8 [DSP-F]}\QuestionPart{b}{initial data}{DSP-F}{Determine constants.}{$a_0=A=0$. Then $a_1=(B+1/2)2=1$, so $B=0$. Therefore $a_n=n^2 2^{n-1}$. Directly check both initial values and one recurrence index.}
 \CorpusDiscrete
 \CorpusCombinatorics
 \ExtraDiscrete
@@ -509,6 +520,8 @@ Intersect every branch with $x\ge-1$. At $a=-1$, the original inequality is equa
 \Topic{Symbols and final checks}
 \CompactTable{\begin{tabular}{@{}ll|ll@{}}\toprule symbol&meaning&symbol&meaning\\\midrule $\iff$&two directions&$\hookrightarrow$&injective\\ $\twoheadrightarrow$&surjective&$\sqcup$&disjoint union\\ $\langle x,y\rangle$&inner product&$\operatorname{span}S$&linear span\\ $O(g)$&bounded ratio&$o(g)$&ratio $\to0$\\\bottomrule\end{tabular}}
 Before using a formula: identify hypotheses, domains, boundary cases, and zero denominators. Before ending a proof: bind every introduced variable, state the quantified conclusion, and separate necessity from sufficiency. \columnbreak\Continuation{final checks}Before reporting a numerical result, retain exact form, check sign and scale, and test a simple special case. Cross-reference examples by \SourceRef{FND-A}, \SourceRef{CAL-C}, or concept label \ConceptRef{finite-net argument}; tags remain readable when PDF links are unavailable.
+\SourceBlock{OPTIONAL}{Optional later tools and new problem types}
+Illustrative extensions, separate from the assessed scope selected by an actual manifest.
 \CorpusAbstract
 \CorpusFieldExtensions
 \ExtraAbstract

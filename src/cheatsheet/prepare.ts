@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 
-import { sha256, sha256Bytes } from "../checksum.js";
+import { sha256Bytes } from "../checksum.js";
 import { readControlDocument } from "../conformance/control-document.js";
 import { readDefinitionIdentity } from "../conformance/definition-shape.js";
 import {
@@ -14,6 +14,7 @@ import {
 import { validateDefinition } from "../conformance/validate-definition.js";
 import { validateProfile } from "../conformance/validate-profile.js";
 import { isRecord } from "../conformance/value-shape.js";
+import { readCheatsheetModuleText } from "./exact-text.js";
 import { resolveModuleFile } from "./module-path.js";
 
 export interface CheatsheetCandidate {
@@ -43,10 +44,7 @@ export async function prepareCheatsheet(input: {
     Object.entries(paths).map(async ([kind, path]) => ({
       kind,
       path,
-      text: await readFile(
-        await resolveModuleFile(input.moduleRoot, path),
-        "utf8",
-      ),
+      ...(await readCheatsheetModuleText(input.moduleRoot, path)),
     })),
   );
   const profile = controls.find(({ kind }) => kind === "profile")?.text ?? "";
@@ -131,9 +129,9 @@ export async function prepareCheatsheet(input: {
     assessmentRequest: input.assessment,
     assessments,
     controlFindings,
-    controls: controls.map(({ path, text }) => ({
+    controls: controls.map(({ path, sha256 }) => ({
       path,
-      sha256: sha256(text),
+      sha256,
     })),
     context: {
       scope: sectionBody(profile, "Scope"),

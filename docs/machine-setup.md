@@ -18,8 +18,27 @@ Two items. Nothing else travels — no Node, no clone of this repository, no cre
 
    Any other MCP client registers the same URL in whatever way it registers an HTTP server.
 
-The MagicDNS name is the mini's. Confirm the registration by listing the tools: four `tasks_*`
-tools mean the machine is done.
+The MagicDNS name is the mini's. Refresh the client's tool catalog after connecting or upgrading;
+the server does not push catalog changes. Call `tasks_sync_capabilities` with no arguments and
+require `task-plan/1`, the read tools `tasks_read_register` and `research_tasks_read_register`,
+the apply tool `tasks_apply_plan`, and the advertised `plan_json` compatibility argument. An old
+server or cached schema is a migration requirement, never permission for a fallback write.
+
+Both target types retain their create/change/complete names, but writes now require an immutable
+plan from a fresh register read. Module calls name `semester` and `module`; Research calls name
+`research_project`. The read returns exact target/list identity and `expectedSnapshot`. Cloud
+planning supplies intent and `policyVersion`; the caller persists `operationId` and, for creation,
+`sourceOccurrenceId` before dispatch. See the folder router's Tasks protocol and the Operations
+section of `operator-guide.md`. Verify all six compatibility names against their refreshed schemas
+using isolated fixtures before enabling writes. Real provider acceptance needs scoped authority.
+
+API writes support undated creation, title changes and explicit completion/cancellation. New
+notes/descriptions and plans containing `doDate` or `timing` are refused. Owner-authorized native
+date/time placement may be delegated only to an already authorized UI executor with fresh complete
+preflight, exact account/list/task IDs or verified aliases, surface/timezone/time observations and
+same-ID Task saved-field readback. Contradictory observations or unavailable support park that work;
+date-only API results cannot prove timing, infer an offset or justify an ordinary-event replacement.
+API success and native acceptance remain separate. This setup grants no UI execution authority.
 
 Reachability on the Tailnet is the whole of the authorisation, which is why there is no third
 item: a machine signed in to Tailscale is one of the Owner's, and one that is not reaches nothing
@@ -27,9 +46,10 @@ item: a machine signed in to Tailscale is one of the Owner's, and one that is no
 
 ## When the mini is unreachable
 
-Task operations fail visibly and park. There is no offline queue and no local fallback: the live
-list is the authority, and a machine that cannot reach it has nothing true to say about the
-module's tasks. Park the operation, say so, and let the next reachable session make it.
+Before dispatch, an unreachable operation parks visibly. There is no offline queue or local
+fallback. After dispatch, a lost response may conceal a provider mutation: retain the identical
+plan, operation ID and uncertain evidence. The next reachable session reconciles that operation
+before any resend or replacement. It never treats lost connectivity as proof that nothing happened.
 
 ## Optional: make the machine teaching-capable
 
@@ -76,22 +96,73 @@ manifest beside `SKILL.md` if it needs one to know the skill fires only when the
 
 ## Optional: install the `/cheatsheet` skill
 
-`/cheatsheet <module code> <operation>` discovers one synced Module and hands create, revise, audit,
-verify or package-review to its pinned Cheatsheet procedure. Its boundary is
-[ADR-0029](adr/0029-cheatsheet-releases-are-source-led-and-portable.md). Install or update the same
-way as `/learn`. The copied directory includes the Node 24 helper runtime; it does not use a clone or
-Academic OS configuration:
+`/cheatsheet <module code> <operation>` discovers one synced Module and yields to its pinned
+Cheatsheet procedure ([ADR-0029](adr/0029-cheatsheet-releases-are-source-led-and-portable.md)).
+Academic OS owns `skills/cheatsheet/`; distribution is an explicit directory copy. There is no
+machine inventory, background installer or account-wide skill sync in this repository.
+
+Inventory the configured destination machines and installed clients first; retain private host/path
+identities outside this public repository. Current Codex and local Cursor support the shared
+`~/.agents/skills/` user directory. Existing `.codex/skills/` installations remain a compatibility
+surface; Claude Code uses `~/.claude/skills/`. Update the paths actually in use and verify each
+client's discovery. A shared local directory does not establish cloud or remote-session discovery;
+those sessions must discover the skill on their execution host.
+
+Build/check the bundled runtime in the release checkout. The copied directory includes its helper,
+references and client metadata; execution needs Node 24 or later, but no repository clone or
+Academic OS configuration on the target. Copy from the exact merged release:
 
 ```sh
-for harness in .claude .codex; do
-  rsync -a "<clone>/skills/cheatsheet/" \
-    "<machine>:~/$harness/skills/cheatsheet/"
-done
+rsync -an "<merged-clone>/skills/cheatsheet/" \
+  "<machine>:~/.agents/skills/cheatsheet/"
+rsync -a "<merged-clone>/skills/cheatsheet/" \
+  "<machine>:~/.agents/skills/cheatsheet/"
 ```
 
-Verify the installed interface with
-`~/.codex/skills/cheatsheet/scripts/cheatsheet-tool.mjs schema` (and the corresponding `.claude`
-path). The command reports every operation and required input.
+Inspect every destination first. A symlink may lead into a checkout with unrelated local work;
+copying through it would overwrite that checkout. Preserve its state, publish the bundle to stable
+release storage and update the alias deliberately. Keep one authoritative bundle per host and
+use aliases for compatibility clients. Preserve unrelated destination files.
+
+Read back every shipped file's digest against the release checkout. Run the installed helper's
+`schema` operation and `scripts/find-candidates.zsh <module code>`, then refresh the client's skill
+catalog and verify the explicit-only Cheatsheet entry resolves to that installation. Run an isolated
+synthetic release through the installed helper, including build, retained evidence and package
+verification, with TeX and all executables advertised by `schema` available. A schema response alone
+proves neither a complete runtime nor client discovery. Report an unreachable machine as pending
+with its attempted command; a successful copy to another machine cannot establish its installation.
+
+### Propagate procedure changes and preserve editable templates
+
+After merge, run `pinned refresh` from the merged checkout using the private active-cohort
+configuration; review the complete preview before `--apply`. It updates the pinned procedure and
+other shared controls with checksum-verified backups/journals. Run one writer against the configured
+mount, then read back the synced procedure digest on each reachable machine. Follow
+[Drive safety](agents/safe-drive-testing.md) before mounted writes. The procedure governs a Module
+only once that Module's pinned copy has arrived.
+
+Before upgrading an existing Module, inspect its current and historical cheatsheet manifests and
+construction provenance for every target path. Module-editable does not mean unreferenced: a
+byte-identical old seed can be a digested source of a frozen release. Preserve such a path's exact
+bytes. Hold its compatible template pair together, record the source binding and the adoption
+exception, and verify that the existing release still audits. Do not change a frozen manifest's
+fingerprints to make an upgrade pass. Preexisting incompatible historical bindings remain explicit.
+
+Keep the complete new canonical pair and logo as immutable assets from the same reviewed revision
+in the host's release archive. New authoring can stage that version under the new artifact's existing
+support/content home and inline it into its self-contained TeX. It need not overwrite a path an older
+release owns. Distributing the helper alone does not establish template adoption: read back both the
+versioned assets and each Module's actual adopted or deliberately held pair.
+
+The `.tex` files under `70 Learning/templates/` are module-editable. `pinned refresh` does not
+upgrade them, and seeding preserves occupied files. For an existing Module, preserve the exact
+current template and its digest, compare with the new seed and the previous seed version when known,
+then merge the changed interface into a staged copy while retaining local customization. When the
+baseline is unknown, review every difference rather than assuming the file is an unchanged seed.
+Compile a synthetic derivative against the staged pair, inspect its rendered output and only then
+replace the exact intended templates with recoverable originals retained. Verify final digests on
+the configured mount and reachable replicas. Existing self-contained releases keep their own
+preamble until a requested revision deliberately adopts the new interface.
 
 ## Optional: install the `/research-project` skill
 
@@ -114,3 +185,5 @@ done
 
 Updating it repeats that command. A machine that already holds the repository may symlink the
 directory instead.
+
+For Task recovery history, coverage inspection, approved recreation or interrupted restore, follow [Task recovery](task-recovery.md). Existing refresh and task-plan/1 clients establish snapshots through the same installed services; no additional job or credential is required.

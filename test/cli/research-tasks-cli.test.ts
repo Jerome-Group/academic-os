@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
+
+import { taskExecutionSnapshot } from "../../src/tasks/task-execution-plan.js";
+import type { TaskExecutionPlan } from "../../src/tasks/task-execution-types.js";
 
 import { runCliWithEnvironment } from "../support/run-cli.js";
 
@@ -78,21 +81,53 @@ describe("academic-os Tasks for research projects", () => {
     const report = JSON.parse(result.stdout);
     assert.equal(report.outcome, "refreshed");
     assert.deepEqual(report.modules, []);
-    assert.deepEqual(report.researchProjects, [
-      {
-        researchProject: "ureca-y2",
-        freshness: "fresh",
-        listId: "ureca-list",
-        counts: {
-          tasks: 1,
-          open: 1,
-          completed: 0,
-          cancelled: 0,
-          unpushed: 0,
+    assert.equal(report.researchProjects.length, 1);
+    const {
+      generation,
+      providerSnapshot,
+      observedAt,
+      receipt,
+      ...legacyReport
+    } = report.researchProjects[0];
+    assert.match(generation, /^[a-f0-9]{64}$/u);
+    assert.equal(
+      providerSnapshot,
+      taskExecutionSnapshot([
+        {
+          id: "read-source",
+          title: "Read the first source",
+          status: "needsAction",
         },
-        changes: { added: 1, updated: 0, cancelled: 0 },
-      },
-    ]);
+      ]),
+    );
+    assert.equal(receipt.generation, generation);
+    assert.equal(receipt.providerSnapshot, providerSnapshot);
+    assert.equal(receipt.observedAt, observedAt);
+    assert.deepEqual(receipt.target, {
+      kind: "research-project",
+      key: "ureca-y2",
+      title: "URECA Y2",
+    });
+    assert.equal(receipt.freshness, "fresh");
+    assert.equal(receipt.lastSuccess.generation, generation);
+    assert.deepEqual(
+      [legacyReport],
+      [
+        {
+          researchProject: "ureca-y2",
+          freshness: "fresh",
+          listId: "ureca-list",
+          counts: {
+            tasks: 1,
+            open: 1,
+            completed: 0,
+            cancelled: 0,
+            unpushed: 0,
+          },
+          changes: { added: 1, updated: 0, cancelled: 0 },
+        },
+      ],
+    );
     assert.match(
       await readFile(fixture.researchRegister, "utf8"),
       /read-source/u,
@@ -148,31 +183,31 @@ describe("academic-os Tasks for research projects", () => {
       })}\n`,
     );
 
+    const planPath = await saveCreatePlan(fixture);
     const result = await runTasks(
       fixture,
-      "create",
-      "--research-project",
-      "ureca-y2",
-      "--title",
-      "Verify the first source",
-      "--source",
-      "SRC-001",
-      "--claim",
-      "CLAIM-001",
+      "apply-plan",
+      "--plan",
+      planPath,
       "--json",
     );
 
     assert.equal(result.exitCode, 0, JSON.stringify(result));
     const report = JSON.parse(result.stdout);
-    assert.deepEqual(report.target, {
-      kind: "research-project",
-      key: "ureca-y2",
-      title: "URECA Y2",
-    });
+    assert.equal(report.operationId, "research-source-1");
     assert.equal(report.outcome, "applied");
+    assert.equal(report.registerFresh, true);
+    assert.equal(report.taskId, "created-1");
     const register = await readFile(fixture.researchRegister, "utf8");
     assert.match(register, /source: SRC-001/u);
     assert.match(register, /claim: CLAIM-001/u);
+    const provider = JSON.parse(await readFile(fixture.providerPath, "utf8"));
+    const writes = provider.requests.filter(
+      ({ method }: { method: string }) => method !== "GET",
+    );
+    assert.equal(writes.length, 1);
+    assert.deepEqual(writes[0].body, { title: "Verify the first source" });
+    assert.equal(provider.tasks["ureca-list"][0].id, "created-1");
   });
 
   it("keeps inactive research projects read-only", async () => {
@@ -191,16 +226,10 @@ describe("academic-os Tasks for research projects", () => {
     assert.equal(preview.exitCode, 0, JSON.stringify(preview));
     assert.equal(JSON.parse(preview.stdout).outcome, "preview");
 
+    const planPath = await saveCreatePlan(fixture);
     for (const arguments_ of [
       ["provision", "--research-project", "ureca-y2", "--apply", "--json"],
-      [
-        "create",
-        "--research-project",
-        "ureca-y2",
-        "--title",
-        "Must not be created",
-        "--json",
-      ],
+      ["apply-plan", "--plan", planPath, "--json"],
       ["refresh", "--research-project", "ureca-y2", "--json"],
     ]) {
       const [command, ...commandArguments] = arguments_;
@@ -213,8 +242,45 @@ describe("academic-os Tasks for research projects", () => {
         /inactive and read-only/u,
       );
     }
+    const legacy = await runTasks(
+      fixture,
+      "create",
+      "--research-project",
+      "ureca-y2",
+      "--title",
+      "Must not be created",
+      "--json",
+    );
+    assert.equal(legacy.exitCode, 2);
+    assert.equal(JSON.parse(legacy.stdout).code, "exact-plan-required");
+    const provider = JSON.parse(await readFile(fixture.providerPath, "utf8"));
+    assert.ok(
+      (provider.requests ?? []).every(
+        ({ method }: { method: string }) => method === "GET",
+      ),
+    );
   });
 });
+
+async function saveCreatePlan(fixture: Fixture): Promise<string> {
+  const plan: TaskExecutionPlan = {
+    schemaVersion: 1,
+    operationId: "research-source-1",
+    target: { kind: "research-project", key: "ureca-y2", title: "URECA Y2" },
+    listId: "ureca-list",
+    expectedSnapshot: taskExecutionSnapshot([]),
+    operation: {
+      name: "create",
+      title: "Verify the first source",
+      provenance: { source: "SRC-001", claim: "CLAIM-001" },
+    },
+    sourceOccurrenceId: "SRC-001:verification",
+    policyVersion: "fixture-policy-v1",
+  };
+  const path = `${fixture.configPath}.plan.json`;
+  await writeFile(path, `${JSON.stringify(plan)}\n`);
+  return path;
+}
 
 interface Fixture {
   configPath: string;
@@ -230,7 +296,7 @@ async function setupFixture(): Promise<Fixture> {
   const researchRoot = join(driveMount, "Modules", "Research", "URECA Y2");
   await Promise.all([
     mkdir(join(researchRoot, "00 Project Admin"), { recursive: true }),
-    mkdir(stateRoot),
+    mkdir(stateRoot, { mode: 0o700 }),
   ]);
   const configPath = join(root, "academic-os.config.json");
   await writeFile(

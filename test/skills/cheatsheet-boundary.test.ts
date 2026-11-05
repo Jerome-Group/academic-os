@@ -41,7 +41,16 @@ describe("the cheatsheet router skill", () => {
     ]);
     const schema = JSON.parse(stdout);
     assert.ok(schema.runtime.requiredExecutables.includes("pdftohtml"));
-    assert.deepEqual(schema.commands.verify, ["--module-root", "--manifest"]);
+    assert.deepEqual(schema.commands.verify, [
+      "--module-root",
+      "--manifest",
+      "--evidence-directory",
+    ]);
+    assert.equal(schema.measurements.schemaVersion, 2);
+    assert.equal(
+      schema.manifest.releaseReview.passedReviewDigestKey,
+      "reviewed_pdf_sha256",
+    );
     assert.deepEqual(schema.commands["package-review"], [
       "--module-root",
       "--manifest",

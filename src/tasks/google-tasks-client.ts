@@ -32,6 +32,7 @@ export interface TasksHttpRequest {
     showCompleted?: true;
     showDeleted?: true;
     showHidden?: true;
+    showAssigned?: true;
   };
   data?: Record<string, unknown>;
 }
@@ -105,7 +106,7 @@ export function createGoogleTaskRefreshReader(
   return {
     listTasks: async ({ listId }) =>
       // Completed tasks are hidden and a deletion is a flag rather than an absence, so a pull
-      // that does not ask for all three cannot tell a tick from a task that never existed.
+      // must include every visibility category before absence can establish cancellation.
       await readPages<LiveTask>(async (pageToken) => {
         const response: { data: TaskPage } = await requester.request({
           url: taskCollectionUrl(listId),
@@ -115,6 +116,7 @@ export function createGoogleTaskRefreshReader(
             showCompleted: true,
             showDeleted: true,
             showHidden: true,
+            showAssigned: true,
             ...(pageToken === undefined ? {} : { pageToken }),
           },
         });

@@ -1,6 +1,6 @@
 import { basename, posix } from "node:path";
 
-import { isCuratedFileName } from "../naming/index.js";
+import { isLegacyCuratedFileName } from "../naming/legacy-filename.js";
 import { textbookChaptersPath } from "../contract/textbook-chapters.js";
 import { controlPaths, curatedRoots } from "./contract-paths.js";
 import {
@@ -23,7 +23,7 @@ export function auditCuratedNaming(
       !controlPaths.has(basename(path)),
   );
   const deterministic = governedFiles.flatMap(({ path }) =>
-    isCuratedFileName(basename(path), inventory.moduleCode)
+    isLegacyCuratedFileName(basename(path), inventory.moduleCode)
       ? []
       : [
           deterministicFailure(

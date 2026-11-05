@@ -1,11 +1,10 @@
 import { isArtifactDestination } from "./destinations.js";
+import { isSourceToken, isTitleToken } from "./filename.js";
 import {
   isAcademicYear,
   isCalendarDay,
   isNumericToken,
-  isSourceToken,
-  isTitleToken,
-} from "./filename.js";
+} from "./temporal-tokens.js";
 import type { NamingArtifact, NamingDiagnostic } from "./types.js";
 import { collisionKey, supportsNamingUnicode } from "./unicode.js";
 

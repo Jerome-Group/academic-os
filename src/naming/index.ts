@@ -1,3 +1,4 @@
+export { isLegacyCuratedFileName } from "./legacy-filename.js";
 export { isCuratedFileName } from "./filename.js";
 export {
   planNamingJson,

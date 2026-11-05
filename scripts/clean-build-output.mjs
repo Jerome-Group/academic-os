@@ -29,7 +29,15 @@ async function inspectArtifacts(directory) {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     const path = join(directory, entry.name);
     if (entry.isDirectory()) await inspectArtifacts(path);
-    else if (!entry.isFile() || !/\.(js|d\.ts)$/u.test(entry.name))
+    else if (
+      !entry.isFile() ||
+      (!/\.(js|d\.ts)$/u.test(entry.name) &&
+        path !==
+          join(
+            output,
+            "src/controls-publication/native/publication-native.node",
+          ))
+    )
       refuse(path);
   }
 }

@@ -30,6 +30,70 @@ afterEach(async () => {
 });
 
 describe("academic-os research-project CLI", () => {
+  for (const profile of ["ureca", "generic"] as const) {
+    for (const home of ["30 Deliverables", "90 Resources"]) {
+      it(`refuses an undeclared ${home} category for ${profile} [RP-ROOT-002]`, async () => {
+        const fixture = await seededFixture(profile);
+        const path = `${home}/99 Undeclared`;
+        await mkdir(join(fixture.projectRoot, path));
+        const payload = join(fixture.projectRoot, path, "source.txt");
+        await writeFile(payload, "Retained synthetic content\n");
+        const audit = await runCli(
+          "audit",
+          "--config",
+          fixture.configPath,
+          "--research-project",
+          "example-project",
+          "--json",
+        );
+        assert.equal(audit.exitCode, 1, audit.stdout + audit.stderr);
+        const report = JSON.parse(audit.stdout);
+        assert.equal(report.outcome, "deviation");
+        assert.ok(
+          report.findings.some(
+            (finding: { ruleId: string; path: string; status: string }) =>
+              finding.ruleId === "RP-ROOT-002" &&
+              finding.path === path &&
+              finding.status === "fail",
+          ),
+        );
+        assert.equal(
+          await readFile(payload, "utf8"),
+          "Retained synthetic content\n",
+        );
+      });
+    }
+    it(`retains ${profile} permitted interiors and direct category-root files [RP-ROOT-002]`, async () => {
+      const fixture = await seededFixture(profile);
+      const nested = [
+        "90 Resources/00 Unclassified/nested/deeper",
+        ...(profile === "ureca"
+          ? [
+              "30 Deliverables/10 Abstract/nested/deeper",
+              "90 Resources/20 Research Aids/nested",
+            ]
+          : []),
+      ];
+      for (const path of nested)
+        await mkdir(join(fixture.projectRoot, path), { recursive: true });
+      for (const home of ["30 Deliverables", "90 Resources"])
+        await writeFile(
+          join(fixture.projectRoot, home, "source.txt"),
+          "Synthetic source\n",
+        );
+      const audit = await runCli(
+        "audit",
+        "--config",
+        fixture.configPath,
+        "--research-project",
+        "example-project",
+        "--json",
+      );
+      assert.equal(audit.exitCode, 0, audit.stdout + audit.stderr);
+      assert.equal(JSON.parse(audit.stdout).outcome, "conformant");
+    });
+  }
+
   it("previews, applies, and audits one configured project [RP-SEED-002] [RP-AUDIT-002]", async () => {
     const fixture = await setupFixture();
     const target = [
@@ -530,6 +594,25 @@ describe("academic-os research-project CLI", () => {
     }
   });
 });
+
+async function seededFixture(profile: "ureca" | "generic") {
+  const fixture = await setupFixture({ generic: profile === "generic" });
+  const seeded = await runCli(
+    "seed",
+    "--config",
+    fixture.configPath,
+    "--research-project",
+    "example-project",
+    "--profile",
+    fixture.profilePath,
+    "--definition",
+    fixture.definitionPath,
+    "--apply",
+    "--json",
+  );
+  assert.equal(seeded.exitCode, 0, seeded.stdout + seeded.stderr);
+  return fixture;
+}
 
 async function setupFixture(
   options: { existing?: boolean; generic?: boolean } = {},

@@ -4,6 +4,7 @@ export { createResearchProjectSeedPlan } from "./create-research-project-seed-pl
 export { loadResearchProjectInitialFilesManifest } from "./load-research-project-initial-files-manifest.js";
 export type {
   ResearchProjectInitialFile,
+  ResearchProjectInitialIntake,
   ResearchProjectSeedPlan,
   ResearchProjectSeedReport,
   SeedMode,

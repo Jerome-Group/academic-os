@@ -7,10 +7,14 @@ import {
   researchProjectControlPaths,
   type ResearchProjectInventory,
 } from "../conformance/index.js";
+import { isMeetingNotePath } from "../conformance/research-project-controls/meeting-paths.js";
 import { loadResearchProjectContract } from "../contract/load-research-project-contract.js";
 import { researchProjectSharedControlPaths } from "../contract/research-project-structure.js";
 import type { ResearchProjectSeedPlan } from "../seed/index.js";
-import { seedFileByteLength } from "../seed/seed-operation-bytes.js";
+import {
+  seedFileByteLength,
+  seedFileBytes,
+} from "../seed/seed-operation-bytes.js";
 import { ensureMaterialized } from "./ensure-materialized.js";
 import { inventoryDirectory } from "./inventory-mounted-module.js";
 import { readResearchProjectControls } from "./read-research-project-controls.js";
@@ -104,17 +108,31 @@ export async function auditProjectedResearchProjectSeedTarget(input: {
     });
   }
   projectedEntries.sort((left, right) => left.path.localeCompare(right.path));
+  const controlPaths = new Set<string>([
+    ...Object.values(researchProjectControlPaths),
+    ...researchProjectSharedControlPaths,
+  ]);
   const contentsByPath = new Map(
     input.plan.operations
-      .filter(({ contents }) => contents !== undefined)
-      .map(({ path, contents }) => [path, contents ?? ""]),
+      .filter(
+        ({ kind, path }) =>
+          kind === "file" &&
+          (controlPaths.has(path) || isMeetingNotePath(path)),
+      )
+      .map((operation) => [
+        operation.path,
+        seedFileBytes(operation).toString("utf8"),
+      ]),
   );
-  const controls = {
+  const controls: ResearchProjectControls = {
     ...Object.fromEntries(
       Object.entries(researchProjectControlPaths).flatMap(([name, path]) => {
         const contents = contentsByPath.get(path);
         return contents === undefined ? [] : [[name, contents]];
       }),
+    ),
+    meetingNotes: Object.fromEntries(
+      [...contentsByPath].filter(([path]) => isMeetingNotePath(path)),
     ),
     sharedControls: Object.fromEntries(
       researchProjectSharedControlPaths.flatMap((path) => {
@@ -122,7 +140,7 @@ export async function auditProjectedResearchProjectSeedTarget(input: {
         return contents === undefined ? [] : [[path, contents]];
       }),
     ),
-  } as ResearchProjectControls;
+  };
   return await auditResearchInventory({
     project: input.project,
     inventory: {
@@ -138,13 +156,17 @@ export async function auditResearchProjectSeedRoot(input: {
   root: string;
   project: ResolvedResearchProject;
 }): Promise<string[]> {
+  const entries = await inventoryDirectory(input.root);
   return await auditResearchInventory({
     project: input.project,
     inventory: {
       projectKey: input.project.key,
-      entries: await inventoryDirectory(input.root),
+      entries,
     },
-    controls: await readResearchProjectControls(input.root),
+    controls: await readResearchProjectControls(
+      input.root,
+      entries.map(({ path }) => path),
+    ),
     prefix: "",
   });
 }

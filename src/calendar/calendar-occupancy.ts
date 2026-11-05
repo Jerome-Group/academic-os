@@ -517,6 +517,7 @@ function proposalIntent(proposal: CalendarProposalCandidate): unknown {
   const {
     review: _review,
     status: _status,
+    staleReason: _staleReason,
     liveVersions: _liveVersions,
     relevantAvailabilityVersion: _availability,
     conflictSummary: _conflicts,

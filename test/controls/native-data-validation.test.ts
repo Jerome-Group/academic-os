@@ -372,7 +372,7 @@ describe("native representation consistency through the public control owner", (
         JSON.stringify(observed.diagnostics),
       );
     }
-    for (const value of ["yesterday", "1.5", "01", "+1"])
+    for (const value of ["yesterday", "1.5", "01", "+1", "-0"])
       refuses((controls) => {
         entry(controls).mtimeNanoseconds = known(value);
       }, "invalid-control-schema");

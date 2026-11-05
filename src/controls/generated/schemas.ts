@@ -3787,7 +3787,7 @@ export const controlSchemas = [
             additionalProperties: false,
             properties: {
               kind: { const: "known" },
-              value: { type: "string", pattern: "^-?(0|[1-9][0-9]*)$" },
+              value: { type: "string", pattern: "^(0|-?[1-9][0-9]*)$" },
               evidence: { $ref: "#/definitions/evidenceReferences" },
               reasoning: { type: "string", minLength: 1 },
             },
@@ -3830,7 +3830,7 @@ export const controlSchemas = [
                   type: "object",
                   additionalProperties: false,
                   properties: {
-                    value: { type: "string", pattern: "^-?(0|[1-9][0-9]*)$" },
+                    value: { type: "string", pattern: "^(0|-?[1-9][0-9]*)$" },
                     evidence: { $ref: "#/definitions/evidenceReferences" },
                     reasoning: { type: "string", minLength: 1 },
                   },

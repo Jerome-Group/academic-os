@@ -106,6 +106,11 @@ core leaves open. Add them here; they evolve through this repository's normal pu
 TypeScript targets Node 24 or later. Biome owns formatting and linting; `tsc` owns type checking.
 Production code lives in `src/`, and tests mirror its public seams in `test/`.
 
+The Owner directs this personal system to use local agent verification and hosted Organisation
+conformance only. This repository's exception to §5 is recorded in
+[`ADR-0047`](docs/adr/0047-product-verification-runs-locally.md). Local checks retain their full
+assertions. Organisation conformance does not establish product correctness.
+
 Tests use the Node test runner at the public seams the application exposes: pure in-memory
 conformance planning; mounted inventory, seeding and observation adapters against operating-system
 temporary roots; the read-only Drive inventory adapter; the publication-boundary checker; the

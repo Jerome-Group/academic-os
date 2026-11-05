@@ -22,3 +22,4 @@ This supersedes only ADR-0038's requirement that temporary variables point insid
 Its network, privacy, tool-channel, protected merge and target authority boundaries remain. Failed
 check output must drain before process exit so retained diagnostics include the failure, not merely
 the start of a long test transcript. Production entrypoint verification supplements ordinary CI.
+Product checks now run locally under [ADR-0047](0047-product-verification-runs-locally.md).

@@ -7,7 +7,8 @@ authority.
 
 Waiting for an organisation framework would leave a fresh agent relying on prose caches and
 inconsistent command behavior. A local interface is useful now and needs no pstack dependency.
-CI uses the same quality and synthetic workflow entrypoints agents can discover.
+Local agents use the quality and synthetic workflow entrypoints under
+[ADR-0047](0047-product-verification-runs-locally.md), which retires their hosted execution.
 
 ## Consequences
 

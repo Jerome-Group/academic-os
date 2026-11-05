@@ -26,6 +26,11 @@ export type ResearchProjectInitialFile =
       contentsBase64: string;
     };
 
+export interface ResearchProjectInitialIntake {
+  policyVersion: 1 | 2;
+  files: readonly ResearchProjectInitialFile[];
+}
+
 export interface SeedPlan {
   module: string;
   semester: string;
@@ -40,6 +45,7 @@ export interface ResearchProjectSeedPlan {
     folder: string;
   };
   contractVersion: number;
+  intakePolicyVersion?: 2;
   operations: SeedOperation[];
   blockers: string[];
 }

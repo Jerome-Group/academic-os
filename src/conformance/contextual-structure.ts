@@ -1,3 +1,7 @@
+import {
+  artifactHomes,
+  workspaceChildren,
+} from "../contract/artifact-homes.js";
 import { readControlDocument } from "./control-document.js";
 
 import { isDirectoryName, isRecord, nonEmptyString } from "./value-shape.js";
@@ -10,21 +14,14 @@ export interface ContextualStructure {
 }
 
 const assessmentPaths = {
-  quizzes: "30 Assessments/10 Quizzes",
-  tests: "30 Assessments/20 Tests",
-  assignments: "30 Assessments/50 Assignments",
+  quizzes: artifactHomes.quiz,
+  tests: artifactHomes.test,
+  assignments: artifactHomes.assignment,
 } as const;
 const workspacePaths = {
-  projects: "40 Projects and Labs/10 Projects",
-  labs: "40 Projects and Labs/20 Labs",
+  projects: artifactHomes.project,
+  labs: artifactHomes.lab,
 } as const;
-const workspaceChildren = [
-  "10 Briefs",
-  "20 References",
-  "30 Working",
-  "40 Data",
-  "50 Submissions",
-] as const;
 
 export function deriveContextualStructure(
   definitionSource: string | undefined,

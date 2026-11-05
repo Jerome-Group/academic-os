@@ -742,6 +742,11 @@ MH2100_Assignment_01_Draft_02.docx
 MH2100_Quiz_02_2026-09-14_Graded.pdf
 ```
 
+The shared naming owner also exposes read-only `module-artifact-naming/1` proposals.
+[ADR 0046](adr/0046-artifact-naming-is-evidenced-and-complete-set.md) records their separate
+version boundary. A resolved proposal does not admit those names for a contract-7 Module or
+change the category paths above.
+
 ## LaTeX builds
 
 **MF-LATEX-001 (deterministic).** Keep `.scratch` at module root as an open disposable interior,

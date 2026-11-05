@@ -7,6 +7,7 @@ An agent discovers supported actions and reads importer lifecycle, counts and fr
 - Index and help expose the same supported actions, prerequisites, effects and test mappings.
 - Health distinguishes local tools from unobserved credentials and services.
 - Configuration validation reads strict UTF-8 JSON into schema-derived local, cohort or service types and reports only shape/version metadata.
+- Naming plans resolve accepted metadata against complete candidate and occupied sets without changing artifacts.
 - Module inspection reports legacy declarations, exact procedure hashes, ordered reads and refused canonical references without writing history.
 - Import status reports each declared root, including missing, malformed, stale and failed receipts.
 - Import preflight compares active Module declarations with NTULearn course destinations and reports file-wide collisions.
@@ -17,6 +18,8 @@ An agent discovers supported actions and reads importer lifecycle, counts and fr
 
 Use CLI `module inspect --root <physical-module-root>` or `module inspect --config <private-config>` with an explicit configured target.
 Use CLI `config validate --config <configuration-file>` for a read-only schema check.
+Use CLI `naming plan --input <private-json> --json` for naming proposals. The discovery workflow also
+drives configured Operations through local HTTP with the official MCP SDK.
 Use CLI `--help`, `capabilities index`, `capabilities health`, `capabilities check`, `imports status`, `imports preflight` or `offering readiness`.
 The captured index supplies their current invocation and prerequisites.
 
@@ -33,6 +36,10 @@ node dist/src/cli.js capabilities check --profile full --json --log "$aos_proof/
 
 Require passed outcomes for verification and profile results. Help returns `indexed`; health returns `observed`.
 The discovery journey checks generated configuration/schema parity, unversioned and version 1 local/cohort/service configurations, strict JSON refusals, redacted errors and unchanged configuration/module/state bytes. It runs the Calendar wizard candidate function against disposable files and proves failed validation preserves the source. It does not run OAuth or the interactive setup flow.
+The naming journey checks locale and timezone independence, pinned Unicode collision behavior, semantic
+disambiguation, native bundle occupancy, compound extensions, exact calendar days and unchanged fixtures.
+Its resolved plans remain explicitly not admitted. Policy 1 requires contract 8 and activation remains pending.
+The legacy audit retains its own versioned grammar and the dedicated Textbook exception.
 The discovery journey also drives portable and configured module inspection. It checks legacy declaration order and unknown partial claims, canonical envelope reads with incomplete coverage, missing/changed generations, linked heads and unchanged fixture bytes. Canonical target audit refuses before writing observation history.
 The mapped CLI journeys assert help parity, unsafe-log refusals, human/JSON import parity and receipt freshness.
 The duplicate cohort-mapping importer fixture compares mounted fixture UTF-8 contents before and after.

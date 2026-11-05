@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "$id": "urn:academic-os:naming-policy:1",
+  "title": "NamingPolicy",
+  "properties": {
+    "$schema": {
+      "const": "urn:academic-os:naming-policy:1"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "const": "module-artifact-naming/1"
+    },
+    "normalization": {
+      "const": "NFC"
+    },
+    "collisionComparison": {
+      "const": "nfkc-full-fold-nfkc-unicode-16.0.0/1"
+    },
+    "counterMinimumWidth": {
+      "const": 2
+    },
+    "maxComponentUtf8Bytes": {
+      "const": 240
+    },
+    "ambiguity": {
+      "const": "unresolved-no-output"
+    },
+    "requiredContractVersion": {
+      "const": 8
+    }
+  },
+  "required": [
+    "$schema",
+    "schemaVersion",
+    "id",
+    "normalization",
+    "collisionComparison",
+    "counterMinimumWidth",
+    "maxComponentUtf8Bytes",
+    "ambiguity",
+    "requiredContractVersion"
+  ]
+}

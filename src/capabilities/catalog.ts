@@ -83,6 +83,31 @@ export const cliCapabilities: Capability[] = [
       "Validated local, cohort or service shape and format version only; no path, credential or provider payload; validation failure exits 2.",
   },
   {
+    id: "naming plan",
+    surface: "cli",
+    invocation:
+      "node dist/src/cli.js naming plan --input <private-json> --json",
+    prerequisites: [
+      "Node >=24 with Unicode >=16 normalization",
+      "npm ci && npm run build",
+      "schema-valid accepted metadata and complete occupied set",
+    ],
+    reads: ["private naming request JSON"],
+    writes: [],
+    riskFlags: [],
+    preview: null,
+    implementation: "src/commands/naming-plan-command.ts",
+    tests: [
+      "test/naming/resolve-artifact-names.test.ts",
+      "test/naming/naming-plan-cli.test.ts",
+      "test/naming/unicode-data.test.ts",
+    ],
+    status: "supported",
+    health: "not-observed",
+    result:
+      "Resolved, unresolved or refused proposal; unresolved/refused exit 2. Admission stays unavailable pending contract 8 activation; no writes.",
+  },
+  {
     ...cli("module inspect", [], [], null, [
       "test/controls/read-controls.test.ts",
       "test/controls/module-inspect-cli.test.ts",
@@ -620,6 +645,25 @@ export function capabilityIndex(): object {
         "JSON; schema exposes inputs; semantic/mathematical review remains separate evidence.",
     });
   }
+  actions.push({
+    id: "naming_plan",
+    surface: "mcp",
+    invocation: "MCP tools/call naming_plan",
+    prerequisites: [
+      "configured Operations server",
+      "schema-valid accepted naming JSON and complete occupied set",
+    ],
+    reads: ["request JSON supplied by caller"],
+    writes: [],
+    riskFlags: [],
+    preview: null,
+    implementation: "src/operations/naming-tools.ts",
+    tests: ["test/naming/naming-mcp.test.ts"],
+    status: "supported",
+    health: "not-observed",
+    result:
+      "Same complete-set proposal as naming plan; unresolved/refused are isError results. Admission stays unavailable pending contract 8 activation.",
+  });
   for (const prefix of ["tasks", "research_tasks"])
     for (const operation of ["create", "change", "complete", "read_register"]) {
       actions.push({

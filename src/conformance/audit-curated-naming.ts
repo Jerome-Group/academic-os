@@ -1,5 +1,6 @@
 import { basename, posix } from "node:path";
 
+import { isLegacyCuratedFileName } from "../naming/legacy-filename.js";
 import { textbookChaptersPath } from "../contract/textbook-chapters.js";
 import { controlPaths, curatedRoots } from "./contract-paths.js";
 import {
@@ -22,7 +23,7 @@ export function auditCuratedNaming(
       !controlPaths.has(basename(path)),
   );
   const deterministic = governedFiles.flatMap(({ path }) =>
-    isCuratedFileName(basename(path), inventory.moduleCode)
+    isLegacyCuratedFileName(basename(path), inventory.moduleCode)
       ? []
       : [
           deterministicFailure(
@@ -77,29 +78,6 @@ function isExemptPath(
     isInsideRoot(path, "10 Learning Materials/30 Personal Notes/support") ||
     path.split("/").includes("build")
   );
-}
-
-function isCuratedFileName(name: string, moduleCode: string): boolean {
-  const extension = posix.extname(name);
-  if (!/^\.[a-z0-9]+$/u.test(extension)) return false;
-  const stem = name.slice(0, -extension.length);
-  if (!stem.startsWith(`${moduleCode}_`)) return false;
-  const tokens = stem.slice(moduleCode.length + 1).split("_");
-  const titleCase = (token: string) => /^[A-Z][A-Za-z0-9]*$/u.test(token);
-  const numericQualifier = (token: string) =>
-    /^\d{1,2}$/u.test(token) ||
-    isAcademicYearRange(token) ||
-    /^\d{4}$/u.test(token) ||
-    /^\d{4}-\d{2}-\d{2}$/u.test(token);
-  return (
-    tokens.some(titleCase) &&
-    tokens.every((token) => titleCase(token) || numericQualifier(token))
-  );
-}
-
-function isAcademicYearRange(token: string): boolean {
-  const match = /^(\d{4})-(\d{4})$/u.exec(token);
-  return match !== null && Number(match[2]) === Number(match[1]) + 1;
 }
 
 function hasFinalVersionSuffix(name: string): boolean {

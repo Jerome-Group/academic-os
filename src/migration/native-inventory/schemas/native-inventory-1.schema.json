@@ -1,0 +1,529 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "urn:academic-os:native-inventory:1",
+  "title": "NativeInventory",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": "urn:academic-os:native-inventory:1"
+        },
+        "metadataPolicy": {
+          "const": "darwin-native-observation/1"
+        },
+        "rootPathHex": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2})*$"
+        },
+        "adapter": {
+          "type": "object",
+          "properties": {
+            "platform": {
+              "type": "string"
+            },
+            "sourceSha256": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "executableSha256": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": ["platform", "sourceSha256", "executableSha256"],
+          "additionalProperties": false
+        },
+        "observation": {
+          "const": "two-pass-non-atomic"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/entry"
+          }
+        },
+        "sourceFingerprint": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "diagnostics": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "pathHex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$"
+              },
+              "detail": {
+                "type": "string",
+                "maxLength": 256
+              }
+            },
+            "required": ["code", "pathHex", "detail"],
+            "additionalProperties": false
+          }
+        },
+        "omittedDiagnostics": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "outputBytes": {
+              "const": 268435456
+            },
+            "attributeBytes": {
+              "const": 33554432
+            },
+            "depth": {
+              "const": 256
+            },
+            "entries": {
+              "const": 1000000
+            }
+          },
+          "required": ["outputBytes", "attributeBytes", "depth", "entries"],
+          "additionalProperties": false
+        },
+        "outcome": {
+          "const": "observed"
+        },
+        "complete": {
+          "const": true
+        }
+      },
+      "required": [
+        "schema",
+        "metadataPolicy",
+        "rootPathHex",
+        "adapter",
+        "observation",
+        "entries",
+        "sourceFingerprint",
+        "diagnostics",
+        "omittedDiagnostics",
+        "limits",
+        "outcome",
+        "complete"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": "urn:academic-os:native-inventory:1"
+        },
+        "metadataPolicy": {
+          "const": "darwin-native-observation/1"
+        },
+        "rootPathHex": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2})*$"
+        },
+        "adapter": {
+          "type": "object",
+          "properties": {
+            "platform": {
+              "type": "string"
+            },
+            "sourceSha256": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "executableSha256": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": ["platform", "sourceSha256", "executableSha256"],
+          "additionalProperties": false
+        },
+        "observation": {
+          "const": "two-pass-non-atomic"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/entry"
+          }
+        },
+        "sourceFingerprint": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "diagnostics": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "pathHex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$"
+              },
+              "detail": {
+                "type": "string",
+                "maxLength": 256
+              }
+            },
+            "required": ["code", "pathHex", "detail"],
+            "additionalProperties": false
+          }
+        },
+        "omittedDiagnostics": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "outputBytes": {
+              "const": 268435456
+            },
+            "attributeBytes": {
+              "const": 33554432
+            },
+            "depth": {
+              "const": 256
+            },
+            "entries": {
+              "const": 1000000
+            }
+          },
+          "required": ["outputBytes", "attributeBytes", "depth", "entries"],
+          "additionalProperties": false
+        },
+        "outcome": {
+          "const": "incomplete"
+        },
+        "complete": {
+          "const": false
+        }
+      },
+      "required": [
+        "schema",
+        "metadataPolicy",
+        "rootPathHex",
+        "adapter",
+        "observation",
+        "entries",
+        "sourceFingerprint",
+        "diagnostics",
+        "omittedDiagnostics",
+        "limits",
+        "outcome",
+        "complete"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": "urn:academic-os:native-inventory:1"
+        },
+        "metadataPolicy": {
+          "const": "darwin-native-observation/1"
+        },
+        "rootPathHex": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2})*$"
+        },
+        "adapter": {
+          "type": "object",
+          "properties": {
+            "platform": {
+              "type": "string"
+            },
+            "sourceSha256": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "executableSha256": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": ["platform", "sourceSha256", "executableSha256"],
+          "additionalProperties": false
+        },
+        "observation": {
+          "const": "two-pass-non-atomic"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/entry"
+          }
+        },
+        "sourceFingerprint": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "diagnostics": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "pathHex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$"
+              },
+              "detail": {
+                "type": "string",
+                "maxLength": 256
+              }
+            },
+            "required": ["code", "pathHex", "detail"],
+            "additionalProperties": false
+          }
+        },
+        "omittedDiagnostics": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "outputBytes": {
+              "const": 268435456
+            },
+            "attributeBytes": {
+              "const": 33554432
+            },
+            "depth": {
+              "const": 256
+            },
+            "entries": {
+              "const": 1000000
+            }
+          },
+          "required": ["outputBytes", "attributeBytes", "depth", "entries"],
+          "additionalProperties": false
+        },
+        "outcome": {
+          "const": "refused"
+        },
+        "complete": {
+          "const": false
+        }
+      },
+      "required": [
+        "schema",
+        "metadataPolicy",
+        "rootPathHex",
+        "adapter",
+        "observation",
+        "entries",
+        "sourceFingerprint",
+        "diagnostics",
+        "omittedDiagnostics",
+        "limits",
+        "outcome",
+        "complete"
+      ],
+      "additionalProperties": false
+    }
+  ],
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "properties": {
+        "pathHex": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2})*$"
+        },
+        "kind": {
+          "enum": [
+            "file",
+            "directory",
+            "symlink",
+            "fifo",
+            "character-device",
+            "block-device",
+            "socket",
+            "unknown"
+          ]
+        },
+        "before": {
+          "$ref": "urn:academic-os:native-scan-record:1#/$defs/stat"
+        },
+        "after": {
+          "anyOf": [
+            {
+              "$ref": "urn:academic-os:native-scan-record:1#/$defs/stat"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dataSha256": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "linkTargetHex": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(?:[0-9a-f]{2})*$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "acl": {
+          "anyOf": [
+            {
+              "$ref": "urn:academic-os:native-scan-record:1#/$defs/acl"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "xattrs": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "nameHex": {
+                    "type": "string",
+                    "pattern": "^(?:[0-9a-f]{2})*$"
+                  },
+                  "payload": {
+                    "anyOf": [
+                      {
+                        "$ref": "urn:academic-os:native-scan-record:1#/$defs/payload"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": ["nameHex", "payload"],
+                "additionalProperties": false
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hardlinkGroup": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "pathHex",
+        "kind",
+        "before",
+        "after",
+        "dataSha256",
+        "linkTargetHex",
+        "acl",
+        "xattrs",
+        "hardlinkGroup"
+      ],
+      "additionalProperties": false,
+      "title": "NativeInventoryEntry"
+    }
+  }
+}

@@ -153,7 +153,7 @@ export async function runChecks(
 
 const workflowTests = {
   discovery: {
-    areas: ["capabilities", "controls", "naming"],
+    areas: ["capabilities", "controls", "naming", "migration"],
     cli: /^(argument-safety|offering-readiness-cli)\.test\.js$/u,
   },
   imports: {

@@ -69,6 +69,40 @@ function cli(
 
 export const cliCapabilities: Capability[] = [
   {
+    id: "migration inventory",
+    surface: "cli",
+    invocation:
+      "node dist/src/cli.js migration inventory --root <physical-root> --json [--log <private-new-file>]",
+    prerequisites: [
+      "Node >=24; npm ci && npm run build",
+      "macOS native adapter built with Xcode Command Line Tools",
+      "physical quiescent readable root; no dataless entries or external hardlink aliases",
+    ],
+    reads: [
+      "complete raw native membership; regular-file bytes; raw symlink targets; native ACL/xattr payloads and stat metadata",
+    ],
+    writes: [
+      "optional explicit new private log outside source and repository; filesystem access times may advance",
+    ],
+    riskFlags: ["native-content-read"],
+    preview: null,
+    implementation: "src/commands/migration-inventory-command.ts",
+    tests: [
+      "test/migration/native-inventory.test.ts",
+      "test/migration/native-inventory-cli.test.ts",
+    ],
+    status: "supported",
+    health: "not-observed",
+    result:
+      "Versioned two-pass non-atomic observation; observed exits 0, incomplete/refused exits 2. No migration, admission or preservation equality claim. Other platforms explicitly unsupported.",
+    options: {
+      "--root":
+        "Physical root; ancestor symlinks and cross-device entries refuse",
+      "--log":
+        "New absolute file in an existing private owner directory outside source/repository",
+    },
+  },
+  {
     id: "naming plan",
     surface: "cli",
     invocation:

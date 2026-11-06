@@ -8,7 +8,7 @@ export const nativeModelCases = [
     module: "MixedAdmission",
     broken: "none",
     invariants:
-      "OnePermanentOwner RequestOwnerUnique ValidateCompleteHistoryBeforeEffects CompletedLookupPrecedesPending FreshInfeasibleHasNoStarter RuntimeVerifiedBeforeAccount CompletedReadonly FrozenCallerExpectationBeforeStarter",
+      "OnePermanentOwner RequestOwnerUnique ValidateCompleteHistoryBeforeEffects CompletedLookupPrecedesPending FreshInfeasibleHasNoStarter RuntimeVerifiedBeforeAccount CompletedReadonly FrozenCallerExpectationBeforeStarter UnrelatedPendingHasNoFreshStarter",
   },
   {
     name: "mixed-broken-namespace",

@@ -249,6 +249,7 @@ process.stdout.write(JSON.stringify(await dispatch(JSON.parse(readFileSync(0,"ut
       join(root, "dist/src/controls-publication/runtime-dependencies.js"),
     ).href
   );
+  let bindingIndex = 0;
   const bindFixtureRuntime = async (installation, moduleDirectory) => {
     await copyFile(
       join(root, "package-lock.json"),
@@ -283,28 +284,57 @@ process.stdout.write(JSON.stringify(await dispatch(JSON.parse(readFileSync(0,"ut
           join(root, "dist/src/migration/native-inventory/native", source),
           join(installation, "native", target),
         );
-    const built = spawnSync(
-      process.execPath,
-      [
-        join(root, "scripts/build-control-publication-integrity.mjs"),
-        installation,
-        moduleDirectory,
-      ],
-      { cwd: root, encoding: "utf8", timeout: 30000 },
+    const args = [
+      join(root, "scripts/build-control-publication-integrity.mjs"),
+      installation,
+      moduleDirectory,
+    ];
+    const started = new Date().toISOString();
+    const built = spawnSync(process.execPath, args, {
+      cwd: root,
+      encoding: "utf8",
+      timeout: 30000,
+    });
+    const record = {
+      executable: process.execPath,
+      args,
+      cwd: root,
+      started,
+      ended: new Date().toISOString(),
+      pid: built.pid,
+      status: built.status,
+      signal: built.signal,
+      stdout: built.stdout,
+      stderr: built.stderr,
+      error: built.error?.message,
+      aliveAfter: alive(built.pid),
+    };
+    commands.push(record);
+    const retained = join(evidence, `runtime-binding-${bindingIndex++}.json`);
+    await writeFile(retained, JSON.stringify(record, null, 2));
+    await writeFile(
+      join(evidence, "commands.json"),
+      JSON.stringify(commands, null, 2),
     );
+    if (built.status === 0) {
+      const bytes = await readFile(
+        join(moduleDirectory, "runtime-integrity.json"),
+      );
+      record.integritySnapshot = join(
+        evidence,
+        `runtime-integrity-${bindingIndex - 1}.json`,
+      );
+      record.integritySha256 = hash(bytes);
+      await writeFile(record.integritySnapshot, bytes);
+      await writeFile(retained, JSON.stringify(record, null, 2));
+      await writeFile(
+        join(evidence, "commands.json"),
+        JSON.stringify(commands, null, 2),
+      );
+    }
     await writeFile(
       join(moduleDirectory, "runtime-binding-build.json"),
-      JSON.stringify(
-        {
-          pid: built.pid,
-          status: built.status,
-          signal: built.signal,
-          stdout: built.stdout,
-          stderr: built.stderr,
-        },
-        null,
-        2,
-      ),
+      JSON.stringify({ ...record, retained }, null, 2),
     );
     assert.equal(built.status, 0, built.stdout + built.stderr);
   };
@@ -362,9 +392,8 @@ process.stdout.write(JSON.stringify(await dispatch(JSON.parse(readFileSync(0,"ut
       if (error.code !== "ENOENT") throw error;
     });
   };
-  async function stopped(args, key, whileStopped, occurrence = 1) {
+  async function stoppedCommand(argv, key, whileStopped, occurrence = 1) {
     await fault({ key, mode: "stop", occurrence });
-    const argv = [join(host, "src/cli.js"), "controls", ...args, "--json"];
     const child = spawn(process.execPath, argv, {
       cwd: source,
       stdio: ["ignore", "pipe", "pipe"],
@@ -417,6 +446,13 @@ process.stdout.write(JSON.stringify(await dispatch(JSON.parse(readFileSync(0,"ut
       await done;
     }
   }
+  const stopped = (args, key, whileStopped, occurrence = 1) =>
+    stoppedCommand(
+      [join(host, "src/cli.js"), "controls", ...args, "--json"],
+      key,
+      whileStopped,
+      occurrence,
+    );
   const save = async (result) => {
     await writeFile(
       join(evidence, "mutation.json"),
@@ -478,6 +514,7 @@ process.stdout.write(JSON.stringify(await dispatch(JSON.parse(readFileSync(0,"ut
     fault,
     clear,
     stopped,
+    stoppedCommand,
     save,
     sample,
     bundle,

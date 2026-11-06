@@ -1,6 +1,6 @@
 ---
 name: control-publication
-description: Check generated control publication after changes to its account resolver, owner lifetime, claims, ledger replay, expected heads, complete graph, receipts, CLI, MCP or standalone package.
+description: Check generated control publication and native host policy after changes to its account resolver, owner lifetime, claims, ledger replay, expected heads, complete graph, receipts, CLI, MCP or standalone package.
 ---
 
 # Check control publication
@@ -42,7 +42,7 @@ The statechart tool's interpreter is separate from the pinned checker identity.
 
 [Coverage](coverage.md) maps actions, source functions, runtime observations and reductions.
 [The source binding](coverage.json) records the checked product commit and exact covered-source hashes.
-The model bounds are two writers, two candidates, two generations, one conflicting alias, one physical replacement, one crash/restart and one admitted effect.
+The publisher model bounds are two writers, two candidates, two generations, one conflicting alias, one physical replacement, one crash/restart and one admitted effect.
 One crash permits one retained unclaimed attempt and one fresh attempt. Orphan append, its file barrier and fresh reservation remain separate.
 The native operations are synchronous. Expiry/drain tests establish ordering; no asynchronous native worker exists in this implementation.
 Kernel exclusion, account discovery, native syscall behavior and filesystem durability remain runtime premises.

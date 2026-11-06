@@ -208,7 +208,7 @@
         "after-policy-selector-swap",
         "after-policy-selector-archive"
       ],
-      "model": "MixedAdmission.CompletedLookupPrecedesPending and CompletedReadonly; NativeSelectorMove.ReadonlyCompletedLookup is enabled only during process interruption",
+      "model": "MixedAdmission.CompletedLookupPrecedesPending and CompletedReadonly; NativeSelectorMove.ReadonlyCompletedLookup is enabled only during process interruption; UnrelatedPendingHasNoFreshStarter states the fresh-refusal consequence under a sound supplied pending predicate.",
       "driver": [
         {
           "path": "test/controls-publication/native-policy-admission.test.ts",
@@ -228,7 +228,18 @@
       "needed": "Keep generated create/publication, registration and native receipt readback. Exercise two operations times two interrupted physical positions. Kill after swap and after archive. Assert unchanged ledger during completed readback, forced-sync marker absent, and fresh mutation refusal.",
       "mutants": ["M3"],
       "restoration": "Identical historical bytes/results return without append or sync. Exact interrupted update later settles once.",
-      "checkpointsArePlannedSelectorsNotAllActualLastRecordKinds": true
+      "checkpointsArePlannedSelectorsNotAllActualLastRecordKinds": true,
+      "classifierBoundary": {
+        "formalPremise": "pending is an abstract none/unrelated predicate, not an implementation of the mixed settlement classifier.",
+        "runtimeObligation": "Family-tagged generated/host/policy settlement classification; schema-valid pending diagnostics with a genuine retained plan digest or null.",
+        "frozenCounterexample": {
+          "issue": 481,
+          "productRevision": "569cf9e5991fc5f8ee83235c913760ebcdc270c3",
+          "trigger": "A pending generated request ID equals a previously settled native host intent digest.",
+          "wrongOutcome": "Unrelated host registration succeeds and appends despite pending generated work.",
+          "proofStatus": "Current product bug; corrected-source public regression and mapping remain pending."
+        }
+      }
     },
     {
       "id": "P5",
@@ -360,7 +371,12 @@
       "needed": "Reuse wrong-old policy request and same-byte foreign predecessor. Add two fresh native callers with unchanged expected-old if final product profile lacks native race coverage; preserve existing generated no-crash schedule.",
       "mutants": ["M6"],
       "restoration": "Wrong-old refuses before intent with exact unchanged bytes; only one successor can use a given old selector.",
-      "checkpointsArePlannedSelectorsNotAllActualLastRecordKinds": true
+      "checkpointsArePlannedSelectorsNotAllActualLastRecordKinds": true,
+      "freshNativeRace": {
+        "driver": "native-runtime.mjs native-frozen-expected-old restored control",
+        "observedAtProduct": "569cf9e5991fc5f8ee83235c913760ebcdc270c3",
+        "observed": "Unchanged B is busy while fresh A is stopped before swap; after A succeeds, B is stale and has no new starter. No crash."
+      }
     },
     {
       "id": "P7",
@@ -755,7 +771,8 @@
     "Fixed-head historical lookup is omitted from NativeSelectorMove. The interrupted-read invariant captures and checks exact move/archive intent sync, fixed new head, expected old and source identity class, and pending-only fallback or observed relocation. Its action property preserves all modeled ledger/output evidence.",
     "savedPc retains abstract evidence across process death. Generation/receipt prefix creation has no physical object identity variable. This model does not independently prove unknown-inode recovery for generation/receipt creation crashes; that remains an original generated-proof and runtime premise.",
     "M6 removes only fresh validateBeforeSync expectedPriorGeneration. MixedAdmission models its no-starter promise and dedicated expected mutation. The native model physical expected-old guard remains unconditional and has no sensitivity claim for M6. The same eleven configurations now use five mixed counterexamples and three selector counterexamples, with unchanged three positives/eight intentional breaks.",
-    "candidate-reserved has no caller expected-old field and always takes matches. The expectation class represents frozen fresh-validation input, not an inter-writer selected-head race. The actual public race and original publisher proof supply that evidence."
+    "candidate-reserved has no caller expected-old field and always takes matches. The expectation class represents frozen fresh-validation input, not an inter-writer selected-head race. The actual public race and original publisher proof supply that evidence.",
+    "P4 assumes a sound pending predicate. requirePendingOrder settlement classification is runtime-checked. The retained569 cross-family digest/request collision wrong success proves this premise can fail in real source. Issue481 corrected-source public regression supplies sensitivity; the bounded model does not prove the classifier implementation."
   ],
   "allocationProfile": {
     "budgetBytes": 268435456,
@@ -944,7 +961,7 @@
     {
       "name": "MixedAdmission",
       "path": ".agents/skills/control-publication/MixedAdmission.tla",
-      "sha256": "22cf937e16f918aa41a52d8499c5fd20e2a4894dcfa7ae18b1f2258ef0166302",
+      "sha256": "e780900c62f60c7da7976e636271c5b6424f9dfd927d9c5f7812758991d76716",
       "variables": [
         "pc",
         "gate",
@@ -1016,7 +1033,8 @@
         "freshCallerExpectedOldClasses": ["matches", "stale"],
         "freshCallerExpectation": "Frozen before ownership. Fresh expected-old mismatch refuses before starter; completed exact-request binding remains a separate premise.",
         "candidateExpectedOld": "trivially matches; no expected-old field",
-        "expectationRace": "Not modeled as a selected-head race; source/runtime/original publisher premise."
+        "expectationRace": "Not modeled as a selected-head race; source/runtime/original publisher premise.",
+        "pendingClassifier": "Abstract none/unrelated predicate; family-tagged classification is runtime-checked, with retained569 issue481 counterexample."
       }
     },
     {
@@ -1153,5 +1171,6 @@
     "native-fixture.mjs": "Compile-time private host inputs and explicit product root",
     "native-capacity.mjs": "Actual production planner observation, unique pressure and retained capacity mutant/restoration",
     "native-package.mjs": "Actual production builder/archive/extraction and complete native output readback"
-  }
+  },
+  "verificationCompletion": "Parked at Root request. Candidate1 failed verification adapter setup; corrected focused controls passed. Source sync has not advanced. Product569 has confirmed480/481 bugs. Reviewed replacement and full candidate/ordinary runs remain required."
 }

@@ -58,6 +58,20 @@ export async function nativeFixture(root, evidence, name, mutate) {
       action === "retry-native-source-policy" ? input : inputPath,
     ]);
   };
+  const stoppedRun = async (action, input, key, whileStopped) => {
+    const path = join(f.evidence, `native-stopped-input-${++serial}.json`);
+    await writeFile(path, JSON.stringify(input), { mode: 0o600 });
+    return f.stoppedCommand(
+      [
+        join(f.host, "src/controls-publication/host-deployment.js"),
+        action,
+        "--input",
+        path,
+      ],
+      key,
+      whileStopped,
+    );
+  };
   const prepare = async () => {
     const registered = success(await run("register", registration));
     return {
@@ -76,6 +90,7 @@ export async function nativeFixture(root, evidence, name, mutate) {
   return {
     ...f,
     productRoot: root,
+    stoppedRun,
     enclosure,
     snapshot,
     registration,

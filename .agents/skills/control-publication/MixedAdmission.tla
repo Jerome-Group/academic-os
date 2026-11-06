@@ -92,5 +92,6 @@ FreshInfeasibleHasNoStarter == resourceClass # "complete" => starterRows = {}
 RuntimeVerifiedBeforeAccount == \A w \in Writers: pc[w] \notin {"frozen", "done"} => w \in runtimeVerified
 CompletedReadonly == \A w \in Writers: result[w] = "completed-original" => w \notin starterRows
 FrozenCallerExpectationBeforeStarter == callerExpectedOld = "stale" => starterRows = {}
+UnrelatedPendingHasNoFreshStarter == pending = "unrelated" => starterRows = {}
 Spec == Init /\ [][Next]_vars
 =============================================================================

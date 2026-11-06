@@ -3,7 +3,7 @@ import { copyFile, lstat, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { decoded, hash } from "./fixture.mjs";
-import { nativeFixture, success, raw } from "./native-fixture.mjs";
+import { nativeFixture, success, raw, refused } from "./native-fixture.mjs";
 import { fullSuffix } from "./native-capacity.mjs";
 import { packagedReceipt } from "./native-package.mjs";
 const cases = (root) => [
@@ -295,14 +295,68 @@ async function scenario(f, name) {
         row.record.kind === "native-source-policy-install-intent" &&
         row.record.scope.requestId === "wrong-expected-old",
     );
+    let freshRace;
+    if (!starter && call.status !== 0 && decoded(call).code === "stale-head") {
+      const firstRequest = {
+        ...input,
+        requestId: "fresh-native-a",
+        expectedPriorGeneration: first.generation.sha256,
+        slots: [{ ...input.slots[0], sourceKey: "fresh-native-a" }],
+      };
+      const secondRequest = {
+        ...input,
+        requestId: "fresh-native-b",
+        expectedPriorGeneration: first.generation.sha256,
+        slots: [{ ...input.slots[0], sourceKey: "fresh-native-b" }],
+      };
+      const frozen = JSON.stringify(secondRequest);
+      let busy;
+      const winner = success(
+        await f.stoppedRun(
+          "install-native-source-policy",
+          firstRequest,
+          "replaceSelectorGuarded|before-policy-selector-swap|promotion-intent",
+          async () => {
+            const held = await readFile(f.ledger);
+            busy = await f.run("install-native-source-policy", secondRequest);
+            refused(busy, "busy");
+            assert.deepEqual(await readFile(f.ledger), held);
+          },
+        ),
+      );
+      const settled = await readFile(f.ledger),
+        stale = await f.run("install-native-source-policy", secondRequest);
+      refused(stale, "stale-head");
+      assert.deepEqual(await readFile(f.ledger), settled);
+      assert.equal(JSON.stringify(secondRequest), frozen);
+      assert.ok(
+        !(await f.events()).some(
+          (row) =>
+            row.record.kind === "native-source-policy-install-intent" &&
+            row.record.scope.requestId === secondRequest.requestId,
+        ),
+      );
+      freshRace = {
+        firstRequest,
+        secondRequest,
+        busy,
+        winner,
+        stale,
+        noCrash: true,
+        unchangedSecondExpectation: true,
+        noSecondStarter: true,
+      };
+    }
     return {
       violated: Boolean(starter) && !after.equals(before),
       controlPassed:
         call.status !== 0 &&
         decoded(call).code === "stale-head" &&
-        after.equals(before),
+        after.equals(before) &&
+        Boolean(freshRace),
       call,
       starter,
+      freshRace,
       originalGeneration: first.generation.sha256,
       ledgerBeforeSha256: hash(before),
       ledgerAfterSha256: hash(after),

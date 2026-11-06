@@ -21,6 +21,67 @@ import {
 import { fixture, raw } from "./native-policy-fixture.js";
 import { bindFixtureRuntime } from "./runtime-fixture.js";
 
+it("refuses executable-directory dependency shadows while retaining package-root nested dependency support", {
+  skip: process.platform !== "darwin",
+  timeout: 180000,
+}, async (context) => {
+  const f = await fixture("dependency-source-shadow");
+  context.diagnostic(`Retained dependency source shadow fixture ${f.root}`);
+  const request = await f.request();
+  const before = await readFile(f.ledger);
+  const modules = join(f.host, "node_modules/ajv/dist/runtime/node_modules");
+  const shadow = join(modules, "fast-uri");
+  await mkdir(modules, { recursive: true, mode: 0o700 });
+  await cp(join(f.host, "node_modules/fast-uri"), shadow, { recursive: true });
+  const marker = join(f.root, "dependency-source-shadow-executed.json");
+  const path = join(shadow, "index.js");
+  await writeFile(
+    path,
+    Buffer.concat([
+      await readFile(path),
+      Buffer.from(
+        `\nrequire("node:fs").writeFileSync(${JSON.stringify(marker)}, JSON.stringify({pid:process.pid,dependency:"ajv/dist/runtime/node_modules/fast-uri"}));\n`,
+      ),
+    ]),
+  );
+  await writeFile(
+    f.checkpoint,
+    JSON.stringify({ edge: "before-handle-guard", action: "throw" }),
+  );
+  const result = await f.run("install-native-source-policy", request);
+  const executed: unknown = JSON.parse(await readFile(marker, "utf8"));
+  const ownerEntered = await stat(join(f.root, "fault-hit.json")).then(
+    () => true,
+    () => false,
+  );
+  const ledgerUnchanged = (await readFile(f.ledger)).equals(before);
+  await writeFile(
+    join(f.root, "dependency-source-shadow-result.json"),
+    JSON.stringify(
+      {
+        executed,
+        result: result.value,
+        ownerEntered,
+        ledgerUnchanged,
+        commands: f.commands,
+      },
+      null,
+      2,
+    ),
+  );
+  assert.notEqual(result.status, 0);
+  assert.equal(
+    ownerEntered,
+    false,
+    "dependency-source shadow reached the account owner",
+  );
+  assert.equal(ledgerUnchanged, true);
+  await rename(modules, join(f.root, "retained-source-shadow-node-modules"));
+  await unlink(f.checkpoint);
+  const restored = await f.run("install-native-source-policy", request);
+  assert.equal(restored.status, 0, JSON.stringify(restored.value));
+});
+
 it("refuses changed installed transitive dependency and non-JavaScript inputs before account entry and restores exact policy retry", {
   skip: process.platform !== "darwin",
   timeout: 180000,

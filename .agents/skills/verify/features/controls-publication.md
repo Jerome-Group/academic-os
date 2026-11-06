@@ -18,6 +18,11 @@ before account resolution. Closed metadata and a complete installed artifact inv
 omitted bindings. This assumes a trusted installed bootstrap held unchanged during execution;
 it supplies neither bootstrap authentication nor a universal filesystem-race guarantee.
 
+Host deployment uses the existing closed publisher owner failures because refusal or recovery
+can precede a native installation intent. Its result fixtures validate actual unavailable,
+interrupted and restored operations without inventing a native pending scope. Native acquisition
+result types remain separate and its implementation remains unavailable.
+
 For publisher protocol changes, also follow [control publication](../../control-publication/SKILL.md)
 and run the local `publication-formal` profile from a clean committed checkout.
 Read its nested models, compiled fault schedules, exact source bindings, actual public mutant

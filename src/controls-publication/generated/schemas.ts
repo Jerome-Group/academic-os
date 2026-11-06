@@ -2045,6 +2045,38 @@ export const publicationSchemas = [
         ],
         additionalProperties: false,
       },
+      HostFailure: {
+        oneOf: [
+          {
+            $ref: "urn:academic-os:publication-contract:1#/definitions/Refused",
+          },
+          {
+            $ref: "urn:academic-os:publication-contract:1#/definitions/RecoveryRequired",
+          },
+        ],
+      },
+      HostRegistrationSuccess: {
+        type: "object",
+        properties: {
+          kind: { const: "host-deployment-installed" },
+          registrationDigest: { $ref: "#/definitions/Digest" },
+          registration: { $ref: "#/definitions/OwnedBlob" },
+        },
+        required: ["kind", "registrationDigest", "registration"],
+        additionalProperties: false,
+      },
+      HostRegistrationResult: {
+        oneOf: [
+          { $ref: "#/definitions/HostRegistrationSuccess" },
+          { $ref: "#/definitions/HostFailure" },
+        ],
+      },
+      HostPolicyResult: {
+        oneOf: [
+          { $ref: "#/definitions/InstallReceipt" },
+          { $ref: "#/definitions/HostFailure" },
+        ],
+      },
     },
     anyOf: [
       { $ref: "#/definitions/Record" },
@@ -2069,6 +2101,8 @@ export const publicationSchemas = [
       { $ref: "#/definitions/PolicySelector" },
       { $ref: "#/definitions/HostRegistrationInput" },
       { $ref: "#/definitions/HostRegistration" },
+      { $ref: "#/definitions/HostPolicyResult" },
+      { $ref: "#/definitions/HostRegistrationResult" },
     ],
   },
   {

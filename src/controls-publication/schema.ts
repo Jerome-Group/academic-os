@@ -9,9 +9,12 @@ import { readStrictJson } from "../controls/strict-json.js";
 import { activitySchemas } from "../module-activity/generated/schemas.js";
 import { base64DecodedLength, canonicalBase64 } from "./codec.js";
 import type {
+  HostFailure,
   HostInstallInput,
+  HostPolicyResult,
   HostRegistration,
   HostRegistrationInput,
+  HostRegistrationResult,
   Record as NativeRecord,
   Policy,
   PolicySelector,
@@ -128,6 +131,19 @@ export const validatePolicySelector = requiredValidator<PolicySelector>(
 export const validateHostRegistration = requiredValidator<HostRegistration>(
   `${nativeSchemaId}#/definitions/HostRegistration`,
 );
+export const validateHostFailure = requiredValidator<HostFailure>(
+  `${nativeSchemaId}#/definitions/HostFailure`,
+);
+export const validateHostPolicyResult = requiredValidator<HostPolicyResult>(
+  `${nativeSchemaId}#/definitions/HostPolicyResult`,
+);
+export const validateHostRegistrationResult =
+  requiredValidator<HostRegistrationResult>(
+    `${nativeSchemaId}#/definitions/HostRegistrationResult`,
+  );
+export const validatePublicationRecoveryRequestId = requiredValidator<
+  string | null
+>(`${publicationSchemaId}#/definitions/RecoveryRequired/properties/requestId`);
 export const validateRuntimeConsistency = requiredValidator<RuntimeConsistency>(
   "urn:academic-os:runtime-consistency:1",
 );

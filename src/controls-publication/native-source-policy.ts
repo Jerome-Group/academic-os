@@ -2,20 +2,19 @@ import { join } from "node:path";
 import { digest, encodePublication, sha256 } from "./codec.js";
 import { recover, refuse } from "./failure.js";
 import type {
+  HostFailure,
   HostInstallInput,
+  HostPolicyResult,
   HostRegistration,
   HostRegistrationInput,
   HostRegistrationIntent,
+  HostRegistrationResult,
   InstallReceipt,
   OwnedBlob,
   Policy,
   PolicyInstallIntent,
   PolicySelector,
 } from "./generated/native-source-contract-1.js";
-import type {
-  RecoveryRequired,
-  Refused,
-} from "./generated/publication-contract-1.js";
 import { locator, observeHostDeployment } from "./host-deployment-inputs.js";
 import type {
   ExclusionObservation,
@@ -77,7 +76,7 @@ const deployments = new WeakMap<
   object,
   { registration: HostRegistration; blob: OwnedBlob }
 >();
-type Failure = Refused | RecoveryRequired;
+type Failure = HostFailure;
 
 function installedRegistration(store: PublicationStore): {
   registration: HostRegistration;
@@ -215,14 +214,7 @@ function originalSelectorBytes(
 
 export async function registerHostDeployment(
   request: HostRegistrationInput,
-): Promise<
-  | {
-      kind: "host-deployment-installed";
-      registrationDigest: string;
-      registration: OwnedBlob;
-    }
-  | Failure
-> {
+): Promise<HostRegistrationResult> {
   if (!validateHostRegistrationInput(request))
     return {
       kind: "refused",
@@ -554,7 +546,7 @@ function retainedPolicyRequest(intent: PolicyInstallIntent): HostInstallInput {
 export async function installNativeSourcePolicy(input: {
   deployment: TrustedHostDeployment;
   request: HostInstallInput;
-}): Promise<InstallReceipt | Failure> {
+}): Promise<HostPolicyResult> {
   const authority =
     typeof input.deployment === "object" && input.deployment !== null
       ? deployments.get(input.deployment)
@@ -1015,7 +1007,7 @@ export async function installNativeSourcePolicy(input: {
 export async function retryNativeSourcePolicy(input: {
   deployment: TrustedHostDeployment;
   requestId: string;
-}): Promise<InstallReceipt | Failure> {
+}): Promise<HostPolicyResult> {
   if (
     typeof input.deployment !== "object" ||
     input.deployment === null ||

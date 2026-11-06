@@ -9,7 +9,9 @@ import {
 import {
   parseBytes,
   validateHostInstallInput,
+  validateHostPolicyResult,
   validateHostRegistrationInput,
+  validateHostRegistrationResult,
 } from "./schema.js";
 
 export async function runHostDeploymentCommand(args: string[]): Promise<void> {
@@ -52,6 +54,12 @@ export async function runHostDeploymentCommand(args: string[]): Promise<void> {
               requestId: value,
             });
   } else throw new Error("Unknown deliberate host deployment operation.");
+  if (
+    action === "register"
+      ? !validateHostRegistrationResult(result)
+      : !validateHostPolicyResult(result)
+  )
+    throw new Error("Host deployment returned an unsupported outcome.");
   process.stdout.write(`${JSON.stringify(result)}\n`);
   if (
     "kind" in result &&

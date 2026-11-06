@@ -22,7 +22,9 @@ export type NativeSourceContract =
   | EndFrame
   | PolicySelector
   | HostRegistrationInput
-  | HostRegistration;
+  | HostRegistration
+  | HostPolicyResult
+  | HostRegistrationResult;
 export type Record =
   | NativeIntent
   | AttemptReserved
@@ -72,6 +74,11 @@ export type InspectResult =
   | BrokenInspection;
 export type RawBytes = string;
 export type AttributeState = AttributeAbsent | AttributePresent;
+export type HostPolicyResult = InstallReceipt | HostFailure;
+export type HostFailure =
+  | HostPublicationRefused
+  | HostPublicationRecoveryRequired;
+export type HostRegistrationResult = HostRegistrationSuccess | HostFailure;
 
 export interface NativeIntent {
   schemaVersion: 2;
@@ -2219,4 +2226,37 @@ export interface PolicySelector {
   schema: "native-source-policy-selector/1";
   generation: OwnedBlob;
   hostAccountDigest: Digest;
+}
+export interface HostPublicationRefused {
+  kind: "refused";
+  code:
+    | "busy"
+    | "unsupported-host"
+    | "unsafe-namespace"
+    | "bootstrap-unclaimed"
+    | "unknown-candidate"
+    | "root-replaced"
+    | "request-conflict"
+    | "stale-head"
+    | "invalid-controls"
+    | "evidence-mismatch"
+    | "unsupported-effect"
+    | "unowned-output";
+  evidence: string[];
+}
+export interface HostPublicationRecoveryRequired {
+  kind: "recovery-required";
+  code:
+    | "uncertain-claim"
+    | "uncertain-publication"
+    | "durability-unavailable"
+    | "journal-recovery-required";
+  requestId: string | null;
+  retainedPlanDigest: string | null;
+  evidence: string[];
+}
+export interface HostRegistrationSuccess {
+  kind: "host-deployment-installed";
+  registrationDigest: Digest;
+  registration: OwnedBlob;
 }

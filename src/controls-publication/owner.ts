@@ -21,6 +21,7 @@ import {
   validateMixedHistory,
 } from "./native-policy-history.js";
 import { publicationRelease, runtimeDirectory } from "./release.js";
+import { validatePublicationRecoveryRequestId } from "./schema.js";
 import {
   ledgerName,
   namespaceName,
@@ -177,7 +178,22 @@ export async function withPublicationOwner<T>(input: {
       );
     return result.value;
   } catch (error) {
-    if (error instanceof PublicationFailure) return error.result;
+    if (error instanceof PublicationFailure) {
+      const result = error.result;
+      if (
+        result.kind === "recovery-required" &&
+        !validatePublicationRecoveryRequestId(result.requestId)
+      )
+        return {
+          ...result,
+          requestId: null,
+          evidence: [
+            ...result.evidence,
+            `Request identity outside the publication identifier grammar: ${JSON.stringify(result.requestId)}`,
+          ],
+        };
+      return result;
+    }
     return {
       kind: "recovery-required",
       code: "uncertain-publication",

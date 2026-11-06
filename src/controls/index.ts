@@ -38,6 +38,4 @@ export type {
   ControlRead,
   ControlReadInput,
   LegacyControlShape,
-  CanonicalControl,
 } from "./types.js";
-export type { ModuleDataControl } from "./generated/module-data-1.js";

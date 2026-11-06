@@ -128,8 +128,8 @@ exam-important question the Owner accepts; keep the existing no-date, no-order f
 
 Reconcile only work explicitly completed and next actions the Owner accepted through the Tasks
 protocol in `AGENTS.md`. Verify API/register success there; a conflict or uncertain result remains
-unresolved. Dated/timed placement follows its separate authorized native UI delegation and evidence
-gate, because task-plan/1 refuses those writes. Resolve authoritative assessment dates through
+unresolved. Date-only Task updates use ordinary API calls. Clock-time placement follows its separate
+authorized native UI delegation and evidence gate. Resolve authoritative assessment dates through
 Calendar preview and promotion. Preserve task IDs, manual changes, dismissals and unrelated fields.
 Never infer mastery, silently reschedule overdue work, or turn an unaccepted suggestion into a task.
 

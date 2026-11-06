@@ -916,6 +916,7 @@ export function capabilityIndex(): object {
           "test/operations/task-tools.test.ts",
           "test/operations/research-task-tools.test.ts",
           "test/operations/task-plan-tools.test.ts",
+          "test/operations/task-client-instructions.test.ts",
           "test/cli/tasks-apply-plan-cli.test.ts",
           "test/cli/tasks-recovery-cli.test.ts",
         ],
@@ -930,9 +931,10 @@ export function capabilityIndex(): object {
       id: name,
       surface: "mcp",
       invocation: `MCP tools/call ${name}`,
-      prerequisites: [
-        "Operations protocol task-plan/1; exact target; fresh snapshot for mutation",
-      ],
+      prerequisites:
+        name === "tasks_apply_plan"
+          ? ["exact task-plan/1 target and fresh mutation snapshot"]
+          : ["configured Operations server; Tailnet reachability"],
       reads:
         name === "tasks_apply_plan"
           ? ["Google Tasks", "private lifecycle/journal"]
@@ -958,7 +960,9 @@ export function capabilityIndex(): object {
       status: "supported",
       health: "not-observed",
       result:
-        "MCP content containing JSON text and isError; versioned exact-plan result. Conflicts never silently replan. Native timing unavailable until verified adapter.",
+        name === "tasks_apply_plan"
+          ? "MCP JSON text and isError; exact-plan result. Conflicts never silently replan."
+          : "MCP JSON text; direct operations by default, requiresPlan false; optional exact-plan support and date-only/notes capability.",
     });
   for (const name of [
     "tasks_completion_capabilities",

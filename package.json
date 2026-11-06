@@ -27,7 +27,8 @@
     "controls:generate": "node scripts/generate-control-types.mjs",
     "controls:check": "node scripts/generate-control-types.mjs --check",
     "config:generate": "node scripts/generate-config-types.mjs",
-    "config:check": "node scripts/generate-config-types.mjs --check"
+    "config:check": "node scripts/generate-config-types.mjs --check",
+    "module-activity:check": "npm run build && node --test dist/test/module-activity/*.test.js"
   },
   "engines": {
     "node": ">=24"

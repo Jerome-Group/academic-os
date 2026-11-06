@@ -49,3 +49,9 @@ await writeFile(
   "dist/src/controls-publication/release.json",
   encodePublication(manifest),
 );
+
+await mkdir("dist/src/module-activity", { recursive: true });
+await writeFile(
+  "dist/src/module-activity/release.json",
+  encodePublication(manifest),
+);

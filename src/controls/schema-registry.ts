@@ -1,15 +1,16 @@
 import { Ajv, type ValidateFunction } from "ajv";
+import { activitySchemas } from "../module-activity/generated/schemas.js";
+import type { ControlGeneration } from "./generated/control-generation-1.js";
+import type { ModuleDataGeneration } from "./generated/control-generation-2.js";
+import type { ModuleDataControl } from "./generated/module-data-1.js";
+import type { ModuleHead } from "./generated/module-head-1.js";
+import type { ModuleIdentity } from "./generated/module-identity-1.js";
+import { controlSchemas } from "./generated/schemas.js";
 import {
   moduleCalendarDate,
   nativeNulFreeBytes,
 } from "./module-data-formats.js";
-import { controlSchemas } from "./generated/schemas.js";
-import type { ModuleHead } from "./generated/module-head-1.js";
-import type { ControlGeneration } from "./generated/control-generation-1.js";
-import type { ModuleIdentity } from "./generated/module-identity-1.js";
-import type { ModuleDataGeneration } from "./generated/control-generation-2.js";
-import type { ModuleDataControl } from "./generated/module-data-1.js";
-import { diagnostic, type ControlDiagnostic } from "./types.js";
+import { type ControlDiagnostic, diagnostic } from "./types.js";
 
 export const headSchemaId = "urn:academic-os:module-head:1";
 export const generationSchemaId = "urn:academic-os:control-generation:1";
@@ -17,10 +18,15 @@ export const identitySchemaId = "urn:academic-os:module-identity:1";
 export const moduleDataGenerationSchemaId =
   "urn:academic-os:control-generation:2";
 export const moduleDataSchemaId = "urn:academic-os:module-data:1";
+
+import { canonicalBase64 } from "./canonical-json.js";
+
 const ajv = new Ajv({ allErrors: true, strict: true, validateFormats: true });
+ajv.addFormat("publication-base64", canonicalBase64);
 ajv.addFormat("module-calendar-date", moduleCalendarDate);
 ajv.addFormat("native-nul-free-bytes", nativeNulFreeBytes);
-for (const schema of controlSchemas) ajv.addSchema(schema);
+for (const schema of [...controlSchemas, ...activitySchemas])
+  ajv.addSchema(schema);
 
 export const validateHead = validator<ModuleHead>(headSchemaId);
 export const validateGeneration =

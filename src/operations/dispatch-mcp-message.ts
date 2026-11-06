@@ -1,3 +1,5 @@
+import { Ajv } from "ajv";
+import { measureActivityWire } from "../controls/index.js";
 import { OperationalError } from "../operational-error.js";
 import { isJsonObject } from "./json-object.js";
 import { readToolArguments, toolInputSchema } from "./tool-arguments.js";
@@ -37,6 +39,14 @@ export function createMcpDispatcher(input: {
   tools: readonly ServedOperationTool[];
   serverInfo: McpServerInfo;
 }): McpDispatcher {
+  const outputAjv = new Ajv({ strict: false, validateFormats: false });
+  const outputs = new Map(
+    input.tools.flatMap((tool) =>
+      "outputSchema" in tool && tool.outputSchema
+        ? [[tool.name, outputAjv.compile(tool.outputSchema)] as const]
+        : [],
+    ),
+  );
   const tools = new Map(input.tools.map((tool) => [tool.name, tool]));
   return async (message) => {
     if (
@@ -55,7 +65,34 @@ export function createMcpDispatcher(input: {
       return undefined;
     }
     try {
-      return success(id, await route(message.method, message.params));
+      const response = success(
+        id,
+        await route(message.method, message.params, id),
+      );
+      const selected =
+        message.method === "tools/call" &&
+        isJsonObject(message.params) &&
+        typeof message.params.name === "string"
+          ? tools.get(message.params.name)
+          : undefined;
+      if (
+        selected &&
+        "maximumResponseBytes" in selected &&
+        selected.maximumResponseBytes !== undefined
+      ) {
+        try {
+          measureActivityWire(response, selected.maximumResponseBytes);
+        } catch (error) {
+          return failure(
+            null,
+            INVALID_REQUEST,
+            error instanceof Error
+              ? error.message
+              : "Response exceeds its packet limit.",
+          );
+        }
+      }
+      return response;
     } catch (error) {
       if (error instanceof UnknownMethod) {
         return failure(id, METHOD_NOT_FOUND, error.message);
@@ -66,7 +103,11 @@ export function createMcpDispatcher(input: {
     }
   };
 
-  async function route(method: string, params: unknown): Promise<unknown> {
+  async function route(
+    method: string,
+    params: unknown,
+    id: string | number | null,
+  ): Promise<unknown> {
     if (method === "initialize") return initialize(params);
     if (method === "ping") return {};
     if (method === "tools/list") {
@@ -77,10 +118,13 @@ export function createMcpDispatcher(input: {
           description: tool.description,
           inputSchema:
             "fields" in tool ? toolInputSchema(tool.fields) : tool.inputSchema,
+          ...("outputSchema" in tool && tool.outputSchema
+            ? { outputSchema: tool.outputSchema }
+            : {}),
         })),
       };
     }
-    if (method === "tools/call") return await callTool(params);
+    if (method === "tools/call") return await callTool(params, id);
     throw new UnknownMethod(`Unknown method: ${method}.`);
   }
 
@@ -97,7 +141,10 @@ export function createMcpDispatcher(input: {
     };
   }
 
-  async function callTool(params: unknown): Promise<unknown> {
+  async function callTool(
+    params: unknown,
+    id: string | number | null,
+  ): Promise<unknown> {
     const name = isJsonObject(params) ? params.name : undefined;
     const tool = typeof name === "string" ? tools.get(name) : undefined;
     if (tool === undefined) {
@@ -110,13 +157,26 @@ export function createMcpDispatcher(input: {
     const call =
       "fields" in tool
         ? tool.call.bind(tool, readToolArguments(tool, arguments_))
-        : tool.call.bind(tool, arguments_);
+        : tool.call.bind(tool, arguments_, { jsonRpcId: id });
     // Everything past the parse is the operation itself, and an operation that fails is a result
     // the calling agent reads rather than a protocol error: the report says what the live list
     // and the register now hold, which is the only thing that tells it what to do next.
     try {
       const { report, failed } = await call();
-      return { content: [text(report)], isError: failed };
+      const validate = outputs.get(tool.name);
+      if (validate && !validate(report))
+        throw new Error(
+          "Operation result violates its declared output schema.",
+        );
+      return {
+        content: [
+          validate
+            ? { type: "text", text: JSON.stringify(report) }
+            : text(report),
+        ],
+        ...(validate ? { structuredContent: report } : {}),
+        isError: failed,
+      };
     } catch (error) {
       return {
         content: [

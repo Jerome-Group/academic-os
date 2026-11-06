@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadCohortTasksConfig } from "../commands/load-cohort-tasks-config.js";
 import { createPublicationTools } from "../controls-publication/tools.js";
+import { createModuleActivityTools } from "../module-activity/actions.js";
 import { applyConfiguredTaskPlan } from "../tasks/configured-task-executor.js";
 import { createConfiguredCompletionPlanning } from "./configured-completion-planning.js";
 import { configuredTaskTools } from "./configured-task-tools.js";
@@ -70,22 +71,24 @@ export async function createConfiguredOperationsTools(
     throw new Error("Official module register tool unavailable.");
   const { config } = await loadCohortTasksConfig(configPath);
   const completion = createConfiguredCompletionPlanning(config, readRegister);
+  const publicationContext = {
+    exclusionPaths: [
+      config.driveMount,
+      ...Object.values(config.semesters).map((semester) =>
+        join(config.driveMount, semester.root),
+      ),
+      ...("research" in config && config.research
+        ? [join(config.driveMount, config.research.root)]
+        : []),
+      ...(config.textbooks ? [config.textbooks.shelfRoot] : []),
+    ],
+  };
   return [
     ...guarded,
     ...createModuleCompletionTools(completion?.port),
     ...createNamingTools(),
-    ...createPublicationTools({
-      exclusionPaths: [
-        config.driveMount,
-        ...Object.values(config.semesters).map((semester) =>
-          join(config.driveMount, semester.root),
-        ),
-        ...("research" in config && config.research
-          ? [join(config.driveMount, config.research.root)]
-          : []),
-        ...(config.textbooks ? [config.textbooks.shelfRoot] : []),
-      ],
-    }),
+    ...createModuleActivityTools(publicationContext),
+    ...createPublicationTools(publicationContext),
   ];
 }
 

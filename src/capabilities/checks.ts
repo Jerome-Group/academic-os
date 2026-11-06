@@ -20,6 +20,7 @@ export const checkProfiles = {
   coverage: ["rule-coverage:check"],
   formal: ["seed-ownership:check"],
   publication: ["controls-publication:check"],
+  "module-activity": ["module-activity:check"],
   "publication-formal": ["control-publication:check"],
   full: [
     "controls:check",
@@ -156,6 +157,10 @@ export async function runChecks(
 }
 
 const workflowTests = {
+  "module-activity": {
+    areas: ["module-activity"],
+    cli: /^$/u,
+  },
   discovery: {
     areas: [
       "capabilities",

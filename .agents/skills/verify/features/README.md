@@ -11,6 +11,7 @@ Keep raw fixture proof after process teardown. Record each feature as passed, fa
 | --- | --- |
 | [Discovery, readiness and importer observations](discovery-imports.md) | `discovery`, `imports`, quality profiles |
 | [Generated control publication](controls-publication.md) | `publication` and `publication-formal` check profiles |
+| [Generated Module activity evidence](module-activity.md) | `module-activity` workflow and check profile |
 | [Native inventory](native-inventory.md) | `discovery` |
 | [Module and Research-project lifecycle](folder-lifecycle.md) | `recovery` |
 | [Tasks, Calendar and Operations](services.md) | `services` |

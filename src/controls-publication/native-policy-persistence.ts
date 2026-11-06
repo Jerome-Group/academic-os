@@ -1,3 +1,4 @@
+import { requireNativeBlobLocation } from "./native-blob-history.js";
 import { digest, encodePublication, sha256 } from "./codec.js";
 import { PublicationFailure, recover, refuse } from "./failure.js";
 import type {
@@ -163,21 +164,18 @@ export function readOwned(
   name: string,
   blob: OwnedBlob,
 ): Uint8Array {
-  const row = store
-    .records()
-    .find(
-      (record): record is FileClaim =>
-        record.kind === "file-claimed" &&
-        digest(record) === blob.claim.generatedClaimRecordDigest,
-    );
-  if (
-    !row ||
-    !sameObject(row.file.object, blob.claim.object) ||
-    blob.claim.location.parentClaimId !== parentClaimId(store, parent) ||
-    row.planned.byteLength.toString() !== blob.byteLength ||
-    row.planned.byteSha256 !== blob.sha256
-  )
-    recover("uncertain-claim", "Native blob ownership binding differs.");
+  const row = requireNativeBlobLocation(store, blob, {
+    target: store.location(parent, name),
+  });
+  return readPhysicalClaim(store, parent, name, row);
+}
+
+function readPhysicalClaim(
+  store: PublicationStore,
+  parent: DirectoryHandle,
+  name: string,
+  row: FileClaim,
+): Uint8Array {
   const physical = { ...row.file, location: store.location(parent, name) };
   store.requireClaim(parent, name, physical);
   const file = store.openFile(parent, name, physical);
@@ -185,8 +183,94 @@ export function readOwned(
     refuse("root-replaced", "Claimed native control metadata changed.");
   return store.readClaimed(parent, name, physical, {
     byteLength: row.planned.byteLength,
-    byteSha256: blob.sha256,
+    byteSha256: row.planned.byteSha256,
   });
+}
+
+export function readOriginalSelector(
+  store: PublicationStore,
+  name: string,
+  blob: OwnedBlob,
+): Uint8Array {
+  const row = requireNativeBlobLocation(store, blob);
+  const head = nativeValue(
+    store.native.observeAt(store.namespace, store.name(name)),
+  );
+  if (
+    head.kind === "present" &&
+    sameObject(head.observation.object, blob.claim.object)
+  )
+    return readOwned(store, store.namespace, name, blob);
+  const archive = historyName(name, blob);
+  if (
+    store
+      .records()
+      .some(
+        (record) =>
+          record.kind === "promotion-observed" &&
+          sameObject(record.object, blob.claim.object) &&
+          sameLocation(record.to, store.location(store.namespace, archive)),
+      )
+  )
+    return readOwned(store, store.namespace, archive, blob);
+  const move = store
+    .mixedRecords()
+    .findLast(
+      (record) =>
+        record.kind === "native-selector-move-intent" &&
+        digest(record.expectedPrior) === digest(blob) &&
+        digest(record.binding.location) ===
+          digest(location(store, store.namespace, name)),
+    );
+  if (move?.kind !== "native-selector-move-intent")
+    recover(
+      "uncertain-claim",
+      "Historical selector has neither an observed archive nor an exact pending move.",
+    );
+  const source = store
+    .records()
+    .find(
+      (record) =>
+        record.kind === "file-claimed" &&
+        digest(record) === move.generatedClaimRecordDigest,
+    );
+  const archiveIntent = store.records().find(
+    (record) =>
+      record.kind === "promotion-intent" &&
+      record.requestId === `n${move.scope.intentDigest}` &&
+      record.attemptId === `a${move.scope.attemptId}` &&
+      digest(record.source) ===
+        digest({
+          ...row.file,
+          location: store.location(store.namespace, name),
+        }) &&
+      sameLocation(
+        record.destination,
+        store.location(store.namespace, archive),
+      ),
+  );
+  if (
+    source?.kind !== "file-claimed" ||
+    !archiveIntent ||
+    head.kind !== "present" ||
+    !sameObject(head.observation.object, source.file.object)
+  )
+    recover(
+      "uncertain-claim",
+      "Pending selector predecessor lacks its exact swap, archive and generated source binding.",
+    );
+  readPhysicalClaim(store, store.namespace, name, source);
+  for (const candidate of [archive, `selector-${move.scope.attemptId}`]) {
+    const observed = nativeValue(
+      store.native.observeAt(store.namespace, store.name(candidate)),
+    );
+    if (
+      observed.kind === "present" &&
+      sameObject(observed.observation.object, blob.claim.object)
+    )
+      return readPhysicalClaim(store, store.namespace, candidate, row);
+  }
+  recover("uncertain-claim", "Exact pending selector predecessor is missing.");
 }
 export function strictDirectory(
   store: PublicationStore,
@@ -462,6 +546,33 @@ export function replaceSelector(
         path: temporaryName,
         bytes,
       });
+  const blob = ownedBlob(
+    store,
+    store.namespace,
+    name,
+    { ...claim, location: store.location(store.namespace, name) },
+    bytes,
+    digest({ purpose: name, sha256: sha256(bytes) }),
+    claimId,
+  );
+  const moveTarget = location(store, store.namespace, name);
+  const move = appendOnce(store, {
+    schemaVersion: 2,
+    kind: "native-selector-move-intent",
+    scope,
+    binding: operationBinding(
+      scope,
+      "policy-selector",
+      moveTarget,
+      digest({
+        generatedClaimRecordDigest: blob.claim.generatedClaimRecordDigest,
+        expectedPrior: prior,
+      }),
+      blob.claim.claimId,
+    ),
+    generatedClaimRecordDigest: blob.claim.generatedClaimRecordDigest,
+    expectedPrior: prior,
+  });
   let expectedHead: Parameters<
     typeof store.native.replaceSelectorGuarded
   >[0]["expectedHead"] = { kind: "absent" };
@@ -471,24 +582,7 @@ export function replaceSelector(
         "uncertain-claim",
         "Policy selector claim must be a regular generated file.",
       );
-    const priorObject: ObjectIdentity = {
-      ...prior.claim.object,
-      kind: "regular",
-    };
     const archive = historyName(name, prior);
-    const currentOld =
-      selected.kind === "present" &&
-      sameObject(selected.observation.object, prior.claim.object);
-    const archiveObserved = nativeValue(
-      store.native.observeAt(store.namespace, store.name(archive)),
-    );
-    const oldName = currentOld
-      ? name
-      : archiveObserved.kind === "present"
-        ? archive
-        : temporaryName;
-    const oldBytes = readOwned(store, store.namespace, oldName, prior);
-    expectedHead = { kind: "present", object: priorObject, bytes: oldBytes };
     const original = store
       .records()
       .find(
@@ -526,6 +620,15 @@ export function replaceSelector(
         destinationExpectation: "absent",
       });
   }
+  if (prior) {
+    if (prior.claim.object.kind !== "regular")
+      recover("uncertain-claim", "Prior selector is not regular.");
+    expectedHead = {
+      kind: "present",
+      object: { ...prior.claim.object, kind: "regular" },
+      bytes: readOriginalSelector(store, name, prior),
+    };
+  }
   nativeEffect(
     store.native.replaceSelectorGuarded({
       interval: store.mutating(),
@@ -551,7 +654,7 @@ export function replaceSelector(
       kind: "regular",
     };
     const archive = historyName(name, prior);
-    readOwned(store, store.namespace, archive, prior);
+    readOriginalSelector(store, name, prior);
     if (
       !store
         .records()
@@ -571,24 +674,38 @@ export function replaceSelector(
         to: store.location(store.namespace, archive),
       });
   }
-  const blob = ownedBlob(
-    store,
-    store.namespace,
-    name,
-    { ...claim, location: store.location(store.namespace, name) },
-    bytes,
-    digest({ purpose: name, sha256: sha256(bytes) }),
-    claimId,
-  );
-  readOwned(store, store.namespace, name, blob);
+  const currentClaim = {
+    ...claim,
+    location: store.location(store.namespace, name),
+  };
+  const source = store
+    .records()
+    .find(
+      (record) =>
+        record.kind === "file-claimed" &&
+        digest(record) === blob.claim.generatedClaimRecordDigest,
+    );
+  if (source?.kind !== "file-claimed")
+    recover("uncertain-claim", "Selector move source claim is missing.");
+  readPhysicalClaim(store, store.namespace, name, source);
   nativeEffect(
     store.native.syncFile({
       interval: store.mutating(),
-      file: store.openFile(store.namespace, name),
+      file: store.openFile(store.namespace, name, currentClaim),
     }),
     "durability-unavailable",
   );
   store.syncDirectory(store.namespace);
+  appendOnce(store, {
+    schemaVersion: 2,
+    kind: "native-selector-move-observed",
+    scope,
+    binding: move.binding,
+    moveIntentDigest: digest(move),
+    object: blob.claim.object,
+    parentBarrier: true,
+  });
+  readOwned(store, store.namespace, name, blob);
   return blob;
 }
 

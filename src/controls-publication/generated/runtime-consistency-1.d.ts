@@ -17,6 +17,7 @@ export interface RuntimeConsistency {
 export interface RuntimeArtifact {
   path: string;
   role:
+    | "dependency-input"
     | "javascript"
     | "schema-javascript"
     | "native"

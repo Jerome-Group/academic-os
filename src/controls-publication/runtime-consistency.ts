@@ -4,6 +4,7 @@ import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { sha256 } from "./codec.js";
 import type { RuntimeArtifact } from "./generated/runtime-consistency-1.js";
+import { installedRuntimeDependencyFiles } from "./runtime-dependencies.js";
 import { parseBytes, validateRuntimeConsistency } from "./schema.js";
 
 function matchesRole(artifact: RuntimeArtifact): boolean {
@@ -24,6 +25,8 @@ function matchesRole(artifact: RuntimeArtifact): boolean {
         artifact.path.endsWith("/scan.c") ||
         artifact.path.endsWith("/inventory-scan.c")
       );
+    case "dependency-input":
+      return artifact.path.startsWith("node_modules/");
     case "package-lock":
       return artifact.path === "package-lock.json";
     case "release-metadata":
@@ -63,6 +66,8 @@ async function installedArtifactPaths(
   const walk = async (directory: string): Promise<void> => {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       const path = join(directory, entry.name);
+      if (entry.name === "node_modules")
+        throw new Error("Product-local dependency resolution is unsupported.");
       if (entry.isDirectory()) await walk(path);
       else if (!entry.isFile())
         throw new Error(
@@ -87,8 +92,30 @@ async function installedArtifactPaths(
     for (const entry of await readdir(root, { withFileTypes: true }))
       if (entry.isFile() && entry.name.endsWith(".mjs")) paths.add(entry.name);
     await walk(join(root, "native"));
-  } else
+  } else {
+    if (rootFromModule === "../../..")
+      for (const name of ["dist/node_modules", "dist/package.json"])
+        if (
+          await lstat(join(root, name)).then(
+            () => true,
+            (error: unknown) => {
+              if (
+                error instanceof Error &&
+                "code" in error &&
+                error.code === "ENOENT"
+              )
+                return false;
+              throw error;
+            },
+          )
+        )
+          throw new Error(
+            "Intermediate runtime package resolution metadata is unsupported.",
+          );
     await walk(join(root, rootFromModule === "../../.." ? "dist/src" : "src"));
+    for (const path of await installedRuntimeDependencyFiles(root))
+      paths.add(path);
+  }
   if (
     await lstat(join(root, "package.json")).then(
       () => true,

@@ -28,12 +28,12 @@ import {
 import {
   appendOnce,
   deploymentSelectorName,
-  historyName,
   location,
   persistImmutable,
   planned,
   policySelectorName,
   readOwned,
+  readOriginalSelector,
   replaceSelector,
   requireImmutableEligible,
   reserveSuffix,
@@ -164,54 +164,6 @@ function selectedPolicy(
   return { selector: settled.selector, generation: settled.generation, body };
 }
 
-function originalSelectorBytes(
-  store: PublicationStore,
-  name: string,
-  blob: OwnedBlob,
-): Uint8Array {
-  const current = nativeValue(
-    store.native.observeAt(store.namespace, store.name(name)),
-  );
-  if (
-    current.kind === "present" &&
-    sameObject(current.observation.object, blob.claim.object)
-  )
-    return readOwned(store, store.namespace, name, blob);
-  const archivedName = historyName(name, blob);
-  const archived = nativeValue(
-    store.native.observeAt(store.namespace, store.name(archivedName)),
-  );
-  if (archived.kind === "present")
-    return readOwned(store, store.namespace, archivedName, blob);
-  const transfer = store
-    .records()
-    .find(
-      (record) =>
-        record.kind === "promotion-intent" &&
-        sameObject(record.source.object, blob.claim.object) &&
-        record.destination.rawNameBase64 ===
-          Buffer.from(archivedName).toString("base64"),
-    );
-  if (transfer?.kind === "promotion-intent") {
-    const attempt = store
-      .mixedRecords()
-      .find(
-        (record) =>
-          record.kind === "native-stage-reserved" &&
-          `a${record.scope.attemptId}` === transfer.attemptId &&
-          `n${record.scope.intentDigest}` === transfer.requestId,
-      );
-    if (attempt?.kind === "native-stage-reserved")
-      return readOwned(
-        store,
-        store.namespace,
-        `selector-${attempt.scope.attemptId}`,
-        blob,
-      );
-  }
-  return readOwned(store, store.namespace, archivedName, blob);
-}
-
 export async function registerHostDeployment(
   request: HostRegistrationInput,
 ): Promise<HostRegistrationResult> {
@@ -269,7 +221,7 @@ export async function registerHostDeployment(
         );
       if (completed?.kind !== "native-host-deployment-settled")
         return undefined;
-      originalSelectorBytes(
+      readOriginalSelector(
         store,
         deploymentSelectorName,
         completed.registration,
@@ -389,7 +341,7 @@ export async function registerHostDeployment(
               record.intentDigest === digest(intent),
           );
         if (completed?.kind === "native-host-deployment-settled") {
-          originalSelectorBytes(
+          readOriginalSelector(
             store,
             deploymentSelectorName,
             completed.registration,
@@ -507,7 +459,7 @@ function readCompletedInstallation(
       store.directoryClaim(store.namespace, "native-policy-receipts"),
     );
     readOwned(store, receipts, `${digest(intent)}.json`, completed.blob);
-    originalSelectorBytes(store, policySelectorName, body.body.selector);
+    readOriginalSelector(store, policySelectorName, body.body.selector);
     const generations = store.openDirectory(
       store.namespace,
       "native-source-policy",
@@ -886,7 +838,7 @@ export async function installNativeSourcePolicy(input: {
         let selector: OwnedBlob;
         if (reused) {
           if (selectorIntent.prior)
-            originalSelectorBytes(
+            readOriginalSelector(
               store,
               policySelectorName,
               selectorIntent.prior,

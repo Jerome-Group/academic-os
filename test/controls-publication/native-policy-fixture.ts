@@ -109,7 +109,7 @@ export async function fixture(name: string) {
     recursive: true,
   });
   await symlink(join(repository, "node_modules"), join(host, "node_modules"));
-  await writeFile(join(host, "package.json"), '{"type":"module"}\n');
+  await copyFile(join(repository, "package.json"), join(host, "package.json"));
   await copyFile(addon, join(extracted, "native/publication-native.node"));
   const checkpoint = join(root, "fault.json");
   const ledger = join(anchor, "academic-os-control-publication.jsonl");

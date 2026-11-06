@@ -58,7 +58,9 @@ export type Record =
   | InstallReceiptIntent
   | InstallReceiptSettled
   | HostRegistrationIntent
-  | HostRegistrationSettled;
+  | HostRegistrationSettled
+  | SelectorMoveIntent
+  | SelectorMoveObserved;
 export type Digest = string;
 export type Decimal = string;
 export type SignedNanoseconds = string;
@@ -641,6 +643,23 @@ export interface HostRegistrationSettled {
   intentDigest: Digest;
   registration: OwnedBlob;
   fileBarrier: true;
+  parentBarrier: true;
+}
+export interface SelectorMoveIntent {
+  schemaVersion: 2;
+  kind: "native-selector-move-intent";
+  scope: AttemptScope;
+  binding: Binding;
+  generatedClaimRecordDigest: Digest;
+  expectedPrior: OwnedBlob | null;
+}
+export interface SelectorMoveObserved {
+  schemaVersion: 2;
+  kind: "native-selector-move-observed";
+  scope: AttemptScope;
+  binding: Binding;
+  moveIntentDigest: Digest;
+  object: Identity;
   parentBarrier: true;
 }
 export interface Event {

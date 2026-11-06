@@ -1202,6 +1202,8 @@ export const publicationSchemas = [
           { $ref: "#/definitions/InstallReceiptSettled" },
           { $ref: "#/definitions/HostRegistrationIntent" },
           { $ref: "#/definitions/HostRegistrationSettled" },
+          { $ref: "#/definitions/SelectorMoveIntent" },
+          { $ref: "#/definitions/SelectorMoveObserved" },
         ],
       },
       Event: {
@@ -2076,6 +2078,50 @@ export const publicationSchemas = [
           { $ref: "#/definitions/InstallReceipt" },
           { $ref: "#/definitions/HostFailure" },
         ],
+      },
+      SelectorMoveIntent: {
+        type: "object",
+        properties: {
+          schemaVersion: { const: 2 },
+          kind: { const: "native-selector-move-intent" },
+          scope: { $ref: "#/definitions/AttemptScope" },
+          binding: { $ref: "#/definitions/Binding" },
+          generatedClaimRecordDigest: { $ref: "#/definitions/Digest" },
+          expectedPrior: {
+            oneOf: [{ $ref: "#/definitions/OwnedBlob" }, { type: "null" }],
+          },
+        },
+        required: [
+          "schemaVersion",
+          "kind",
+          "scope",
+          "binding",
+          "generatedClaimRecordDigest",
+          "expectedPrior",
+        ],
+        additionalProperties: false,
+      },
+      SelectorMoveObserved: {
+        type: "object",
+        properties: {
+          schemaVersion: { const: 2 },
+          kind: { const: "native-selector-move-observed" },
+          scope: { $ref: "#/definitions/AttemptScope" },
+          binding: { $ref: "#/definitions/Binding" },
+          moveIntentDigest: { $ref: "#/definitions/Digest" },
+          object: { $ref: "#/definitions/Identity" },
+          parentBarrier: { const: true },
+        },
+        required: [
+          "schemaVersion",
+          "kind",
+          "scope",
+          "binding",
+          "moveIntentDigest",
+          "object",
+          "parentBarrier",
+        ],
+        additionalProperties: false,
       },
     },
     anyOf: [
@@ -3257,6 +3303,7 @@ export const publicationSchemas = [
           },
           role: {
             enum: [
+              "dependency-input",
               "javascript",
               "schema-javascript",
               "native",

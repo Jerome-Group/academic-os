@@ -8,7 +8,10 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 const adapters = new Map([
   [
     "scripts/build-control-publication-integrity.mjs",
-    "src/controls-publication/codec",
+    [
+      "src/controls-publication/codec",
+      "src/controls-publication/runtime-dependencies",
+    ],
   ],
   [
     "scripts/deploy-native-source-policy.mjs",
@@ -48,7 +51,9 @@ function violations(importer, imports) {
     if (
       !target.startsWith("src/controls-publication/") ||
       target === "src/controls-publication/index" ||
-      adapters.get(importer) === target
+      (Array.isArray(adapters.get(importer))
+        ? adapters.get(importer).includes(target)
+        : adapters.get(importer) === target)
     )
       return [];
     return [

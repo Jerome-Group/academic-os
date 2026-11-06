@@ -144,6 +144,23 @@ function nativePlanCapacity(
       });
     }
     records.push({
+      schemaVersion: 2,
+      kind: "native-selector-move-intent",
+      scope,
+      binding,
+      generatedClaimRecordDigest: hash,
+      expectedPrior: blob,
+    });
+    records.push({
+      schemaVersion: 2,
+      kind: "native-selector-move-observed",
+      scope,
+      binding,
+      moveIntentDigest: hash,
+      object: identity,
+      parentBarrier: true,
+    });
+    records.push({
       ...common,
       kind: "orphan-attempt",
       location: physical.location,

@@ -1,4 +1,5 @@
-import { digest, encodePublication } from "./codec.js";
+import { requireNativeBlobLocation } from "./native-blob-history.js";
+import { digest, encodePublication, sha256 } from "./codec.js";
 import { recover, refuse } from "./failure.js";
 import type {
   AttemptScope,
@@ -169,53 +170,13 @@ export function validateMixedHistory(store: PublicationStore): void {
   const knownBlobs = new Map<string, OwnedBlob>();
   const physicalClaims = new Map<string, string>();
   const owned = (blob: OwnedBlob) => {
-    const claim = events.get(blob.claim.generatedClaimRecordDigest);
-    requireFact(
-      claim?.kind === "file-claimed",
-      "Native blob has no preceding generated file claim.",
-    );
-    requireFact(
-      sameObject(claim.file.object, blob.claim.object) &&
-        claim.planned.byteLength.toString() === blob.byteLength &&
-        claim.planned.byteSha256 === blob.sha256,
-      "Native blob differs from its complete generated ownership binding.",
-    );
-    const parent = events.get(blob.claim.location.parentClaimId);
-    requireFact(
-      parent?.kind === "namespace-claimed" ||
-        parent?.kind === "directory-claimed",
-      "Native blob parent is not a strict generated claim.",
-    );
-    const identity =
-      parent.kind === "namespace-claimed"
-        ? parent.namespace.object
-        : parent.directory.object;
-    if (!sameObject(claim.file.location.parent, identity)) {
-      const promotion = [...events.values()].find(
-        (event) =>
-          event.kind === "promotion-observed" &&
-          sameObject(event.object, blob.claim.object) &&
-          sameObject(event.to.parent, identity) &&
-          event.to.rawNameBase64 === blob.claim.location.rawNameBase64,
-      );
-      requireFact(
-        promotion?.kind === "promotion-observed",
-        "Native blob physical parent has no observed generated promotion.",
-      );
-      const intent = [...events.values()].find(
-        (event) =>
-          event.kind === "promotion-intent" &&
-          event.requestId === promotion.requestId &&
-          event.attemptId === promotion.attemptId &&
-          same(event.source, claim.file) &&
-          same(event.destination, promotion.to),
-      );
-      requireFact(
-        intent,
-        "Native blob promotion lacks its exact preceding generated intent.",
-      );
-    }
     const known = knownBlobs.get(blob.claim.claimId);
+    requireNativeBlobLocation(
+      store,
+      blob,
+      { current: known === undefined },
+      events.values(),
+    );
     requireFact(
       !known || same(known, blob),
       "Native physical claim was rebound.",
@@ -341,6 +302,84 @@ export function validateMixedHistory(store: PublicationStore): void {
         case "native-stage-reserved":
         case "native-attempt-retained":
           break;
+        case "native-selector-move-intent": {
+          const source = events.get(record.generatedClaimRecordDigest);
+          const parent = events.get(record.binding.location.parentClaimId);
+          const selector = [...events.values()].find(
+            (value) =>
+              value.kind === "native-source-policy-selector-intent" &&
+              same(value.scope, record.scope),
+          );
+          const prior =
+            intent.kind === "native-host-deployment-intent"
+              ? intent.expectedPriorRegistration
+              : selector?.kind === "native-source-policy-selector-intent"
+                ? selector.prior
+                : undefined;
+          const name =
+            intent.kind === "native-host-deployment-intent"
+              ? "host-deployment.json"
+              : "native-source-policy.json";
+          requireFact(
+            source?.kind === "file-claimed" &&
+              parent?.kind === "namespace-claimed",
+            "Native selector move lacks its exact generated source and namespace claim.",
+          );
+          const bytes = encodePublication(
+            intent.kind === "native-host-deployment-intent"
+              ? intent.registration
+              : selector?.kind === "native-source-policy-selector-intent"
+                ? {
+                    schema: "native-source-policy-selector/1",
+                    generation: selector.generation,
+                    hostAccountDigest: intent.policy.hostAccountDigest,
+                  }
+                : null,
+          );
+          requireFact(
+            prior !== undefined &&
+              same(prior, record.expectedPrior) &&
+              source.requestId === `n${record.scope.intentDigest}` &&
+              source.attemptId === `a${record.scope.attemptId}` &&
+              source.file.location.rawNameBase64 ===
+                Buffer.from(`selector-${record.scope.attemptId}`).toString(
+                  "base64",
+                ) &&
+              sameObject(
+                source.file.location.parent,
+                parent.namespace.object,
+              ) &&
+              record.binding.location.rawNameBase64 ===
+                Buffer.from(name).toString("base64") &&
+              record.binding.effect === "policy-selector" &&
+              record.binding.plannedEffectDigest ===
+                digest({
+                  generatedClaimRecordDigest: record.generatedClaimRecordDigest,
+                  expectedPrior: record.expectedPrior,
+                }) &&
+              source.planned.byteSha256 === sha256(bytes) &&
+              source.planned.byteLength === bytes.byteLength,
+            "Native selector move source, target, expected predecessor or planned bytes differ.",
+          );
+          if (record.expectedPrior) owned(record.expectedPrior);
+          break;
+        }
+        case "native-selector-move-observed": {
+          const move = events.get(record.moveIntentDigest);
+          requireFact(
+            move?.kind === "native-selector-move-intent" &&
+              same(move.scope, record.scope) &&
+              same(move.binding, record.binding),
+            "Native selector move observation lacks its exact preceding intent.",
+          );
+          const source = events.get(move.generatedClaimRecordDigest);
+          requireFact(
+            source?.kind === "file-claimed" &&
+              sameObject(source.file.object, record.object),
+            "Native selector move observation differs from its complete source object.",
+          );
+          break;
+        }
         case "native-source-policy-generation-settled":
           requireFact(
             intent.kind === "native-source-policy-install-intent" &&
@@ -464,6 +503,8 @@ export function validateMixedHistory(store: PublicationStore): void {
       recover("journal-recovery-required", "Unsupported native record family.");
     events.set(recordDigest, record);
   }
+  for (const blob of knownBlobs.values())
+    requireNativeBlobLocation(store, blob);
 }
 
 export function requirePendingOrder(

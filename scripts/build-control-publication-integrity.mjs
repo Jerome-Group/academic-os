@@ -9,12 +9,15 @@ import {
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { encodePublication } from "../dist/src/controls-publication/codec.js";
+import { installedRuntimeDependencyFiles } from "../dist/src/controls-publication/runtime-dependencies.js";
 
 const hash = (value) => createHash("sha256").update(value).digest("hex");
 async function files(root, directory) {
   const result = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     const path = join(directory, entry.name);
+    if (entry.name === "node_modules")
+      throw new Error("Product-local dependency resolution is unsupported.");
     if (entry.isDirectory()) result.push(...(await files(root, path)));
     else if (!entry.isFile())
       throw new Error("Runtime artifact must be an ordinary file.");
@@ -66,6 +69,20 @@ export async function writeRuntimeIntegrity(root, moduleDirectory) {
   const rootFromModule = relative(moduleDirectory, root) || ".";
   if (!["../../..", "../..", "."].includes(rootFromModule))
     throw new Error("Unsupported runtime artifact layout.");
+  if (rootFromModule === "../../..")
+    for (const name of ["dist/node_modules", "dist/package.json"])
+      if (
+        await lstat(join(root, name)).then(
+          () => true,
+          (error) => {
+            if (error.code === "ENOENT") return false;
+            throw error;
+          },
+        )
+      )
+        throw new Error(
+          "Intermediate runtime package resolution metadata is unsupported.",
+        );
   let artifacts = [];
   if (rootFromModule === ".") {
     for (const name of (await readdir(root)).filter((name) =>
@@ -85,6 +102,19 @@ export async function writeRuntimeIntegrity(root, moduleDirectory) {
       root,
       join(root, rootFromModule === "../../.." ? "dist/src" : "src"),
     );
+  if (rootFromModule !== ".")
+    for (const path of await installedRuntimeDependencyFiles(root)) {
+      const stat = await lstat(join(root, path));
+      const bytes = await readFile(join(root, path));
+      if (!stat.isFile() || stat.nlink !== 1 || bytes.byteLength > 67108864)
+        throw new Error("Runtime dependency sharing or length is unsupported.");
+      artifacts.push({
+        path,
+        role: "dependency-input",
+        byteLength: bytes.byteLength,
+        sha256: hash(bytes),
+      });
+    }
   const lock = await readFile(join(root, "package-lock.json"));
   artifacts.push({
     path: "package-lock.json",

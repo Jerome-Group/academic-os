@@ -751,6 +751,7 @@ export function capabilityIndex(): object {
       implementation: "src/controls-publication/host-deployment-command.ts",
       tests: [
         "test/controls-publication/native-policy.test.ts",
+        "test/controls-publication/native-policy-boundary.test.ts",
         "test/controls-publication/replay-capacity.test.ts",
         "test/controls-publication/runtime-consistency.test.ts",
         "test/controls-publication/native-policy-admission.test.ts",

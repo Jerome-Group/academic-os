@@ -11,6 +11,7 @@ Start here: `README.md`, then `AGENTS.md`.
 | Seed-source templates | Canonical bodies of pinned Module and Research-project files — what seeding writes and audit diffs back | `seed-templates/`, `src/contract/pinned-documents.ts`, `src/contract/research-project-structure.ts` |
 | Teaching workspace | The `70 Learning` interior the contract requires and seeding creates whole — four activity areas with their records, the LaTeX template set, and the Source map that keys it all by Lecture-unit | `src/contract/learning-workspace.ts`, `seed-templates/70 Learning/`, `src/conformance/audit-learning-workspace.ts` |
 | Module CLI | Previewed journalled/resumable seed and approved ID-bound repair, mounted or Drive API inventory, cohort/migration audit, private observations, pure conformance, and reports | `src/cli.ts`, `docs/operator-guide.md`, `docs/v1-acceptance.md` |
+| Native inventory | Read-only raw membership, native payloads and two-pass source observations for later migration | `src/migration/native-inventory/`, `docs/native-inventory.md` |
 | Agent capabilities | Machine-readable action/effect/risk index, observed local readiness and repeatable fixture/quality evidence | `src/capabilities/`, `docs/agents/capabilities.md` |
 | Verification skill | Runtime proof recipes and feature coverage limits using the capability index | `.agents/skills/verify/SKILL.md` |
 | Importer observations | Read-only destination preflight, active-cohort importer health and the portable NTULearn receipt interface | `src/imports/`, `src/commands/imports-preflight-command.ts`, `docs/import-status-contract.md` |
@@ -44,7 +45,7 @@ Start here: `README.md`, then `AGENTS.md`.
 | Coordinated improvements | Prioritized Module-management features shared with NTULearn, their dependencies and acceptance boundaries | `docs/research/coordinated-module-management.md` |
 | Automation | The workflows that run on a pull request or on a new issue, and dependency updates | `.github/` |
 | Secret-scan exceptions | Exact historical fingerprints for two synthetic module identities; no broad rule or path exclusion | `.gitleaksignore` |
-| Quality gates | Cross-file rule coverage, publication checks, and the seeded LaTeX set's compile check — all invoked by package scripts and CI | `scripts/check-contract-rule-coverage.mjs`, `src/privacy/`, `scripts/compile-seed-templates.mjs` |
+| Local quality gates | Cross-file rule coverage, publication checks, and the seeded LaTeX set's compile check, invoked by local package scripts and capability profiles | `scripts/check-contract-rule-coverage.mjs`, `src/privacy/`, `scripts/compile-seed-templates.mjs` |
 
 The data `homepage` reads is named in `README.md` as part of what this repository is for. It has no
 entry here because it has no files yet; it earns a row in the pull request that brings it. The

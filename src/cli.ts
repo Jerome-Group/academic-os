@@ -12,6 +12,7 @@ import { runCurationRederiveCommand } from "./commands/curation-rederive-command
 import { runImportsPreflightCommand } from "./commands/imports-preflight-command.js";
 import { runImportsStatusCommand } from "./commands/imports-status-command.js";
 import { runLearningMaterialsCommand } from "./commands/learning-materials-command.js";
+import { runMigrationInventoryCommand } from "./commands/migration-inventory-command.js";
 import { runModuleInspectCommand } from "./commands/module-inspect-command.js";
 import { runNamingPlanCommand } from "./commands/naming-plan-command.js";
 import { runOfferingReadinessCommand } from "./commands/offering-readiness-command.js";
@@ -58,6 +59,8 @@ try {
     arguments_[0] === "help"
   ) {
     await runCapabilitiesCommand(["capabilities", "index", "--json"]);
+  } else if (arguments_[0] === "migration" && arguments_[1] === "inventory") {
+    await runMigrationInventoryCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "config" && arguments_[1] === "validate") {
     await runConfigValidateCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "naming" && arguments_[1] === "plan") {

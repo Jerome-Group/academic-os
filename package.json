@@ -7,7 +7,7 @@
     "academic-os": "dist/src/cli.js"
   },
   "scripts": {
-    "build": "node scripts/check-control-publication-imports.mjs && node scripts/clean-build-output.mjs && tsc && node scripts/build-control-publication-native.mjs && node scripts/build-control-publication-release.mjs",
+    "build": "node scripts/check-control-publication-imports.mjs && node scripts/clean-build-output.mjs && tsc && node scripts/build-native-inventory.mjs && node scripts/build-control-publication-native.mjs && node scripts/build-control-publication-release.mjs",
     "controls-publication:imports": "node scripts/check-control-publication-imports.mjs",
     "controls-publication:standalone": "node scripts/build-control-publication-standalone.mjs",
     "controls-publication:check": "npm run build && node --test dist/test/controls-publication/*.test.js",

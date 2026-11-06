@@ -12,6 +12,7 @@ Keep raw fixture proof after process teardown. Record each feature as passed, fa
 | [Discovery, readiness and importer observations](discovery-imports.md) | `discovery`, `imports`, quality profiles |
 | [Generated control publication](controls-publication.md) | `publication` and `publication-formal` check profiles |
 | [Generated Module activity evidence](module-activity.md) | `module-activity` workflow and check profile |
+| [Native inventory](native-inventory.md) | `discovery` |
 | [Module and Research-project lifecycle](folder-lifecycle.md) | `recovery` |
 | [Tasks, Calendar and Operations](services.md) | `services` |
 | [Teaching and cheatsheet releases](teaching.md) | `teaching` |
@@ -19,5 +20,7 @@ Keep raw fixture proof after process teardown. Record each feature as passed, fa
 
 Full maintenance runs every listed workflow and `capabilities check --profile full`.
 Full checks cover repository checks and synthetic fixtures. They do not turn untested or live-only actions into observed behavior.
+Product verification runs locally under [ADR-0047](../../../../docs/adr/0047-product-verification-runs-locally.md).
+Hosted Organisation conformance supplies separate policy evidence.
 Interactive `credentials authorize` and `calendar local setup` require the Owner's session and are not invoked by verification.
 Synthetic `calendar setup` is covered by services. Full includes the separate bounded formal skill; follow the parent doctor and retention instructions.

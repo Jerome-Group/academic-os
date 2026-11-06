@@ -42,7 +42,7 @@ describe("the sole file Shelf mutation owner", () => {
   it("requires actual native exclusive/exchange/directory sync before migration", async () => {
     assert.ok(
       ["darwin", "linux"].includes(process.platform),
-      "Native Shelf CI must execute on Darwin or Linux.",
+      "Native Shelf verification must execute on Darwin or Linux.",
     );
     const fixture = await shelfFixture();
     const shelf = await openFileShelf(fixture);

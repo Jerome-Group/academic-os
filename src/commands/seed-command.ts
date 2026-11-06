@@ -19,7 +19,7 @@ import {
   createModuleSeedPlan,
   createResearchProjectSeedPlan,
   loadResearchProjectInitialFilesManifest,
-  type ResearchProjectInitialFile,
+  type ResearchProjectInitialIntake,
   type ResearchProjectSeedReport,
   type SeedReport,
 } from "../seed/index.js";
@@ -38,7 +38,7 @@ export async function runSeedCommand(
     readApprovedControl(parsed.profilePath),
     readApprovedControl(parsed.definitionPath),
   ]);
-  const initialFiles =
+  const initialIntake =
     parsed.initialFilesManifestPath === undefined
       ? undefined
       : await loadResearchProjectInitialFilesManifest(
@@ -52,7 +52,7 @@ export async function runSeedCommand(
           { ...parsed, researchProject: parsed.researchProject },
           profile,
           definition,
-          initialFiles,
+          initialIntake,
         );
   writeSeedReport(report, json);
   process.exitCode = [
@@ -169,7 +169,7 @@ async function runResearchProjectSeed(
   },
   profile: string,
   definition: string,
-  initialFiles: readonly ResearchProjectInitialFile[] | undefined,
+  initialIntake: ResearchProjectInitialIntake | undefined,
 ): Promise<ResearchProjectSeedReport> {
   if (!("activeSemester" in config)) {
     throw new OperationalError(
@@ -186,7 +186,7 @@ async function runResearchProjectSeed(
     profile,
     definition,
     contract: await loadResearchProjectContract(),
-    ...(initialFiles === undefined ? {} : { initialFiles }),
+    ...(initialIntake === undefined ? {} : { initialIntake }),
   });
   return await seedMountedResearchProject(
     config,

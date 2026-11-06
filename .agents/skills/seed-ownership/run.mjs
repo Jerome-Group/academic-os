@@ -369,6 +369,7 @@ try {
       "seed-templates",
       "skills",
       "package.json",
+      "package-lock.json",
       "tsconfig.json",
     ])
       await cp(join(root, name), join(scratch, name), { recursive: true });

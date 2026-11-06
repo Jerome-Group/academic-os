@@ -35,7 +35,7 @@ Require a passed outcome. CLI journeys preload fake Google providers at the prod
 They cover task mutations, Calendar proposal/promotion and failure handling.
 The real-producer suites default to the reviewed runtime in `vendor/emmy-planning/9235befe/runtime`
 and byte-pinned synthetic helpers in `test/support/emmy-planning-fixtures/verification`.
-They run in normal CI without private paths, credentials or provider access; missing or changed
+They run locally without private paths, credentials or provider access; missing or changed
 bundled inputs fail rather than skip. Exact provenance and the sibling MIT notice are recorded in
 [`UPSTREAM.md`](../../../../vendor/emmy-planning/9235befe/UPSTREAM.md).
 `ACADEMIC_OS_TEST_EMMY_RELEASE` and `ACADEMIC_OS_TEST_EMMY_FIXTURES` preserve explicit private

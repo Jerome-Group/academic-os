@@ -91,7 +91,7 @@ The compiled CLI schedule makes the same mutation in a disposable copy of the ac
 It holds migration and rederivation at their final digest reads, settles migration first, then releases rederivation.
 Both CLIs must exit zero and report `appended=1`, both private journals must contain intent and result, and final register bytes must lack the confirmed migration while retaining rederivation.
 The runner checks both final-read digests, rereads the actual register and journals, and requires every recorded child PID to be absent.
-Curation fixtures use `owner-curation-*` evidence directories so the existing CI artifact globs retain their raw JSON and JSONL files.
+Curation fixtures retain raw JSON and JSONL files in `owner-curation-*` evidence directories under the local run's private root.
 An exception, source hash mismatch or compilation error does not satisfy this control.
 After restoring the helper and rebuilding, all nine CLI schedules must pass for each mutation.
 The fresh ordinary run follows only after candidate gates pass, the exact source hashes are recorded and verification is committed.

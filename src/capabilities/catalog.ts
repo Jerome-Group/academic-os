@@ -5,6 +5,9 @@ import {
 } from "../module-activity/actions.js";
 import { checkProfiles } from "./checks.js";
 
+const buildPrerequisite =
+  "built runtime from npm ci && npm run build; macOS compilation requires Xcode Command Line Tools (/usr/bin/xcrun clang)";
+
 export interface Capability {
   id: string;
   surface: "cli" | "cheatsheet" | "mcp" | "script" | "quality";
@@ -41,7 +44,7 @@ function cli(
     invocation: `node dist/src/cli.js ${id} --config <private-config> --json`,
     prerequisites: [
       "Node >=24",
-      "npm ci && npm run build",
+      buildPrerequisite,
       "valid private target configuration",
       ...prerequisites,
     ],
@@ -142,6 +145,41 @@ export const cliCapabilities: Capability[] = [
     }),
   ),
   {
+    id: "migration inventory",
+    surface: "cli",
+    invocation:
+      "node dist/src/cli.js migration inventory --root <physical-root> --json [--log <private-new-file>]",
+    prerequisites: [
+      "Node >=24",
+      buildPrerequisite,
+      "macOS native adapter built with Xcode Command Line Tools",
+      "physical quiescent readable root; no dataless entries or external hardlink aliases",
+    ],
+    reads: [
+      "complete raw native membership; regular-file bytes; raw symlink targets; native ACL/xattr payloads and stat metadata",
+    ],
+    writes: [
+      "optional explicit new private log outside source and repository; filesystem access times may advance",
+    ],
+    riskFlags: ["native-content-read"],
+    preview: null,
+    implementation: "src/commands/migration-inventory-command.ts",
+    tests: [
+      "test/migration/native-inventory.test.ts",
+      "test/migration/native-inventory-cli.test.ts",
+    ],
+    status: "supported",
+    health: "not-observed",
+    result:
+      "Versioned two-pass non-atomic observation; observed exits 0, incomplete/refused exits 2. No migration, admission or preservation equality claim. Other platforms explicitly unsupported.",
+    options: {
+      "--root":
+        "Physical root; ancestor symlinks and cross-device entries refuse",
+      "--log":
+        "New absolute file in an existing private owner directory outside source/repository",
+    },
+  },
+  {
     ...cli("module validate", [], [], null, [
       "test/controls/module-data.test.ts",
       "test/controls/native-data-validation.test.ts",
@@ -168,7 +206,7 @@ export const cliCapabilities: Capability[] = [
     ]),
     prerequisites: [
       "Node >=24",
-      "npm ci && npm run build",
+      buildPrerequisite,
       "readable configuration file",
     ],
     reads: ["configuration bytes"],
@@ -182,7 +220,7 @@ export const cliCapabilities: Capability[] = [
       "node dist/src/cli.js naming plan --input <private-json> --json",
     prerequisites: [
       "Node >=24 with Unicode >=16 normalization",
-      "npm ci && npm run build",
+      buildPrerequisite,
       "schema-valid accepted metadata and complete occupied set",
     ],
     reads: ["private naming request JSON"],
@@ -212,7 +250,7 @@ export const cliCapabilities: Capability[] = [
       "node dist/src/cli.js module inspect --root <module-root> --json",
     prerequisites: [
       "Node >=24",
-      "npm ci && npm run build",
+      buildPrerequisite,
       "physical module root or explicit configured target",
     ],
     reads: ["safe mounted control bytes; immutable canonical references"],
@@ -551,6 +589,7 @@ export const cliCapabilities: Capability[] = [
         "test/routine/weekly-publication-admission.test.ts",
         "test/routine/gh-morning-issue.test.ts",
         "test/routine/repository-repair.test.ts",
+        "test/routine/repository-repair-conclusion.test.ts",
         "test/routine/file-weekly-evidence.test.ts",
         "test/routine/gh-weekly-repository-history.test.ts",
       ],
@@ -583,6 +622,7 @@ export const cliCapabilities: Capability[] = [
       "--check-only",
       [
         "test/routine/repository-repair.test.ts",
+        "test/routine/repository-repair-conclusion.test.ts",
         "test/cli/routine-repository-repair-cli.test.ts",
       ],
     ),
@@ -776,7 +816,7 @@ export function capabilityIndex(): object {
       surface: "cheatsheet",
       invocation: `node dist/src/cheatsheet/cli.js ${operation} (see schema for arguments)`,
       prerequisites: [
-        "npm ci && npm run build",
+        buildPrerequisite,
         ...(["schema", "doctor"].includes(operation)
           ? []
           : ["synthetic fixture or explicitly authorized Module"]),
@@ -1052,7 +1092,7 @@ export function capabilityIndex(): object {
       id: `capabilities ${operation}`,
       surface: "cli",
       invocation: `node dist/src/cli.js capabilities ${operation} --json`,
-      prerequisites: ["npm ci && npm run build"],
+      prerequisites: [buildPrerequisite],
       reads: ["owned command metadata", "local tool or test evidence"],
       writes: ["check", "verify"].includes(operation)
         ? [
@@ -1078,7 +1118,7 @@ export function capabilityIndex(): object {
       surface: "quality",
       invocation: `node dist/src/cli.js capabilities check --profile ${profile} --json`,
       prerequisites: [
-        "npm ci && npm run build",
+        buildPrerequisite,
         ...(profile === "full" ||
         profile === "templates" ||
         profile === "coverage"
@@ -1093,6 +1133,7 @@ export function capabilityIndex(): object {
         ...(profile === "publication-formal"
           ? [
               "Darwin; Apple clang and current Node N-API headers; private local fixture evidence parent",
+              "follow .agents/skills/control-publication/SKILL.md",
             ]
           : []),
       ],
@@ -1106,8 +1147,8 @@ export function capabilityIndex(): object {
       tests: [
         "test/capabilities/capabilities.test.ts",
         "test/capabilities/build-provenance.test.ts",
-        ...(profile === "publication-formal"
-          ? [".agents/skills/control-publication/run.mjs"]
+        ...(["formal", "publication-formal"].includes(profile)
+          ? ["test/capabilities/workflow-checks.test.ts"]
           : []),
       ],
       status: "supported",
@@ -1116,8 +1157,8 @@ export function capabilityIndex(): object {
         profile === "publication-formal"
           ? "Bounded source-bound generated control publisher model, compiled fault schedules, exact byte readbacks and eight behavioral mutants with restored controls. Native account/kernel/syscall behavior remains a runtime premise. Local only; no live admission or whole-system proof."
           : profile === "formal"
-            ? "Bounded seed filesystem and cooperating journal-owner models, compiled schedules and mutation controls; expected counterexamples are required. Same-host canonical-state assumptions apply. No guarantee against syscall swaps, uncontrolled writers or distributed ownership."
-            : "Per-check exit, duration, bounded output count/hash; full includes all compiled tests, privacy checks and seed ownership verification.",
+            ? "Local bounded seed filesystem and cooperating journal-owner models, compiled schedules and mutation controls; expected counterexamples are required. Same-host canonical-state assumptions apply. No guarantee against syscall swaps, uncontrolled writers or distributed ownership."
+            : "Local per-check exit, duration, bounded output count/hash; full includes all compiled tests, privacy checks and seed ownership verification. Hosted Organisation conformance supplies separate policy evidence.",
     });
   return {
     schemaVersion: 1,

@@ -162,6 +162,16 @@ it("discovers formal verification prerequisites and observes the selected Java e
   assert.match(formal.invocation, /--profile formal --json/u);
   assert.ok(formal.prerequisites.some((item) => item.includes("Java 21")));
   assert.match(formal.result, /expected counterexamples are required/iu);
+  const publisher = index.actions.find(
+    ({ id }) => id === "quality publication-formal",
+  );
+  assert.ok(publisher);
+  assert.match(publisher.invocation, /--profile publication-formal --json/u);
+  assert.ok(
+    publisher.prerequisites.includes(
+      "follow .agents/skills/control-publication/SKILL.md",
+    ),
+  );
   const root = await mkdtemp(join(tmpdir(), "academic-formal-health-"));
   try {
     const java = join(root, "selected-java");
@@ -351,6 +361,7 @@ it("distinguishes configured executable readiness from PATH presence and mainten
         PATH: root,
         ACADEMIC_OS_TOOL_PATH: root,
         JAVA: join(root, "missing-java"),
+        DEVELOPER_DIR: join(root, "missing-developer-directory"),
       },
       "capabilities",
       "health",
@@ -366,7 +377,11 @@ it("distinguishes configured executable readiness from PATH presence and mainten
     ]);
     assert.ok(
       health.tools.every(
-        (tool: { outcome: string }) => tool.outcome === "unavailable",
+        (tool: { action: string; outcome: string }) =>
+          tool.outcome ===
+          (tool.action === "native-inventory-compiler"
+            ? "failed"
+            : "unavailable"),
       ),
     );
     assert.ok(health.unverified.includes("maintenance recovery"));
@@ -515,4 +530,37 @@ it("refuses logs through aliases into a configured academic mount", async () => 
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+it("observes native inventory compiler readiness only for rebuilding", async () => {
+  const result = await runCli("capabilities", "health", "--json");
+  assert.equal(result.exitCode, 0, result.stdout);
+  const health: {
+    tools: { action: string; outcome: string }[];
+    nativeInventory: { rebuild: string };
+  } = JSON.parse(result.stdout);
+  const compiler = health.tools.find(
+    ({ action }) => action === "native-inventory-compiler",
+  );
+  if (process.platform !== "darwin") {
+    assert.equal(compiler, undefined);
+    assert.equal(health.nativeInventory.rebuild, "unsupported-platform");
+    return;
+  }
+  assert.equal(compiler?.outcome, "passed");
+  assert.equal(health.nativeInventory.rebuild, "compiler-observed");
+  const unavailable = await runCliWithEnvironment(
+    { DEVELOPER_DIR: join(process.cwd(), "missing-native-toolchain") },
+    "capabilities",
+    "health",
+    "--json",
+  );
+  assert.equal(unavailable.exitCode, 0, unavailable.stdout);
+  const missing: typeof health = JSON.parse(unavailable.stdout);
+  assert.notEqual(
+    missing.tools.find(({ action }) => action === "native-inventory-compiler")
+      ?.outcome,
+    "passed",
+  );
+  assert.equal(missing.nativeInventory.rebuild, "compiler-unavailable");
 });

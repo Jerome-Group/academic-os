@@ -8,6 +8,8 @@ description: Verify Academic OS CLI, Operations and authored workflows through t
 ## Launch
 
 Run from the repository root with Node 24 or later in a dedicated verification shell.
+macOS builds also require Xcode Command Line Tools with `/usr/bin/xcrun clang` available.
+The built native inventory adapter runs without a compiler. Other platforms build the portable application and report native inventory unsupported.
 
 ```sh
 npm ci --ignore-scripts
@@ -35,9 +37,11 @@ node dist/src/cli.js capabilities health --json --log "$aos_proof/health.json" >
 ```
 
 Require the `node` and `npm` entries to have outcome `passed`.
+For macOS rebuilds, retain a passed `native-inventory-compiler` observation.
+That tool establishes rebuild readiness only. Its absence does not block an already built bound inventory adapter.
 Choose a new log filename for every observation. Logs refuse replacement.
 Read only the relevant actions and health entries from the saved logs. Keep full payloads out of chat.
-Teaching release verification and the full profile also require the installed TeX and Poppler tools.
+Teaching release verification and the coverage and full profiles also require the installed TeX and Poppler tools.
 Require passed health for `latexmk`, `kpsewhich`, `pdfinfo`, `pdffonts`, `pdftotext`, `pdftoppm` and `pdftohtml` before claiming release verification.
 Missing tools are prerequisites to resolve or report, not successful verification.
 Before full or formal verification, follow [the formal skill](../seed-ownership/SKILL.md).
@@ -57,6 +61,8 @@ node dist/src/cli.js capabilities check --profile full --json --log "$aos_proof/
 ```
 
 Run every workflow during maintenance. A changed feature needs its specific journey first.
+Local agents own product checks before pull-request delivery. Select the relevant quality profiles
+through [discovery and readiness](features/discovery-imports.md).
 Use `actions[].tests` in the captured capability index to locate the assertions and entry points.
 Fixture CLI suites invoke the compiled application and inspect its resulting files or provider state.
 The teaching workflow also invokes the shipped cheatsheet runtime.

@@ -144,5 +144,27 @@
     "historyPreservationEvidence": "Separate Module public runtime and pure rederivation checks; no formal history theorem.",
     "realRevisionProfiles": "Native note or verified reuse remains explicitly parked.",
     "seedApplicability": "All 23 covered source hashes unchanged; no fresh seed theorem."
+  },
+  "earlierBaseMaintenance": {
+    "scope": "Historical publisher85 proof on the earlier base only. It does not maintain the merged workflow109 covered-source bindings.",
+    "verificationRevision": "b434440b85b7b805477f778b75a4673130d8373a",
+    "mergedRevision": "3ebd56dffd241c3009c6ea33469e4d1efb4778bd",
+    "coverageSha256": "dea69cc56653ffcade8a6cbb04cd67a41875865fa7fcbdde23802f7fd761c17e",
+    "sourceBindingCount": 85,
+    "syncRevision": "a02889aaaea53df97e1fe6434dac1f87fe6b017c",
+    "previousSyncRevision": "dac9de8148a6dd093f51ca379dd5c7765a8748d0",
+    "outcome": "updated",
+    "reason": "Main24ccc28 adds an inventory import and dispatch branch to the covered CLI. Publisher protocol sources, properties and bounds remain unchanged. Exact source mapping and the complete candidate model, boundary, mutation and restored-control proof pass at the integrated product revision. The ordinary clean committed run remains the final gate.",
+    "sourceMaintenance": {
+      "classification": "no effect on modeled publisher behavior",
+      "coveredChanges": [
+        "src/cli.ts"
+      ],
+      "inventoryScan": "Read-only payload and metadata observation can advance access times. Imported top-level code performs no application filesystem operation.",
+      "optionalInventoryLog": "Exclusive creation of an unclaimed external file. It does not acquire publisher ownership or append publisher evidence.",
+      "externalWriterLimit": "Arbitrary concurrent cross-command writes and hostile ancestor replacement remain excluded. No global CLI write-free property is claimed.",
+      "propertiesAndBoundsChanged": false,
+      "earlierSyncRevision": "f9b7ad5dc32605e3d800a1fe5a259761420e9c52"
+    }
   }
 }

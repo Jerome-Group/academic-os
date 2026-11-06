@@ -25,6 +25,13 @@ import {
   sha,
 } from "./fixtures.js";
 import type { ControlObservation } from "../../src/controls/index.js";
+import {
+  controlFor,
+  evidence,
+  known,
+  moduleDataControls,
+  moduleDataFixture,
+} from "./module-data-fixtures.js";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -69,6 +76,224 @@ async function manifest(root: string) {
 }
 
 describe("read-only module inspection through the compiled CLI", () => {
+  it("validates a full candidate through the public CLI, exposes all controls and leaves every byte unchanged", async () => {
+    const target = await fixture(moduleDataFixture());
+    const before = await manifest(target.root);
+    for (const command of ["inspect", "validate"]) {
+      const result = await runCli(
+        "module",
+        command,
+        "--root",
+        target.moduleRoot,
+        "--json",
+      );
+      assert.equal(result.exitCode, 0, result.stderr);
+      const report = JSON.parse(result.stdout);
+      assert.equal(
+        report.outcome,
+        command === "validate" ? "validated-module-data" : "read",
+      );
+      assert.equal(report.coverage, "validated-module-data");
+      assert.equal(report.controls.length, 18);
+      assert.deepEqual(report.unsupportedReads, [
+        "publication",
+        "workflows",
+        "module-conformance",
+        "migration-readiness",
+      ]);
+      assert.deepEqual(report.diagnostics, []);
+      assert.deepEqual(await manifest(target.root), before);
+    }
+    const configured = await runCli(
+      "module",
+      "validate",
+      "--config",
+      target.config,
+      "--json",
+    );
+    assert.equal(configured.exitCode, 0, configured.stderr);
+    assert.equal(
+      JSON.parse(configured.stdout).coverage,
+      "validated-module-data",
+    );
+    const audit = await runCli("audit", "--config", target.config, "--json");
+    assert.equal(audit.exitCode, 2, audit.stderr);
+    assert.equal(JSON.parse(audit.stdout).outcome, "unsupported-controls");
+    assert.deepEqual(await manifest(target.root), before);
+  });
+
+  it("refuses contradictory native records and impossible dates through module validate without writes", async () => {
+    for (const name of [
+      "xattr-bytes",
+      "xattr-duplicate",
+      "link-bytes",
+      "root-kind",
+      "hardlink-data",
+      "bundle-cycle",
+      "date",
+    ]) {
+      const controls = moduleDataControls();
+      const artifacts = controlFor(controls, "artifacts").artifacts;
+      const artifact = artifacts[0];
+      assert.ok(artifact);
+      const entry = artifact.representation.entries[0];
+      assert.ok(entry);
+      let code = "invalid-control-schema";
+      if (name === "xattr-bytes" || name === "xattr-duplicate") {
+        const attribute = {
+          nameBytesBase64:
+            name === "xattr-bytes"
+              ? "%%%not-base64"
+              : Buffer.from("user.same").toString("base64"),
+          valueSha256: "1".repeat(64),
+          byteLength: 1,
+        };
+        entry.xattrs = {
+          kind: "known",
+          entries:
+            name === "xattr-duplicate" ? [attribute, attribute] : [attribute],
+          evidence: evidence(),
+        };
+        if (name === "xattr-duplicate") code = "duplicate-native-xattr-name";
+      } else if (name === "link-bytes") {
+        artifact.representation.kind = "symlink";
+        entry.kind = "symlink";
+        entry.symlinkTargetBytesBase64 = known(
+          Buffer.from("a\0b").toString("base64"),
+        );
+      } else if (name === "root-kind") {
+        artifact.representation.kind = "symlink";
+        code = "conflicting-native-representation-root";
+      } else if (name === "date") {
+        const record = controlFor(controls, "learning-records").records[1];
+        assert.ok(record?.kind === "current");
+        record.date = known("2026-99-99");
+      } else {
+        const second = structuredClone(artifact);
+        second.id = "artifact:second";
+        second.path = "native-second";
+        const other = second.representation.entries[0];
+        assert.ok(other);
+        other.pathBytesBase64 = Buffer.from(second.path).toString("base64");
+        if (name === "bundle-cycle") {
+          artifact.representation.kind = second.representation.kind =
+            "native-bundle";
+          entry.kind = other.kind = "directory";
+          artifact.representation.bundleMembers = [
+            { kind: "artifact", id: second.id },
+          ];
+          second.representation.bundleMembers = [
+            { kind: "artifact", id: artifact.id },
+          ];
+          code = "native-bundle-cycle";
+        } else {
+          entry.hardlinkGroup = other.hardlinkGroup = known("inode-1");
+          entry.data = known("1".repeat(64));
+          other.data = known("2".repeat(64));
+          code = "conflicting-native-hardlink";
+        }
+        artifacts.push(second);
+      }
+      const target = await fixture(moduleDataFixture(controls));
+      const before = await manifest(target.root);
+      const observed = await runCli(
+        "module",
+        "validate",
+        "--root",
+        target.moduleRoot,
+        "--json",
+      );
+      assert.equal(observed.exitCode, 2, `${name}: ${observed.stderr}`);
+      const report = JSON.parse(observed.stdout);
+      assert.equal(report.outcome, "refused");
+      assert.ok(
+        report.diagnostics.some((item: { code: string }) => item.code === code),
+        JSON.stringify(report.diagnostics),
+      );
+      assert.deepEqual(await manifest(target.root), before);
+    }
+  });
+
+  it("refuses missing and nondirectory native parents through module validate without following links", async () => {
+    for (const kind of ["missing", "file", "symlink", "special"] as const) {
+      const controls = moduleDataControls();
+      const artifact = controlFor(controls, "artifacts").artifacts[0];
+      assert.ok(artifact);
+      const root = artifact.representation.entries[0];
+      assert.ok(root);
+      root.kind = "directory";
+      root.pathBytesBase64 = Buffer.from("native").toString("base64");
+      const parent = {
+        ...structuredClone(root),
+        pathBytesBase64: Buffer.from("native/a").toString("base64"),
+      };
+      if (kind !== "missing") parent.kind = kind;
+      if (kind === "symlink")
+        parent.symlinkTargetBytesBase64 = known(
+          Buffer.from("/external/missing").toString("base64"),
+        );
+      if (kind === "special") parent.specialType = known("fifo");
+      const child = {
+        ...structuredClone(root),
+        kind: "file" as const,
+        pathBytesBase64: Buffer.from("native/a/child").toString("base64"),
+      };
+      artifact.representation.kind = "directory";
+      artifact.representation.entries =
+        kind === "missing" ? [root, child] : [root, parent, child];
+      const target = await fixture(moduleDataFixture(controls));
+      const before = await manifest(target.root);
+      const observed = await runCli(
+        "module",
+        "validate",
+        "--root",
+        target.moduleRoot,
+        "--json",
+      );
+      assert.equal(observed.exitCode, 2, `${kind}: ${observed.stdout}`);
+      const report = JSON.parse(observed.stdout);
+      assert.equal(report.outcome, "refused");
+      assert.ok(
+        report.diagnostics.some(
+          (item: { code: string }) =>
+            item.code === "invalid-native-entry-parent",
+        ),
+      );
+      assert.deepEqual(await manifest(target.root), before);
+    }
+  });
+
+  it("refuses partial candidates and cross-unit targets through the same CLI owner without writes", async () => {
+    const controls = moduleDataControls();
+    const record = controlFor(controls, "learning-records").records[1];
+    assert.ok(record?.kind === "current" && record.target.kind === "revision");
+    record.target.topics = [
+      { kind: "topic", id: "topic:c" },
+      { kind: "topic", id: "topic:d" },
+    ];
+    for (const [files, code] of [
+      [legacyFixture(), "full-module-data-required"],
+      [canonicalFixture(), "full-module-data-required"],
+      [moduleDataFixture(controls), "invalid-learning-target"],
+    ] as const) {
+      const target = await fixture([...files]);
+      const before = await manifest(target.root);
+      const result = await runCli(
+        "module",
+        "validate",
+        "--root",
+        target.moduleRoot,
+        "--json",
+      );
+      assert.equal(result.exitCode, 2, result.stderr);
+      const report = JSON.parse(result.stdout);
+      assert.equal(report.outcome, "refused");
+      assert.ok(
+        report.diagnostics.some((item: { code: string }) => item.code === code),
+      );
+      assert.deepEqual(await manifest(target.root), before);
+    }
+  });
   it("reads portable legacy controls and exact fingerprints without writing files or state", async () => {
     const target = await fixture(legacyFixture());
     const before = await manifest(target.root);

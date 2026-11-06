@@ -200,26 +200,6 @@ export const cliCapabilities: Capability[] = [
     },
   },
   {
-    ...cli("module validate", [], [], null, [
-      "test/controls/module-data.test.ts",
-      "test/controls/native-data-validation.test.ts",
-      "test/controls/module-inspect-cli.test.ts",
-    ]),
-    invocation:
-      "node dist/src/cli.js module validate --root <candidate-module-root> --json",
-    implementation: "src/commands/module-inspect-command.ts",
-    prerequisites: [
-      "Node >=24",
-      "npm ci && npm run build",
-      "complete isolated candidate module-data generation2",
-    ],
-    reads: [
-      "safe candidate control bytes; selected byte hashes; closed module graph",
-    ],
-    result:
-      "Validated module data or structured refusal. Publication, workflows, module conformance and migration readiness remain unimplemented; no writes.",
-  },
-  {
     ...cli("config validate", [], [], null, [
       "test/config/configuration-boundary.test.ts",
       "test/config/configuration-cli.test.ts",
@@ -772,6 +752,7 @@ export function capabilityIndex(): object {
         "test/controls-publication/native-policy-admission.test.ts",
         "test/controls-publication/packaged-policy.test.ts",
         "test/controls-publication/policy-roots.test.ts",
+        "test/controls-publication/host-results.test.ts",
       ],
       status: "supported",
       health: "not-observed",

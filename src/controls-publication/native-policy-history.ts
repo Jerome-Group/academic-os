@@ -1,4 +1,7 @@
-import { requireNativeBlobLocation } from "./native-blob-history.js";
+import {
+  historyName,
+  requireNativeBlobLocation,
+} from "./native-blob-history.js";
 import { digest, encodePublication, sha256 } from "./codec.js";
 import { recover, refuse } from "./failure.js";
 import type {
@@ -9,7 +12,7 @@ import type {
   PolicyInstallIntent,
 } from "./generated/native-source-contract-1.js";
 import type { MixedRecord } from "./schema.js";
-import { type PublicationStore, sameObject } from "./store.js";
+import { type PublicationStore, sameLocation, sameObject } from "./store.js";
 
 export type RequestKind =
   | "candidate-reserved"
@@ -378,6 +381,46 @@ export function validateMixedHistory(store: PublicationStore): void {
               sameObject(source.file.object, record.object),
             "Native selector move observation differs from its complete source object.",
           );
+          if (move.expectedPrior) {
+            const archive = {
+              parent: source.file.location.parent,
+              rawNameBase64: Buffer.from(
+                historyName(
+                  Buffer.from(
+                    move.binding.location.rawNameBase64,
+                    "base64",
+                  ).toString("utf8"),
+                  move.expectedPrior,
+                ),
+              ).toString("base64"),
+            };
+            let observed = false;
+            for (const event of events.values())
+              if (
+                event.kind === "promotion-observed" &&
+                event.requestId === `n${move.scope.intentDigest}` &&
+                event.attemptId === `a${move.scope.attemptId}` &&
+                sameObject(event.object, move.expectedPrior.claim.object) &&
+                sameLocation(event.from, {
+                  parent: source.file.location.parent,
+                  rawNameBase64: move.binding.location.rawNameBase64,
+                }) &&
+                sameLocation(event.to, archive)
+              ) {
+                observed = true;
+                break;
+              }
+            requireFact(
+              observed,
+              "Native selector move completed before its exact predecessor archive observation.",
+            );
+            requireNativeBlobLocation(
+              store,
+              move.expectedPrior,
+              { target: archive },
+              events.values(),
+            );
+          }
           break;
         }
         case "native-source-policy-generation-settled":

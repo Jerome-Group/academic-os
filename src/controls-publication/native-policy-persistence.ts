@@ -1,4 +1,7 @@
-import { requireNativeBlobLocation } from "./native-blob-history.js";
+import {
+  historyName,
+  requireNativeBlobLocation,
+} from "./native-blob-history.js";
 import { digest, encodePublication, sha256 } from "./codec.js";
 import { PublicationFailure, recover, refuse } from "./failure.js";
 import type {
@@ -226,6 +229,20 @@ export function readOriginalSelector(
     recover(
       "uncertain-claim",
       "Historical selector has neither an observed archive nor an exact pending move.",
+    );
+  const moveDigest = store.recordDigest(move);
+  if (
+    store
+      .mixedRecords()
+      .some(
+        (record) =>
+          record.kind === "native-selector-move-observed" &&
+          record.moveIntentDigest === moveDigest,
+      )
+  )
+    recover(
+      "journal-recovery-required",
+      "Completed selector move cannot supply pending predecessor readback.",
     );
   const source = store
     .records()
@@ -496,9 +513,6 @@ export function persistImmutable(
   return blob;
 }
 
-export function historyName(name: string, blob: OwnedBlob): string {
-  return `${name.slice(0, -5)}-history-${blob.claim.generatedClaimRecordDigest}.json`;
-}
 export function selectorBytes(
   generation: OwnedBlob,
   hostAccountDigest: string,

@@ -12,6 +12,10 @@ import type {
 import type { MixedRecord } from "./schema.js";
 import { type PublicationStore, sameLocation, sameObject } from "./store.js";
 
+export function historyName(name: string, blob: OwnedBlob): string {
+  return `${name.slice(0, -5)}-history-${blob.claim.generatedClaimRecordDigest}.json`;
+}
+
 export function requireNativeBlobLocation(
   store: PublicationStore,
   blob: OwnedBlob,

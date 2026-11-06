@@ -478,6 +478,7 @@ export const cliCapabilities: Capability[] = [
         "test/routine/weekly-publication-admission.test.ts",
         "test/routine/gh-morning-issue.test.ts",
         "test/routine/repository-repair.test.ts",
+        "test/routine/repository-repair-conclusion.test.ts",
         "test/routine/file-weekly-evidence.test.ts",
         "test/routine/gh-weekly-repository-history.test.ts",
       ],
@@ -510,6 +511,7 @@ export const cliCapabilities: Capability[] = [
       "--check-only",
       [
         "test/routine/repository-repair.test.ts",
+        "test/routine/repository-repair-conclusion.test.ts",
         "test/cli/routine-repository-repair-cli.test.ts",
       ],
     ),

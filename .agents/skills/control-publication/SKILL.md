@@ -56,6 +56,7 @@ Run the separate `module-activity` workflow for source-bound public transition r
 
 1. Run the ordinary command before editing verification. Retain the outcome.
 2. Diff every covered source from `syncRevision`. Read intervening commit messages and identify moved functions or new writers.
+   Refresh each mapped hash and literal symbol's line occurrences. The runner rejects stale navigation before TLC or native execution.
 3. Classify each change as no effect, model drift, intended promise change or possible product bug. Keep claim append, syscall and parent barrier distinct.
    Preserve caller-supplied expectation before ownership separately from the resolved owned previous head. Never refresh caller input inside resolution.
 4. Update the model from source. Replay every failing path against the public fixture. Keep genuine counterexamples and report them before product repair.
@@ -66,6 +67,12 @@ Use pstack `/maintain-formal-verification-skill` for changes that skipped these 
 Keep each native binary and its fixture at its original absolute path.
 Inspect SQLite sidecars through metadata only. Preserve links and FIFO entries without opening or following them.
 Keep product repair, live data, provider access, Shelf probes and deployment outside this verification task.
+
+For scanner-only maintenance, also follow [native inventory](../verify/features/native-inventory.md).
+Read `sharedScannerMaintenance` in the source binding and code-model map before reusing the retained
+native proof. The scanner remains a read-only observation premise. Its installed source closure is
+checked before account entry. Source applicability plus targeted runtime checks do not constitute a
+fresh complete publication run. Preserve the earlier full-run identity and report that boundary.
 
 ## Native host policy
 

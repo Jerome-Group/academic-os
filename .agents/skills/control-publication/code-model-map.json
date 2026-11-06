@@ -1,8 +1,8 @@
 {
-  "productRevision": "3d4ae3aef0dbee591cc06e8c39abaa1c14b7152d",
+  "productRevision": "dbe0be191cd60275e40c44164c6edb40fa6a75f2",
   "base": "b81c7635a8122f11cd2e174842b036e8584ecbb3",
   "planningRevision": "c13d4b1af465ee7efa4cea380d77af83f6150c62",
-  "status": "current source-bound mapping with complete candidate evidence; ordinary clean committed command is final check",
+  "status": "current source-bound scanner applicability mapping; original complete native proof retained at its own revision",
   "properties": [
     {
       "id": "P1",
@@ -528,9 +528,9 @@
         {
           "path": "test/controls-publication/packaged-policy.test.ts",
           "symbol": "actual produced and extracted package",
-          "symbolOccurrences": [14],
-          "sha256": "4e16fd83206af7bee14c8c4a40e713c6407f02484781472e3a01f9957c6766e0",
-          "gitBlob": "54b3dcb3d5d062d49e9bc8f7cb6a748c55ec1c12"
+          "symbolOccurrences": [21],
+          "sha256": "495fc6363ae843521e82d1f96bf0344b31a07051bdb0b277455000c3ea777317",
+          "gitBlob": "e6bda6a013bc1c79eca40e23d9a62d403863beb3"
         }
       ],
       "needed": "Add a real public early-success mutation. Retain actual parsed ledger, receipt file bytes/claim, ordered compiled checkpoints, exact return and absent/present settlement rows.",
@@ -656,9 +656,9 @@
         {
           "path": "src/controls-publication/runtime-consistency.ts",
           "symbol": "requireRuntimeConsistency",
-          "symbolOccurrences": [137],
-          "sha256": "96f1db6560d47dc8b2ede78f4fffa6d66243af962d58ce0c7036fe18fa7c2adc",
-          "gitBlob": "9f1aeac52dda357a37278861013062f7930ea2ee"
+          "symbolOccurrences": [138],
+          "sha256": "98322730484586230155cbc28a7e4657f3a30529244e35aefec5f8bd03959902",
+          "gitBlob": "1be15035de580a2ea5990a6011a4ff1e73e88ec7"
         },
         {
           "path": "src/controls-publication/runtime-dependencies.ts",
@@ -671,8 +671,8 @@
           "path": "scripts/build-control-publication-integrity.mjs",
           "symbol": "writeRuntimeIntegrity",
           "symbolOccurrences": [61, 172],
-          "sha256": "5a840c87250158ccd2225b59eed787c0047ba578deba02cdffff9786bbf7a3e8",
-          "gitBlob": "7f2353587e6d0ae74ae58b1275e13ba75379136f"
+          "sha256": "39a3731209e1388c733cd095caec23fba0c026a2786a69f484f55f91c7dbc870",
+          "gitBlob": "e2a8d3e25f4b3d6c7d6b62834c69f49de902b965"
         }
       ],
       "checkpoints": [
@@ -685,8 +685,8 @@
           "path": "test/controls-publication/runtime-consistency.test.ts",
           "symbol": "binds complete actual host",
           "symbolOccurrences": [8],
-          "sha256": "30afe300705bb70df8a536c1063cc9e44d7c595c4a22478c01d1caad9f6dedd2",
-          "gitBlob": "7a1fcb08bf3452e62b1a904f76b8c733aca789f9"
+          "sha256": "1447451db7ba0bc6db5785310c52a2661d3a79f446b3a0b8704cde1a6ace130e",
+          "gitBlob": "3b256e4fc9c96e69a12c6807ac5d59bfdac83bba"
         },
         {
           "path": "test/controls-publication/native-policy-boundary.test.ts",
@@ -698,12 +698,12 @@
         {
           "path": "test/controls-publication/packaged-policy.test.ts",
           "symbol": "actual produced and extracted package",
-          "symbolOccurrences": [14],
-          "sha256": "4e16fd83206af7bee14c8c4a40e713c6407f02484781472e3a01f9957c6766e0",
-          "gitBlob": "54b3dcb3d5d062d49e9bc8f7cb6a748c55ec1c12"
+          "symbolOccurrences": [21],
+          "sha256": "495fc6363ae843521e82d1f96bf0344b31a07051bdb0b277455000c3ea777317",
+          "gitBlob": "e6bda6a013bc1c79eca40e23d9a62d403863beb3"
         }
       ],
-      "needed": "c13 is known defective for source-directory node_modules shadows. Bind the future independently approved repair; preserve before/after Root evidence and rerun the new final-source public test. Also cover package-root nested dependencies, data files, resolution metadata, omitted set and host/extracted package.",
+      "needed": "Retain host/extracted complete input, shadow, dependency-data and resolution checks. Require core/header modification and absence refusal before account entry, exact produced scanner closure and restored install/historical retry.",
       "mutants": ["M8"],
       "restoration": "Baseline modified dependency refuses before resolveAccountAnchor, ledger unchanged. Exact original bytes restore successful install/retry. Final deep shadow refuses and legitimate nested dependency still works.",
       "checkpointsArePlannedSelectorsNotAllActualLastRecordKinds": true
@@ -853,7 +853,7 @@
           "symbol": "native-host-deployment-intent",
           "sha256": "28050934bfd4c5f83ea53d01617a5fc9b2b8715df37b243b9bd1fc8bb0ab65d7",
           "symbolOccurrences": [
-            20, 29, 55, 75, 113, 199, 226, 234, 242, 261, 317, 323, 332, 590
+            20, 29, 55, 82, 120, 206, 233, 241, 249, 268, 324, 330, 339, 598
           ]
         }
       ],
@@ -982,8 +982,9 @@
         {
           "path": "src/controls-publication/runtime-consistency.ts",
           "symbol": "sha256",
-          "sha256": "96f1db6560d47dc8b2ede78f4fffa6d66243af962d58ce0c7036fe18fa7c2adc",
-          "symbolOccurrences": [5, 150, 187, 235]
+          "sha256": "98322730484586230155cbc28a7e4657f3a30529244e35aefec5f8bd03959902",
+          "symbolOccurrences": [5, 151, 188, 236],
+          "gitBlob": "1be15035de580a2ea5990a6011a4ff1e73e88ec7"
         }
       ],
       "change": "Bypass installed-artifact content digest comparison while retaining kind/length/read-stability checks. Use an actual same-length stable dependency/data mutation with unchanged integrity/release bytes. Final deep-shadow fix also needs direct regression, not merely this digest mutant.",
@@ -1237,9 +1238,11 @@
     "native-runtime.mjs": "Eight actual guard mutants and restored public scenarios",
     "native-fixture.mjs": "Compile-time private host inputs and explicit product root",
     "native-capacity.mjs": "Actual production planner observation, unique pressure and retained capacity mutant/restoration",
-    "native-package.mjs": "Actual production builder/archive/extraction and complete native output readback"
+    "native-package.mjs": "Actual production builder/archive/extraction and complete native output readback",
+    "scanner-binding.mjs": "Physically copied public inventory CLI; six malformed source-binding refusals/restorations and actual order-guard mutant/restoration",
+    "source-map.mjs": "Pre-TLC source hash and literal symbol occurrence guard; navigation only"
   },
-  "verificationCompletion": "Complete candidate passed with21 configurations,16 actual-code mutant/restored families and all original runtime checks. Run the ordinary command cold after this binding commit; its external evidence is the final proof.",
+  "verificationCompletion": "Unchanged model/property applicability is separate from fresh scanner and installed-package runtime evidence. The retained native parent full proof is not a fresh complete integrated 115-schedule run.",
   "sourceOrderCorrection": {
     "basis": "Root accepted the bounded corrected correspondence at45fe746 after independent review. All75 ordered actions are unchanged in this complete candidate; final combined review remains separate.",
     "oldNativeModels": "Superseded by current source-order correction; old runtime candidate failed separately at legitimate bootstrap retry. No composed candidate pass.",
@@ -1336,5 +1339,138 @@
     "requiredCounterexamples": 15,
     "originalBoundaries": 115,
     "actualMutantFamilies": 16
+  },
+  "sharedScannerMaintenance": {
+    "productRevision": "dbe0be191cd60275e40c44164c6edb40fa6a75f2",
+    "priorProductRevision": "3d4ae3aef0dbee591cc06e8c39abaa1c14b7152d",
+    "priorStatus": "current source-bound mapping with complete candidate evidence; ordinary clean committed command is final check",
+    "priorVerificationCompletion": "Complete candidate passed with21 configurations,16 actual-code mutant/restored families and all original runtime checks. Run the ordinary command cold after this binding commit; its external evidence is the final proof.",
+    "classification": "verification source/map drift; no model or property drift",
+    "modelPropertiesAndBoundsChanged": false,
+    "parentOrdinaryProof": {
+      "revision": "3f8e5429c010de152d32b0215f6a7e16caa7e7ea",
+      "evidenceName": "control-publication-bupiIU",
+      "resultsSha256": "0a6c05235dfdcefc6a5bf7a641d8cd57956217a6078946c40af49bc79dd79e29",
+      "outcome": "passed",
+      "sourceBindingCount": 164,
+      "modelConfigurations": 21,
+      "positive": 6,
+      "requiredCounterexamples": 15,
+      "actualMutantFamilies": 16,
+      "originalBoundaries": 115,
+      "publicTests": 33,
+      "physicalReadbacks": 5147
+    },
+    "sources": [
+      {
+        "path": "scripts/build-native-inventory.mjs",
+        "symbol": "sourceFiles",
+        "symbolOccurrences": [16, 25, 26, 44],
+        "sha256": "83396f1c85def0795bf1cc973926ec7c2ebea294111f2b6efc5a46b4cdddb8a5",
+        "gitBlob": "ba83b32c27a73a6f500aaf331d4822a84ad7ca05"
+      },
+      {
+        "path": "src/migration/native-inventory/index.ts",
+        "symbol": "boundHelperSources",
+        "symbolOccurrences": [23, 80],
+        "sha256": "123a8563683658d0023fed693bfb0d295eedb27eaabc1bf375e073e4df0f54c8",
+        "gitBlob": "5fabaeec208b8a1363155adf91f33f0a4f064d65"
+      },
+      {
+        "path": "src/migration/native-inventory/native/helper-binding.d.ts",
+        "symbol": "HelperBuild",
+        "symbolOccurrences": [1, 9],
+        "sha256": "a46bad62e1f3fdf38c7a4fbfefa7baa071b122ed8aa55c43f8205792b9cbafc5",
+        "gitBlob": "6ae48747e07dc7b37296c226ae71a0bb221df066"
+      },
+      {
+        "path": "src/migration/native-inventory/native/scan.c",
+        "symbol": "aos_scan_pass",
+        "symbolOccurrences": [146],
+        "sha256": "8c0e9c13d6e56d6e358fcdd9f1769bda14c6f4209618dea5131c60139a05157a",
+        "gitBlob": "b57417df1e1319333005a6dccde4a478dfe00451"
+      },
+      {
+        "path": "src/migration/native-inventory/native/scan-core.c",
+        "symbol": "aos_scan_pass",
+        "symbolOccurrences": [250],
+        "sha256": "c42eae03b3f8144467b468f82283de65507b6b125c175ce45d55562808e1dca2",
+        "gitBlob": "11c7b58510fed474b5eb71053bed25aa46fa2013"
+      },
+      {
+        "path": "src/migration/native-inventory/native/scan-core.h",
+        "symbol": "AosScanSink",
+        "symbolOccurrences": [46, 49],
+        "sha256": "e7862ad45905bedbee10dc4fda4cae0317a46037dd5a399e6511f3cdf06ad87f",
+        "gitBlob": "ec6a7ad3c6c8c9a45363e0f4074b7df5d6b532a9"
+      }
+    ],
+    "drivers": [
+      {
+        "path": "test/migration/native-inventory-cli.test.ts",
+        "symbol": "the synchronous scanner supports a C++ consumer",
+        "symbolOccurrences": [465],
+        "sha256": "c913e706c80db828657a021fa4d766b227b2d57c7430742653f16fad6376d51f",
+        "gitBlob": "26a02c52222a7ea09d68eb2159182a4f2a93799c"
+      },
+      {
+        "path": "test/migration/native-scan-core-fixture.cc",
+        "symbol": "aos_scan_pass",
+        "symbolOccurrences": [44, 48, 52],
+        "sha256": "25762434d023f008eb2c8652c24df5403a14487d4bb826bdbe565b614faba3e7",
+        "gitBlob": "c90d75acf029021e41f48094db6a4546d777fb39"
+      }
+    ],
+    "refreshedExistingReferences": 6,
+    "observationPremise": "aos_scan_pass supplies synchronous read-only observation; borrowed callback lifetimes, native syscalls and non-atomic two-pass collection remain runtime premises. No scanner correctness or memory-safety theorem follows.",
+    "installedInputPremise": "MixedAdmission RuntimeArtifactValidation represents success only after the actual complete artifact set, source roles and digests pass before ResolveAccount. Core/header enumeration changes its runtime implementation, not the modeled ordering.",
+    "compatibility": {
+      "encoding": "academic-os-native-inventory-helper/2",
+      "orderedSourcePaths": ["scan.c", "scan-core.c", "scan-core.h"],
+      "legacySingleFileSourceSha256": "0927868fce1f26a78232eca216b3b9d27f56686e86b982c3ae440b5fe37d2b33",
+      "legacyStatus": "supported installed single-file helper route",
+      "removalBoundary": "An explicit compatibility change must account for installed v1 helpers; absence of v2 encoding alone cannot authorize a new formatter."
+    },
+    "proofLimit": "Parent full native proof is retained at its original revision. Source applicability and fresh scanner/package runtime checks do not relabel it as a fresh complete integrated proof.",
+    "verificationChanges": [
+      {
+        "path": ".agents/skills/control-publication/fixture.mjs",
+        "reason": "Copy core/header to extracted fixture and retain hashes of all four scanner artifacts in both layouts."
+      },
+      {
+        "path": ".agents/skills/control-publication/native-package.mjs",
+        "reason": "Compare produced/extracted core/header bytes in receipt mutant and restored control."
+      },
+      {
+        "path": ".agents/skills/control-publication/run.mjs",
+        "reason": "Check source-map navigation before TLC/runtime and retain both new verification helper hashes; model/full-runtime dispatch unchanged."
+      },
+      {
+        "path": ".agents/skills/control-publication/scanner-binding.mjs",
+        "reason": "Six malformed ordered-binding refusals/restorations plus actual copied-adapter order-guard mutant and exact restoration."
+      },
+      {
+        "path": ".agents/skills/control-publication/source-map.mjs",
+        "reason": "Reject stale mapped hashes or literal symbol occurrences before TLC/runtime; source navigation only."
+      }
+    ],
+    "inheritedSymbolCorrection": {
+      "location": "/mutants/0/source/0",
+      "path": "src/controls-publication/native-policy-history.ts",
+      "symbol": "native-host-deployment-intent",
+      "before": [
+        20, 29, 55, 75, 113, 199, 226, 234, 242, 261, 317, 323, 332, 590
+      ],
+      "after": [
+        20, 29, 55, 82, 120, 206, 233, 241, 249, 268, 324, 330, 339, 598
+      ]
+    },
+    "sourceMapGuard": {
+      "issue": 488,
+      "scope": "Every source-map reference with path, symbol and SHA; validate actual hash and literal line occurrences before TLC/runtime. Navigation only, not semantic correspondence.",
+      "negativeControlRevision": "3f8e5429c010de152d32b0215f6a7e16caa7e7ea",
+      "negativeControl": "Actual committed stale M1 record has current source SHA but outdated locations; isolated record and current map carrying it both refuse.",
+      "correctedReferenceCount": 90
+    }
   }
 }

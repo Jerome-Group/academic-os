@@ -40,6 +40,10 @@ Unknown entry kinds, unsupported metadata, unreadable entries and collection lim
 
 The adapter permits 256 levels, one million entries, 32 MiB per retained attribute and 256 MiB each for helper output and the serialized result.
 The helper process is killed after 120 seconds or output overflow. Such failures and oversized serialized results return incomplete diagnostics, never a truncated successful manifest.
+The synchronous core charges pending raw names and pointer indexes before allocation.
+Enumeration stops once discovered membership already exceeds the existing entry ceiling.
+This can report `inventory-limit` before the old helper would finish its incomplete prefix.
+Metadata delivery uses fragments of at most 64 KiB. Native APIs that require a whole attribute retain the existing 32 MiB bound.
 Diagnostics retain at most 128 entries with an explicit omitted count.
 `observed` exits zero. `incomplete` and `refused` exit two.
 
@@ -53,6 +57,8 @@ Filesystem access-time updates remain possible.
 Inventory never compiles code or accepts a caller-supplied helper path.
 The build binds compiler identification, source SHA-256, executable SHA-256 and architecture.
 Runtime verifies the bundled source and executable against that binding before execution.
+The shared scanner build also binds its core source and header in an ordered versioned source closure.
+The formatter hash remains the literal `scan.c` hash. The reviewed single-file v1 helper retains an explicit legacy binding route.
 This binds build artifacts together. It does not attest the compiler or defend a compromised installation.
 
 Other platforms return `unsupported-platform` with `complete: false`.

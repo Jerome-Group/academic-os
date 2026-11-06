@@ -33,5 +33,22 @@ Portable tests cover those result shapes and ensure unavailable representation p
 
 Linux returns `unsupported-platform` and runs portable boundary tests. It does not observe Darwin metadata.
 The helper binding ties source and executable hashes to this build. It does not attest the compiler.
+The v2 binding requires the ordered `scan.c`, `scan-core.c`, `scan-core.h` closure.
+After changing this closure, run `node .agents/skills/control-publication/scanner-binding.mjs`
+in the same private temporary-directory environment. Read its printed `result.json` and command records.
+It physically copies the compiled CLI and dependencies, refuses reordered, omitted, duplicate and extra
+members, unknown encoding and current sources mislabeled as legacy. Each refusal must return
+`invalid-adapter-binding`; exact restoration must recover the original source fingerprint.
+Its copied-adapter guard mutant admits the reordered binding. Restoring the actual order check must
+recover refusal, then restoring the binding must recover complete observation.
+The v1 route remains supported for the pinned single-file formatter hash. Removing it requires an
+explicit installed-helper compatibility change. A v2 build without its encoding is not a v1 helper.
+
+The discovery journey compiles the actual core with a C++ consumer. It checks two passes, a 65,537-byte
+resource fork delivered in at most 65,536-byte fragments, sixteen `value_bytes` callback stops,
+unchanged descriptor count and a successful subsequent pass. Other callback stop paths and borrowed
+view lifetimes remain source-inspected premises, not exhaustive native memory-safety proof.
+Public fixtures also check files above 64 MiB, signed dates, changing directory membership and
+depth 256 versus 257. Native entry/allocation ceilings remain finite runtime bounds.
 The two walks detect observed changes. They do not prove an atomic snapshot or safety against arbitrary hostile syscall races.
 A source fingerprint includes inode, device and change time and therefore cannot serve as copy-preservation equality.

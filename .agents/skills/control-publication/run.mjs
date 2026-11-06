@@ -21,6 +21,7 @@ import {
 import { alive, hash } from "./fixture.mjs";
 import { nativeModels } from "./native-models.mjs";
 import { nativeMutations } from "./native-runtime.mjs";
+import { verifySourceMap } from "./source-map.mjs";
 import {
   barrierRetries,
   bootstrap,
@@ -167,6 +168,12 @@ try {
       outcome: "unchanged-applicability-only-not-publisher-proof",
     },
   };
+  result.sourceMap = await verifySourceMap({
+    root,
+    mapping: JSON.parse(
+      await readFile(join(directory, "code-model-map.json"), "utf8"),
+    ),
+  });
   const verificationFiles = [
     "ControlPublication.tla",
     "normal.cfg",
@@ -184,6 +191,8 @@ try {
     "native-capacity.mjs",
     "native-package.mjs",
     "code-model-map.json",
+    "scanner-binding.mjs",
+    "source-map.mjs",
   ];
   result.verificationHashes = {};
   for (const file of verificationFiles)

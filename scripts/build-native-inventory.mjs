@@ -3,8 +3,8 @@ import { execFileSync } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
-const source = new URL(
-  "../src/migration/native-inventory/native/scan.c",
+const sources = new URL(
+  "../src/migration/native-inventory/native/",
   import.meta.url,
 );
 const output = new URL(
@@ -12,11 +12,18 @@ const output = new URL(
   import.meta.url,
 );
 await mkdir(output, { recursive: true });
-const bytes = await readFile(source);
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
+const sourceFiles = await Promise.all(
+  ["scan.c", "scan-core.c", "scan-core.h"].map(async (path) => ({
+    path,
+    sha256: sha256(await readFile(new URL(path, sources))),
+  })),
+);
 let binding = {
+  encoding: "academic-os-native-inventory-helper/2",
   platform: process.platform,
-  sourceSha256: sha256(bytes),
+  sourceSha256: sourceFiles[0].sha256,
+  sourceFiles,
   available: false,
 };
 if (process.platform === "darwin") {
@@ -29,11 +36,16 @@ if (process.platform === "darwin") {
     "-Wextra",
     "-Werror",
     "-Wno-deprecated-declarations",
-    fileURLToPath(source),
+    fileURLToPath(new URL("scan.c", sources)),
+    fileURLToPath(new URL("scan-core.c", sources)),
     "-o",
     fileURLToPath(executable),
   ]);
-  await writeFile(new URL("scan.c", output), bytes);
+  for (const source of sourceFiles)
+    await writeFile(
+      new URL(source.path, output),
+      await readFile(new URL(source.path, sources)),
+    );
   binding = {
     ...binding,
     available: true,

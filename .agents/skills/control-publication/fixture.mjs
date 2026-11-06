@@ -279,6 +279,8 @@ process.stdout.write(JSON.stringify(await dispatch(JSON.parse(readFileSync(0,"ut
       for (const [source, target] of [
         ["scan.native", "inventory-scan.native"],
         ["scan.c", "inventory-scan.c"],
+        ["scan-core.c", "inventory-scan-core.c"],
+        ["scan-core.h", "inventory-scan-core.h"],
       ])
         await copyFile(
           join(root, "dist/src/migration/native-inventory/native", source),
@@ -476,6 +478,12 @@ process.stdout.write(JSON.stringify(await dispatch(JSON.parse(readFileSync(0,"ut
       join(host, "src/controls-publication/release.json"),
       join(host, "publication.mjs"),
       join(host, "mcp.mjs"),
+      ...["scan.native", "scan.c", "scan-core.c", "scan-core.h"].flatMap(
+        (name) => [
+          join(host, "native", `inventory-${name}`),
+          join(host, "src/migration/native-inventory/native", name),
+        ],
+      ),
       ...patches.map((patch) => patch.snapshot),
     ])
       artifacts[path] = hash(await readFile(path));

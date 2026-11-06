@@ -16,6 +16,18 @@
 namespace publication {
 namespace {
 std::string identityText(const Identity& object) { return object.kind + ":" + object.volume + ":" + object.device + ":" + object.inode + ":" + object.birth; }
+std::string signedNanoseconds(const struct timespec& value) {
+  static_assert(sizeof(value.tv_sec) <= 8);
+  if (value.tv_nsec < 0 || value.tv_nsec >= 1000000000) fail("unsupported-host");
+  __int128 total = static_cast<__int128>(value.tv_sec) * 1000000000 + value.tv_nsec;
+  bool negative = total < 0;
+  unsigned __int128 remaining = negative ? -total : total;
+  std::string result;
+  do { result.push_back(static_cast<char>('0' + remaining % 10)); remaining /= 10; } while (remaining);
+  if (negative) result.push_back('-');
+  std::reverse(result.begin(), result.end());
+  return result;
+}
 std::deque<std::string> parts(const std::string& path) {
   std::deque<std::string> result;
   size_t start = 0;
@@ -252,6 +264,7 @@ PathSnapshot policyPath(const std::shared_ptr<Anchor>& anchor, const std::string
   syscallResult(fd);
   auto current = std::make_shared<Descriptor>(fd);
   auto root = inspectFd(fd, false, true);
+  root.object.birth = signedNanoseconds(root.stat.st_birthtimespec);
   result.ancestry.push_back(root.object); result.observations.push_back(root); result.names.push_back("");
   size_t start = 1;
   std::string traversed;
@@ -274,6 +287,7 @@ PathSnapshot policyPath(const std::shared_ptr<Anchor>& anchor, const std::string
     auto next = std::make_shared<Descriptor>(child);
     bool protectedSource = !enclosure.empty() && traversed.size() > enclosure.size() && traversed.compare(0, enclosure.size() + 1, enclosure + "/") == 0;
     auto observed = protectedSource ? protectedSourceDirectory(child) : inspectFd(child, last && regular, directory);
+    observed.object.birth = signedNanoseconds(observed.stat.st_birthtimespec);
     allocation += observed.acl.size() * 3 + name.size() + 1024;
     if (allocation > 256 * 1024 * 1024) fail("unsupported-host");
     if (observed.stat.st_dev != before.st_dev || observed.stat.st_ino != before.st_ino || observed.stat.st_birthtimespec.tv_sec != before.st_birthtimespec.tv_sec || observed.stat.st_birthtimespec.tv_nsec != before.st_birthtimespec.tv_nsec) fail("identity-changed");
@@ -291,14 +305,17 @@ PathSnapshot policyPath(const std::shared_ptr<Anchor>& anchor, const std::string
   return result;
 }
 bool includes(const std::vector<Identity>& chain, const Identity& object) { return std::find(chain.begin(), chain.end(), object) != chain.end(); }
+bool includesPhysical(const std::vector<Identity>& chain, const Identity& object) {
+  return std::any_of(chain.begin(), chain.end(), [&](const Identity& candidate) { return candidate.kind == object.kind && candidate.volume == object.volume && candidate.device == object.device && candidate.inode == object.inode; });
+}
 void sourceNonoverlap(const std::shared_ptr<Anchor>& anchor, const PathSnapshot& source) {
   if (!anchor->exclusions) fail("unsafe-ancestry");
   std::vector<Identity> owner;
   for (auto handle = anchor->directory; handle; handle = handle->parent) owner.push_back(handle->object);
-  if (includes(source.ancestry, anchor->directory->object) || includes(owner, source.ancestry.back())) fail("unsafe-ancestry");
+  if (includesPhysical(source.ancestry, anchor->directory->object) || includesPhysical(owner, source.ancestry.back())) fail("unsafe-ancestry");
   for (const auto& excluded : anchor->exclusions->paths) {
     if (excluded.absent) continue;
-    if (includes(source.ancestry, excluded.ancestry.back()) || includes(excluded.ancestry, source.ancestry.back())) fail("unsafe-ancestry");
+    if (includesPhysical(source.ancestry, excluded.ancestry.back()) || includesPhysical(excluded.ancestry, source.ancestry.back())) fail("unsafe-ancestry");
   }
 }
 }
@@ -349,7 +366,7 @@ std::vector<std::pair<PathSnapshot, PathSnapshot>> observePolicySlots(const std:
     inspectFd(fd, true, true);
     if (privateRoot.stat.st_uid != getuid() || source.observations.back().stat.st_uid != getuid() || source.ancestry.size() <= enclosure.ancestry.size() || !includes(source.ancestry, enclosure.ancestry.back())) fail("unsafe-ancestry");
     sourceNonoverlap(anchor, enclosure); sourceNonoverlap(anchor, source);
-    for (const auto& prior : result) if (includes(source.ancestry, prior.second.ancestry.back()) || includes(prior.second.ancestry, source.ancestry.back())) fail("unsafe-ancestry");
+    for (const auto& prior : result) if (includesPhysical(source.ancestry, prior.second.ancestry.back()) || includesPhysical(prior.second.ancestry, source.ancestry.back())) fail("unsafe-ancestry");
     retained.push_back(enclosure); retained.push_back(source);
     result.emplace_back(std::move(enclosure), std::move(source));
   }

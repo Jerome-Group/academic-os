@@ -56,13 +56,48 @@ export function validateModuleFacts({
         `Expected a normalized module-relative path, observed ${JSON.stringify(value)}.`,
       );
   };
-  const accepted = (id: string, pointer: string) => {
-    if (decisions.get(id)?.status !== "accepted")
+  const accepted = (id: string, pointer: string, component?: string) => {
+    const decision = decisions.get(id);
+    if (decision?.status !== "accepted")
       problem(
         "unaccepted-control-decision",
         path,
         pointer,
         `${id} must resolve to an accepted decision.`,
+      );
+    if (value.schemaVersion !== 2 || !decision) return;
+    const localComponents = controls.flatMap((control) =>
+      control.role === "profile" &&
+      "role" in control.value &&
+      control.value.role === "profile"
+        ? control.value.assessments.map((entry) => entry.id)
+        : [],
+    );
+    if (
+      decision.scope.subjects.some(
+        (subject) => subject.startsWith("module:") && subject !== value.module,
+      )
+    )
+      problem(
+        "invalid-verification-binding",
+        path,
+        pointer,
+        "Decision scope explicitly names a different Module. Accepted status alone grants no applicability authority.",
+      );
+    if (
+      decision.scope.subjects.some(
+        (subject) =>
+          subject.startsWith("assessment-component:") &&
+          (component === undefined
+            ? !localComponents.includes(subject)
+            : subject !== component),
+      )
+    )
+      problem(
+        "invalid-verification-binding",
+        path,
+        pointer,
+        "Decision scope names an assessment component outside the known local scope.",
       );
   };
   const sourceUse = (use: SourceUse, pointer: string) => {
@@ -271,7 +306,11 @@ export function validateModuleFacts({
             );
           for (const criterion of assessment.criteria) {
             if (criterion.applicability === "excluded")
-              accepted(criterion.decision.id, `/assessments/${index}/criteria`);
+              accepted(
+                criterion.decision.id,
+                `/assessments/${index}/criteria`,
+                assessment.component,
+              );
             if (
               criterion.applicability === "applies" &&
               criterion.basis.kind === "rubric"
@@ -279,6 +318,7 @@ export function validateModuleFacts({
               accepted(
                 criterion.basis.applicabilityDecision.id,
                 `/assessments/${index}/criteria`,
+                assessment.component,
               );
           }
           continue;

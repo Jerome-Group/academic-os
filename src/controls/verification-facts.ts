@@ -1,9 +1,5 @@
 import { digest, sha256 } from "./canonical-json.js";
-import type {
-  Artifact,
-  Decision,
-  Evidence,
-} from "./generated/module-data-1.js";
+import type { Artifact, Evidence } from "./generated/module-data-1.js";
 import type {
   AssessmentReviewV2,
   Fragment,
@@ -20,7 +16,6 @@ export function validateVerificationFacts(input: {
   const { value, controls, observations, problem } = input;
   const evidence = new Map<string, Evidence>();
   const artifacts = new Map<string, Artifact>();
-  const decisions = new Map<string, Decision>();
   for (const control of controls) {
     if (control.role === "module-identity" || !("role" in control.value))
       continue;
@@ -29,8 +24,6 @@ export function validateVerificationFacts(input: {
     if (control.value.role === "artifacts")
       for (const entry of control.value.artifacts)
         artifacts.set(entry.id, entry);
-    if (control.value.role === "decisions")
-      for (const entry of control.value.entries) decisions.set(entry.id, entry);
   }
   function sourceBinding(
     reference: string,
@@ -126,33 +119,6 @@ export function validateVerificationFacts(input: {
       `${pointer}/question`,
     );
   }
-  function decision(
-    id: string,
-    review: AssessmentReviewV2,
-    pointer: string,
-  ): void {
-    const accepted = decisions.get(id);
-    if (
-      accepted?.scope.subjects.some(
-        (subject) => subject.startsWith("module:") && subject !== value.module,
-      )
-    )
-      problem(
-        pointer,
-        "Rubric decision explicitly names a different Module. Accepted status alone grants no applicability authority.",
-      );
-    if (
-      accepted?.scope.subjects.some(
-        (subject) =>
-          subject.startsWith("assessment-component:") &&
-          subject !== review.component,
-      )
-    )
-      problem(
-        pointer,
-        "Rubric decision explicitly names a different assessment component.",
-      );
-  }
   if (value.role === "verification") {
     for (const [index, check] of value.checks.entries())
       if (check.kind === "mathematics")
@@ -171,11 +137,6 @@ export function validateVerificationFacts(input: {
       }
       if (criterion.basis.kind === "rubric") {
         fragment(criterion.basis.fragment, `${position}/basis`);
-        decision(
-          criterion.basis.applicabilityDecision.id,
-          review,
-          `${position}/basis`,
-        );
       } else
         for (const source of criterion.basis.sources)
           fragment(source, `${position}/basis`);

@@ -1,7 +1,7 @@
 {
-  "syncRevision": "880c0e484a2647bf19efb9bad2818ceb9da75439",
+  "syncRevision": "5c8a60dce503d7ace63f72285ebdaaf650ad6175",
   "outcome": "updated",
-  "reason": "Frozen Module product 8f38285 moves the single canonical codec, adds two optional Module fields and pure transition admission before new PlanAppend. Existing matching-request, supplied-expectation, owner, native syscall, parent-barrier and settlement ordering remain unchanged. New executing dependencies and Module public/pure evidence are source-bound. The ownership model assumes admitted payloads and proves no Module history-preservation theorem. Seed hashes establish applicability only. Require the ordinary clean committed check and separate Module workflow.",
+  "reason": "Integrated workflow delivery preserves the reviewed publisher and Module behavior. Inventory adds CLI dispatch, a schema-owner registry entry and two exact build-output allowances. These changes do not alter modeled ownership, supplied expectations, claims, barriers, retries or settlement. Exact source mapping and the full candidate proof pass. Require the ordinary clean committed check; separate Module runtime evidence remains outside the ownership theorem.",
   "bounds": {
     "writers": 2,
     "candidates": 2,
@@ -18,9 +18,9 @@
     "scripts/build-control-publication-release.mjs": "5c6fb034e7e482ecd8a5e522539f3126af1803be9b1ae72165e41aa21ac7cdb5",
     "scripts/build-control-publication-standalone.mjs": "10e1613d846972a44ce79de9336adbfef299424f320facd0496618681549dfae",
     "scripts/check-control-publication-imports.mjs": "b9f3c1cae0b34829f0daf4b3cc12820e8cf6952d96a2ee0cd0c0312cca893b85",
-    "scripts/clean-build-output.mjs": "e9e2e21d87babb82ffdd3e0957894da4849fc1b913a8f625bbd405799e615414",
-    "scripts/generate-control-types.mjs": "a839ae9d0f53ac257c3d2a57d38b976bc83dc7ca2bd237d32dcd140ae67a183e",
-    "src/cli.ts": "98b75c308c942defc6ea47eda1eeeab1e259d6bdd99136ee964abd90f24dfbe2",
+    "scripts/clean-build-output.mjs": "a67bf4a0439dc4df32d6c026b03924e13e226a3d3dacce09c03021989cb67593",
+    "scripts/generate-control-types.mjs": "d970bd1a02f12b79c06bbf984f177f531fd94279ed0f72400291f93df42702b6",
+    "src/cli.ts": "aaa556e253597847f2f561d8495e5d23bb2a0a7a0a1b617cd9594b0a34fbf69a",
     "src/controls-publication/bundle.ts": "eb97766179b00cab75e689883b9cb7c38efd4f1ea14d96a608e8dc9cdb425861",
     "src/controls-publication/candidate.ts": "91d9839fc5a5a9569ece6a881a5d324dda3c1509d2d7d146d8fd7d5005e8a290",
     "src/controls-publication/codec.ts": "442864c0d371d1f1bebb95f391a144f4543d678e47691968af56b4a02fe735c1",
@@ -124,7 +124,7 @@
     "test/module-activity/module-activity.test.ts": "a1ab510ca3b3732716c7029e884706163fd0eaa14b3f9d5a0b07275c67b36abe",
     "test/module-activity/transport-compatibility.test.ts": "2553466b50d1ab1392c3a97ab62200dea88a3c34615a82556c219194d63363b4"
   },
-  "previousSyncRevision": "dac9de8148a6dd093f51ca379dd5c7765a8748d0",
+  "previousSyncRevision": "880c0e484a2647bf19efb9bad2818ceb9da75439",
   "modelMaintenance": {
     "finding": "MF1",
     "classification": "model drift",
@@ -164,5 +164,30 @@
       "propertiesAndBoundsChanged": false,
       "earlierSyncRevision": "f9b7ad5dc32605e3d800a1fe5a259761420e9c52"
     }
+  },
+  "workflowDeliveryMaintenance": {
+    "productRevision": "5c8a60dce503d7ace63f72285ebdaaf650ad6175",
+    "reviewedWorkflowRevision": "ddebfa72c29ec6c46f22be14403e5eae1fc24f3c",
+    "mergedPublisherRevision": "3ebd56dffd241c3009c6ea33469e4d1efb4778bd",
+    "previousMaintenance": {
+      "syncRevision": "880c0e484a2647bf19efb9bad2818ceb9da75439",
+      "previousSyncRevision": "dac9de8148a6dd093f51ca379dd5c7765a8748d0",
+      "reason": "Frozen Module product 8f38285 moves the single canonical codec, adds two optional Module fields and pure transition admission before new PlanAppend. Existing matching-request, supplied-expectation, owner, native syscall, parent-barrier and settlement ordering remain unchanged. New executing dependencies and Module public/pure evidence are source-bound. The ownership model assumes admitted payloads and proves no Module history-preservation theorem. Seed hashes establish applicability only. Require the ordinary clean committed check and separate Module workflow."
+    },
+    "classification": "no effect on modeled publisher behavior",
+    "coveredChanges": [
+      "scripts/clean-build-output.mjs",
+      "scripts/generate-control-types.mjs",
+      "src/cli.ts"
+    ],
+    "unchangedSourceBindings": 106,
+    "sourceBindingCount": 109,
+    "modelPropertiesAndBoundsChanged": false,
+    "inventoryObservation": "Payload and metadata reads may advance access times. Imported top-level code defines functions and in-memory schemas.",
+    "optionalInventoryLog": "Exclusive creation and sync of a new 0600 external file. It does not acquire publisher ownership or append publication evidence.",
+    "externalWriterLimit": "Arbitrary concurrent cross-command writes and hostile ancestor substitution remain excluded. No global write-free CLI property.",
+    "moduleHistoryLimit": "The ownership model assumes admitted payloads and has no Module history variables. Separate source-bound public and pure checks supply that evidence.",
+    "seedApplicability": "All 23 actual covered source hashes unchanged; applicability only, without another seed model run.",
+    "historicalPublisherRecord": "earlierBaseMaintenance remains 85-source publisher history, not current 109-source workflow proof."
   }
 }

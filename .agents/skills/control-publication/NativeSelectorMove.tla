@@ -26,72 +26,72 @@ GenerationWriteIndex == 6
 GenerationFileSyncIndex == 7
 GenerationReadbackIndex == 8
 GenerationParentSyncIndex == 9
-GenerationFinalOwnedReadIndex == 10
-GenerationFinalFileSyncIndex == 11
-GenerationFinalParentSyncIndex == 12
-GenerationSettleAppendIndex == 13
-GenerationSettleSyncIndex == 14
-CreateFileIndex == 15
-AppendFullPhysicalClaimIndex == 16
-SyncClaimIndex == 17
-WriteBytesIndex == 18
-SyncFileIndex == 19
-ReadbackBytesAndMetadataIndex == 20
-SyncTemporaryParentIndex == 21
-AppendMoveIntentIndex == 22
-SyncMoveIntentIndex == 23
-AppendArchiveIntentIndex == 24
-SyncArchiveIntentIndex == 25
-GuardFrozenExpectedOldIndex == 26
-SelectorSwapSyscallIndex == 27
-GuardOldArchiveIndex == 28
-ArchiveSyscallIndex == 29
-SyncNamespaceAfterSwapArchiveIndex == 30
-ReadbackOldAtExactTemporaryOrArchiveIndex == 31
-AppendArchiveObservedIndex == 32
-SyncArchiveObservedIndex == 33
-ReadbackNewHeadIndex == 34
-SyncNewFileIndex == 35
-SyncNewParentIndex == 36
-AppendMoveObservedIndex == 37
-SyncMoveObservedIndex == 38
-SelectorPostObservationOwnedReadIndex == 39
-SettleRegistrationOrSelectorIndex == 40
-SyncNativeSettlementIndex == 41
-AppendReceiptIntentIndex == 42
-SyncReceiptIntentIndex == 43
-ReceiptCreateIndex == 44
-ReceiptClaimAppendIndex == 45
-ReceiptClaimSyncIndex == 46
-ReceiptWriteIndex == 47
-ReceiptFileSyncIndex == 48
-ReceiptReadbackTemporaryIndex == 49
-ReceiptParentSyncIndex == 50
-ReceiptPromotionIntentAppendIndex == 51
-ReceiptPromotionIntentSyncIndex == 52
-ReceiptPromotionSyscallIndex == 53
-ReceiptSourceParentSyncIndex == 54
-ReceiptDestinationParentSyncIndex == 55
-ReceiptDestinationReadbackIndex == 56
-ReceiptPromotionObservedAppendIndex == 57
-ReceiptPromotionObservedSyncIndex == 58
-ReceiptFinalOwnedReadIndex == 59
-ReceiptFinalFileSyncIndex == 60
-ReceiptFinalParentSyncIndex == 61
-AppendReceiptSettledIndex == 62
-SyncReceiptSettledIndex == 63
-ReceiptPostSettlementOwnedReadIndex == 64
-ReturnSuccessIndex == 65
-GenerationPromotionIntentAppendIndex == 66
-GenerationPromotionIntentSyncIndex == 67
-GenerationPromotionSyscallIndex == 68
-GenerationSourceParentSyncIndex == 69
-GenerationDestinationParentSyncIndex == 70
-GenerationDestinationReadbackIndex == 71
-GenerationPromotionObservedAppendIndex == 72
-GenerationPromotionObservedSyncIndex == 73
-PolicySelectorIntentAppendIndex == 74
-PolicySelectorIntentSyncIndex == 75
+GenerationPromotionIntentAppendIndex == 10
+GenerationPromotionIntentSyncIndex == 11
+GenerationPromotionSyscallIndex == 12
+GenerationSourceParentSyncIndex == 13
+GenerationDestinationParentSyncIndex == 14
+GenerationDestinationReadbackIndex == 15
+GenerationPromotionObservedAppendIndex == 16
+GenerationPromotionObservedSyncIndex == 17
+GenerationFinalOwnedReadIndex == 18
+GenerationFinalFileSyncIndex == 19
+GenerationFinalParentSyncIndex == 20
+GenerationSettleAppendIndex == 21
+GenerationSettleSyncIndex == 22
+PolicySelectorIntentAppendIndex == 23
+PolicySelectorIntentSyncIndex == 24
+CreateFileIndex == 25
+AppendFullPhysicalClaimIndex == 26
+SyncClaimIndex == 27
+WriteBytesIndex == 28
+SyncFileIndex == 29
+ReadbackBytesAndMetadataIndex == 30
+SyncTemporaryParentIndex == 31
+AppendMoveIntentIndex == 32
+SyncMoveIntentIndex == 33
+AppendArchiveIntentIndex == 34
+SyncArchiveIntentIndex == 35
+GuardFrozenExpectedOldIndex == 36
+SelectorSwapSyscallIndex == 37
+GuardOldArchiveIndex == 38
+ArchiveSyscallIndex == 39
+SyncNamespaceAfterSwapArchiveIndex == 40
+ReadbackOldAtExactTemporaryOrArchiveIndex == 41
+AppendArchiveObservedIndex == 42
+SyncArchiveObservedIndex == 43
+ReadbackNewHeadIndex == 44
+SyncNewFileIndex == 45
+SyncNewParentIndex == 46
+AppendMoveObservedIndex == 47
+SyncMoveObservedIndex == 48
+SelectorPostObservationOwnedReadIndex == 49
+SettleRegistrationOrSelectorIndex == 50
+SyncNativeSettlementIndex == 51
+AppendReceiptIntentIndex == 52
+SyncReceiptIntentIndex == 53
+ReceiptCreateIndex == 54
+ReceiptClaimAppendIndex == 55
+ReceiptClaimSyncIndex == 56
+ReceiptWriteIndex == 57
+ReceiptFileSyncIndex == 58
+ReceiptReadbackTemporaryIndex == 59
+ReceiptParentSyncIndex == 60
+ReceiptPromotionIntentAppendIndex == 61
+ReceiptPromotionIntentSyncIndex == 62
+ReceiptPromotionSyscallIndex == 63
+ReceiptSourceParentSyncIndex == 64
+ReceiptDestinationParentSyncIndex == 65
+ReceiptDestinationReadbackIndex == 66
+ReceiptPromotionObservedAppendIndex == 67
+ReceiptPromotionObservedSyncIndex == 68
+ReceiptFinalOwnedReadIndex == 69
+ReceiptFinalFileSyncIndex == 70
+ReceiptFinalParentSyncIndex == 71
+AppendReceiptSettledIndex == 72
+SyncReceiptSettledIndex == 73
+ReceiptPostSettlementOwnedReadIndex == 74
+ReturnSuccessIndex == 75
 GenerationBarrierSteps == {"GenerationClaimSync", "GenerationFileSync", "GenerationReadback", "GenerationParentSync", "GenerationPromotionIntentSync", "GenerationSourceParentSync", "GenerationDestinationParentSync", "GenerationDestinationReadback", "GenerationPromotionObservedSync", "GenerationFinalOwnedRead", "GenerationFinalFileSync", "GenerationFinalParentSync"}
 SelectorBarrierSteps == {"SyncClaim", "WriteBytes", "SyncFile", "ReadbackBytesAndMetadata", "SyncTemporaryParent", "SyncNamespaceAfterSwapArchive", "ReadbackOldAtExactTemporaryOrArchive", "ReadbackNewHead", "SyncNewFile", "SyncNewParent", "SelectorPostObservationOwnedRead"}
 ReceiptSteps == {"AppendReceiptIntent", "SyncReceiptIntent", "ReceiptCreate", "ReceiptClaimAppend", "ReceiptClaimSync", "ReceiptWrite", "ReceiptFileSync", "ReceiptReadbackTemporary", "ReceiptParentSync", "ReceiptPromotionIntentAppend", "ReceiptPromotionIntentSync", "ReceiptPromotionSyscall", "ReceiptSourceParentSync", "ReceiptDestinationParentSync", "ReceiptDestinationReadback", "ReceiptPromotionObservedAppend", "ReceiptPromotionObservedSync", "ReceiptFinalOwnedRead", "ReceiptFinalFileSync", "ReceiptFinalParentSync", "AppendReceiptSettled", "SyncReceiptSettled", "ReceiptPostSettlementOwnedRead"}
@@ -125,11 +125,21 @@ GenerationWrite == Advance("GenerationWrite", GenerationWriteIndex)
 GenerationFileSync == Advance("GenerationFileSync", GenerationFileSyncIndex)
 GenerationReadback == Advance("GenerationReadback", GenerationReadbackIndex)
 GenerationParentSync == Advance("GenerationParentSync", GenerationParentSyncIndex)
+GenerationPromotionIntentAppend == Advance("GenerationPromotionIntentAppend", GenerationPromotionIntentAppendIndex)
+GenerationPromotionIntentSync == Advance("GenerationPromotionIntentSync", GenerationPromotionIntentSyncIndex)
+GenerationPromotionSyscall == Advance("GenerationPromotionSyscall", GenerationPromotionSyscallIndex)
+GenerationSourceParentSync == Advance("GenerationSourceParentSync", GenerationSourceParentSyncIndex)
+GenerationDestinationParentSync == Advance("GenerationDestinationParentSync", GenerationDestinationParentSyncIndex)
+GenerationDestinationReadback == Advance("GenerationDestinationReadback", GenerationDestinationReadbackIndex)
+GenerationPromotionObservedAppend == Advance("GenerationPromotionObservedAppend", GenerationPromotionObservedAppendIndex)
+GenerationPromotionObservedSync == Advance("GenerationPromotionObservedSync", GenerationPromotionObservedSyncIndex)
 GenerationFinalOwnedRead == Advance("GenerationFinalOwnedRead", GenerationFinalOwnedReadIndex)
 GenerationFinalFileSync == Advance("GenerationFinalFileSync", GenerationFinalFileSyncIndex)
 GenerationFinalParentSync == Advance("GenerationFinalParentSync", GenerationFinalParentSyncIndex)
 GenerationSettleAppend == /\ SelectorKind = "policy" /\ Advance("GenerationSettleAppend", GenerationSettleAppendIndex)
 GenerationSettleSync == /\ SelectorKind = "policy" /\ Advance("GenerationSettleSync", GenerationSettleSyncIndex)
+PolicySelectorIntentAppend == /\ SelectorKind = "policy" /\ Advance("PolicySelectorIntentAppend", PolicySelectorIntentAppendIndex)
+PolicySelectorIntentSync == /\ SelectorKind = "policy" /\ Advance("PolicySelectorIntentSync", PolicySelectorIntentSyncIndex)
 CreateFile == Advance("CreateFile", CreateFileIndex)
 AppendFullPhysicalClaim == Advance("AppendFullPhysicalClaim", AppendFullPhysicalClaimIndex)
 SyncClaim == Advance("SyncClaim", SyncClaimIndex)
@@ -186,16 +196,6 @@ ReturnSuccess == IF Broken = "receipt" /\ SelectorKind = "policy" THEN
      moveObserved, nativeSettlement, receipt, retainedAttempts, attempt, crashCount,
      crashed, savedPc, expectedOld, readonlyResult, readonlyBasis, archiveObserved, generationSettled, refused>>
      ELSE Advance("ReturnSuccess", ReturnSuccessIndex)
-GenerationPromotionIntentAppend == Advance("GenerationPromotionIntentAppend", GenerationPromotionIntentAppendIndex)
-GenerationPromotionIntentSync == Advance("GenerationPromotionIntentSync", GenerationPromotionIntentSyncIndex)
-GenerationPromotionSyscall == Advance("GenerationPromotionSyscall", GenerationPromotionSyscallIndex)
-GenerationSourceParentSync == Advance("GenerationSourceParentSync", GenerationSourceParentSyncIndex)
-GenerationDestinationParentSync == Advance("GenerationDestinationParentSync", GenerationDestinationParentSyncIndex)
-GenerationDestinationReadback == Advance("GenerationDestinationReadback", GenerationDestinationReadbackIndex)
-GenerationPromotionObservedAppend == Advance("GenerationPromotionObservedAppend", GenerationPromotionObservedAppendIndex)
-GenerationPromotionObservedSync == Advance("GenerationPromotionObservedSync", GenerationPromotionObservedSyncIndex)
-PolicySelectorIntentAppend == /\ SelectorKind = "policy" /\ Advance("PolicySelectorIntentAppend", PolicySelectorIntentAppendIndex)
-PolicySelectorIntentSync == /\ SelectorKind = "policy" /\ Advance("PolicySelectorIntentSync", PolicySelectorIntentSyncIndex)
 Crash == /\ ~crashed /\ ~success /\ ~refused /\ pc > 1 /\ pc <= ReturnSuccessIndex /\ crashCount < 2
  /\ crashed' = TRUE /\ gate' = FALSE /\ savedPc' = pc /\ crashCount' = crashCount + 1
  /\ UNCHANGED <<pc, scope, claims, physicalLocation, recordedLocation, moveIntent, archiveIntent,
@@ -226,7 +226,7 @@ SyncRetainedAttempt == /\ pc = 100 /\ ~crashed /\ gate
  /\ UNCHANGED <<scope, physicalLocation, recordedLocation, moveIntent, archiveIntent,
      barriers, moveObserved, nativeSettlement, receipt, retainedAttempts, success, crashCount,
      expectedOld, readonlyResult, readonlyBasis, archiveObserved>>
-Next == ReserveAttemptAppend \/ ReserveAttemptSync \/ GenerationCreate \/ GenerationClaimAppend \/ GenerationClaimSync \/ GenerationWrite \/ GenerationFileSync \/ GenerationReadback \/ GenerationParentSync \/ GenerationFinalOwnedRead \/ GenerationFinalFileSync \/ GenerationFinalParentSync \/ GenerationSettleAppend \/ GenerationSettleSync \/ CreateFile \/ AppendFullPhysicalClaim \/ SyncClaim \/ WriteBytes \/ SyncFile \/ ReadbackBytesAndMetadata \/ SyncTemporaryParent \/ AppendMoveIntent \/ SyncMoveIntent \/ AppendArchiveIntent \/ SyncArchiveIntent \/ GuardFrozenExpectedOld \/ SelectorSwapSyscall \/ GuardOldArchive \/ ArchiveSyscall \/ SyncNamespaceAfterSwapArchive \/ ReadbackOldAtExactTemporaryOrArchive \/ AppendArchiveObserved \/ SyncArchiveObserved \/ ReadbackNewHead \/ SyncNewFile \/ SyncNewParent \/ AppendMoveObserved \/ SyncMoveObserved \/ SelectorPostObservationOwnedRead \/ SettleRegistrationOrSelector \/ SyncNativeSettlement \/ AppendReceiptIntent \/ SyncReceiptIntent \/ ReceiptCreate \/ ReceiptClaimAppend \/ ReceiptClaimSync \/ ReceiptWrite \/ ReceiptFileSync \/ ReceiptReadbackTemporary \/ ReceiptParentSync \/ ReceiptPromotionIntentAppend \/ ReceiptPromotionIntentSync \/ ReceiptPromotionSyscall \/ ReceiptSourceParentSync \/ ReceiptDestinationParentSync \/ ReceiptDestinationReadback \/ ReceiptPromotionObservedAppend \/ ReceiptPromotionObservedSync \/ ReceiptFinalOwnedRead \/ ReceiptFinalFileSync \/ ReceiptFinalParentSync \/ AppendReceiptSettled \/ SyncReceiptSettled \/ ReceiptPostSettlementOwnedRead \/ ReturnSuccess \/ GenerationPromotionIntentAppend \/ GenerationPromotionIntentSync \/ GenerationPromotionSyscall \/ GenerationSourceParentSync \/ GenerationDestinationParentSync \/ GenerationDestinationReadback \/ GenerationPromotionObservedAppend \/ GenerationPromotionObservedSync \/ PolicySelectorIntentAppend \/ PolicySelectorIntentSync \/ SyncRetainedAttempt \/ Crash \/ Restart \/ RetainUnclaimedAttempt \/ ReadonlyCompletedLookup
+Next == ReserveAttemptAppend \/ ReserveAttemptSync \/ GenerationCreate \/ GenerationClaimAppend \/ GenerationClaimSync \/ GenerationWrite \/ GenerationFileSync \/ GenerationReadback \/ GenerationParentSync \/ GenerationPromotionIntentAppend \/ GenerationPromotionIntentSync \/ GenerationPromotionSyscall \/ GenerationSourceParentSync \/ GenerationDestinationParentSync \/ GenerationDestinationReadback \/ GenerationPromotionObservedAppend \/ GenerationPromotionObservedSync \/ GenerationFinalOwnedRead \/ GenerationFinalFileSync \/ GenerationFinalParentSync \/ GenerationSettleAppend \/ GenerationSettleSync \/ PolicySelectorIntentAppend \/ PolicySelectorIntentSync \/ CreateFile \/ AppendFullPhysicalClaim \/ SyncClaim \/ WriteBytes \/ SyncFile \/ ReadbackBytesAndMetadata \/ SyncTemporaryParent \/ AppendMoveIntent \/ SyncMoveIntent \/ AppendArchiveIntent \/ SyncArchiveIntent \/ GuardFrozenExpectedOld \/ SelectorSwapSyscall \/ GuardOldArchive \/ ArchiveSyscall \/ SyncNamespaceAfterSwapArchive \/ ReadbackOldAtExactTemporaryOrArchive \/ AppendArchiveObserved \/ SyncArchiveObserved \/ ReadbackNewHead \/ SyncNewFile \/ SyncNewParent \/ AppendMoveObserved \/ SyncMoveObserved \/ SelectorPostObservationOwnedRead \/ SettleRegistrationOrSelector \/ SyncNativeSettlement \/ AppendReceiptIntent \/ SyncReceiptIntent \/ ReceiptCreate \/ ReceiptClaimAppend \/ ReceiptClaimSync \/ ReceiptWrite \/ ReceiptFileSync \/ ReceiptReadbackTemporary \/ ReceiptParentSync \/ ReceiptPromotionIntentAppend \/ ReceiptPromotionIntentSync \/ ReceiptPromotionSyscall \/ ReceiptSourceParentSync \/ ReceiptDestinationParentSync \/ ReceiptDestinationReadback \/ ReceiptPromotionObservedAppend \/ ReceiptPromotionObservedSync \/ ReceiptFinalOwnedRead \/ ReceiptFinalFileSync \/ ReceiptFinalParentSync \/ AppendReceiptSettled \/ SyncReceiptSettled \/ ReceiptPostSettlementOwnedRead \/ ReturnSuccess \/ SyncRetainedAttempt \/ Crash \/ Restart \/ RetainUnclaimedAttempt \/ ReadonlyCompletedLookup
 FrozenExpectedOld == physicalLocation.new = "fixed" => expectedOld = "old-object-and-bytes"
 IntentBeforeSwap == physicalLocation.new = "fixed" => moveIntent = 2 /\ archiveIntent = 2 /\ "SyncTemporaryParent" \in barriers /\ "selector" \in claims
 RecordedLocationReachable == nativeSettlement => recordedLocation = "temporary" /\ moveObserved = 2

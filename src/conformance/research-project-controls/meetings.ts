@@ -155,7 +155,7 @@ function validateMeetingNote(
 ): { problems: string[]; status?: string } {
   if (source === undefined)
     return { problems: [`No readable meeting note exists at ${path}.`] };
-  const match = /^---\n([\s\S]*?)\n---(?:\n|$)/u.exec(source);
+  const match = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/u.exec(source);
   if (match === null)
     return { problems: [`Meeting note ${path} requires YAML front matter.`] };
   let value: unknown;

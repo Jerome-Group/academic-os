@@ -6,9 +6,10 @@ not a rule. A Research project is the distinct aggregate recorded in
 [`docs/adr/0024`](adr/0024-research-projects-are-not-modules.md); it is not a Module and inherits no
 semester, module-code or NTULearn requirement.
 
-**Contract version: 3.** Increase it when a normative requirement, applicability rule or allowed
-structure changes. Rules have stable IDs. **Deterministic** rules are decided without judgment;
-**judgment** rules expose evidence for a person or agent to resolve. Project contents live outside
+**Contract version: 3.** Increase it when a folder-conformance requirement, applicability rule or
+allowed structure changes. The initial-intake protocol has its own manifest version below and
+does not upgrade existing folders or Definitions. Rules have stable IDs. **Deterministic** rules
+are decided without judgment; **judgment** rules expose evidence for a person or agent to resolve. Project contents live outside
 this public repository under [`docs/adr/0002`](adr/0002-the-contract-lives-here-and-the-coursework-does-not.md).
 
 ## Seeding a research project
@@ -39,7 +40,7 @@ An approved initial intake may join that same plan through a private manifest:
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "files": [
     {
       "destination": "10 Source Materials/20 Core Sources/example.pdf",
@@ -51,13 +52,29 @@ An approved initial intake may join that same plan through a private manifest:
 }
 ```
 
-The root and each row use exactly the shown keys; `encoding` is `utf8` or `binary`. `source` is a
-relative local path resolved from the manifest. The manifest and every source are ordinary,
+The root and each row use exactly the shown keys. Manifest `schemaVersion` selects intake policy
+`1` or `2`; unsupported versions refuse the plan. Version 1 retains its original destinations and
+plan identity, with no policy field in the plan. Version 2 adds the initial meeting schedule and records `intakePolicyVersion: 2`
+in the private plan and journal. Both policies produce folders under contract version 3.
+
+Manifest JSON uses unique keys, Unicode scalar strings and safe integer literals without negative
+zero. It is at most 8 MiB with at most 128 nesting levels. These limits govern the manifest,
+not its payload files. Conflicting or escaped duplicate version keys refuse before policy selection.
+
+`encoding` is `utf8` or `binary`. `source` is a relative local path resolved from the manifest.
+The manifest and every source are ordinary,
 materialized files, and each source's exact bytes match its recorded SHA-256. A `utf8` source also
 decodes as strict UTF-8.
 
-Initial intake may replace only the caller-owned seed bodies for `20 Source Register.yaml`,
-`50 Deliverable Register.yaml` and `references.bib`, all as UTF-8. The Profile and Definition keep
+Both policies accept the caller-owned seed bodies for `20 Source Register.yaml`,
+`50 Deliverable Register.yaml` and `references.bib`. Policy 2 also permits the caller-owned
+`20 Supervisor Meetings/SCHEDULE.md` seed body. These controls require UTF-8. A complete initial
+Meeting supplies `Meeting.md` and Sources, plus Learning and Exercises each with `records/`.
+Its schedule satisfies RP-MEETINGS-001. Projected, staged and published audits inspect the supplied
+note bytes. A meeting-free intake remains valid with the empty schedule template.
+
+These replacements select planned seed bodies only. Existing target files must already match
+their exact bytes, or the entire seed refuses before publication. The Profile and Definition keep
 their dedicated inputs. Every other intake file is additive and sits beneath an open Source,
 Meeting, profile-derived Deliverable, Research-work or existing Resource-category directory.
 Missing descendants beneath that interior join the plan as directory operations. Duplicate,

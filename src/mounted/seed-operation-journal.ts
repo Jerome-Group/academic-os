@@ -227,6 +227,12 @@ export async function readSeedJournal(
       diagnostic: "Seed journal contains a mismatched target identity.",
     };
   }
+  if (seedPlanDigest(started.plan) !== started.planDigest) {
+    return {
+      diagnostic:
+        "Seed continuation stored plan does not match its recorded digest.",
+    };
+  }
   if (
     events.some(
       (event, index) =>
@@ -622,14 +628,21 @@ function isSeedPlan(value: unknown): value is SeedablePlan {
     Array.isArray(plan.blockers) &&
     plan.blockers.every((blocker) => typeof blocker === "string");
   if (!common) return false;
-  if (typeof plan.module === "string" || typeof plan.semester === "string") {
-    return typeof plan.module === "string" && typeof plan.semester === "string";
+  if ("module" in plan || "semester" in plan) {
+    return (
+      typeof plan.module === "string" &&
+      typeof plan.semester === "string" &&
+      !["target", "contractVersion", "intakePolicyVersion"].some(
+        (key) => key in plan,
+      )
+    );
   }
   if (!isRecord(plan.target)) return false;
   return (
     plan.target.kind === "research-project" &&
     typeof plan.target.key === "string" &&
     typeof plan.target.folder === "string" &&
+    (!("intakePolicyVersion" in plan) || plan.intakePolicyVersion === 2) &&
     Number.isInteger(plan.contractVersion)
   );
 }

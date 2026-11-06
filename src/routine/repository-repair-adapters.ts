@@ -5,6 +5,13 @@ import {
   runRepositoryProcess,
 } from "./repository-repair-process.js";
 import { runRepositoryRepairSession } from "./repository-repair-session.js";
+import {
+  concludeRepositoryRepairIssue,
+  deliverRepositoryRepairAcceptance,
+  renderRepositoryRepairIssue,
+} from "./repository-repair-issue.js";
+
+export { renderRepositoryRepairIssue } from "./repository-repair-issue.js";
 
 export {
   repositoryDiagnosticSignature,
@@ -34,14 +41,6 @@ import type {
 const sha = (value: string | Buffer) =>
   createHash("sha256").update(value).digest("hex");
 const checks = ["check"];
-
-export function renderRepositoryRepairIssue(
-  fingerprint: string,
-  delivered = false,
-): string {
-  const mark = delivered ? "x" : " ";
-  return `<!-- academic-os-repository-repair:v1 fingerprint=${fingerprint} -->\n\nA reproducible scheduled public repository verification failure needs an isolated repair. Private diagnostics remain local.\n\n## Acceptance criteria\n\n- [${mark}] Meaningful synthetic regression and local checks on the exact repair head.\n- [${mark}] Two independent exact-head reviews with findings resolved.\n\nProtected remote checks, postmerge verification and rollout are separate execution evidence.\n`;
-}
 
 export function renderRepositoryRepairPullRequest(issue: number): string {
   return `Fix the reproduced repository verification failure with a meaningful synthetic regression.\n\nCloses #${issue}\n\nValidation: sandboxed exact-head local checks and two independent read-only reviews. Protected remote checks, postmerge verification and rollout remain separate gates.\n\n**#${issue} — Scheduled repository verification repair: 2 of 2 criteria delivered, nothing beyond the brief.**\n\nAssisted-by: GPT-6.1 Sol (medium)\nCo-authored-by: OpenAI Codex <noreply@openai.com>\n`;
@@ -377,30 +376,15 @@ export function createRepositoryRepairPorts(input: {
       if (!r) throw new Error("Review missing.");
       return r;
     },
-    publish: async (candidate, issue, head) => {
+    publish: async ({ candidate, issue, fingerprint, head }) => {
       if ((await git(["rev-parse", "HEAD"], candidate.root)) !== head)
         throw new Error("Publish head changed.");
-      const owned = JSON.parse(
-        await gh(["issue", "view", String(issue), "--json", "body"]),
-      ) as { body: unknown };
-      const fingerprint =
-        typeof owned.body === "string"
-          ? /^<!-- academic-os-repository-repair:v1 fingerprint=([a-f0-9]{64}) -->/u.exec(
-              owned.body,
-            )?.[1]
-          : undefined;
-      if (!fingerprint) throw new Error("Issue ownership unavailable.");
-      const acceptance = join(
-        input.privateStateRoot,
-        "repository-repair",
-        `${randomUUID()}-acceptance.md`,
-      );
-      await writeFile(
-        acceptance,
-        renderRepositoryRepairIssue(fingerprint, true),
-        { flag: "wx", mode: 0o600 },
-      );
-      await gh(["issue", "edit", String(issue), "--body-file", acceptance]);
+      await deliverRepositoryRepairAcceptance({
+        issue,
+        fingerprint,
+        gh,
+        privateStateRoot: input.privateStateRoot,
+      });
       await git(["push", "origin", candidate.branch], candidate.root);
       const file = join(
         input.privateStateRoot,
@@ -532,40 +516,12 @@ export function createRepositoryRepairPorts(input: {
         p.mergeCommit?.oid === merge
       );
     },
-    conclude: async ({
-      issue,
-      fingerprint,
-      pullRequest,
-      mergeCommit,
-      postmergeVerified,
-      rolledOut,
-    }) => {
-      const marker = `<!-- academic-os-repository-repair:v1 fingerprint=${fingerprint} -->`;
-      const existing = JSON.parse(
-        await gh(["issue", "view", String(issue), "--json", "body"]),
-      ) as { body: unknown };
-      if (
-        typeof existing.body !== "string" ||
-        !existing.body.startsWith(marker)
-      )
-        throw new Error("Issue ownership changed.");
-      const file = join(
-        input.privateStateRoot,
-        "repository-repair",
-        `${randomUUID()}-conclusion.md`,
-      );
-      await writeFile(
-        file,
-        `${renderRepositoryRepairIssue(fingerprint, true)}\nMerged PR #${pullRequest} (${mergeCommit}). Combined-main verification: ${postmergeVerified ? "passed" : "blocked"}; primary rollout: ${rolledOut ? "passed" : "blocked"}.\n`,
-        { flag: "wx", mode: 0o600 },
-      );
-      await gh(["issue", "edit", String(issue), "--body-file", file]);
-      await gh([
-        "issue",
-        postmergeVerified && rolledOut ? "close" : "reopen",
-        String(issue),
-      ]);
-    },
+    conclude: (conclusion) =>
+      concludeRepositoryRepairIssue({
+        ...conclusion,
+        gh,
+        privateStateRoot: input.privateStateRoot,
+      }),
     rollout: async (candidate, originalBase, merge, evidence) => {
       const temporaryRoot = await repositoryFixtureRoot(
         candidate.root,

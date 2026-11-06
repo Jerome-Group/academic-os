@@ -8,14 +8,28 @@ import { publicationFixture } from "./fixtures.js";
 import { fixture } from "./native-policy-fixture.js";
 
 for (const kind of ["candidate-reserved", "publication-plan"] as const) {
-  for (const requestId of ["generated-predecessor", "a".repeat(64)]) {
-    it(`reports truthful host recovery for ${kind} with ${requestId.length === 64 ? "digest-shaped" : "ordinary"} request identity`, {
+  for (const identity of [
+    "ordinary",
+    "digest-shaped",
+    "settled-native-digest",
+  ] as const) {
+    it(`reports truthful host recovery for ${kind} with ${identity} request identity`, {
       skip: process.platform !== "darwin",
       timeout: 180000,
     }, async (context) => {
       const f = await fixture("generated-pending-host");
       context.diagnostic(`Retained generated pending fixture ${f.root}`);
       const input = await f.request("blocked-policy");
+      const settled = (await f.records()).find(
+        (record) => record.kind === "native-host-deployment-settled",
+      );
+      assert.ok(settled);
+      const requestId =
+        identity === "ordinary"
+          ? "generated-predecessor"
+          : identity === "digest-shaped"
+            ? "a".repeat(64)
+            : settled.intentDigest;
       let pendingArgs = [
         join(f.host, "publication.mjs"),
         "create-generated-candidate",

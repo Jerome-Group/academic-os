@@ -74,11 +74,12 @@ export interface RepositoryRepairPorts {
     head: string,
     evidence: string,
   ): Promise<RepositoryReview>;
-  publish(
-    candidate: RepositoryCandidate,
-    issue: number,
-    head: string,
-  ): Promise<number>;
+  publish(input: {
+    candidate: RepositoryCandidate;
+    issue: number;
+    fingerprint: string;
+    head: string;
+  }): Promise<number>;
   pullRequest(number: number): Promise<RepositoryPullRequestState>;
   merge(number: number, head: string): Promise<string>;
   merged(number: number, head: string, merge: string): Promise<boolean>;

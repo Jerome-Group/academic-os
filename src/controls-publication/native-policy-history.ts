@@ -584,7 +584,8 @@ export function requirePendingOrder(
             {
               family: "generated",
               requestId: record.binding.requestId,
-              key: record.binding.requestId,
+              retainedPlanDigest:
+                record.kind === "publication-plan" ? digest(record) : null,
             },
           ];
     if (record.kind === "native-host-deployment-intent")
@@ -594,7 +595,7 @@ export function requirePendingOrder(
             {
               family: "host-deployment",
               requestId: record.request.requestId,
-              key: digest(record),
+              retainedPlanDigest: digest(record),
             },
           ];
     if (record.kind === "native-source-policy-install-intent")
@@ -604,7 +605,7 @@ export function requirePendingOrder(
             {
               family: "native-policy",
               requestId: record.scope.requestId,
-              key: record.scope.intentDigest,
+              retainedPlanDigest: record.scope.intentDigest,
             },
           ];
     return [];
@@ -621,6 +622,6 @@ export function requirePendingOrder(
     "uncertain-publication",
     "Earlier pending work must settle under its original request before this mutation.",
     first.requestId,
-    first.key,
+    first.retainedPlanDigest,
   );
 }

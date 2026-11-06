@@ -122,6 +122,9 @@ export function guardedTaskTools(
                 ...report,
                 execution: {
                   protocol: "task-plan/1",
+                  defaultMode: "direct",
+                  requiresPlan: false,
+                  requiresExternalPolicy: false,
                   target,
                   listId: report.register.listId,
                   expectedSnapshot: report.register.providerSnapshot,

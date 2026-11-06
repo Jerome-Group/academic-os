@@ -149,12 +149,18 @@ test("all current module and research MCP callers can obtain a snapshot and use 
       read.report as {
         execution: {
           expectedSnapshot: string;
+          defaultMode: string;
+          requiresPlan: boolean;
+          requiresExternalPolicy: boolean;
           target: unknown;
           listId: string;
         };
       }
     ).execution;
     assert.deepEqual(execution.target, target);
+    assert.equal(execution.defaultMode, "direct");
+    assert.equal(execution.requiresPlan, false);
+    assert.equal(execution.requiresExternalPolicy, false);
     for (const name of ["create", "change", "complete"]) {
       const operation =
         name === "create"

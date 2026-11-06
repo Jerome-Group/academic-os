@@ -38,6 +38,7 @@ Saved-plan cases reject mixed Module and Research identities, including a suppor
 They verify the entire stored plan against its recorded digest, reject both supported policy transitions and altered saved operation bytes, and preserve every Research target file.
 Manifest fixtures reject conflicting and escaped duplicate version keys before policy selection, while both valid intake policies preserve source payload bytes.
 Mounted fixtures also exercise staged Meeting interruption and exact-plan resume, including refusal after schedule bytes or policy identity change.
+Public URECA and generic audits reject undeclared first-level Deliverable and Resource directories under RP-ROOT-002. Required categories, universal Unclassified, nesting inside permitted homes and direct files at the category roots remain conformant.
 The Module seed CLI journey interrupts publication and proves explicit resume completes it.
 Pinned-refresh journeys compare backups and resulting bytes and reject changed preconditions.
 Recovery selects all mounted, repair, seed and pinned suites, including competing, missing and replaced root claims.

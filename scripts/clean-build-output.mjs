@@ -29,7 +29,13 @@ async function inspectArtifacts(directory) {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     const path = join(directory, entry.name);
     if (entry.isDirectory()) await inspectArtifacts(path);
-    else if (!entry.isFile() || !/\.(js|d\.ts)$/u.test(entry.name))
+    else if (
+      path ===
+        join(output, "src/migration/native-inventory/native/scan.native") ||
+      path === join(output, "src/migration/native-inventory/native/scan.c")
+    ) {
+      if (!entry.isFile()) refuse(path);
+    } else if (!entry.isFile() || !/\.(js|d\.ts)$/u.test(entry.name))
       refuse(path);
   }
 }

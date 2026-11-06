@@ -8,6 +8,8 @@ description: Verify Academic OS CLI, Operations and authored workflows through t
 ## Launch
 
 Run from the repository root with Node 24 or later in a dedicated verification shell.
+macOS builds also require Xcode Command Line Tools with `/usr/bin/xcrun clang` available.
+The built native inventory adapter runs without a compiler. Other platforms build the portable application and report native inventory unsupported.
 
 ```sh
 npm ci --ignore-scripts
@@ -35,6 +37,8 @@ node dist/src/cli.js capabilities health --json --log "$aos_proof/health.json" >
 ```
 
 Require the `node` and `npm` entries to have outcome `passed`.
+For macOS rebuilds, retain a passed `native-inventory-compiler` observation.
+That tool establishes rebuild readiness only. Its absence does not block an already built bound inventory adapter.
 Choose a new log filename for every observation. Logs refuse replacement.
 Read only the relevant actions and health entries from the saved logs. Keep full payloads out of chat.
 Teaching release verification and the coverage and full profiles also require the installed TeX and Poppler tools.

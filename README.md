@@ -33,6 +33,10 @@ state.
 
 ## Discover and verify capabilities
 
+Use Node 24 or later. On macOS, builds also require Xcode Command Line Tools with `/usr/bin/xcrun clang` available.
+The build compiles the native inventory adapter. A previously built bound adapter runs without a compiler.
+Other platforms build the portable application and report native inventory as unsupported.
+
 ```sh
 npm ci
 npm run build

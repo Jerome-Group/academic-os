@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { copyFile, mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import {
+  copyFile,
+  mkdir,
+  readFile,
+  rename,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { join } from "node:path";
 import { it } from "node:test";
 import { isRecord } from "../../src/conformance/value-shape.js";
@@ -34,6 +41,39 @@ it("drives registration, install, update and retry from the actual produced and 
     encoding: "utf8",
   });
   assert.equal(untar.status, 0, untar.stderr);
+  const scannerBindings = [];
+  const integrity: unknown = JSON.parse(
+    await readFile(join(extracted, "runtime-integrity.json"), "utf8"),
+  );
+  assert.ok(isRecord(integrity));
+  assert.ok(Array.isArray(integrity.artifacts));
+  for (const source of [
+    "scan.native",
+    "scan.c",
+    "scan-core.c",
+    "scan-core.h",
+  ]) {
+    const target = `native/inventory-${source}`;
+    const bytes = await readFile(join(extracted, target));
+    assert.deepEqual(
+      bytes,
+      await readFile(
+        join("dist/src/migration/native-inventory/native", source),
+      ),
+    );
+    assert.deepEqual(
+      integrity.artifacts.find(
+        (artifact: unknown) => isRecord(artifact) && artifact.path === target,
+      ),
+      {
+        path: target,
+        role: source === "scan.native" ? "scanner" : "scanner-source",
+        byteLength: bytes.byteLength,
+        sha256: sha256(bytes),
+      },
+    );
+    scannerBindings.push({ path: target, sha256: sha256(bytes) });
+  }
   const originalLoader = await readFile(join(extracted, "native/index.js"));
   const originalPublication = await readFile(
       join(extracted, "publication.mjs"),
@@ -74,6 +114,27 @@ it("drives registration, install, update and retry from the actual produced and 
     `import {createRequire} from 'node:module';import {isPublicationNative} from ${JSON.stringify(join(repository, "dist/src/controls-publication/native/index.js"))};export function loadPublicationNative(){const value=createRequire(import.meta.url)('./publication-native.node');if(!isPublicationNative(value)||value.buildKind!=='fixture')throw Error('Declared compile-time fixture account adapter required');return {kind:'ok',value};}`,
   );
   await bindFixtureRuntime(extracted, extracted);
+  const scannerRefusals = [];
+  for (const name of ["inventory-scan-core.c", "inventory-scan-core.h"]) {
+    const path = join(extracted, "native", name);
+    const bytes = await readFile(path);
+    await writeFile(path, Buffer.concat([bytes, Buffer.from("\n")]));
+    const changed = await f.run("register", registration, extracted);
+    assert.notEqual(changed.status, 0, JSON.stringify(changed.value));
+    await assert.rejects(stat(f.ledger), { code: "ENOENT" });
+    await writeFile(path, bytes);
+    const retained = join(f.root, `missing-produced-${name}`);
+    await rename(path, retained);
+    const missing = await f.run("register", registration, extracted);
+    assert.notEqual(missing.status, 0, JSON.stringify(missing.value));
+    await assert.rejects(stat(f.ledger), { code: "ENOENT" });
+    await rename(retained, path);
+    scannerRefusals.push({
+      name,
+      changed: changed.value,
+      missing: missing.value,
+    });
+  }
   const registered = await f.run("register", registration, extracted);
   assert.equal(registered.status, 0, JSON.stringify(registered.value));
   const request = {
@@ -113,6 +174,13 @@ it("drives registration, install, update and retry from the actual produced and 
     extracted,
   );
   assert.equal(update.status, 0, JSON.stringify(update.value));
+  const historical = await f.run(
+    "retry-native-source-policy",
+    request.requestId,
+    extracted,
+  );
+  assert.equal(historical.status, 0, JSON.stringify(historical.value));
+  assert.deepEqual(historical.value, installed.value);
   assert.deepEqual(
     await readFile(join(extracted, "publication.mjs")),
     originalPublication,
@@ -135,11 +203,14 @@ it("drives registration, install, update and retry from the actual produced and 
         ),
         publicationBytesUnchanged: true,
         hostDeploymentBytesUnchanged: true,
+        scannerBindings,
+        scannerRefusals,
         productionLoaderRefusedFixture: refused.value,
         registration: registered.value,
         installation: installed.value,
         retry: retried.value,
         update: update.value,
+        historicalRetry: historical.value,
       },
       null,
       2,

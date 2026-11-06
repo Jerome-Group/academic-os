@@ -34,7 +34,7 @@ async function files(root, directory) {
         name.endsWith("/inventory-scan.native")
       )
         role = "scanner";
-      else if (name.endsWith("/scan.c") || name.endsWith("/inventory-scan.c"))
+      else if (/\/(?:inventory-)?scan(?:-core\.[ch]|\.c)$/u.test(name))
         role = "scanner-source";
       else if (
         name.endsWith("/release.json") &&

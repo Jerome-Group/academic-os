@@ -17,6 +17,36 @@ export type {
   NativeInventoryEntry,
 } from "./generated/native-inventory-1.js";
 
+const legacySingleFileSourceSha256 =
+  "0927868fce1f26a78232eca216b3b9d27f56686e86b982c3ae440b5fe37d2b33";
+
+async function boundHelperSources(): Promise<boolean> {
+  const directory = new URL("./native/", import.meta.url);
+  const formatter = sha256(await readFile(new URL("scan.c", directory)));
+  if (formatter !== helperBinding.sourceSha256) return false;
+  if (helperBinding.encoding === undefined)
+    return formatter === legacySingleFileSourceSha256;
+  if (helperBinding.encoding !== "academic-os-native-inventory-helper/2")
+    return false;
+  const expected = ["scan.c", "scan-core.c", "scan-core.h"];
+  if (
+    helperBinding.sourceFiles.length !== expected.length ||
+    helperBinding.sourceFiles.some(
+      (source, index) => source.path !== expected[index],
+    )
+  )
+    return false;
+  return (
+    await Promise.all(
+      helperBinding.sourceFiles.map(
+        async (source) =>
+          sha256(await readFile(new URL(source.path, directory))) ===
+          source.sha256,
+      ),
+    )
+  ).every(Boolean);
+}
+
 export async function inventoryNativeRoot(root: string) {
   const requested = resolve(root);
   const adapter = {
@@ -46,9 +76,8 @@ export async function inventoryNativeRoot(root: string) {
         failure: "invalid-adapter-binding",
       });
     const executable = new URL("./native/scan.native", import.meta.url);
-    const source = new URL("./native/scan.c", import.meta.url);
     if (
-      sha256(await readFile(source)) !== helperBinding.sourceSha256 ||
+      !(await boundHelperSources()) ||
       sha256(await readFile(executable)) !== helperBinding.executableSha256
     )
       return assembleNativeInventory({

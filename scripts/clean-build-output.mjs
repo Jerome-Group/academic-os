@@ -37,7 +37,10 @@ async function inspectArtifacts(directory) {
             output,
             "src/controls-publication/native/publication-native.node",
           ) &&
-        path !== join(output, "src/controls-publication/release.json"))
+        path !== join(output, "src/controls-publication/release.json") &&
+        path !==
+          join(output, "src/migration/native-inventory/native/scan.native") &&
+        path !== join(output, "src/migration/native-inventory/native/scan.c"))
     )
       refuse(path);
   }

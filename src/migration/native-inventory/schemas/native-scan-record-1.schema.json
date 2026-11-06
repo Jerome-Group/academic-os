@@ -1,0 +1,266 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "urn:academic-os:native-scan-record:1",
+  "title": "NativeScanRecord",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "record": {
+          "const": "entry"
+        },
+        "pass": {
+          "enum": [1, 2]
+        },
+        "pathHex": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2})*$"
+        },
+        "kind": {
+          "enum": [
+            "file",
+            "directory",
+            "symlink",
+            "fifo",
+            "character-device",
+            "block-device",
+            "socket",
+            "unknown"
+          ]
+        },
+        "before": {
+          "$ref": "#/$defs/stat"
+        },
+        "after": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/stat"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dataSha256": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "linkTargetHex": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(?:[0-9a-f]{2})*$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "acl": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/acl"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "xattrs": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "nameHex": {
+                    "type": "string",
+                    "pattern": "^(?:[0-9a-f]{2})*$"
+                  },
+                  "payload": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/payload"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": ["nameHex", "payload"],
+                "additionalProperties": false
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "record",
+        "pass",
+        "pathHex",
+        "kind",
+        "before",
+        "after",
+        "dataSha256",
+        "linkTargetHex",
+        "acl",
+        "xattrs"
+      ],
+      "additionalProperties": false,
+      "title": "NativeScanEntry"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "record": {
+          "const": "diagnostic"
+        },
+        "pass": {
+          "enum": [0, 1, 2]
+        },
+        "pathHex": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2})*$"
+        },
+        "code": {
+          "type": "string",
+          "pattern": "^[a-z][a-z-]+$",
+          "maxLength": 80
+        },
+        "errno": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": ["record", "pass", "pathHex", "code", "errno"],
+      "additionalProperties": false,
+      "title": "NativeScanDiagnostic"
+    }
+  ],
+  "$defs": {
+    "stat": {
+      "type": "object",
+      "properties": {
+        "device": {
+          "type": "string",
+          "pattern": "^(?:0|[1-9][0-9]*)$"
+        },
+        "inode": {
+          "type": "string",
+          "pattern": "^(?:0|[1-9][0-9]*)$"
+        },
+        "size": {
+          "type": "string",
+          "pattern": "^(?:0|[1-9][0-9]*)$"
+        },
+        "links": {
+          "type": "string",
+          "pattern": "^(?:0|[1-9][0-9]*)$"
+        },
+        "mode": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "uid": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "gid": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "flags": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "mtimeNs": {
+          "type": "string",
+          "pattern": "^-?(?:0|[1-9][0-9]*)$"
+        },
+        "ctimeNs": {
+          "type": "string",
+          "pattern": "^-?(?:0|[1-9][0-9]*)$"
+        },
+        "birthtimeNs": {
+          "type": "string",
+          "pattern": "^-?(?:0|[1-9][0-9]*)$"
+        },
+        "atimeNs": {
+          "type": "string",
+          "pattern": "^-?(?:0|[1-9][0-9]*)$"
+        },
+        "rdev": {
+          "type": "string",
+          "pattern": "^(?:0|[1-9][0-9]*)$"
+        }
+      },
+      "required": [
+        "device",
+        "inode",
+        "size",
+        "links",
+        "mode",
+        "uid",
+        "gid",
+        "flags",
+        "mtimeNs",
+        "ctimeNs",
+        "birthtimeNs",
+        "atimeNs",
+        "rdev"
+      ],
+      "additionalProperties": false,
+      "title": "NativeStat"
+    },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "valueHex": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2})*$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": ["valueHex", "sha256"],
+      "additionalProperties": false,
+      "title": "NativePayload"
+    },
+    "acl": {
+      "type": "object",
+      "properties": {
+        "encoding": {
+          "const": "darwin-acl-copy-ext"
+        },
+        "valueHex": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2})*$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": ["encoding", "valueHex", "sha256"],
+      "additionalProperties": false,
+      "title": "NativeAcl"
+    }
+  }
+}

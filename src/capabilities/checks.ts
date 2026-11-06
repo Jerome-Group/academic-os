@@ -163,6 +163,7 @@ const workflowTests = {
       "controls-publication",
       "config",
       "naming",
+      "migration",
     ],
     cli: /^(argument-safety|offering-readiness-cli)\.test\.js$/u,
   },

@@ -133,6 +133,15 @@ it("refuses cross-family and internal bridge request reuse before any new retain
       typeof value.candidate.candidateId === "string",
   );
   const candidateId = value.candidate.candidateId;
+  const bootstrap = f.command([
+    join(f.host, "publication.mjs"),
+    "create-generated-candidate",
+    "--request",
+    "bootstrap",
+    "--identity",
+    f.identityPath,
+  ]);
+  assert.equal(bootstrap.status, 0, bootstrap.stdout + bootstrap.stderr);
   const bundle = join(f.root, "inputs/bundle.json");
   await writeFile(bundle, publicationFixture().bundleBytes);
   const publish = (requestId: string) =>
@@ -163,6 +172,7 @@ it("refuses cross-family and internal bridge request reuse before any new retain
   const owners = [
     ["register-one", "register"],
     ["create-one", "create"],
+    ["bootstrap", "create"],
     ["publish-one", "publish"],
     [input.requestId, "install"],
   ];
@@ -170,7 +180,6 @@ it("refuses cross-family and internal bridge request reuse before any new retain
   for (const [requestId, owner] of [
     ...owners,
     ...bridges.map((requestId) => [requestId, "bridge"]),
-    ["bootstrap", "bridge"],
   ]) {
     assert.ok(requestId && owner);
     for (const family of ["register", "create", "publish", "install"]) {

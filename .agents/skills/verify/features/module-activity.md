@@ -22,6 +22,13 @@ attempt evidence. Public failures cover unsupported native sources and procedure
 targets and supersession, ambiguous extensions, session preference conflicts, release conflicts,
 illegal transitions, required grouping and unsupported raw effects without a new plan append.
 
+The public activity fixture uses v2 verification and learning records across the same 18 roles.
+Current and pinned readers report `verification: not-implemented`. The separate publication journey
+upgrades v1 to v2 and retains pinned v1 output with its verification-readiness field absent.
+`test/controls-publication/verification-activity.test.ts` preserves six rich assessment variants and
+refuses their edits through pure closeout rederivation. It also asserts that native-source publication
+refuses that rich bundle. Those pure checks do not establish public rich-assessment admission.
+
 Focused domain cases prove requested-subset versus official coverage, unfinished extensions,
 multi-record supersession, unknown-history preservation, missing understanding evidence and strict
 packet bindings. Transport cases preserve generic JSON-RPC decimal, exponent, negative-zero and

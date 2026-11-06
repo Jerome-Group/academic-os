@@ -432,7 +432,7 @@ export async function runRepositoryRepair(input: {
       });
     }
     await stage("publish-intent", { head, reviews });
-    pullRequest = await ports.publish(candidate, issue, head);
+    pullRequest = await ports.publish({ candidate, issue, fingerprint, head });
     await stage("published", { head, pullRequest });
     return await finishPublished(
       candidate,

@@ -29,8 +29,7 @@ Read the route's procedure before acting in its area.
 - **Textbooks** — chapters into `10 Learning Materials/20 Textbook Chapters/`:
   `docs/30 Textbook Procedure.md`, recording in
   `00 Module Admin/50 Textbook Register.yaml`.
-- **Tasks** — Owner-accepted next actions and explicitly reported completion follow the
-  Tasks protocol below. The live list mirrors into `00 Module Admin/30 Task Register.yaml`;
+- **Tasks** — Owner-authorized live task changes follow the Tasks protocol below. The live list mirrors into `00 Module Admin/30 Task Register.yaml`;
   this generated register is refreshed through the tools rather than edited by hand.
 - **Assessments** — graded-work artifacts in `30 Assessments/`, placed per
   the structure doc.

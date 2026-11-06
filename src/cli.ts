@@ -129,7 +129,10 @@ try {
     await runLearningMaterialsCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "offering" && arguments_[1] === "readiness") {
     await runOfferingReadinessCommand(arguments_.slice(1), json);
-  } else if (arguments_[0] === "module" && arguments_[1] === "inspect") {
+  } else if (
+    arguments_[0] === "module" &&
+    ["inspect", "validate"].includes(arguments_[1] ?? "")
+  ) {
     await runModuleInspectCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "audit") {
     await runAuditCommand(arguments_, json);

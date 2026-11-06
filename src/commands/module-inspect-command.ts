@@ -8,16 +8,18 @@ import { inventoryDirectory } from "../mounted/inventory-mounted-module.js";
 import { observeModuleControls } from "../mounted/observe-module-controls.js";
 import { parseArgumentTokens } from "./argument-tokens.js";
 
-const usage =
-  "Usage: academic-os module inspect (--root <module-root> | --config <path> [--semester <semester> --module <module>]) [--json]";
-
 export async function runModuleInspectCommand(
   arguments_: string[],
   json: boolean,
 ): Promise<void> {
+  const operation = arguments_[0] === "validate" ? "validate" : "inspect";
+  const usage =
+    operation === "validate"
+      ? "Usage: academic-os module validate (--root <module-root> | --config <path> [--semester <semester> --module <module>]) [--json]"
+      : "Usage: academic-os module inspect (--root <module-root> | --config <path> [--semester <semester> --module <module>]) [--json]";
   const { values } = parseArgumentTokens({
     arguments: arguments_,
-    command: "inspect",
+    command: operation,
     valueFlags: ["--root", "--config", "--semester", "--module"],
     booleanFlags: ["--json"],
     usage,
@@ -36,9 +38,35 @@ export async function runModuleInspectCommand(
     root !== undefined
       ? await inspectRoot(root)
       : await inspectConfigured(configPath ?? "", semester, module);
+  const validModuleData =
+    read.kind === "canonical" && read.coverage === "validated-module-data";
+  const refused =
+    read.kind === "unsupported" ||
+    (operation === "validate" && !validModuleData);
   const report = {
-    outcome: read.kind === "unsupported" ? "refused" : "read",
+    outcome: refused
+      ? "refused"
+      : operation === "validate"
+        ? "validated-module-data"
+        : "read",
     ...read,
+    diagnostics:
+      operation === "validate" &&
+      read.kind !== "unsupported" &&
+      !validModuleData
+        ? [
+            ...read.diagnostics,
+            {
+              code: "full-module-data-required",
+              path: "00 Module Admin/00 Module.json",
+              pointer: "/generation/schema",
+              message:
+                "Candidate validation requires a complete module-data generation2. Legacy and identity-only reads remain partial observations.",
+              remediation:
+                "Provide a separate complete candidate generation. Publication, executable workflows and migration readiness are not implemented by this validator.",
+            },
+          ]
+        : read.diagnostics,
     evidence: read.evidence.map(({ bytesBase64: _bytes, ...item }) => item),
   };
   process.stdout.write(
@@ -46,7 +74,7 @@ export async function runModuleInspectCommand(
       ? `${JSON.stringify(report, null, 2)}\n`
       : `${report.outcome}: ${report.kind}; coverage=${report.coverage}\n${report.diagnostics.map((item) => `${item.code} ${item.path}${item.pointer}: ${item.message} ${item.remediation}`).join("\n")}\n`,
   );
-  process.exitCode = read.kind === "unsupported" ? 2 : 0;
+  process.exitCode = refused ? 2 : 0;
 }
 
 async function inspectConfigured(

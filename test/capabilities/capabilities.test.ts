@@ -107,6 +107,31 @@ it("reports complete capability usage with executable workflow names", async () 
     ]);
 });
 
+it("reports module usage matching each public argument refusal", async () => {
+  const result = await runCli("capabilities", "index", "--json");
+  assert.equal(result.exitCode, 0, result.stdout);
+  const index: { actions: { id: string; usage: string[] }[] } = JSON.parse(
+    result.stdout,
+  );
+  for (const operation of ["inspect", "validate"]) {
+    const refused = await runCli("module", operation, "--json");
+    assert.equal(refused.exitCode, 2, refused.stdout);
+    const report: { error: { code: string; message: string } } = JSON.parse(
+      refused.stdout,
+    );
+    assert.equal(report.error.code, "invalid-arguments");
+    assert.deepEqual(
+      index.actions.find(({ id }) => id === `module ${operation}`)?.usage,
+      [report.error.message],
+    );
+    assert.ok(
+      report.error.message.startsWith(
+        `Usage: academic-os module ${operation} `,
+      ),
+    );
+  }
+});
+
 it("reports scheduler usage with the actual installer paths", async () => {
   const result = await runCli("capabilities", "index", "--json");
   assert.equal(result.exitCode, 0, result.stdout);

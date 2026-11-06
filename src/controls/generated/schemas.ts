@@ -46,6 +46,3889 @@ export const controlSchemas = [
     $schema: "http://json-schema.org/draft-07/schema#",
     type: "object",
     additionalProperties: false,
+    $id: "urn:academic-os:control-generation:2",
+    title: "ModuleDataGeneration",
+    properties: {
+      $schema: { const: "urn:academic-os:control-generation:2" },
+      schemaVersion: { const: 2 },
+      module: {
+        type: "string",
+        pattern: "^module:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+      },
+      moduleCode: { type: "string", pattern: "^[A-Z]{2,4}[0-9]{4}[A-Z]?$" },
+      generationId: {
+        type: "string",
+        pattern: "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+      },
+      controls: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            file: { type: "string", minLength: 1, maxLength: 1024 },
+            schema: { type: "string", minLength: 1 },
+            byteSha256: { type: "string", pattern: "^[a-f0-9]{64}$" },
+            role: {
+              enum: [
+                "module-identity",
+                "definition",
+                "profile",
+                "evidence",
+                "artifacts",
+                "source-map",
+                "terms",
+                "decisions",
+                "preferences",
+                "learning-records",
+                "revisit",
+                "glossary",
+                "resources",
+                "textbooks",
+                "curation",
+                "provider-mirrors",
+                "verification",
+                "learning-workspace",
+              ],
+            },
+          },
+          required: ["file", "schema", "byteSha256", "role"],
+        },
+      },
+      coverage: { const: "module-data" },
+    },
+    required: [
+      "$schema",
+      "schemaVersion",
+      "module",
+      "moduleCode",
+      "generationId",
+      "controls",
+      "coverage",
+    ],
+  },
+  {
+    $schema: "http://json-schema.org/draft-07/schema#",
+    $id: "urn:academic-os:module-data:1",
+    title: "ModuleDataControl",
+    oneOf: [
+      { $ref: "#/definitions/DefinitionControl" },
+      { $ref: "#/definitions/ProfileControl" },
+      { $ref: "#/definitions/EvidenceControl" },
+      { $ref: "#/definitions/ArtifactsControl" },
+      { $ref: "#/definitions/SourceMapControl" },
+      { $ref: "#/definitions/TermsControl" },
+      { $ref: "#/definitions/DecisionsControl" },
+      { $ref: "#/definitions/PreferencesControl" },
+      { $ref: "#/definitions/LearningRecordsControl" },
+      { $ref: "#/definitions/RevisitControl" },
+      { $ref: "#/definitions/GlossaryControl" },
+      { $ref: "#/definitions/ResourcesControl" },
+      { $ref: "#/definitions/TextbooksControl" },
+      { $ref: "#/definitions/CurationControl" },
+      { $ref: "#/definitions/ProviderMirrorsControl" },
+      { $ref: "#/definitions/VerificationControl" },
+      { $ref: "#/definitions/LearningWorkspaceControl" },
+    ],
+    definitions: {
+      textClaim: {
+        oneOf: [
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "known" },
+              value: { type: "string", minLength: 1 },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
+              reasoning: { type: "string", minLength: 1 },
+            },
+            required: ["kind", "value", "evidence"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "unknown" },
+              reason: { type: "string", minLength: 1 },
+              evidence: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { const: "evidence" },
+                    id: {
+                      type: "string",
+                      pattern:
+                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                    },
+                  },
+                  required: ["kind", "id"],
+                },
+                uniqueItems: true,
+              },
+            },
+            required: ["kind", "reason", "evidence"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "disputed" },
+              alternatives: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    value: { type: "string", minLength: 1 },
+                    evidence: { $ref: "#/definitions/evidenceReferences" },
+                    reasoning: { type: "string", minLength: 1 },
+                  },
+                  required: ["value", "evidence", "reasoning"],
+                },
+                minItems: 2,
+              },
+            },
+            required: ["kind", "alternatives"],
+          },
+        ],
+      },
+      dateClaim: {
+        oneOf: [
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "known" },
+              value: {
+                type: "string",
+                pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                format: "module-calendar-date",
+              },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
+              reasoning: { type: "string", minLength: 1 },
+            },
+            required: ["kind", "value", "evidence"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "unknown" },
+              reason: { type: "string", minLength: 1 },
+              evidence: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { const: "evidence" },
+                    id: {
+                      type: "string",
+                      pattern:
+                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                    },
+                  },
+                  required: ["kind", "id"],
+                },
+                uniqueItems: true,
+              },
+            },
+            required: ["kind", "reason", "evidence"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "disputed" },
+              alternatives: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    value: {
+                      type: "string",
+                      pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                      format: "module-calendar-date",
+                    },
+                    evidence: { $ref: "#/definitions/evidenceReferences" },
+                    reasoning: { type: "string", minLength: 1 },
+                  },
+                  required: ["value", "evidence", "reasoning"],
+                },
+                minItems: 2,
+              },
+            },
+            required: ["kind", "alternatives"],
+          },
+        ],
+      },
+      hashClaim: {
+        oneOf: [
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "known" },
+              value: { type: "string", pattern: "^[a-f0-9]{64}$" },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
+              reasoning: { type: "string", minLength: 1 },
+            },
+            required: ["kind", "value", "evidence"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "unknown" },
+              reason: { type: "string", minLength: 1 },
+              evidence: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { const: "evidence" },
+                    id: {
+                      type: "string",
+                      pattern:
+                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                    },
+                  },
+                  required: ["kind", "id"],
+                },
+                uniqueItems: true,
+              },
+            },
+            required: ["kind", "reason", "evidence"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "disputed" },
+              alternatives: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    value: { type: "string", pattern: "^[a-f0-9]{64}$" },
+                    evidence: { $ref: "#/definitions/evidenceReferences" },
+                    reasoning: { type: "string", minLength: 1 },
+                  },
+                  required: ["value", "evidence", "reasoning"],
+                },
+                minItems: 2,
+              },
+            },
+            required: ["kind", "alternatives"],
+          },
+        ],
+      },
+      integerClaim: {
+        oneOf: [
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "known" },
+              value: { type: "integer", minimum: 0 },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
+              reasoning: { type: "string", minLength: 1 },
+            },
+            required: ["kind", "value", "evidence"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "unknown" },
+              reason: { type: "string", minLength: 1 },
+              evidence: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { const: "evidence" },
+                    id: {
+                      type: "string",
+                      pattern:
+                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                    },
+                  },
+                  required: ["kind", "id"],
+                },
+                uniqueItems: true,
+              },
+            },
+            required: ["kind", "reason", "evidence"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "disputed" },
+              alternatives: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    value: { type: "integer", minimum: 0 },
+                    evidence: { $ref: "#/definitions/evidenceReferences" },
+                    reasoning: { type: "string", minLength: 1 },
+                  },
+                  required: ["value", "evidence", "reasoning"],
+                },
+                minItems: 2,
+              },
+            },
+            required: ["kind", "alternatives"],
+          },
+        ],
+      },
+      evidence: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          id: {
+            type: "string",
+            pattern: "^evidence:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          citation: { type: "string", minLength: 1 },
+          locator: {
+            oneOf: [
+              {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "module-file" },
+                  path: { type: "string", minLength: 1 },
+                  fragment: { type: "string", minLength: 1 },
+                },
+                required: ["kind", "path"],
+              },
+              {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "external" },
+                  uri: { type: "string", minLength: 1 },
+                  fragment: { type: "string", minLength: 1 },
+                },
+                required: ["kind", "uri"],
+              },
+              {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "owner-statement" },
+                  statement: { type: "string", minLength: 1 },
+                },
+                required: ["kind", "statement"],
+              },
+              {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "retained-original" },
+                  path: { type: "string", minLength: 1 },
+                  byteSha256: { type: "string", pattern: "^[a-f0-9]{64}$" },
+                  byteLength: { type: "integer", minimum: 0 },
+                },
+                required: ["kind", "path", "byteSha256", "byteLength"],
+              },
+            ],
+          },
+          checked: { $ref: "#/definitions/dateClaim" },
+          content: { $ref: "#/definitions/hashClaim" },
+        },
+        required: ["id", "citation", "locator", "checked", "content"],
+      },
+      nativeEntry: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          pathBytesBase64: { type: "string", minLength: 1 },
+          kind: { enum: ["file", "directory", "symlink", "special"] },
+          data: { $ref: "#/definitions/hashClaim" },
+          mode: { $ref: "#/definitions/integerClaim" },
+          flags: { $ref: "#/definitions/integerClaim" },
+          mtimeNanoseconds: { $ref: "#/definitions/nanosecondsClaim" },
+          birthtimeNanoseconds: { $ref: "#/definitions/nanosecondsClaim" },
+          acl: {
+            oneOf: [
+              {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "known" },
+                  value: {
+                    type: "array",
+                    items: { type: "string", minLength: 1 },
+                  },
+                  evidence: { $ref: "#/definitions/evidenceReferences" },
+                  reasoning: { type: "string", minLength: 1 },
+                },
+                required: ["kind", "value", "evidence"],
+              },
+              {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "unknown" },
+                  reason: { type: "string", minLength: 1 },
+                  evidence: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      additionalProperties: false,
+                      properties: {
+                        kind: { const: "evidence" },
+                        id: {
+                          type: "string",
+                          pattern:
+                            "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                        },
+                      },
+                      required: ["kind", "id"],
+                    },
+                    uniqueItems: true,
+                  },
+                },
+                required: ["kind", "reason", "evidence"],
+              },
+              {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "disputed" },
+                  alternatives: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      additionalProperties: false,
+                      properties: {
+                        value: {
+                          type: "array",
+                          items: { type: "string", minLength: 1 },
+                        },
+                        evidence: { $ref: "#/definitions/evidenceReferences" },
+                        reasoning: { type: "string", minLength: 1 },
+                      },
+                      required: ["value", "evidence", "reasoning"],
+                    },
+                    minItems: 2,
+                  },
+                },
+                required: ["kind", "alternatives"],
+              },
+            ],
+          },
+          xattrs: {
+            oneOf: [
+              {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "known" },
+                  entries: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      additionalProperties: false,
+                      properties: {
+                        nameBytesBase64: {
+                          type: "string",
+                          minLength: 1,
+                          format: "native-nul-free-bytes",
+                        },
+                        valueSha256: {
+                          type: "string",
+                          pattern: "^[a-f0-9]{64}$",
+                        },
+                        byteLength: { type: "integer", minimum: 0 },
+                      },
+                      required: [
+                        "nameBytesBase64",
+                        "valueSha256",
+                        "byteLength",
+                      ],
+                    },
+                  },
+                  evidence: { $ref: "#/definitions/evidenceReferences" },
+                },
+                required: ["kind", "entries", "evidence"],
+              },
+              {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "unknown" },
+                  reason: { type: "string", minLength: 1 },
+                  evidence: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      additionalProperties: false,
+                      properties: {
+                        kind: { const: "evidence" },
+                        id: {
+                          type: "string",
+                          pattern:
+                            "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                        },
+                      },
+                      required: ["kind", "id"],
+                    },
+                    uniqueItems: true,
+                  },
+                },
+                required: ["kind", "reason", "evidence"],
+              },
+            ],
+          },
+          resourceFork: {
+            oneOf: [
+              {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "absent" },
+                  evidence: { $ref: "#/definitions/evidenceReferences" },
+                },
+                required: ["kind", "evidence"],
+              },
+              {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "present" },
+                  byteSha256: { type: "string", pattern: "^[a-f0-9]{64}$" },
+                  byteLength: { type: "integer", minimum: 0 },
+                  evidence: { $ref: "#/definitions/evidenceReferences" },
+                },
+                required: ["kind", "byteSha256", "byteLength", "evidence"],
+              },
+              {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "unknown" },
+                  reason: { type: "string", minLength: 1 },
+                  evidence: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      additionalProperties: false,
+                      properties: {
+                        kind: { const: "evidence" },
+                        id: {
+                          type: "string",
+                          pattern:
+                            "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                        },
+                      },
+                      required: ["kind", "id"],
+                    },
+                    uniqueItems: true,
+                  },
+                },
+                required: ["kind", "reason", "evidence"],
+              },
+            ],
+          },
+          symlinkTargetBytesBase64: {
+            oneOf: [
+              { type: "null" },
+              { $ref: "#/definitions/nativeBytesClaim" },
+            ],
+          },
+          specialType: {
+            oneOf: [{ type: "null" }, { $ref: "#/definitions/textClaim" }],
+          },
+          hardlinkGroup: {
+            $ref: "#/definitions/textClaim",
+            description:
+              "Known equal group identities within a module generation claim one inode and coherent known inode metadata. Unknown and disputed observations remain unresolved.",
+          },
+        },
+        required: [
+          "pathBytesBase64",
+          "kind",
+          "data",
+          "mode",
+          "flags",
+          "mtimeNanoseconds",
+          "birthtimeNanoseconds",
+          "acl",
+          "xattrs",
+          "resourceFork",
+          "symlinkTargetBytesBase64",
+          "specialType",
+          "hardlinkGroup",
+        ],
+      },
+      artifact: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          id: {
+            type: "string",
+            pattern: "^artifact:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          path: { type: "string", minLength: 1 },
+          source: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "source" },
+              id: {
+                type: "string",
+                pattern: "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+              },
+            },
+            required: ["kind", "id"],
+          },
+          representation: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: {
+                enum: [
+                  "file",
+                  "native-bundle",
+                  "directory",
+                  "symlink",
+                  "special",
+                ],
+              },
+              fingerprintPolicy: { type: "string", minLength: 1 },
+              digest: { $ref: "#/definitions/hashClaim" },
+              entries: {
+                type: "array",
+                items: { $ref: "#/definitions/nativeEntry" },
+                minItems: 1,
+                description:
+                  "Complete native representation with one included raw-path root. Directory and native-bundle roots are directories containing every other entry by raw path components. File, symlink and special representations have one entry matching that kind. Raw paths are independent of the display artifact path.",
+              },
+              bundleMembers: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { const: "artifact" },
+                    id: {
+                      type: "string",
+                      pattern:
+                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                    },
+                  },
+                  required: ["kind", "id"],
+                },
+                uniqueItems: true,
+                description:
+                  "Acyclic native containment references. Membership does not follow symlink targets.",
+              },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
+            },
+            required: [
+              "kind",
+              "fingerprintPolicy",
+              "digest",
+              "entries",
+              "bundleMembers",
+              "evidence",
+            ],
+          },
+          traits: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              content: {
+                type: "array",
+                items: {
+                  enum: [
+                    "questions",
+                    "solutions",
+                    "notes",
+                    "submission",
+                    "rubric",
+                    "reference",
+                    "code",
+                    "data",
+                    "brief",
+                    "other",
+                  ],
+                },
+                minItems: 1,
+                uniqueItems: true,
+              },
+              annotation: {
+                oneOf: [
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "known" },
+                      value: { enum: ["clean", "annotated"] },
+                      evidence: { $ref: "#/definitions/evidenceReferences" },
+                      reasoning: { type: "string", minLength: 1 },
+                    },
+                    required: ["kind", "value", "evidence"],
+                  },
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "unknown" },
+                      reason: { type: "string", minLength: 1 },
+                      evidence: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            kind: { const: "evidence" },
+                            id: {
+                              type: "string",
+                              pattern:
+                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                            },
+                          },
+                          required: ["kind", "id"],
+                        },
+                        uniqueItems: true,
+                      },
+                    },
+                    required: ["kind", "reason", "evidence"],
+                  },
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "disputed" },
+                      alternatives: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            value: { enum: ["clean", "annotated"] },
+                            evidence: {
+                              $ref: "#/definitions/evidenceReferences",
+                            },
+                            reasoning: { type: "string", minLength: 1 },
+                          },
+                          required: ["value", "evidence", "reasoning"],
+                        },
+                        minItems: 2,
+                      },
+                    },
+                    required: ["kind", "alternatives"],
+                  },
+                ],
+              },
+              grading: {
+                oneOf: [
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "known" },
+                      value: { enum: ["ungraded", "graded"] },
+                      evidence: { $ref: "#/definitions/evidenceReferences" },
+                      reasoning: { type: "string", minLength: 1 },
+                    },
+                    required: ["kind", "value", "evidence"],
+                  },
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "unknown" },
+                      reason: { type: "string", minLength: 1 },
+                      evidence: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            kind: { const: "evidence" },
+                            id: {
+                              type: "string",
+                              pattern:
+                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                            },
+                          },
+                          required: ["kind", "id"],
+                        },
+                        uniqueItems: true,
+                      },
+                    },
+                    required: ["kind", "reason", "evidence"],
+                  },
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "disputed" },
+                      alternatives: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            value: { enum: ["ungraded", "graded"] },
+                            evidence: {
+                              $ref: "#/definitions/evidenceReferences",
+                            },
+                            reasoning: { type: "string", minLength: 1 },
+                          },
+                          required: ["value", "evidence", "reasoning"],
+                        },
+                        minItems: 2,
+                      },
+                    },
+                    required: ["kind", "alternatives"],
+                  },
+                ],
+              },
+            },
+            required: ["content", "annotation", "grading"],
+          },
+          evidence: { $ref: "#/definitions/evidenceReferences" },
+        },
+        required: [
+          "id",
+          "path",
+          "source",
+          "representation",
+          "traits",
+          "evidence",
+        ],
+      },
+      source: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          id: {
+            type: "string",
+            pattern: "^source:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          identity: {
+            oneOf: [
+              {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "upstream" },
+                  provider: { type: "string", minLength: 1 },
+                  upstreamId: { type: "string", minLength: 1 },
+                  algorithm: { type: "string", minLength: 1 },
+                  evidence: { $ref: "#/definitions/evidenceReferences" },
+                },
+                required: [
+                  "kind",
+                  "provider",
+                  "upstreamId",
+                  "algorithm",
+                  "evidence",
+                ],
+              },
+              {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "acquisition" },
+                  acquisitionId: { type: "string", minLength: 1 },
+                  algorithm: { type: "string", minLength: 1 },
+                  evidence: { $ref: "#/definitions/evidenceReferences" },
+                },
+                required: ["kind", "acquisitionId", "algorithm", "evidence"],
+              },
+              {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "legacy" },
+                  algorithm: { type: "string", minLength: 1 },
+                  originalId: { type: "string", minLength: 1 },
+                  evidence: { $ref: "#/definitions/evidenceReferences" },
+                },
+                required: ["kind", "algorithm", "originalId", "evidence"],
+              },
+            ],
+          },
+          title: { type: "string", minLength: 1 },
+          locators: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                kind: { enum: ["module-file", "external", "human-citation"] },
+                value: { type: "string", minLength: 1 },
+              },
+              required: ["kind", "value"],
+            },
+            minItems: 1,
+          },
+          evidence: { $ref: "#/definitions/evidenceReferences" },
+        },
+        required: ["id", "identity", "title", "locators", "evidence"],
+      },
+      sourceUse: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          source: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "source" },
+              id: {
+                type: "string",
+                pattern: "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+              },
+            },
+            required: ["kind", "id"],
+          },
+          artifact: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "artifact" },
+              id: {
+                type: "string",
+                pattern: "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+              },
+            },
+            required: ["kind", "id"],
+          },
+          locator: { type: "string", minLength: 1 },
+          role: {
+            enum: [
+              "lecture",
+              "textbook",
+              "questions",
+              "solutions",
+              "hints",
+              "reading",
+              "content",
+              "code",
+              "supplementary",
+              "past-paper",
+              "practice-test",
+              "historical-reference",
+              "other",
+            ],
+          },
+          evidence: { $ref: "#/definitions/evidenceReferences" },
+        },
+        required: ["source", "artifact", "locator", "role", "evidence"],
+      },
+      tutorialBlock: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          id: {
+            type: "string",
+            pattern: "^tutorial-block:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          label: { type: "string", minLength: 1 },
+          exercises: { type: "string", minLength: 1 },
+          teachingWeeks: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                kind: { const: "teaching-week" },
+                id: {
+                  type: "string",
+                  pattern:
+                    "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                },
+              },
+              required: ["kind", "id"],
+            },
+            uniqueItems: true,
+          },
+          sources: {
+            type: "array",
+            items: { $ref: "#/definitions/sourceUse" },
+            minItems: 1,
+          },
+          missing: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                role: {
+                  enum: [
+                    "questions",
+                    "solutions",
+                    "hints",
+                    "content",
+                    "code",
+                    "other",
+                  ],
+                },
+                reason: { type: "string", minLength: 1 },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
+              },
+              required: ["role", "reason", "evidence"],
+            },
+          },
+          evidence: { $ref: "#/definitions/evidenceReferences" },
+        },
+        required: [
+          "id",
+          "label",
+          "exercises",
+          "teachingWeeks",
+          "sources",
+          "missing",
+          "evidence",
+        ],
+      },
+      unit: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          id: {
+            type: "string",
+            pattern: "^unit:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          label: { type: "string", minLength: 1 },
+          topics: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                id: {
+                  type: "string",
+                  pattern: "^topic:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                },
+                title: { type: "string", minLength: 1 },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
+              },
+              required: ["id", "title", "evidence"],
+            },
+          },
+          teachingWeeks: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                kind: { const: "teaching-week" },
+                id: {
+                  type: "string",
+                  pattern:
+                    "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                },
+              },
+              required: ["kind", "id"],
+            },
+            uniqueItems: true,
+          },
+          lectures: {
+            type: "array",
+            items: { $ref: "#/definitions/sourceUse" },
+          },
+          textbook: {
+            type: "array",
+            items: { $ref: "#/definitions/sourceUse" },
+          },
+          tutorials: {
+            type: "array",
+            items: { $ref: "#/definitions/tutorialBlock" },
+          },
+          supplementary: {
+            type: "array",
+            items: { $ref: "#/definitions/sourceUse" },
+          },
+          evidence: { $ref: "#/definitions/evidenceReferences" },
+        },
+        required: [
+          "id",
+          "label",
+          "topics",
+          "teachingWeeks",
+          "lectures",
+          "textbook",
+          "tutorials",
+          "supplementary",
+          "evidence",
+        ],
+      },
+      target: {
+        oneOf: [
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "lecture" },
+              unit: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "unit" },
+                  id: {
+                    type: "string",
+                    pattern:
+                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                  },
+                },
+                required: ["kind", "id"],
+              },
+            },
+            required: ["kind", "unit"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "tutorial" },
+              unit: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "unit" },
+                  id: {
+                    type: "string",
+                    pattern:
+                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                  },
+                },
+                required: ["kind", "id"],
+              },
+              block: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "tutorial-block" },
+                  id: {
+                    type: "string",
+                    pattern:
+                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                  },
+                },
+                required: ["kind", "id"],
+              },
+            },
+            required: ["kind", "unit", "block"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "revision" },
+              unit: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "unit" },
+                  id: {
+                    type: "string",
+                    pattern:
+                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                  },
+                },
+                required: ["kind", "id"],
+              },
+              topics: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { const: "topic" },
+                    id: {
+                      type: "string",
+                      pattern:
+                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                    },
+                  },
+                  required: ["kind", "id"],
+                },
+                minItems: 1,
+                uniqueItems: true,
+              },
+            },
+            required: ["kind", "unit", "topics"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "past-paper" },
+              paper: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "artifact" },
+                  id: {
+                    type: "string",
+                    pattern:
+                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                  },
+                },
+                required: ["kind", "id"],
+              },
+              questions: {
+                type: "array",
+                items: { type: "string", minLength: 1 },
+                minItems: 1,
+                uniqueItems: true,
+              },
+            },
+            required: ["kind", "paper", "questions"],
+          },
+        ],
+      },
+      understanding: {
+        oneOf: [
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "unassessed" },
+              reason: { type: "string", minLength: 1 },
+            },
+            required: ["kind", "reason"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "agent-assessed" },
+              judgment: { enum: ["unaided-demonstrated", "needs-work"] },
+              ownerAttempt: { $ref: "#/definitions/evidenceReferences" },
+              independentReview: { $ref: "#/definitions/evidenceReferences" },
+              reasoning: { type: "string", minLength: 1 },
+              limitations: {
+                type: "array",
+                items: { type: "string", minLength: 1 },
+              },
+            },
+            required: [
+              "kind",
+              "judgment",
+              "ownerAttempt",
+              "independentReview",
+              "reasoning",
+              "limitations",
+            ],
+          },
+        ],
+      },
+      assessment: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          id: {
+            type: "string",
+            pattern: "^assessment:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          kind: { enum: ["rubric-linked", "provisional"] },
+          official: { const: false },
+          submission: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "artifact" },
+              id: {
+                type: "string",
+                pattern: "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+              },
+            },
+            required: ["kind", "id"],
+          },
+          question: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "evidence" },
+              id: {
+                type: "string",
+                pattern: "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+              },
+            },
+            required: ["kind", "id"],
+          },
+          authority: { $ref: "#/definitions/textClaim" },
+          criteria: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                label: { type: "string", minLength: 1 },
+                maximum: { type: "string", pattern: "^[0-9]+(?:\\.[0-9]+)?$" },
+                estimated: {
+                  type: "string",
+                  pattern: "^[0-9]+(?:\\.[0-9]+)?$",
+                },
+                source: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { const: "evidence" },
+                    id: {
+                      type: "string",
+                      pattern:
+                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                    },
+                  },
+                  required: ["kind", "id"],
+                },
+                observations: { $ref: "#/definitions/evidenceReferences" },
+                reasoning: { type: "string", minLength: 1 },
+                uncertainty: { $ref: "#/definitions/textClaim" },
+              },
+              required: [
+                "label",
+                "maximum",
+                "estimated",
+                "source",
+                "observations",
+                "reasoning",
+                "uncertainty",
+              ],
+            },
+            minItems: 1,
+          },
+          independentReference: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "evidence" },
+              id: {
+                type: "string",
+                pattern: "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+              },
+            },
+            required: ["kind", "id"],
+          },
+          limitations: {
+            type: "array",
+            items: { type: "string", minLength: 1 },
+          },
+        },
+        required: [
+          "id",
+          "kind",
+          "official",
+          "submission",
+          "question",
+          "authority",
+          "criteria",
+          "independentReference",
+          "limitations",
+        ],
+      },
+      learningRecord: {
+        oneOf: [
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              id: {
+                type: "string",
+                pattern: "^learning-record:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+              },
+              kind: { const: "current" },
+              date: { $ref: "#/definitions/dateClaim" },
+              target: { $ref: "#/definitions/target" },
+              coverage: { enum: ["partial", "requested-target-covered"] },
+              understanding: { $ref: "#/definitions/understanding" },
+              sources: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { const: "artifact" },
+                    id: {
+                      type: "string",
+                      pattern:
+                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                    },
+                  },
+                  required: ["kind", "id"],
+                },
+                uniqueItems: true,
+              },
+              produced: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { const: "artifact" },
+                    id: {
+                      type: "string",
+                      pattern:
+                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                    },
+                  },
+                  required: ["kind", "id"],
+                },
+                uniqueItems: true,
+              },
+              assessments: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { const: "assessment" },
+                    id: {
+                      type: "string",
+                      pattern:
+                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                    },
+                  },
+                  required: ["kind", "id"],
+                },
+                uniqueItems: true,
+              },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
+              supersedes: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { const: "learning-record" },
+                    id: {
+                      type: "string",
+                      pattern:
+                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                    },
+                  },
+                  required: ["kind", "id"],
+                },
+                uniqueItems: true,
+              },
+              reasoning: { type: "string", minLength: 1 },
+            },
+            required: [
+              "id",
+              "kind",
+              "date",
+              "target",
+              "coverage",
+              "understanding",
+              "sources",
+              "produced",
+              "assessments",
+              "evidence",
+              "supersedes",
+            ],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              id: {
+                type: "string",
+                pattern: "^learning-record:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+              },
+              kind: { const: "legacy-evidence" },
+              original: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "evidence" },
+                  id: {
+                    type: "string",
+                    pattern:
+                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                  },
+                },
+                required: ["kind", "id"],
+              },
+              parsedTarget: {
+                oneOf: [
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "unknown" },
+                      reason: { type: "string", minLength: 1 },
+                    },
+                    required: ["kind", "reason"],
+                  },
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "established" },
+                      value: { $ref: "#/definitions/target" },
+                      evidence: { $ref: "#/definitions/evidenceReferences" },
+                    },
+                    required: ["kind", "value", "evidence"],
+                  },
+                ],
+              },
+              observedStatus: { $ref: "#/definitions/textClaim" },
+              established: {
+                type: "array",
+                items: {
+                  enum: ["observed-session", "exact-single-topic-coverage"],
+                },
+                uniqueItems: true,
+              },
+              missing: {
+                type: "array",
+                items: { type: "string", minLength: 1 },
+              },
+              supersedes: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { const: "learning-record" },
+                    id: {
+                      type: "string",
+                      pattern:
+                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                    },
+                  },
+                  required: ["kind", "id"],
+                },
+                uniqueItems: true,
+              },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
+            },
+            required: [
+              "id",
+              "kind",
+              "original",
+              "parsedTarget",
+              "observedStatus",
+              "established",
+              "missing",
+              "supersedes",
+              "evidence",
+            ],
+          },
+        ],
+      },
+      decision: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          id: {
+            type: "string",
+            pattern: "^decision:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          status: { enum: ["proposed", "accepted", "rejected", "superseded"] },
+          scope: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              domain: {
+                enum: [
+                  "placement",
+                  "naming",
+                  "source-authority",
+                  "teaching",
+                  "structure",
+                  "terminology",
+                  "preferences",
+                  "other",
+                ],
+              },
+              subjects: {
+                type: "array",
+                items: { type: "string", minLength: 1 },
+                minItems: 1,
+              },
+            },
+            required: ["domain", "subjects"],
+          },
+          consequences: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                kind: {
+                  enum: [
+                    "place",
+                    "name",
+                    "prefer-source",
+                    "distinguish",
+                    "retire",
+                    "require",
+                    "allow",
+                  ],
+                },
+                subject: { type: "string", minLength: 1 },
+                value: { type: "string", minLength: 1 },
+              },
+              required: ["kind", "subject", "value"],
+            },
+            minItems: 1,
+          },
+          rationale: { type: "string", minLength: 1 },
+          evidence: { $ref: "#/definitions/evidenceReferences" },
+          supersedes: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                kind: { const: "decision" },
+                id: {
+                  type: "string",
+                  pattern:
+                    "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                },
+              },
+              required: ["kind", "id"],
+            },
+            uniqueItems: true,
+          },
+        },
+        required: [
+          "id",
+          "status",
+          "scope",
+          "consequences",
+          "rationale",
+          "evidence",
+          "supersedes",
+        ],
+      },
+      term: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          id: {
+            type: "string",
+            pattern: "^term:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          term: { type: "string", minLength: 1 },
+          meaning: { type: "string", minLength: 1 },
+          avoid: { type: "array", items: { type: "string", minLength: 1 } },
+          consequences: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                kind: { enum: ["placement", "naming", "distinction"] },
+                value: { type: "string", minLength: 1 },
+              },
+              required: ["kind", "value"],
+            },
+          },
+          decision: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "decision" },
+              id: {
+                type: "string",
+                pattern: "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+              },
+            },
+            required: ["kind", "id"],
+          },
+          evidence: { $ref: "#/definitions/evidenceReferences" },
+          supersedes: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                kind: { const: "term" },
+                id: {
+                  type: "string",
+                  pattern:
+                    "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                },
+              },
+              required: ["kind", "id"],
+            },
+            uniqueItems: true,
+          },
+        },
+        required: [
+          "id",
+          "term",
+          "meaning",
+          "avoid",
+          "consequences",
+          "decision",
+          "evidence",
+          "supersedes",
+        ],
+      },
+      curationEvent: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          id: {
+            type: "string",
+            pattern: "^curation-event:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          decision: {
+            enum: [
+              "curated",
+              "source-only",
+              "rederived",
+              "withdrawn",
+              "unresolved",
+              "identity-supersession",
+              "standing-divergence",
+            ],
+          },
+          source: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "source" },
+              id: {
+                type: "string",
+                pattern: "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+              },
+            },
+            required: ["kind", "id"],
+          },
+          artifacts: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                kind: { const: "artifact" },
+                id: {
+                  type: "string",
+                  pattern:
+                    "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                },
+              },
+              required: ["kind", "id"],
+            },
+            uniqueItems: true,
+          },
+          original: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "evidence" },
+              id: {
+                type: "string",
+                pattern: "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+              },
+            },
+            required: ["kind", "id"],
+          },
+          identityPolicy: { type: "string", minLength: 1 },
+          supersedes: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                kind: { const: "curation-event" },
+                id: {
+                  type: "string",
+                  pattern:
+                    "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                },
+              },
+              required: ["kind", "id"],
+            },
+            uniqueItems: true,
+          },
+          rationale: { type: "string", minLength: 1 },
+          evidence: { $ref: "#/definitions/evidenceReferences" },
+        },
+        required: [
+          "id",
+          "decision",
+          "source",
+          "artifacts",
+          "original",
+          "identityPolicy",
+          "supersedes",
+          "rationale",
+          "evidence",
+        ],
+      },
+      providerMirror: {
+        oneOf: [
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              id: {
+                type: "string",
+                pattern: "^provider-mirror:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+              },
+              provider: { const: "google-tasks" },
+              authority: { const: "provider" },
+              targetId: { type: "string", minLength: 1 },
+              snapshot: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "evidence" },
+                  id: {
+                    type: "string",
+                    pattern:
+                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                  },
+                },
+                required: ["kind", "id"],
+              },
+              pullReceipt: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "evidence" },
+                  id: {
+                    type: "string",
+                    pattern:
+                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                  },
+                },
+                required: ["kind", "id"],
+              },
+              items: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    providerId: { type: "string", minLength: 1 },
+                    title: { type: "string", minLength: 1 },
+                    status: {
+                      oneOf: [
+                        {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            kind: { const: "known" },
+                            value: { enum: ["needsAction", "completed"] },
+                            evidence: {
+                              $ref: "#/definitions/evidenceReferences",
+                            },
+                            reasoning: { type: "string", minLength: 1 },
+                          },
+                          required: ["kind", "value", "evidence"],
+                        },
+                        {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            kind: { const: "unknown" },
+                            reason: { type: "string", minLength: 1 },
+                            evidence: {
+                              type: "array",
+                              items: {
+                                type: "object",
+                                additionalProperties: false,
+                                properties: {
+                                  kind: { const: "evidence" },
+                                  id: {
+                                    type: "string",
+                                    pattern:
+                                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                                  },
+                                },
+                                required: ["kind", "id"],
+                              },
+                              uniqueItems: true,
+                            },
+                          },
+                          required: ["kind", "reason", "evidence"],
+                        },
+                        {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            kind: { const: "disputed" },
+                            alternatives: {
+                              type: "array",
+                              items: {
+                                type: "object",
+                                additionalProperties: false,
+                                properties: {
+                                  value: { enum: ["needsAction", "completed"] },
+                                  evidence: {
+                                    $ref: "#/definitions/evidenceReferences",
+                                  },
+                                  reasoning: { type: "string", minLength: 1 },
+                                },
+                                required: ["value", "evidence", "reasoning"],
+                              },
+                              minItems: 2,
+                            },
+                          },
+                          required: ["kind", "alternatives"],
+                        },
+                      ],
+                    },
+                    tombstone: { type: "boolean" },
+                    provenance: { $ref: "#/definitions/evidenceReferences" },
+                  },
+                  required: [
+                    "providerId",
+                    "title",
+                    "status",
+                    "tombstone",
+                    "provenance",
+                  ],
+                },
+              },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
+            },
+            required: [
+              "id",
+              "provider",
+              "authority",
+              "targetId",
+              "snapshot",
+              "pullReceipt",
+              "items",
+              "evidence",
+            ],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              id: {
+                type: "string",
+                pattern: "^provider-mirror:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+              },
+              provider: { const: "google-calendar" },
+              authority: { const: "provider" },
+              targetId: { type: "string", minLength: 1 },
+              snapshot: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "evidence" },
+                  id: {
+                    type: "string",
+                    pattern:
+                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                  },
+                },
+                required: ["kind", "id"],
+              },
+              pullReceipt: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "evidence" },
+                  id: {
+                    type: "string",
+                    pattern:
+                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                  },
+                },
+                required: ["kind", "id"],
+              },
+              items: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    providerId: { type: "string", minLength: 1 },
+                    title: { type: "string", minLength: 1 },
+                    status: {
+                      oneOf: [
+                        {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            kind: { const: "known" },
+                            value: {
+                              enum: ["confirmed", "tentative", "cancelled"],
+                            },
+                            evidence: {
+                              $ref: "#/definitions/evidenceReferences",
+                            },
+                            reasoning: { type: "string", minLength: 1 },
+                          },
+                          required: ["kind", "value", "evidence"],
+                        },
+                        {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            kind: { const: "unknown" },
+                            reason: { type: "string", minLength: 1 },
+                            evidence: {
+                              type: "array",
+                              items: {
+                                type: "object",
+                                additionalProperties: false,
+                                properties: {
+                                  kind: { const: "evidence" },
+                                  id: {
+                                    type: "string",
+                                    pattern:
+                                      "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                                  },
+                                },
+                                required: ["kind", "id"],
+                              },
+                              uniqueItems: true,
+                            },
+                          },
+                          required: ["kind", "reason", "evidence"],
+                        },
+                        {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            kind: { const: "disputed" },
+                            alternatives: {
+                              type: "array",
+                              items: {
+                                type: "object",
+                                additionalProperties: false,
+                                properties: {
+                                  value: {
+                                    enum: [
+                                      "confirmed",
+                                      "tentative",
+                                      "cancelled",
+                                    ],
+                                  },
+                                  evidence: {
+                                    $ref: "#/definitions/evidenceReferences",
+                                  },
+                                  reasoning: { type: "string", minLength: 1 },
+                                },
+                                required: ["value", "evidence", "reasoning"],
+                              },
+                              minItems: 2,
+                            },
+                          },
+                          required: ["kind", "alternatives"],
+                        },
+                      ],
+                    },
+                    tombstone: { type: "boolean" },
+                    provenance: { $ref: "#/definitions/evidenceReferences" },
+                  },
+                  required: [
+                    "providerId",
+                    "title",
+                    "status",
+                    "tombstone",
+                    "provenance",
+                  ],
+                },
+              },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
+            },
+            required: [
+              "id",
+              "provider",
+              "authority",
+              "targetId",
+              "snapshot",
+              "pullReceipt",
+              "items",
+              "evidence",
+            ],
+          },
+        ],
+      },
+      DefinitionControl: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          $schema: { const: "urn:academic-os:module-data:1" },
+          schemaVersion: { const: 1 },
+          module: {
+            type: "string",
+            pattern: "^module:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          moduleCode: { type: "string", pattern: "^[A-Z]{2,4}[0-9]{4}[A-Z]?$" },
+          role: { const: "definition" },
+          offering: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              academicYear: {
+                oneOf: [
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "known" },
+                      value: { type: "string", pattern: "^[0-9]{4}-[0-9]{4}$" },
+                      evidence: { $ref: "#/definitions/evidenceReferences" },
+                      reasoning: { type: "string", minLength: 1 },
+                    },
+                    required: ["kind", "value", "evidence"],
+                  },
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "unknown" },
+                      reason: { type: "string", minLength: 1 },
+                      evidence: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            kind: { const: "evidence" },
+                            id: {
+                              type: "string",
+                              pattern:
+                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                            },
+                          },
+                          required: ["kind", "id"],
+                        },
+                        uniqueItems: true,
+                      },
+                    },
+                    required: ["kind", "reason", "evidence"],
+                  },
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "disputed" },
+                      alternatives: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            value: {
+                              type: "string",
+                              pattern: "^[0-9]{4}-[0-9]{4}$",
+                            },
+                            evidence: {
+                              $ref: "#/definitions/evidenceReferences",
+                            },
+                            reasoning: { type: "string", minLength: 1 },
+                          },
+                          required: ["value", "evidence", "reasoning"],
+                        },
+                        minItems: 2,
+                      },
+                    },
+                    required: ["kind", "alternatives"],
+                  },
+                ],
+              },
+              semester: {
+                oneOf: [
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "known" },
+                      value: { enum: [1, 2] },
+                      evidence: { $ref: "#/definitions/evidenceReferences" },
+                      reasoning: { type: "string", minLength: 1 },
+                    },
+                    required: ["kind", "value", "evidence"],
+                  },
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "unknown" },
+                      reason: { type: "string", minLength: 1 },
+                      evidence: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            kind: { const: "evidence" },
+                            id: {
+                              type: "string",
+                              pattern:
+                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                            },
+                          },
+                          required: ["kind", "id"],
+                        },
+                        uniqueItems: true,
+                      },
+                    },
+                    required: ["kind", "reason", "evidence"],
+                  },
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "disputed" },
+                      alternatives: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            value: { enum: [1, 2] },
+                            evidence: {
+                              $ref: "#/definitions/evidenceReferences",
+                            },
+                            reasoning: { type: "string", minLength: 1 },
+                          },
+                          required: ["value", "evidence", "reasoning"],
+                        },
+                        minItems: 2,
+                      },
+                    },
+                    required: ["kind", "alternatives"],
+                  },
+                ],
+              },
+              status: {
+                oneOf: [
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "known" },
+                      value: { enum: ["active", "past", "future"] },
+                      evidence: { $ref: "#/definitions/evidenceReferences" },
+                      reasoning: { type: "string", minLength: 1 },
+                    },
+                    required: ["kind", "value", "evidence"],
+                  },
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "unknown" },
+                      reason: { type: "string", minLength: 1 },
+                      evidence: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            kind: { const: "evidence" },
+                            id: {
+                              type: "string",
+                              pattern:
+                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                            },
+                          },
+                          required: ["kind", "id"],
+                        },
+                        uniqueItems: true,
+                      },
+                    },
+                    required: ["kind", "reason", "evidence"],
+                  },
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "disputed" },
+                      alternatives: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            value: { enum: ["active", "past", "future"] },
+                            evidence: {
+                              $ref: "#/definitions/evidenceReferences",
+                            },
+                            reasoning: { type: "string", minLength: 1 },
+                          },
+                          required: ["value", "evidence", "reasoning"],
+                        },
+                        minItems: 2,
+                      },
+                    },
+                    required: ["kind", "alternatives"],
+                  },
+                ],
+              },
+              timezone: { $ref: "#/definitions/textClaim" },
+              academicUnits: { $ref: "#/definitions/textClaim" },
+              prerequisites: {
+                oneOf: [
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "known" },
+                      value: {
+                        type: "array",
+                        items: { type: "string", minLength: 1 },
+                      },
+                      evidence: { $ref: "#/definitions/evidenceReferences" },
+                      reasoning: { type: "string", minLength: 1 },
+                    },
+                    required: ["kind", "value", "evidence"],
+                  },
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "unknown" },
+                      reason: { type: "string", minLength: 1 },
+                      evidence: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            kind: { const: "evidence" },
+                            id: {
+                              type: "string",
+                              pattern:
+                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                            },
+                          },
+                          required: ["kind", "id"],
+                        },
+                        uniqueItems: true,
+                      },
+                    },
+                    required: ["kind", "reason", "evidence"],
+                  },
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "disputed" },
+                      alternatives: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            value: {
+                              type: "array",
+                              items: { type: "string", minLength: 1 },
+                            },
+                            evidence: {
+                              $ref: "#/definitions/evidenceReferences",
+                            },
+                            reasoning: { type: "string", minLength: 1 },
+                          },
+                          required: ["value", "evidence", "reasoning"],
+                        },
+                        minItems: 2,
+                      },
+                    },
+                    required: ["kind", "alternatives"],
+                  },
+                ],
+              },
+              mutualExclusion: {
+                oneOf: [
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "known" },
+                      value: {
+                        type: "array",
+                        items: { type: "string", minLength: 1 },
+                      },
+                      evidence: { $ref: "#/definitions/evidenceReferences" },
+                      reasoning: { type: "string", minLength: 1 },
+                    },
+                    required: ["kind", "value", "evidence"],
+                  },
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "unknown" },
+                      reason: { type: "string", minLength: 1 },
+                      evidence: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            kind: { const: "evidence" },
+                            id: {
+                              type: "string",
+                              pattern:
+                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                            },
+                          },
+                          required: ["kind", "id"],
+                        },
+                        uniqueItems: true,
+                      },
+                    },
+                    required: ["kind", "reason", "evidence"],
+                  },
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "disputed" },
+                      alternatives: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            value: {
+                              type: "array",
+                              items: { type: "string", minLength: 1 },
+                            },
+                            evidence: {
+                              $ref: "#/definitions/evidenceReferences",
+                            },
+                            reasoning: { type: "string", minLength: 1 },
+                          },
+                          required: ["value", "evidence", "reasoning"],
+                        },
+                        minItems: 2,
+                      },
+                    },
+                    required: ["kind", "alternatives"],
+                  },
+                ],
+              },
+              courseType: { $ref: "#/definitions/textClaim" },
+            },
+            required: [
+              "academicYear",
+              "semester",
+              "status",
+              "timezone",
+              "academicUnits",
+              "prerequisites",
+              "mutualExclusion",
+              "courseType",
+            ],
+          },
+          structure: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              tutorials: {
+                oneOf: [
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "flat" },
+                      evidence: { $ref: "#/definitions/evidenceReferences" },
+                    },
+                    required: ["kind", "evidence"],
+                  },
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "grouped" },
+                      groups: {
+                        type: "array",
+                        items: { type: "string", minLength: 1 },
+                        minItems: 1,
+                        uniqueItems: true,
+                      },
+                      evidence: { $ref: "#/definitions/evidenceReferences" },
+                    },
+                    required: ["kind", "groups", "evidence"],
+                  },
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: { const: "unknown" },
+                      reason: { type: "string", minLength: 1 },
+                      evidence: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            kind: { const: "evidence" },
+                            id: {
+                              type: "string",
+                              pattern:
+                                "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                            },
+                          },
+                          required: ["kind", "id"],
+                        },
+                        uniqueItems: true,
+                      },
+                    },
+                    required: ["kind", "reason", "evidence"],
+                  },
+                ],
+              },
+              quizzes: { $ref: "#/definitions/booleanClaim" },
+              tests: { $ref: "#/definitions/booleanClaim" },
+              assignments: { $ref: "#/definitions/booleanClaim" },
+              projects: { $ref: "#/definitions/booleanClaim" },
+              labs: { $ref: "#/definitions/booleanClaim" },
+              resourceCategories: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    name: { type: "string", minLength: 1 },
+                    evidence: { $ref: "#/definitions/evidenceReferences" },
+                  },
+                  required: ["name", "evidence"],
+                },
+              },
+            },
+            required: [
+              "tutorials",
+              "quizzes",
+              "tests",
+              "assignments",
+              "projects",
+              "labs",
+              "resourceCategories",
+            ],
+          },
+          importers: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                integration: { type: "string", minLength: 1 },
+                role: { type: "string", minLength: 1 },
+                root: { type: "string", minLength: 1 },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
+              },
+              required: ["integration", "role", "root", "evidence"],
+            },
+          },
+          exceptions: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                id: {
+                  type: "string",
+                  pattern: "^exception:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                },
+                rule: { type: "string", minLength: 1 },
+                reason: { type: "string", minLength: 1 },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
+              },
+              required: ["id", "rule", "reason", "evidence"],
+            },
+          },
+        },
+        required: [
+          "$schema",
+          "schemaVersion",
+          "module",
+          "moduleCode",
+          "role",
+          "offering",
+          "structure",
+          "importers",
+          "exceptions",
+        ],
+      },
+      ProfileControl: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          $schema: { const: "urn:academic-os:module-data:1" },
+          schemaVersion: { const: 1 },
+          module: {
+            type: "string",
+            pattern: "^module:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          moduleCode: { type: "string", pattern: "^[A-Z]{2,4}[0-9]{4}[A-Z]?$" },
+          role: { const: "profile" },
+          scope: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                id: {
+                  type: "string",
+                  pattern: "^profile-claim:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                },
+                claim: { type: "string", minLength: 1 },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
+                reasoning: { type: "string", minLength: 1 },
+              },
+              required: ["id", "claim", "evidence"],
+            },
+          },
+          teaching: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                id: {
+                  type: "string",
+                  pattern:
+                    "^teaching-component:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                },
+                label: { type: "string", minLength: 1 },
+                mode: {
+                  enum: [
+                    "lecture",
+                    "tutorial",
+                    "lab",
+                    "project",
+                    "assignment",
+                    "other",
+                  ],
+                },
+                description: { type: "string", minLength: 1 },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
+              },
+              required: ["id", "label", "mode", "description", "evidence"],
+            },
+          },
+          assessments: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                id: {
+                  type: "string",
+                  pattern:
+                    "^assessment-component:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                },
+                label: { type: "string", minLength: 1 },
+                family: {
+                  enum: [
+                    "weekly-quiz",
+                    "midsemester-quiz",
+                    "test",
+                    "assignment",
+                    "midterm",
+                    "final",
+                    "project",
+                    "lab",
+                    "other",
+                  ],
+                },
+                weight: { $ref: "#/definitions/textClaim" },
+                timing: { $ref: "#/definitions/textClaim" },
+                coverage: { $ref: "#/definitions/textClaim" },
+                policies: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: {
+                        enum: [
+                          "permitted-aid",
+                          "attendance",
+                          "submission",
+                          "eligibility",
+                          "makeup",
+                          "absence",
+                          "weighting",
+                          "access",
+                          "other",
+                        ],
+                      },
+                      requirement: { type: "string", minLength: 1 },
+                      evidence: { $ref: "#/definitions/evidenceReferences" },
+                    },
+                    required: ["kind", "requirement", "evidence"],
+                  },
+                },
+                arrangements: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      kind: {
+                        enum: ["issued", "owner-reservation", "derived"],
+                      },
+                      date: { $ref: "#/definitions/dateClaim" },
+                      startTime: { $ref: "#/definitions/textClaim" },
+                      endTime: { $ref: "#/definitions/textClaim" },
+                      timezone: { $ref: "#/definitions/textClaim" },
+                      venue: { $ref: "#/definitions/textClaim" },
+                      condition: { $ref: "#/definitions/textClaim" },
+                      evidence: { $ref: "#/definitions/evidenceReferences" },
+                    },
+                    required: [
+                      "kind",
+                      "date",
+                      "startTime",
+                      "endTime",
+                      "timezone",
+                      "venue",
+                      "condition",
+                      "evidence",
+                    ],
+                  },
+                },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
+              },
+              required: [
+                "id",
+                "label",
+                "family",
+                "weight",
+                "timing",
+                "coverage",
+                "policies",
+                "arrangements",
+                "evidence",
+              ],
+            },
+          },
+          sourceAuthority: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                source: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { const: "source" },
+                    id: {
+                      type: "string",
+                      pattern:
+                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                    },
+                  },
+                  required: ["kind", "id"],
+                },
+                rank: { type: "integer", minimum: 1 },
+                governs: {
+                  type: "array",
+                  items: { type: "string", minLength: 1 },
+                  minItems: 1,
+                },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
+              },
+              required: ["source", "rank", "governs", "evidence"],
+            },
+          },
+          workspaces: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                path: { type: "string", minLength: 1 },
+                purpose: { type: "string", minLength: 1 },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
+              },
+              required: ["path", "purpose", "evidence"],
+            },
+          },
+          gaps: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                id: {
+                  type: "string",
+                  pattern: "^profile-gap:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                },
+                gap: { type: "string", minLength: 1 },
+                consequence: { type: "string", minLength: 1 },
+                nextEvidence: { type: "string", minLength: 1 },
+              },
+              required: ["id", "gap", "consequence", "nextEvidence"],
+            },
+          },
+        },
+        required: [
+          "$schema",
+          "schemaVersion",
+          "module",
+          "moduleCode",
+          "role",
+          "scope",
+          "teaching",
+          "assessments",
+          "sourceAuthority",
+          "workspaces",
+          "gaps",
+        ],
+      },
+      EvidenceControl: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          $schema: { const: "urn:academic-os:module-data:1" },
+          schemaVersion: { const: 1 },
+          module: {
+            type: "string",
+            pattern: "^module:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          moduleCode: { type: "string", pattern: "^[A-Z]{2,4}[0-9]{4}[A-Z]?$" },
+          role: { const: "evidence" },
+          entries: { type: "array", items: { $ref: "#/definitions/evidence" } },
+        },
+        required: [
+          "$schema",
+          "schemaVersion",
+          "module",
+          "moduleCode",
+          "role",
+          "entries",
+        ],
+      },
+      ArtifactsControl: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          $schema: { const: "urn:academic-os:module-data:1" },
+          schemaVersion: { const: 1 },
+          module: {
+            type: "string",
+            pattern: "^module:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          moduleCode: { type: "string", pattern: "^[A-Z]{2,4}[0-9]{4}[A-Z]?$" },
+          role: { const: "artifacts" },
+          sources: { type: "array", items: { $ref: "#/definitions/source" } },
+          artifacts: {
+            type: "array",
+            items: { $ref: "#/definitions/artifact" },
+          },
+        },
+        required: [
+          "$schema",
+          "schemaVersion",
+          "module",
+          "moduleCode",
+          "role",
+          "sources",
+          "artifacts",
+        ],
+      },
+      SourceMapControl: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          $schema: { const: "urn:academic-os:module-data:1" },
+          schemaVersion: { const: 1 },
+          module: {
+            type: "string",
+            pattern: "^module:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          moduleCode: { type: "string", pattern: "^[A-Z]{2,4}[0-9]{4}[A-Z]?$" },
+          role: { const: "source-map" },
+          availability: {
+            oneOf: [
+              {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "mapped" },
+                  evidence: { $ref: "#/definitions/evidenceReferences" },
+                },
+                required: ["kind", "evidence"],
+              },
+              {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "unknown" },
+                  reason: { type: "string", minLength: 1 },
+                  evidence: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      additionalProperties: false,
+                      properties: {
+                        kind: { const: "evidence" },
+                        id: {
+                          type: "string",
+                          pattern:
+                            "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                        },
+                      },
+                      required: ["kind", "id"],
+                    },
+                    uniqueItems: true,
+                  },
+                },
+                required: ["kind", "reason", "evidence"],
+              },
+            ],
+          },
+          teachingWeeks: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                id: {
+                  type: "string",
+                  pattern: "^teaching-week:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                },
+                label: { type: "string", minLength: 1 },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
+              },
+              required: ["id", "label", "evidence"],
+            },
+          },
+          units: { type: "array", items: { $ref: "#/definitions/unit" } },
+        },
+        required: [
+          "$schema",
+          "schemaVersion",
+          "module",
+          "moduleCode",
+          "role",
+          "availability",
+          "teachingWeeks",
+          "units",
+        ],
+      },
+      TermsControl: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          $schema: { const: "urn:academic-os:module-data:1" },
+          schemaVersion: { const: 1 },
+          module: {
+            type: "string",
+            pattern: "^module:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          moduleCode: { type: "string", pattern: "^[A-Z]{2,4}[0-9]{4}[A-Z]?$" },
+          role: { const: "terms" },
+          entries: { type: "array", items: { $ref: "#/definitions/term" } },
+        },
+        required: [
+          "$schema",
+          "schemaVersion",
+          "module",
+          "moduleCode",
+          "role",
+          "entries",
+        ],
+      },
+      DecisionsControl: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          $schema: { const: "urn:academic-os:module-data:1" },
+          schemaVersion: { const: 1 },
+          module: {
+            type: "string",
+            pattern: "^module:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          moduleCode: { type: "string", pattern: "^[A-Z]{2,4}[0-9]{4}[A-Z]?$" },
+          role: { const: "decisions" },
+          entries: { type: "array", items: { $ref: "#/definitions/decision" } },
+        },
+        required: [
+          "$schema",
+          "schemaVersion",
+          "module",
+          "moduleCode",
+          "role",
+          "entries",
+        ],
+      },
+      PreferencesControl: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          $schema: { const: "urn:academic-os:module-data:1" },
+          schemaVersion: { const: 1 },
+          module: {
+            type: "string",
+            pattern: "^module:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          moduleCode: { type: "string", pattern: "^[A-Z]{2,4}[0-9]{4}[A-Z]?$" },
+          role: { const: "preferences" },
+          sharedBundle: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              id: { type: "string", minLength: 1 },
+              version: { type: "string", minLength: 1 },
+              byteSha256: { type: "string", pattern: "^[a-f0-9]{64}$" },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
+            },
+            required: ["id", "version", "byteSha256", "evidence"],
+          },
+          refinements: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                id: {
+                  type: "string",
+                  pattern: "^preference:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                },
+                setting: {
+                  enum: [
+                    "owner-present",
+                    "explain-then-check",
+                    "statement-before-intuition",
+                    "source-depth",
+                    "follow-wrong-step",
+                    "source-practice",
+                    "plain-feedback",
+                    "module-language",
+                    "owner-starts-revisit",
+                    "other",
+                  ],
+                },
+                value: { type: "string", minLength: 1 },
+                ownerDecision: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { const: "decision" },
+                    id: {
+                      type: "string",
+                      pattern:
+                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                    },
+                  },
+                  required: ["kind", "id"],
+                },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
+              },
+              required: ["id", "setting", "value", "ownerDecision", "evidence"],
+            },
+          },
+        },
+        required: [
+          "$schema",
+          "schemaVersion",
+          "module",
+          "moduleCode",
+          "role",
+          "sharedBundle",
+          "refinements",
+        ],
+      },
+      LearningRecordsControl: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          $schema: { const: "urn:academic-os:module-data:1" },
+          schemaVersion: { const: 1 },
+          module: {
+            type: "string",
+            pattern: "^module:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          moduleCode: { type: "string", pattern: "^[A-Z]{2,4}[0-9]{4}[A-Z]?$" },
+          role: { const: "learning-records" },
+          records: {
+            type: "array",
+            items: { $ref: "#/definitions/learningRecord" },
+          },
+          assessments: {
+            type: "array",
+            items: { $ref: "#/definitions/assessment" },
+          },
+        },
+        required: [
+          "$schema",
+          "schemaVersion",
+          "module",
+          "moduleCode",
+          "role",
+          "records",
+          "assessments",
+        ],
+      },
+      RevisitControl: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          $schema: { const: "urn:academic-os:module-data:1" },
+          schemaVersion: { const: 1 },
+          module: {
+            type: "string",
+            pattern: "^module:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          moduleCode: { type: "string", pattern: "^[A-Z]{2,4}[0-9]{4}[A-Z]?$" },
+          role: { const: "revisit" },
+          entries: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                id: {
+                  type: "string",
+                  pattern: "^revisit:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                },
+                question: { type: "string", minLength: 1 },
+                understandingLimit: { type: "string", minLength: 1 },
+                state: { enum: ["open", "owner-resolved"] },
+                ownerDecision: {
+                  oneOf: [
+                    { type: "null" },
+                    {
+                      type: "object",
+                      additionalProperties: false,
+                      properties: {
+                        kind: { const: "decision" },
+                        id: {
+                          type: "string",
+                          pattern:
+                            "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                        },
+                      },
+                      required: ["kind", "id"],
+                    },
+                  ],
+                },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
+              },
+              required: [
+                "id",
+                "question",
+                "understandingLimit",
+                "state",
+                "ownerDecision",
+                "evidence",
+              ],
+            },
+          },
+        },
+        required: [
+          "$schema",
+          "schemaVersion",
+          "module",
+          "moduleCode",
+          "role",
+          "entries",
+        ],
+      },
+      GlossaryControl: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          $schema: { const: "urn:academic-os:module-data:1" },
+          schemaVersion: { const: 1 },
+          module: {
+            type: "string",
+            pattern: "^module:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          moduleCode: { type: "string", pattern: "^[A-Z]{2,4}[0-9]{4}[A-Z]?$" },
+          role: { const: "glossary" },
+          entries: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                id: {
+                  type: "string",
+                  pattern: "^concept:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                },
+                term: { type: "string", minLength: 1 },
+                definition: { type: "string", minLength: 1 },
+                notation: {
+                  type: "array",
+                  items: { type: "string", minLength: 1 },
+                },
+                uncertainty: { $ref: "#/definitions/textClaim" },
+                sources: { $ref: "#/definitions/evidenceReferences" },
+              },
+              required: [
+                "id",
+                "term",
+                "definition",
+                "notation",
+                "uncertainty",
+                "sources",
+              ],
+            },
+          },
+        },
+        required: [
+          "$schema",
+          "schemaVersion",
+          "module",
+          "moduleCode",
+          "role",
+          "entries",
+        ],
+      },
+      ResourcesControl: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          $schema: { const: "urn:academic-os:module-data:1" },
+          schemaVersion: { const: 1 },
+          module: {
+            type: "string",
+            pattern: "^module:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          moduleCode: { type: "string", pattern: "^[A-Z]{2,4}[0-9]{4}[A-Z]?$" },
+          role: { const: "resources" },
+          entries: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                id: {
+                  type: "string",
+                  pattern: "^resource:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                },
+                title: { type: "string", minLength: 1 },
+                role: {
+                  enum: [
+                    "required",
+                    "supplementary",
+                    "practice",
+                    "reference",
+                    "planning",
+                    "other",
+                  ],
+                },
+                locator: { type: "string", minLength: 1 },
+                artifact: {
+                  oneOf: [
+                    { type: "null" },
+                    {
+                      type: "object",
+                      additionalProperties: false,
+                      properties: {
+                        kind: { const: "artifact" },
+                        id: {
+                          type: "string",
+                          pattern:
+                            "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                        },
+                      },
+                      required: ["kind", "id"],
+                    },
+                  ],
+                },
+                checked: { $ref: "#/definitions/booleanClaim" },
+                use: { type: "string", minLength: 1 },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
+              },
+              required: [
+                "id",
+                "title",
+                "role",
+                "locator",
+                "artifact",
+                "checked",
+                "use",
+                "evidence",
+              ],
+            },
+          },
+        },
+        required: [
+          "$schema",
+          "schemaVersion",
+          "module",
+          "moduleCode",
+          "role",
+          "entries",
+        ],
+      },
+      TextbooksControl: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          $schema: { const: "urn:academic-os:module-data:1" },
+          schemaVersion: { const: 1 },
+          module: {
+            type: "string",
+            pattern: "^module:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          moduleCode: { type: "string", pattern: "^[A-Z]{2,4}[0-9]{4}[A-Z]?$" },
+          role: { const: "textbooks" },
+          entries: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                id: {
+                  type: "string",
+                  pattern: "^textbook:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                },
+                shelf: { type: "string", minLength: 1 },
+                book: { type: "string", minLength: 1 },
+                division: { type: "string", minLength: 1 },
+                title: { type: "string", minLength: 1 },
+                pages: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    first: { type: "integer", minimum: 1 },
+                    last: { type: "integer", minimum: 1 },
+                  },
+                  required: ["first", "last"],
+                },
+                artifact: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { const: "artifact" },
+                    id: {
+                      type: "string",
+                      pattern:
+                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                    },
+                  },
+                  required: ["kind", "id"],
+                },
+                sourceHash: { $ref: "#/definitions/hashClaim" },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
+              },
+              required: [
+                "id",
+                "shelf",
+                "book",
+                "division",
+                "title",
+                "pages",
+                "artifact",
+                "sourceHash",
+                "evidence",
+              ],
+            },
+          },
+        },
+        required: [
+          "$schema",
+          "schemaVersion",
+          "module",
+          "moduleCode",
+          "role",
+          "entries",
+        ],
+      },
+      CurationControl: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          $schema: { const: "urn:academic-os:module-data:1" },
+          schemaVersion: { const: 1 },
+          module: {
+            type: "string",
+            pattern: "^module:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          moduleCode: { type: "string", pattern: "^[A-Z]{2,4}[0-9]{4}[A-Z]?$" },
+          role: { const: "curation" },
+          events: {
+            type: "array",
+            items: { $ref: "#/definitions/curationEvent" },
+          },
+          segments: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                evidence: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { const: "evidence" },
+                    id: {
+                      type: "string",
+                      pattern:
+                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                    },
+                  },
+                  required: ["kind", "id"],
+                },
+                schema: { type: "string", minLength: 1 },
+                identityPolicy: { type: "string", minLength: 1 },
+              },
+              required: ["evidence", "schema", "identityPolicy"],
+            },
+          },
+        },
+        required: [
+          "$schema",
+          "schemaVersion",
+          "module",
+          "moduleCode",
+          "role",
+          "events",
+          "segments",
+        ],
+      },
+      ProviderMirrorsControl: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          $schema: { const: "urn:academic-os:module-data:1" },
+          schemaVersion: { const: 1 },
+          module: {
+            type: "string",
+            pattern: "^module:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          moduleCode: { type: "string", pattern: "^[A-Z]{2,4}[0-9]{4}[A-Z]?$" },
+          role: { const: "provider-mirrors" },
+          entries: {
+            type: "array",
+            items: { $ref: "#/definitions/providerMirror" },
+          },
+        },
+        required: [
+          "$schema",
+          "schemaVersion",
+          "module",
+          "moduleCode",
+          "role",
+          "entries",
+        ],
+      },
+      VerificationControl: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          $schema: { const: "urn:academic-os:module-data:1" },
+          schemaVersion: { const: 1 },
+          module: {
+            type: "string",
+            pattern: "^module:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          moduleCode: { type: "string", pattern: "^[A-Z]{2,4}[0-9]{4}[A-Z]?$" },
+          role: { const: "verification" },
+          checks: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                id: {
+                  type: "string",
+                  pattern:
+                    "^verification-check:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                },
+                kind: {
+                  enum: ["structural", "build", "assessment", "mathematics"],
+                },
+                capability: { type: "string", minLength: 1 },
+                prerequisites: {
+                  type: "array",
+                  items: { type: "string", minLength: 1 },
+                },
+                requiredEvidence: {
+                  type: "array",
+                  items: { type: "string", minLength: 1 },
+                  minItems: 1,
+                },
+                sources: { $ref: "#/definitions/evidenceReferences" },
+              },
+              required: [
+                "id",
+                "kind",
+                "capability",
+                "prerequisites",
+                "requiredEvidence",
+                "sources",
+              ],
+            },
+          },
+          limitations: {
+            type: "array",
+            items: { type: "string", minLength: 1 },
+          },
+        },
+        required: [
+          "$schema",
+          "schemaVersion",
+          "module",
+          "moduleCode",
+          "role",
+          "checks",
+          "limitations",
+        ],
+      },
+      LearningWorkspaceControl: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          $schema: { const: "urn:academic-os:module-data:1" },
+          schemaVersion: { const: 1 },
+          module: {
+            type: "string",
+            pattern: "^module:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+          },
+          moduleCode: { type: "string", pattern: "^[A-Z]{2,4}[0-9]{4}[A-Z]?$" },
+          role: { const: "learning-workspace" },
+          mission: {
+            oneOf: [
+              {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "absent" },
+                  evidence: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      additionalProperties: false,
+                      properties: {
+                        kind: { const: "evidence" },
+                        id: {
+                          type: "string",
+                          pattern:
+                            "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                        },
+                      },
+                      required: ["kind", "id"],
+                    },
+                    uniqueItems: true,
+                  },
+                },
+                required: ["kind", "evidence"],
+              },
+              {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  kind: { const: "recorded" },
+                  purpose: { type: "string", minLength: 1 },
+                  successCriteria: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      additionalProperties: false,
+                      properties: {
+                        criterion: { type: "string", minLength: 1 },
+                        evidence: { $ref: "#/definitions/evidenceReferences" },
+                      },
+                      required: ["criterion", "evidence"],
+                    },
+                  },
+                  constraints: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      additionalProperties: false,
+                      properties: {
+                        constraint: { type: "string", minLength: 1 },
+                        evidence: { $ref: "#/definitions/evidenceReferences" },
+                      },
+                      required: ["constraint", "evidence"],
+                    },
+                  },
+                  outOfScope: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      additionalProperties: false,
+                      properties: {
+                        subject: { type: "string", minLength: 1 },
+                        evidence: { $ref: "#/definitions/evidenceReferences" },
+                      },
+                      required: ["subject", "evidence"],
+                    },
+                  },
+                  evidence: { $ref: "#/definitions/evidenceReferences" },
+                },
+                required: [
+                  "kind",
+                  "purpose",
+                  "successCriteria",
+                  "constraints",
+                  "outOfScope",
+                  "evidence",
+                ],
+              },
+            ],
+          },
+          notes: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                id: {
+                  type: "string",
+                  pattern: "^workspace-note:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                },
+                kind: {
+                  enum: [
+                    "learner-context",
+                    "material-presentation",
+                    "session-guidance",
+                  ],
+                },
+                statement: { type: "string", minLength: 1 },
+                standingAuthority: { const: false },
+                evidence: { $ref: "#/definitions/evidenceReferences" },
+              },
+              required: [
+                "id",
+                "kind",
+                "statement",
+                "standingAuthority",
+                "evidence",
+              ],
+            },
+          },
+        },
+        required: [
+          "$schema",
+          "schemaVersion",
+          "module",
+          "moduleCode",
+          "role",
+          "mission",
+          "notes",
+        ],
+      },
+      nativeBytesClaim: {
+        oneOf: [
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "known" },
+              value: { type: "string", format: "native-nul-free-bytes" },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
+              reasoning: { type: "string", minLength: 1 },
+            },
+            required: ["kind", "value", "evidence"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "unknown" },
+              reason: { type: "string", minLength: 1 },
+              evidence: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { const: "evidence" },
+                    id: {
+                      type: "string",
+                      pattern:
+                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                    },
+                  },
+                  required: ["kind", "id"],
+                },
+                uniqueItems: true,
+              },
+            },
+            required: ["kind", "reason", "evidence"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "disputed" },
+              alternatives: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    value: { type: "string", format: "native-nul-free-bytes" },
+                    evidence: { $ref: "#/definitions/evidenceReferences" },
+                    reasoning: { type: "string", minLength: 1 },
+                  },
+                  required: ["value", "evidence", "reasoning"],
+                },
+                minItems: 2,
+              },
+            },
+            required: ["kind", "alternatives"],
+          },
+        ],
+      },
+      nanosecondsClaim: {
+        oneOf: [
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "known" },
+              value: { type: "string", pattern: "^(0|-?[1-9][0-9]*)$" },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
+              reasoning: { type: "string", minLength: 1 },
+            },
+            required: ["kind", "value", "evidence"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "unknown" },
+              reason: { type: "string", minLength: 1 },
+              evidence: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { const: "evidence" },
+                    id: {
+                      type: "string",
+                      pattern:
+                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                    },
+                  },
+                  required: ["kind", "id"],
+                },
+                uniqueItems: true,
+              },
+            },
+            required: ["kind", "reason", "evidence"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "disputed" },
+              alternatives: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    value: { type: "string", pattern: "^(0|-?[1-9][0-9]*)$" },
+                    evidence: { $ref: "#/definitions/evidenceReferences" },
+                    reasoning: { type: "string", minLength: 1 },
+                  },
+                  required: ["value", "evidence", "reasoning"],
+                },
+                minItems: 2,
+              },
+            },
+            required: ["kind", "alternatives"],
+          },
+        ],
+      },
+      evidenceReferences: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            kind: { const: "evidence" },
+            id: {
+              type: "string",
+              pattern: "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+            },
+          },
+          required: ["kind", "id"],
+        },
+        minItems: 1,
+        uniqueItems: true,
+      },
+      booleanClaim: {
+        oneOf: [
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "known" },
+              value: { type: "boolean" },
+              evidence: { $ref: "#/definitions/evidenceReferences" },
+              reasoning: { type: "string", minLength: 1 },
+            },
+            required: ["kind", "value", "evidence"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "unknown" },
+              reason: { type: "string", minLength: 1 },
+              evidence: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    kind: { const: "evidence" },
+                    id: {
+                      type: "string",
+                      pattern:
+                        "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$",
+                    },
+                  },
+                  required: ["kind", "id"],
+                },
+                uniqueItems: true,
+              },
+            },
+            required: ["kind", "reason", "evidence"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              kind: { const: "disputed" },
+              alternatives: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    value: { type: "boolean" },
+                    evidence: { $ref: "#/definitions/evidenceReferences" },
+                    reasoning: { type: "string", minLength: 1 },
+                  },
+                  required: ["value", "evidence", "reasoning"],
+                },
+                minItems: 2,
+              },
+            },
+            required: ["kind", "alternatives"],
+          },
+        ],
+      },
+    },
+  },
+  {
+    $schema: "http://json-schema.org/draft-07/schema#",
+    type: "object",
+    additionalProperties: false,
     $id: "urn:academic-os:module-head:1",
     title: "ModuleHead",
     properties: {

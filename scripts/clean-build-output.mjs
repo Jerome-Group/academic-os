@@ -30,12 +30,18 @@ async function inspectArtifacts(directory) {
     const path = join(directory, entry.name);
     if (entry.isDirectory()) await inspectArtifacts(path);
     else if (
-      path ===
-        join(output, "src/migration/native-inventory/native/scan.native") ||
-      path === join(output, "src/migration/native-inventory/native/scan.c")
-    ) {
-      if (!entry.isFile()) refuse(path);
-    } else if (!entry.isFile() || !/\.(js|d\.ts)$/u.test(entry.name))
+      !entry.isFile() ||
+      (!/\.(js|d\.ts)$/u.test(entry.name) &&
+        path !==
+          join(
+            output,
+            "src/controls-publication/native/publication-native.node",
+          ) &&
+        path !== join(output, "src/controls-publication/release.json") &&
+        path !==
+          join(output, "src/migration/native-inventory/native/scan.native") &&
+        path !== join(output, "src/migration/native-inventory/native/scan.c"))
+    )
       refuse(path);
   }
 }

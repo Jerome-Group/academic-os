@@ -1,8 +1,13 @@
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-
+import { loadCohortTasksConfig } from "../commands/load-cohort-tasks-config.js";
+import { createPublicationTools } from "../controls-publication/tools.js";
 import { applyConfiguredTaskPlan } from "../tasks/configured-task-executor.js";
-import { createNamingTools } from "./naming-tools.js";
+import { createConfiguredCompletionPlanning } from "./configured-completion-planning.js";
+import { configuredTaskTools } from "./configured-task-tools.js";
 import { createMcpDispatcher } from "./dispatch-mcp-message.js";
+import { createModuleCompletionTools } from "./module-completion-tools.js";
+import { createNamingTools } from "./naming-tools.js";
 import {
   OPERATIONS_PORT,
   type OperationsServerHandle,
@@ -10,11 +15,7 @@ import {
 } from "./serve-operations.js";
 import { resolveTailnetAddresses } from "./tailnet-address.js";
 import { guardedTaskTools } from "./task-plan-tools.js";
-import { configuredTaskTools } from "./configured-task-tools.js";
-import { createConfiguredCompletionPlanning } from "./configured-completion-planning.js";
-import { createModuleCompletionTools } from "./module-completion-tools.js";
-import { loadCohortTasksConfig } from "../commands/load-cohort-tasks-config.js";
-import type { McpServerInfo, OperationTool } from "./types.js";
+import type { McpServerInfo, ServedOperationTool } from "./types.js";
 
 export const OPERATIONS_SERVER_INFO: McpServerInfo = {
   name: "academic-os",
@@ -42,7 +43,7 @@ export async function runOperationsServer(input: {
 
 export async function createConfiguredOperationsTools(
   configPath: string,
-): Promise<OperationTool[]> {
+): Promise<ServedOperationTool[]> {
   const catalog = await configuredTaskTools(configPath);
   const guarded = guardedTaskTools(
     catalog.map((tool) => ({
@@ -73,6 +74,18 @@ export async function createConfiguredOperationsTools(
     ...guarded,
     ...createModuleCompletionTools(completion?.port),
     ...createNamingTools(),
+    ...createPublicationTools({
+      exclusionPaths: [
+        config.driveMount,
+        ...Object.values(config.semesters).map((semester) =>
+          join(config.driveMount, semester.root),
+        ),
+        ...("research" in config && config.research
+          ? [join(config.driveMount, config.research.root)]
+          : []),
+        ...(config.textbooks ? [config.textbooks.shelfRoot] : []),
+      ],
+    }),
   ];
 }
 

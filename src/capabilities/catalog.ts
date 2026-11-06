@@ -1,3 +1,4 @@
+import { createPublicationTools } from "../controls-publication/tools.js";
 import { checkProfiles } from "./checks.js";
 
 const buildPrerequisite =
@@ -71,6 +72,52 @@ function cli(
 }
 
 export const cliCapabilities: Capability[] = [
+  ...[
+    "create-generated-candidate",
+    "publish-generation",
+    "inspect-candidate",
+  ].map(
+    (operation): Capability => ({
+      id: `controls ${operation}`,
+      surface: "cli",
+      invocation: `node dist/src/cli.js controls ${operation} --json`,
+      prerequisites: [
+        "Node >=24",
+        "npm ci && npm run build",
+        "supported Darwin account, private local Application Support anchor and native addon",
+        "generated candidate admission for publish and inspect",
+      ],
+      reads: [
+        "exact supplied identity or complete publication bundle",
+        "host-owned publication catalog and physical claims",
+      ],
+      writes:
+        operation === "inspect-candidate"
+          ? ["existing SQLite lock-coordination metadata only"]
+          : [
+              "private generated candidates, immutable generations, retained bytes, publication ledger and receipts",
+            ],
+      riskFlags: [
+        operation === "inspect-candidate"
+          ? "read-owned-generated-controls"
+          : "writes-private-generated-controls",
+      ],
+      preview: null,
+      implementation: "src/controls-publication/command.ts",
+      tests: [
+        "test/controls-publication/publication.test.ts",
+        "test/controls-publication/capacity.test.ts",
+        "test/controls-publication/native.test.ts",
+        "test/controls-publication/durability.test.ts",
+        "test/controls-publication/import-boundary.test.ts",
+        "test/controls-publication/publication-journey.test.ts",
+      ],
+      status: "supported",
+      health: "not-observed",
+      result:
+        "Generated candidates only. Complete module-data graph or explicit refusal/recovery. Other workflows, migration and conformance remain not-implemented. No arbitrary target admission.",
+    }),
+  ),
   {
     id: "migration inventory",
     surface: "cli",
@@ -642,6 +689,64 @@ export const cliCapabilities: Capability[] = [
 
 export function capabilityIndex(): object {
   const actions = [...cliCapabilities];
+  actions.push({
+    id: "controls publication standalone",
+    surface: "script",
+    invocation:
+      "npm run controls-publication:standalone -- <absolute-output-directory>",
+    prerequisites: [
+      "npm ci && npm run build",
+      "unchanged built source bindings",
+      "production native addon on supported Darwin",
+    ],
+    reads: [
+      "built release manifest",
+      "shared source and production native artifact",
+    ],
+    writes: ["standalone package under the explicit output directory"],
+    riskFlags: ["writes-release-artifact"],
+    preview: null,
+    implementation: "scripts/build-control-publication-standalone.mjs",
+    tests: [
+      "test/controls-publication/standalone-package.test.ts",
+      "test/controls-publication/publication-journey.test.ts",
+    ],
+    status: "supported",
+    health: "not-observed",
+    result:
+      "Standalone CLI with the host release identity and production addon. Package creation loads no publication authority or Module target.",
+  });
+  for (const tool of createPublicationTools())
+    actions.push({
+      id: tool.name,
+      surface: "mcp",
+      invocation: `tools/call ${tool.name}`,
+      prerequisites: [
+        "supported Darwin host and private local account anchor",
+        "generated candidate admission for publication and inspection",
+      ],
+      reads: [
+        "schema-validated exact publication bytes",
+        "owned catalog and current physical identities",
+      ],
+      writes:
+        tool.name === "controls_inspect_candidate"
+          ? ["existing SQLite lock-coordination metadata only"]
+          : ["private generated candidate publication data and ledger"],
+      riskFlags: ["generated-candidates-only"],
+      preview: null,
+      implementation: "src/controls-publication/tools.ts",
+      tests: [
+        "test/controls-publication/publication-journey.test.ts",
+        "test/controls-publication/publication-schema.test.ts",
+        "test/controls-publication/capacity.test.ts",
+        "test/controls-publication/native.test.ts",
+      ],
+      status: "supported",
+      health: "not-observed",
+      result:
+        "MCP content text contains the strict generated result schema; isError marks refusal or recovery. Complete graph and immutable evidence or explicit refusal/recovery. No historical or live target admission.",
+    });
   for (const operation of [
     "schema",
     "doctor",
@@ -967,10 +1072,16 @@ export function capabilityIndex(): object {
         profile === "coverage"
           ? ["TeX Live and Poppler for rendered artifact checks"]
           : []),
-        ...(["formal", "full"].includes(profile)
+        ...(["formal", "publication-formal", "full"].includes(profile)
           ? [
               "Java 21 via JAVA or PATH; pinned TLC download or TLA2TOOLS_JAR",
               "clean committed checkout; covered-source hashes match the checked-in formal binding",
+            ]
+          : []),
+        ...(profile === "publication-formal"
+          ? [
+              "Darwin; Apple clang and current Node N-API headers; private local fixture evidence parent",
+              "follow .agents/skills/control-publication/SKILL.md",
             ]
           : []),
       ],
@@ -984,13 +1095,18 @@ export function capabilityIndex(): object {
       tests: [
         "test/capabilities/capabilities.test.ts",
         "test/capabilities/build-provenance.test.ts",
+        ...(["formal", "publication-formal"].includes(profile)
+          ? ["test/capabilities/workflow-checks.test.ts"]
+          : []),
       ],
       status: "supported",
       health: "not-observed",
       result:
-        profile === "formal"
-          ? "Local bounded seed filesystem and cooperating journal-owner models, compiled schedules and mutation controls; expected counterexamples are required. Same-host canonical-state assumptions apply. No guarantee against syscall swaps, uncontrolled writers or distributed ownership."
-          : "Local per-check exit, duration, bounded output count/hash; full includes all compiled tests, privacy checks and seed ownership verification. Hosted Organisation conformance supplies separate policy evidence.",
+        profile === "publication-formal"
+          ? "Bounded source-bound generated control publisher model, compiled fault schedules, exact byte readbacks and eight behavioral mutants with restored controls. Native account/kernel/syscall behavior remains a runtime premise. Local only; no live admission or whole-system proof."
+          : profile === "formal"
+            ? "Local bounded seed filesystem and cooperating journal-owner models, compiled schedules and mutation controls; expected counterexamples are required. Same-host canonical-state assumptions apply. No guarantee against syscall swaps, uncontrolled writers or distributed ownership."
+            : "Local per-check exit, duration, bounded output count/hash; full includes all compiled tests, privacy checks and seed ownership verification. Hosted Organisation conformance supplies separate policy evidence.",
     });
   return {
     schemaVersion: 1,

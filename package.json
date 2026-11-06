@@ -7,7 +7,10 @@
     "academic-os": "dist/src/cli.js"
   },
   "scripts": {
-    "build": "node scripts/clean-build-output.mjs && tsc && node scripts/build-native-inventory.mjs",
+    "build": "node scripts/check-control-publication-imports.mjs && node scripts/clean-build-output.mjs && tsc && node scripts/build-native-inventory.mjs && node scripts/build-control-publication-native.mjs && node scripts/build-control-publication-release.mjs",
+    "controls-publication:imports": "node scripts/check-control-publication-imports.mjs",
+    "controls-publication:standalone": "node scripts/build-control-publication-standalone.mjs",
+    "controls-publication:check": "npm run build && node --test dist/test/controls-publication/*.test.js",
     "cheatsheet-runtime:build": "node scripts/build-cheatsheet-skill-runtime.mjs",
     "cheatsheet-runtime:check": "node scripts/build-cheatsheet-skill-runtime.mjs --check",
     "format": "biome format --write .",
@@ -19,6 +22,7 @@
     "templates:check": "node scripts/compile-seed-templates.mjs",
     "privacy:check": "npm run build && node --test --test-concurrency=4 dist/test/privacy/*.test.js",
     "seed-ownership:check": "node .agents/skills/seed-ownership/run.mjs",
+    "control-publication:check": "node .agents/skills/control-publication/run.mjs",
     "check": "npm run build && node dist/src/cli.js capabilities check --profile full --json",
     "controls:generate": "node scripts/generate-control-types.mjs",
     "controls:check": "node scripts/generate-control-types.mjs --check",

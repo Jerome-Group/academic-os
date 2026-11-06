@@ -103,7 +103,7 @@ it("reports complete capability usage with executable workflow names", async () 
   assert.equal(actions.length, 4);
   for (const action of actions)
     assert.deepEqual(action.usage, [
-      "Usage: academic-os capabilities index|health|check|verify [health: --config <private-config>] [--profile fast|tests|privacy|templates|coverage|formal|full] [--workflow discovery|imports|recovery|services|teaching|maintenance] [--log <private-new-file>] [--json]",
+      "Usage: academic-os capabilities index|health|check|verify [health: --config <private-config>] [--profile fast|tests|privacy|templates|coverage|formal|publication|publication-formal|full] [--workflow discovery|imports|recovery|services|teaching|maintenance] [--log <private-new-file>] [--json]",
     ]);
 });
 
@@ -161,6 +161,16 @@ it("discovers formal verification prerequisites and observes the selected Java e
   assert.match(formal.invocation, /--profile formal --json/u);
   assert.ok(formal.prerequisites.some((item) => item.includes("Java 21")));
   assert.match(formal.result, /expected counterexamples are required/iu);
+  const publisher = index.actions.find(
+    ({ id }) => id === "quality publication-formal",
+  );
+  assert.ok(publisher);
+  assert.match(publisher.invocation, /--profile publication-formal --json/u);
+  assert.ok(
+    publisher.prerequisites.includes(
+      "follow .agents/skills/control-publication/SKILL.md",
+    ),
+  );
   const root = await mkdtemp(join(tmpdir(), "academic-formal-health-"));
   try {
     const java = join(root, "selected-java");

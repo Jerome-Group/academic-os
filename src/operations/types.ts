@@ -25,6 +25,17 @@ export interface OperationTool {
   call(input: ReadonlyMap<string, string>): Promise<OperationToolResult>;
 }
 
+export interface SchemaOperationTool {
+  kind: "schema";
+  name: string;
+  title: string;
+  description: string;
+  inputSchema: { type: "object"; [key: string]: unknown };
+  call(input: unknown): Promise<OperationToolResult>;
+}
+
+export type ServedOperationTool = OperationTool | SchemaOperationTool;
+
 export interface McpServerInfo {
   name: string;
   title: string;

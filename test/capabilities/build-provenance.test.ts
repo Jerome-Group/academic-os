@@ -181,19 +181,18 @@ it("refuses an output location outside the owned build directory", async (contex
 
 async function buildFixture(context: TestContext) {
   const root = await mkdtemp(join(tmpdir(), "academic-build-provenance-"));
-  context.after(() => rm(root, { recursive: true, force: true }));
+  context.diagnostic(`Retained build fixture ${root}`);
   const installation = join(root, "installation with spaces");
   await mkdir(join(installation, "src"), { recursive: true });
   await mkdir(join(installation, "test/build"), { recursive: true });
-  for (const name of ["package.json", "tsconfig.json", "scripts"])
+  for (const name of [
+    "package.json",
+    "package-lock.json",
+    "tsconfig.json",
+    "scripts",
+    "src",
+  ])
     await cp(name, join(installation, name), { recursive: true });
-  await mkdir(join(installation, "src/migration/native-inventory/native"), {
-    recursive: true,
-  });
-  await cp(
-    "src/migration/native-inventory/native/scan.c",
-    join(installation, "src/migration/native-inventory/native/scan.c"),
-  );
   await symlink(
     resolve("node_modules"),
     join(installation, "node_modules"),

@@ -1,0 +1,1311 @@
+{
+  "productRevision": "569cf9e5991fc5f8ee83235c913760ebcdc270c3",
+  "base": "b81c7635a8122f11cd2e174842b036e8584ecbb3",
+  "planningRevision": "c13d4b1af465ee7efa4cea380d77af83f6150c62",
+  "status": "source-mapping-ready; full candidate and ordinary execution pending",
+  "properties": [
+    {
+      "id": "P1",
+      "name": "OnePermanentOwner",
+      "issues": [465],
+      "kind": "temporal safety plus runtime premise",
+      "statement": "Every generated create/publication, host registration and policy effect requires the same account gate. Expiry and drain precede its release. A stopped synchronous installer admits no contender.",
+      "source": [
+        {
+          "path": "src/controls-publication/owner.ts",
+          "symbol": "withPublicationOwner",
+          "symbolOccurrences": [58],
+          "sha256": "84596d8d9cfdd0874269ef4c0f4477f8f4ac0e9250131e9952f450da4135dbb7",
+          "gitBlob": "b56c6ef3e4b1a97c99ed64fba48f43d464bb1995"
+        },
+        {
+          "path": "src/journal-mutation-owner.ts",
+          "symbol": "withJournalMutationOwner",
+          "symbolOccurrences": [18],
+          "sha256": "0e0123904932abca3bcb70c7a63503789c1b7fffa99f66e67e83c8ddeb885b1c",
+          "gitBlob": "fbc9f9e1d244ad5048b9987ecef674ede6c81748"
+        }
+      ],
+      "checkpoints": [
+        "replaceSelectorGuarded|after-policy-selector-swap|native-selector-move-intent",
+        "expireAndDrain|before-expiry|native-source-policy-receipt-settled",
+        "expireAndDrain|after-drain|native-source-policy-receipt-settled"
+      ],
+      "model": "MixedAdmission.OnePermanentOwner and original ControlPublication ownership/drain checks",
+      "driver": [
+        {
+          "path": "test/controls-publication/native-policy.test.ts",
+          "symbol": "holds the permanent account gate",
+          "symbolOccurrences": [437],
+          "sha256": "77a2add4b543d91e1f5977c604fdb25d14553cbd70c7751481df3d1d616e82fb",
+          "gitBlob": "2e5769e7d159e8f4f73558d6b136b68bf1fdb7a7"
+        }
+      ],
+      "needed": "Reuse STOP-held installer with generated contender and host contender. Read ledger before/after each refused contender. Reuse existing owner/gate/drain mutants, rather than adding another equivalent mutant.",
+      "restoration": "Same supplied contender refuses busy while installer is stopped. All recorded child PIDs exit.",
+      "checkpointsArePlannedSelectorsNotAllActualLastRecordKinds": true
+    },
+    {
+      "id": "P2",
+      "name": "GlobalRequestAndBridgeNamespace",
+      "issues": [465, 471],
+      "kind": "admission safety",
+      "statement": "All four starter kinds have unique request ownership. Generated internal and deterministic native bridge IDs cannot become public starters. Exact same-family retries keep their binding.",
+      "source": [
+        {
+          "path": "src/controls-publication/native-policy-history.ts",
+          "symbol": "requireRecordAdmission",
+          "symbolOccurrences": [100],
+          "sha256": "d981a7e617721b690d63602fa3934d05712bc332d11207004d37c256defeb304",
+          "gitBlob": "5b35bde326ddf4842087bc8e9de1f6fc7b7b7a62"
+        },
+        {
+          "path": "src/controls-publication/owner.ts",
+          "symbol": "requireRequestOwnership",
+          "symbolOccurrences": [20, 135],
+          "sha256": "84596d8d9cfdd0874269ef4c0f4477f8f4ac0e9250131e9952f450da4135dbb7",
+          "gitBlob": "b56c6ef3e4b1a97c99ed64fba48f43d464bb1995"
+        },
+        {
+          "path": "src/controls-publication/store.ts",
+          "symbol": "preflightRecord",
+          "symbolOccurrences": [261, 298],
+          "sha256": "d25612039e56e00e92fcfea1f07de039079ed32b291d043d1bd8f91ca61a6e33",
+          "gitBlob": "95b51b1eba75aa251eaaeec11c51b346ac6d019b"
+        }
+      ],
+      "checkpoints": [
+        "appendExact|before-call|candidate-reserved",
+        "appendExact|before-call|native-host-deployment-intent",
+        "appendExact|before-call|native-source-policy-install-intent"
+      ],
+      "model": "MixedAdmission.RequestOwnerUnique",
+      "driver": [
+        {
+          "path": "test/controls-publication/native-policy-admission.test.ts",
+          "symbol": "refuses cross-family and internal bridge",
+          "symbolOccurrences": [113],
+          "sha256": "16d745a37dacb1e8ec3370b18757f40656960819a0868418351219808cd17031",
+          "gitBlob": "103b14243eb24bac47f0fea2b878e5428465b62f"
+        }
+      ],
+      "needed": "Use the existing cross-family/bridge matrix, retain exact ledger/output snapshots and successful final retry. Do not equate replay-only uniqueness with admission.",
+      "mutants": ["M1"],
+      "restoration": "All collisions refuse request-conflict before durable bytes change; completed original retries succeed.",
+      "checkpointsArePlannedSelectorsNotAllActualLastRecordKinds": true
+    },
+    {
+      "id": "P3",
+      "name": "ValidateCompleteHistoryBeforeEffects",
+      "issues": [465, 470, 471, 476],
+      "kind": "temporal admission safety plus parser runtime obligation",
+      "statement": "The complete supported canonical mixed history passes chain, closed schema, scopes, graph and exact location validation before completed success, parent resync or fresh effect. New acquisition records and unowned experimental native move histories refuse and remain retained.",
+      "source": [
+        {
+          "path": "src/controls-publication/store.ts",
+          "symbol": "load",
+          "symbolOccurrences": [337, 1007],
+          "sha256": "d25612039e56e00e92fcfea1f07de039079ed32b291d043d1bd8f91ca61a6e33",
+          "gitBlob": "95b51b1eba75aa251eaaeec11c51b346ac6d019b"
+        },
+        {
+          "path": "src/controls-publication/store.ts",
+          "symbol": "openStore",
+          "symbolOccurrences": [967],
+          "sha256": "d25612039e56e00e92fcfea1f07de039079ed32b291d043d1bd8f91ca61a6e33",
+          "gitBlob": "95b51b1eba75aa251eaaeec11c51b346ac6d019b"
+        },
+        {
+          "path": "src/controls-publication/owner.ts",
+          "symbol": "validateMixedHistory",
+          "symbolOccurrences": [21, 124],
+          "sha256": "84596d8d9cfdd0874269ef4c0f4477f8f4ac0e9250131e9952f450da4135dbb7",
+          "gitBlob": "b56c6ef3e4b1a97c99ed64fba48f43d464bb1995"
+        },
+        {
+          "path": "src/controls-publication/native-policy-history.ts",
+          "symbol": "validateMixedHistory",
+          "symbolOccurrences": [156, 557],
+          "sha256": "d981a7e617721b690d63602fa3934d05712bc332d11207004d37c256defeb304",
+          "gitBlob": "5b35bde326ddf4842087bc8e9de1f6fc7b7b7a62"
+        }
+      ],
+      "checkpoints": [
+        "syncFile|before-file-sync|none",
+        "syncDirectory|before-directory-sync|none",
+        "createRegularExclusive|before-create-regular|none"
+      ],
+      "model": "MixedAdmission.ValidateCompleteHistoryBeforeEffects plus NativeSelectorMove.ArchiveBeforeMoveObserved; schema/chain/scope are runtime predicates",
+      "driver": [
+        {
+          "path": "test/controls-publication/native-policy-boundary.test.ts",
+          "symbol": "rejects a canonically rechained native blob false filename",
+          "symbolOccurrences": [270],
+          "sha256": "f94ad78c4bc4df9bf3b02334f1d8648405b8b81b3963e74c7f316190efa469f4",
+          "gitBlob": "0121cc23e2a76ed92c5cae6683dfc25effa6fc57"
+        },
+        {
+          "path": "test/controls-publication/native-policy.test.ts",
+          "symbol": "actual older release",
+          "symbolOccurrences": [302, 307],
+          "sha256": "77a2add4b543d91e1f5977c604fdb25d14553cbd70c7751481df3d1d616e82fb",
+          "gitBlob": "2e5769e7d159e8f4f73558d6b136b68bf1fdb7a7"
+        }
+      ],
+      "needed": "Reuse canonical false-name and missing-move evidence corruption cases through exact retry and unrelated generated create. Corruption may preserve schemas and recompute chain. Require unchanged ledger and no effect marker.",
+      "mutants": ["M4"],
+      "restoration": "Both public calls refuse journal-recovery-required with the exact corrupted retained bytes unchanged. An unchanged supported generated-v1 fixture still runs.",
+      "checkpointsArePlannedSelectorsNotAllActualLastRecordKinds": true
+    },
+    {
+      "id": "P4",
+      "name": "CompletedRetryBeforePendingAdmission",
+      "issues": [470, 476],
+      "kind": "transition postcondition plus physical runtime checks",
+      "statement": "For supported loaded history, an exact completed request with verified historical output returns its original result before unrelated pending mutation admission and before replay resync. Changed requests and fresh mutations still refuse. This is no eventual-accessibility theorem.",
+      "source": [
+        {
+          "path": "src/controls-publication/owner.ts",
+          "symbol": "completed",
+          "symbolOccurrences": [64, 117, 136, 138, 145],
+          "sha256": "84596d8d9cfdd0874269ef4c0f4477f8f4ac0e9250131e9952f450da4135dbb7",
+          "gitBlob": "b56c6ef3e4b1a97c99ed64fba48f43d464bb1995"
+        },
+        {
+          "path": "src/controls-publication/native-source-policy.ts",
+          "symbol": "completed",
+          "symbolOccurrences": [
+            204, 215, 222, 227, 231, 232, 336, 343, 347, 351, 352, 436, 443,
+            449, 461, 632, 720, 721, 989, 1006
+          ],
+          "sha256": "59831ba75afb130aa6bc97266e33b012a01e3fb2a08e0c4dab1a0f55ac22c053",
+          "gitBlob": "a8ad3903af64f8415bad3acf9f92b4431367d163"
+        },
+        {
+          "path": "src/controls-publication/native-source-policy.ts",
+          "symbol": "readCompletedInstallation",
+          "symbolOccurrences": [432, 644, 720, 988],
+          "sha256": "59831ba75afb130aa6bc97266e33b012a01e3fb2a08e0c4dab1a0f55ac22c053",
+          "gitBlob": "a8ad3903af64f8415bad3acf9f92b4431367d163"
+        },
+        {
+          "path": "src/controls-publication/native-policy-persistence.ts",
+          "symbol": "readOriginalSelector",
+          "symbolOccurrences": [193, 643, 671],
+          "sha256": "3aaa8ab9dba8109bb06b51d0a942669219d7e7da41b631d0c7dd1b297bf91c6e",
+          "gitBlob": "d6e5bfb5dbacbdd984cfde00534295e7a800cd62"
+        },
+        {
+          "path": "src/controls-publication/native-policy-history.ts",
+          "symbol": "requirePendingOrder",
+          "symbolOccurrences": [553],
+          "sha256": "d981a7e617721b690d63602fa3934d05712bc332d11207004d37c256defeb304",
+          "gitBlob": "5b35bde326ddf4842087bc8e9de1f6fc7b7b7a62"
+        }
+      ],
+      "checkpoints": [
+        "before-file-sync",
+        "after-policy-selector-swap",
+        "after-policy-selector-archive"
+      ],
+      "model": "MixedAdmission.CompletedLookupPrecedesPending and CompletedReadonly; NativeSelectorMove.ReadonlyCompletedLookup is enabled only during process interruption",
+      "driver": [
+        {
+          "path": "test/controls-publication/native-policy-admission.test.ts",
+          "symbol": "replays completed generated and native output",
+          "symbolOccurrences": [10],
+          "sha256": "16d745a37dacb1e8ec3370b18757f40656960819a0868418351219808cd17031",
+          "gitBlob": "103b14243eb24bac47f0fea2b878e5428465b62f"
+        },
+        {
+          "path": "test/controls-publication/native-policy-boundary.test.ts",
+          "symbol": "preserves completed",
+          "symbolOccurrences": [392],
+          "sha256": "f94ad78c4bc4df9bf3b02334f1d8648405b8b81b3963e74c7f316190efa469f4",
+          "gitBlob": "0121cc23e2a76ed92c5cae6683dfc25effa6fc57"
+        }
+      ],
+      "needed": "Keep generated create/publication, registration and native receipt readback. Exercise two operations times two interrupted physical positions. Kill after swap and after archive. Assert unchanged ledger during completed readback, forced-sync marker absent, and fresh mutation refusal.",
+      "mutants": ["M3"],
+      "restoration": "Identical historical bytes/results return without append or sync. Exact interrupted update later settles once.",
+      "checkpointsArePlannedSelectorsNotAllActualLastRecordKinds": true
+    },
+    {
+      "id": "P5",
+      "name": "ExactPhysicalClaimLocationPath",
+      "issues": [465, 473, 476],
+      "kind": "bounded history-path safety plus physical runtime premise",
+      "statement": "Every owned blob binds original generated file claim, object, metadata, byte digest/length, parent claim and raw filename. Relocation follows preceding exact promotion or scoped v2 move intent and observation. Known equal bytes alone do not establish ownership.",
+      "source": [
+        {
+          "path": "src/controls-publication/native-blob-history.ts",
+          "symbol": "requireNativeBlobLocation",
+          "symbolOccurrences": [19],
+          "sha256": "a28b2fb0055c5120873bffbd8c89c4408ae6c2e970bff49199bd95eaa519a3ab",
+          "gitBlob": "92d71d281d5b6fe7191ccddfb7e77964e7a758b6"
+        },
+        {
+          "path": "src/controls-publication/native-policy-history.ts",
+          "symbol": "owned",
+          "symbolOccurrences": [175, 268, 367, 440, 475, 476, 477, 494, 536],
+          "sha256": "d981a7e617721b690d63602fa3934d05712bc332d11207004d37c256defeb304",
+          "gitBlob": "5b35bde326ddf4842087bc8e9de1f6fc7b7b7a62"
+        },
+        {
+          "path": "src/controls-publication/native-policy-persistence.ts",
+          "symbol": "readPhysicalClaim",
+          "symbolOccurrences": [173, 176, 279, 288, 704],
+          "sha256": "3aaa8ab9dba8109bb06b51d0a942669219d7e7da41b631d0c7dd1b297bf91c6e",
+          "gitBlob": "d6e5bfb5dbacbdd984cfde00534295e7a800cd62"
+        },
+        {
+          "path": "src/controls-publication/native-policy-persistence.ts",
+          "symbol": "priorImmutable",
+          "symbolOccurrences": [305, 412, 439],
+          "sha256": "3aaa8ab9dba8109bb06b51d0a942669219d7e7da41b631d0c7dd1b297bf91c6e",
+          "gitBlob": "d6e5bfb5dbacbdd984cfde00534295e7a800cd62"
+        }
+      ],
+      "checkpoints": [
+        "requireLocation|before-handle-guard|none",
+        "readExact|before-read|none",
+        "promoteExclusive|before-exclusive-promote|promotion-intent"
+      ],
+      "model": "NativeSelectorMove.RecordedLocationReachable; exact metadata, identity and scoped lineage are runtime predicates",
+      "driver": [
+        {
+          "path": "test/controls-publication/native-policy-boundary.test.ts",
+          "symbol": "rejects a canonically rechained native blob false filename",
+          "symbolOccurrences": [270],
+          "sha256": "f94ad78c4bc4df9bf3b02334f1d8648405b8b81b3963e74c7f316190efa469f4",
+          "gitBlob": "0121cc23e2a76ed92c5cae6683dfc25effa6fc57"
+        },
+        {
+          "path": "test/controls-publication/native-policy-admission.test.ts",
+          "symbol": "converges new unchanged",
+          "symbolOccurrences": [264],
+          "sha256": "16d745a37dacb1e8ec3370b18757f40656960819a0868418351219808cd17031",
+          "gitBlob": "103b14243eb24bac47f0fea2b878e5428465b62f"
+        },
+        {
+          "path": "test/controls-publication/native-policy.test.ts",
+          "symbol": "equal-byte replacement",
+          "symbolOccurrences": [271],
+          "sha256": "77a2add4b543d91e1f5977c604fdb25d14553cbd70c7751481df3d1d616e82fb",
+          "gitBlob": "2e5769e7d159e8f4f73558d6b136b68bf1fdb7a7"
+        }
+      ],
+      "needed": "Retain false same-parent raw name, valid historical archive, physically replaced same-byte selector and known immutable-generation reuse. Add scope/attempt/claim and move-observed reference mutations of retained rows only where not already covered.",
+      "mutants": ["M4"],
+      "restoration": "False location and foreign inode refuse without durable changes. Original physically claimed generation and historical archive retry pass.",
+      "checkpointsArePlannedSelectorsNotAllActualLastRecordKinds": true
+    },
+    {
+      "id": "P6",
+      "name": "ExpectedOldRemainsCallerBound",
+      "issues": [465, 473, 476],
+      "kind": "temporal safety",
+      "statement": "Caller expected-old digest remains immutable before ownership. New native request compares it with the owned selected generation or registration before starter append. Native swap checks the exact predecessor object and bytes; replay uses the frozen predecessor.",
+      "source": [
+        {
+          "path": "src/controls-publication/native-source-policy.ts",
+          "symbol": "validateBeforeSync",
+          "symbolOccurrences": [235, 646],
+          "sha256": "59831ba75afb130aa6bc97266e33b012a01e3fb2a08e0c4dab1a0f55ac22c053",
+          "gitBlob": "a8ad3903af64f8415bad3acf9f92b4431367d163"
+        },
+        {
+          "path": "src/controls-publication/native-source-policy.ts",
+          "symbol": "validateBeforeSync",
+          "symbolOccurrences": [235, 646],
+          "sha256": "59831ba75afb130aa6bc97266e33b012a01e3fb2a08e0c4dab1a0f55ac22c053",
+          "gitBlob": "a8ad3903af64f8415bad3acf9f92b4431367d163"
+        },
+        {
+          "path": "src/controls-publication/native-policy-persistence.ts",
+          "symbol": "expectedHead",
+          "symbolOccurrences": [590, 592, 640, 653],
+          "sha256": "3aaa8ab9dba8109bb06b51d0a942669219d7e7da41b631d0c7dd1b297bf91c6e",
+          "gitBlob": "d6e5bfb5dbacbdd984cfde00534295e7a800cd62"
+        },
+        {
+          "path": "src/controls-publication/native/filesystem.cc",
+          "symbol": "replaceSelector",
+          "symbolOccurrences": [415],
+          "sha256": "50fd248e0046eea7b929cc943c595785d4e27f7d6245b3be62bee7b624bb76f3",
+          "gitBlob": "605cc2bdd24e25322093563a74d0dc41d6e698fb"
+        }
+      ],
+      "checkpoints": [
+        "replaceSelectorGuarded|before-policy-selector-swap|native-selector-move-intent",
+        "replaceSelectorGuarded|before-policy-selector-archive|promotion-intent"
+      ],
+      "model": "MixedAdmission.FrozenCallerExpectationBeforeStarter is the fresh caller expected-old guard and M6 correspondence. NativeSelectorMove.FrozenExpectedOld separately covers the unchanged physical expected-predecessor guard.",
+      "driver": [
+        {
+          "path": "test/controls-publication/native-policy.test.ts",
+          "symbol": "installs, updates and retries",
+          "symbolOccurrences": [26],
+          "sha256": "77a2add4b543d91e1f5977c604fdb25d14553cbd70c7751481df3d1d616e82fb",
+          "gitBlob": "2e5769e7d159e8f4f73558d6b136b68bf1fdb7a7"
+        },
+        {
+          "path": "test/controls-publication/native-policy.test.ts",
+          "symbol": "equal-byte replacement",
+          "symbolOccurrences": [271],
+          "sha256": "77a2add4b543d91e1f5977c604fdb25d14553cbd70c7751481df3d1d616e82fb",
+          "gitBlob": "2e5769e7d159e8f4f73558d6b136b68bf1fdb7a7"
+        }
+      ],
+      "needed": "Reuse wrong-old policy request and same-byte foreign predecessor. Add two fresh native callers with unchanged expected-old if final product profile lacks native race coverage; preserve existing generated no-crash schedule.",
+      "mutants": ["M6"],
+      "restoration": "Wrong-old refuses before intent with exact unchanged bytes; only one successor can use a given old selector.",
+      "checkpointsArePlannedSelectorsNotAllActualLastRecordKinds": true
+    },
+    {
+      "id": "P7",
+      "name": "MoveIntentBeforePhysicalSwap",
+      "issues": [465, 476],
+      "kind": "temporal safety",
+      "statement": "New selector claim/write/barriers precede a v2 move intent. Exact old-head archive intent precedes guarded swap/archive. Swap and archive remain separate effects. Frozen v1 absent-destination promotion never describes an occupied swap.",
+      "source": [
+        {
+          "path": "src/controls-publication/native-policy-persistence.ts",
+          "symbol": "replaceSelector",
+          "symbolOccurrences": [527, 591, 647],
+          "sha256": "3aaa8ab9dba8109bb06b51d0a942669219d7e7da41b631d0c7dd1b297bf91c6e",
+          "gitBlob": "d6e5bfb5dbacbdd984cfde00534295e7a800cd62"
+        },
+        {
+          "path": "src/controls-publication/native-policy-history.ts",
+          "symbol": "native-selector-move-intent",
+          "symbolOccurrences": [308, 373],
+          "sha256": "d981a7e617721b690d63602fa3934d05712bc332d11207004d37c256defeb304",
+          "gitBlob": "5b35bde326ddf4842087bc8e9de1f6fc7b7b7a62"
+        },
+        {
+          "path": "src/controls-publication/native/filesystem.cc",
+          "symbol": "replaceSelector",
+          "symbolOccurrences": [415],
+          "sha256": "50fd248e0046eea7b929cc943c595785d4e27f7d6245b3be62bee7b624bb76f3",
+          "gitBlob": "605cc2bdd24e25322093563a74d0dc41d6e698fb"
+        }
+      ],
+      "checkpoints": [
+        "appendExact|after-call|native-selector-move-intent",
+        "syncFile|after-file-sync|native-selector-move-intent",
+        "replaceSelectorGuarded|before-policy-selector-swap|promotion-intent",
+        "replaceSelectorGuarded|after-policy-selector-swap|promotion-intent",
+        "replaceSelectorGuarded|before-policy-selector-archive|promotion-intent",
+        "replaceSelectorGuarded|after-policy-selector-archive|promotion-intent"
+      ],
+      "model": "NativeSelectorMove.IntentBeforeSwap",
+      "driver": [
+        {
+          "path": "test/controls-publication/native-policy-boundary.test.ts",
+          "symbol": "preserves completed",
+          "symbolOccurrences": [392],
+          "sha256": "f94ad78c4bc4df9bf3b02334f1d8648405b8b81b3963e74c7f316190efa469f4",
+          "gitBlob": "0121cc23e2a76ed92c5cae6683dfc25effa6fc57"
+        }
+      ],
+      "needed": "Use traced loader recordKind to avoid confusing policy selector intent with physical v2 move intent. At each killed position read exact original/new/temporary/archive identities and retained intent edges.",
+      "mutants": ["M5"],
+      "restoration": "Every physically changed head has a preceding synced exact move intent. Archive has preceding v1 truthful absent-destination intent.",
+      "checkpointsArePlannedSelectorsNotAllActualLastRecordKinds": true
+    },
+    {
+      "id": "P8",
+      "name": "BarrierObservedGraphBeforeSuccess",
+      "issues": [465, 476],
+      "kind": "temporal safety plus syscall/durability runtime premises",
+      "statement": "New successful registration or installation requires exact new physical readback, file/parent barriers, v2 move observation, native selector settlement, and policy receipt intent/physical promotion/readback/settlement. The receipt graph binds the same scope, release, registration and generation.",
+      "source": [
+        {
+          "path": "src/controls-publication/native-policy-persistence.ts",
+          "symbol": "native-selector-move-observed",
+          "symbolOccurrences": [239, 715],
+          "sha256": "3aaa8ab9dba8109bb06b51d0a942669219d7e7da41b631d0c7dd1b297bf91c6e",
+          "gitBlob": "d6e5bfb5dbacbdd984cfde00534295e7a800cd62"
+        },
+        {
+          "path": "src/controls-publication/native-source-policy.ts",
+          "symbol": "native-host-deployment-settled",
+          "symbolOccurrences": [
+            87, 88, 219, 222, 260, 262, 285, 340, 343, 359, 362, 416
+          ],
+          "sha256": "59831ba75afb130aa6bc97266e33b012a01e3fb2a08e0c4dab1a0f55ac22c053",
+          "gitBlob": "a8ad3903af64f8415bad3acf9f92b4431367d163"
+        },
+        {
+          "path": "src/controls-publication/native-source-policy.ts",
+          "symbol": "native-source-policy-receipt-settled",
+          "symbolOccurrences": [440, 443, 944],
+          "sha256": "59831ba75afb130aa6bc97266e33b012a01e3fb2a08e0c4dab1a0f55ac22c053",
+          "gitBlob": "a8ad3903af64f8415bad3acf9f92b4431367d163"
+        },
+        {
+          "path": "src/controls-publication/native-policy-history.ts",
+          "symbol": "native-source-policy-receipt-intent",
+          "symbolOccurrences": [501, 524],
+          "sha256": "d981a7e617721b690d63602fa3934d05712bc332d11207004d37c256defeb304",
+          "gitBlob": "5b35bde326ddf4842087bc8e9de1f6fc7b7b7a62"
+        }
+      ],
+      "checkpoints": [
+        "syncDirectory|after-directory-sync|promotion-observed",
+        "appendExact|after-call|native-selector-move-observed",
+        "syncFile|after-file-sync|native-selector-move-observed",
+        "appendExact|after-call|native-source-policy-receipt-intent",
+        "appendExact|after-call|native-source-policy-receipt-settled",
+        "syncFile|after-file-sync|native-source-policy-receipt-settled"
+      ],
+      "model": "NativeSelectorMove.ArchiveBeforeMoveObserved and SuccessRequiresSettledReceiptGraph",
+      "driver": [
+        {
+          "path": "test/controls-publication/native-policy.test.ts",
+          "symbol": "retries retained",
+          "symbolOccurrences": [163],
+          "sha256": "77a2add4b543d91e1f5977c604fdb25d14553cbd70c7751481df3d1d616e82fb",
+          "gitBlob": "2e5769e7d159e8f4f73558d6b136b68bf1fdb7a7"
+        },
+        {
+          "path": "test/controls-publication/native-policy-boundary.test.ts",
+          "symbol": "preserves completed",
+          "symbolOccurrences": [392],
+          "sha256": "f94ad78c4bc4df9bf3b02334f1d8648405b8b81b3963e74c7f316190efa469f4",
+          "gitBlob": "0121cc23e2a76ed92c5cae6683dfc25effa6fc57"
+        },
+        {
+          "path": "test/controls-publication/packaged-policy.test.ts",
+          "symbol": "actual produced and extracted package",
+          "symbolOccurrences": [14],
+          "sha256": "4e16fd83206af7bee14c8c4a40e713c6407f02484781472e3a01f9957c6766e0",
+          "gitBlob": "54b3dcb3d5d062d49e9bc8f7cb6a748c55ec1c12"
+        }
+      ],
+      "needed": "Add a real public early-success mutation. Retain actual parsed ledger, receipt file bytes/claim, ordered compiled checkpoints, exact return and absent/present settlement rows.",
+      "mutants": ["M7"],
+      "restoration": "No new success while a required barrier/observation/receipt is absent. Exact returned receipt has owned physically read bytes and the full settled graph.",
+      "checkpointsArePlannedSelectorsNotAllActualLastRecordKinds": true
+    },
+    {
+      "id": "P9",
+      "name": "FullSuffixAdmittedAndFailureRetained",
+      "issues": [469, 472, 473, 476],
+      "kind": "finite resource safety on executed planners plus bounded temporal attempt model",
+      "statement": "Fresh deterministic feasibility and complete remaining byte/row/accounting suffix precede new starter/effects. Native reserves all three attempts including six added move rows. Generated work reserves its next successful path and current orphan obligations before each attempt. Exhaustion retains recovery and evidence, never success.",
+      "source": [
+        {
+          "path": "src/controls-publication/host-deployment-inputs.ts",
+          "symbol": "encodePublication",
+          "symbolOccurrences": [3, 158],
+          "sha256": "22fbb2d693178f71e52d0b19760af7d0bf5894f7091bd3fbca7288dd511353fe",
+          "gitBlob": "6d661508877784937295e21d3e6c233357ff3b50"
+        },
+        {
+          "path": "src/controls-publication/native-source-policy.ts",
+          "symbol": "validatePolicy",
+          "symbolOccurrences": [54, 55, 147, 609],
+          "sha256": "59831ba75afb130aa6bc97266e33b012a01e3fb2a08e0c4dab1a0f55ac22c053",
+          "gitBlob": "a8ad3903af64f8415bad3acf9f92b4431367d163"
+        },
+        {
+          "path": "src/controls-publication/native-policy-reservation.ts",
+          "symbol": "nativePlanCapacity",
+          "symbolOccurrences": [33, 39, 42],
+          "sha256": "13ff8059847603a57df20d8a836adb98cd4c850459b08c8b1eb35e2ac453a95b",
+          "gitBlob": "edcde1910084513db7c1660cf0ae1fbaa93df391"
+        },
+        {
+          "path": "src/controls-publication/native-policy-persistence.ts",
+          "symbol": "reserveSuffix",
+          "symbolOccurrences": [791],
+          "sha256": "3aaa8ab9dba8109bb06b51d0a942669219d7e7da41b631d0c7dd1b297bf91c6e",
+          "gitBlob": "d6e5bfb5dbacbdd984cfde00534295e7a800cd62"
+        },
+        {
+          "path": "src/controls-publication/generated-completion.ts",
+          "symbol": "reserve",
+          "symbolOccurrences": [
+            57, 94, 108, 129, 160, 161, 175, 178, 200, 203, 319
+          ],
+          "sha256": "137abb500ef3803f18dfd9273e56b4ae6b847083115cd91cd6a4585b24e9554a",
+          "gitBlob": "b266a519063465e80a312960550637142c3472b4"
+        },
+        {
+          "path": "src/controls-publication/store.ts",
+          "symbol": "checkCompletion",
+          "symbolOccurrences": [177, 216, 242],
+          "sha256": "d25612039e56e00e92fcfea1f07de039079ed32b291d043d1bd8f91ca61a6e33",
+          "gitBlob": "95b51b1eba75aa251eaaeec11c51b346ac6d019b"
+        },
+        {
+          "path": "src/controls-publication/replay-allocation.ts",
+          "symbol": "ReplayAllocation",
+          "symbolOccurrences": [3, 77, 99],
+          "sha256": "100db772387c91e1206dab1e987d9b817cb842d1fcee225d389253fccca95cde",
+          "gitBlob": "c7b9e90329dbdfb438e085e75961ea9a0e9025bb"
+        }
+      ],
+      "checkpoints": [
+        "appendExact|before-call|native-host-deployment-intent",
+        "appendExact|before-call|native-source-policy-install-intent",
+        "createDirectoryExclusive|after-create-directory|native-stage-reserved",
+        "appendExact|after-call|native-attempt-retained"
+      ],
+      "model": "MixedAdmission.FreshInfeasibleHasNoStarter; NativeSelectorMove.RetainedAttemptsStay; production planner and ReplayAllocation arithmetic remain executed runtime checks",
+      "driver": [
+        {
+          "path": "test/controls-publication/replay-capacity.test.ts",
+          "symbol": "shares immutable mixed replay values",
+          "symbolOccurrences": [137],
+          "sha256": "6d26f78d4ff446bc0af093b74ef407e05969b661e3adde3ea4e3e1ed62fcb015",
+          "gitBlob": "a893a28bbe57e2836cb564276da068026b920144"
+        },
+        {
+          "path": "test/controls-publication/native-policy-admission.test.ts",
+          "symbol": "rejects an oversized",
+          "symbolOccurrences": [225],
+          "sha256": "16d745a37dacb1e8ec3370b18757f40656960819a0868418351219808cd17031",
+          "gitBlob": "103b14243eb24bac47f0fea2b878e5428465b62f"
+        },
+        {
+          "path": "test/controls-publication/native-policy.test.ts",
+          "symbol": "exhausts exactly three attempts",
+          "symbolOccurrences": [227],
+          "sha256": "77a2add4b543d91e1f5977c604fdb25d14553cbd70c7751481df3d1d616e82fb",
+          "gitBlob": "2e5769e7d159e8f4f73558d6b136b68bf1fdb7a7"
+        }
+      ],
+      "needed": "Reuse one repeated and one unique large-history public journey once per full candidate/ordinary run. Add cheap final-source planner row-kind accounting and mutation near the real budget where starter fits but full suffix does not. Audit new location helper maps/arrays against unchanged allocation charges.",
+      "mutants": ["M2"],
+      "restoration": "Unique-pressure fresh refusal changes no starter/output. Repeated supported history crosses old encoded ceiling and remains readable. Three retained attempts stay physically present. No infinite retry or total-heap guarantee.",
+      "checkpointsArePlannedSelectorsNotAllActualLastRecordKinds": true
+    },
+    {
+      "id": "P10",
+      "name": "InstalledInputsBeforeAccountEntry",
+      "issues": [467, 475],
+      "kind": "runtime consistency under trusted stable bootstrap, not temporal parser proof",
+      "statement": "Actual installed executable, schema, scanner/native, dependency resolution metadata, transitive and non-JavaScript inputs match the complete release binding before account resolution/owner/effects. Missing/changed/omitted/shadow inputs refuse; exact restoration returns normal behavior.",
+      "source": [
+        {
+          "path": "src/controls-publication/owner.ts",
+          "symbol": "publicationRelease",
+          "symbolOccurrences": [23, 80],
+          "sha256": "84596d8d9cfdd0874269ef4c0f4477f8f4ac0e9250131e9952f450da4135dbb7",
+          "gitBlob": "b56c6ef3e4b1a97c99ed64fba48f43d464bb1995"
+        },
+        {
+          "path": "src/controls-publication/release.ts",
+          "symbol": "requireRuntimeConsistency",
+          "symbolOccurrences": [8, 35],
+          "sha256": "38d0e1be956b6c9a886bdf03dec3f7db5787132f2ea7d544b54dbc7b60af423e",
+          "gitBlob": "afcc7be7fe1b7ea04fe43a5f19f2ad8cce983ea1"
+        },
+        {
+          "path": "src/controls-publication/runtime-consistency.ts",
+          "symbol": "requireRuntimeConsistency",
+          "symbolOccurrences": [137],
+          "sha256": "96f1db6560d47dc8b2ede78f4fffa6d66243af962d58ce0c7036fe18fa7c2adc",
+          "gitBlob": "9f1aeac52dda357a37278861013062f7930ea2ee"
+        },
+        {
+          "path": "src/controls-publication/runtime-dependencies.ts",
+          "symbol": "installedRuntimeDependencyFiles",
+          "symbolOccurrences": [52],
+          "sha256": "0cfcd4cd3af1e30d57a2bb92d3453c1767e4f9ebb150d6c4543178056474e22a",
+          "gitBlob": "48c68dd50270184fe015bf9209591296d1938c83"
+        },
+        {
+          "path": "scripts/build-control-publication-integrity.mjs",
+          "symbol": "writeRuntimeIntegrity",
+          "symbolOccurrences": [61, 172],
+          "sha256": "5a840c87250158ccd2225b59eed787c0047ba578deba02cdffff9786bbf7a3e8",
+          "gitBlob": "7f2353587e6d0ae74ae58b1275e13ba75379136f"
+        }
+      ],
+      "checkpoints": [
+        "resolveAccountAnchor|before-call|none",
+        "before-handle-guard"
+      ],
+      "model": "MixedAdmission.RuntimeVerifiedBeforeAccount; complete installed inventory/digests/resolution runtime checks",
+      "driver": [
+        {
+          "path": "test/controls-publication/runtime-consistency.test.ts",
+          "symbol": "binds complete actual host",
+          "symbolOccurrences": [8],
+          "sha256": "30afe300705bb70df8a536c1063cc9e44d7c595c4a22478c01d1caad9f6dedd2",
+          "gitBlob": "7a1fcb08bf3452e62b1a904f76b8c733aca789f9"
+        },
+        {
+          "path": "test/controls-publication/native-policy-boundary.test.ts",
+          "symbol": "refuses changed installed transitive dependency",
+          "symbolOccurrences": [173],
+          "sha256": "f94ad78c4bc4df9bf3b02334f1d8648405b8b81b3963e74c7f316190efa469f4",
+          "gitBlob": "0121cc23e2a76ed92c5cae6683dfc25effa6fc57"
+        },
+        {
+          "path": "test/controls-publication/packaged-policy.test.ts",
+          "symbol": "actual produced and extracted package",
+          "symbolOccurrences": [14],
+          "sha256": "4e16fd83206af7bee14c8c4a40e713c6407f02484781472e3a01f9957c6766e0",
+          "gitBlob": "54b3dcb3d5d062d49e9bc8f7cb6a748c55ec1c12"
+        }
+      ],
+      "needed": "c13 is known defective for source-directory node_modules shadows. Bind the future independently approved repair; preserve before/after Root evidence and rerun the new final-source public test. Also cover package-root nested dependencies, data files, resolution metadata, omitted set and host/extracted package.",
+      "mutants": ["M8"],
+      "restoration": "Baseline modified dependency refuses before resolveAccountAnchor, ledger unchanged. Exact original bytes restore successful install/retry. Final deep shadow refuses and legitimate nested dependency still works.",
+      "checkpointsArePlannedSelectorsNotAllActualLastRecordKinds": true
+    },
+    {
+      "id": "P11",
+      "name": "NativeIdentityAndAuthorityBoundary",
+      "issues": [465, 472, 474],
+      "kind": "runtime closed-schema/physical observation obligation",
+      "statement": "Host authority is nonserializable and derives from physical registered configuration. Native source identity uses exact signed nanoseconds and both ancestry directions; frozen generated-v1 encoding retains its original meaning. No native payload acquisition is implemented.",
+      "source": [
+        {
+          "path": "src/controls-publication/native-source-policy.ts",
+          "symbol": "DeploymentCapability",
+          "symbolOccurrences": [69, 114],
+          "sha256": "59831ba75afb130aa6bc97266e33b012a01e3fb2a08e0c4dab1a0f55ac22c053",
+          "gitBlob": "a8ad3903af64f8415bad3acf9f92b4431367d163"
+        },
+        {
+          "path": "src/controls-publication/native-source-policy.ts",
+          "symbol": "installNativeSourcePolicy",
+          "symbolOccurrences": [498, 1014],
+          "sha256": "59831ba75afb130aa6bc97266e33b012a01e3fb2a08e0c4dab1a0f55ac22c053",
+          "gitBlob": "a8ad3903af64f8415bad3acf9f92b4431367d163"
+        },
+        {
+          "path": "src/controls-publication/host-deployment-inputs.ts",
+          "symbol": "observeHostDeployment",
+          "symbolOccurrences": [42],
+          "sha256": "22fbb2d693178f71e52d0b19760af7d0bf5894f7091bd3fbca7288dd511353fe",
+          "gitBlob": "6d661508877784937295e21d3e6c233357ff3b50"
+        },
+        {
+          "path": "src/controls-publication/native/exclusions.cc",
+          "symbol": "signedNanoseconds",
+          "symbolOccurrences": [19, 267, 290],
+          "sha256": "3eb577421be9cb58643bd32e891737da220b5a4a2ad2f661ba91201d916fc792",
+          "gitBlob": "10546bf70812d5cd1e3abf4170c439d6a3b50757"
+        },
+        {
+          "path": "src/controls-publication/native/exclusions.cc",
+          "symbol": "policyPath",
+          "symbolOccurrences": [257, 325, 341, 361, 362, 365, 403],
+          "sha256": "3eb577421be9cb58643bd32e891737da220b5a4a2ad2f661ba91201d916fc792",
+          "gitBlob": "10546bf70812d5cd1e3abf4170c439d6a3b50757"
+        },
+        {
+          "path": "src/controls-publication/native/filesystem.cc",
+          "symbol": "identity",
+          "symbolOccurrences": [
+            24, 133, 154, 169, 179, 299, 302, 325, 337, 346, 364, 400, 427, 428,
+            453, 455, 461
+          ],
+          "sha256": "50fd248e0046eea7b929cc943c595785d4e27f7d6245b3be62bee7b624bb76f3",
+          "gitBlob": "605cc2bdd24e25322093563a74d0dc41d6e698fb"
+        }
+      ],
+      "checkpoints": [
+        "observePolicySlots|before-call|none",
+        "readDeploymentFile|before-call|none"
+      ],
+      "model": "Runtime-only exact signed identity, bidirectional ancestry and nonserializable capability; no native payload acquisition theorem",
+      "driver": [
+        {
+          "path": "test/controls-publication/policy-roots.test.ts",
+          "symbol": "binds actual signed source birthtime",
+          "symbolOccurrences": [15],
+          "sha256": "c852ce804fd22fafac181bdbc33b952cb4ceea7b3c2fdc8aa5f52e7a8a70cc57",
+          "gitBlob": "5b54cb6fe10fed94c4ee813ee5516726dddd32e8"
+        },
+        {
+          "path": "test/controls-publication/host-results.test.ts",
+          "symbol": "validates actual host owner refusals",
+          "symbolOccurrences": [12],
+          "sha256": "8ae66c3dba9c328e6e576bd4f5ac233218cd8fc6f72f240df4038b6c5f2f845d",
+          "gitBlob": "babe6cbcc1e10e28bba0e6ef60d9c175a9c979a1"
+        },
+        {
+          "path": "test/controls-publication/native-policy.test.ts",
+          "symbol": "refuses unavailable registration",
+          "symbolOccurrences": [100],
+          "sha256": "77a2add4b543d91e1f5977c604fdb25d14553cbd70c7751481df3d1d616e82fb",
+          "gitBlob": "2e5769e7d159e8f4f73558d6b136b68bf1fdb7a7"
+        }
+      ],
+      "needed": "Reuse actual negative-date identity and before/after/retry synthetic source fingerprints, owner failure schema/type usage, nofollow/overlap and ordinary CLI/MCP authority refusal. Preserve accepted acquisition Result separately from host-only error refinement.",
+      "restoration": "Exact negative timestamp roundtrips with unchanged synthetic source fingerprint; frozen-v1 schema and unchanged acquired-result definitions retain hashes/meaning.",
+      "checkpointsArePlannedSelectorsNotAllActualLastRecordKinds": true
+    }
+  ],
+  "reductions": [
+    "MixedAdmission uses four starter families and finite equality classes, with a retained exact completed token, distinct native collision and deterministic bridge token. Two writers serialize under the one gate. Resource classes are complete, starter-only and exhausted. Exact physical completed output and complete history validation are boundary predicates established by production runtime checks. The family is one selected starter family per run for both new writers. Existing native/completed/bridge owner classes exercise cross-family collision. This is not two simultaneous distinct writer families.",
+    "NativeSelectorMove has one updater and one readonly historical call; original publisher/MixedAdmission establish owner exclusion rather than a full state product. Object/metadata/byte/parent/raw-name equality is represented by exact or foreign identity classes. One old and new selector, five location classes and three attempts. Two process crashes plus an initial exhausted-attempt prefix. Append and file/parent barriers, claim/create/write, swap/archive, old archive observation and move observation are separate actions.",
+    "Restart resumes the first outstanding source-defined operation after replay/resync of supported retained rows. It assumes process-crash retained bytes, not power-loss durability. The model represents interrupted unclaimed selector creation; actual runtime tests separately interrupt every supplied physical edge.",
+    "Generation and receipt use separate source-ordered create, claim, write, barrier, promotion and settlement steps. Repeated directory/file behavior is a representative-role reduction; exact production graphs and capacity vectors are inspected by runtime checks.",
+    "Recorded false locations represent malformed retained output graphs; settlement refuses them unless the explicit location mutant removes that guard. This is no arbitrary filesystem-writer theorem.",
+    "Completed return is a safety/enabled-transition statement for supported loaded history. No fairness, infinite completion, unlimited history accessibility or native payload theorem.",
+    "Fixed-head historical lookup is omitted from NativeSelectorMove. The interrupted-read invariant captures and checks exact move/archive intent sync, fixed new head, expected old and source identity class, and pending-only fallback or observed relocation. Its action property preserves all modeled ledger/output evidence.",
+    "savedPc retains abstract evidence across process death. Generation/receipt prefix creation has no physical object identity variable. This model does not independently prove unknown-inode recovery for generation/receipt creation crashes; that remains an original generated-proof and runtime premise.",
+    "M6 removes only fresh validateBeforeSync expectedPriorGeneration. MixedAdmission models its no-starter promise and dedicated expected mutation. The native model physical expected-old guard remains unconditional and has no sensitivity claim for M6. The same eleven configurations now use five mixed counterexamples and three selector counterexamples, with unchanged three positives/eight intentional breaks.",
+    "candidate-reserved has no caller expected-old field and always takes matches. The expectation class represents frozen fresh-validation input, not an inter-writer selected-head race. The actual public race and original publisher proof supply that evidence."
+  ],
+  "allocationProfile": {
+    "budgetBytes": 268435456,
+    "representation": "shared immutable DAG with detached UTF16 strings and frozen nodes",
+    "rowWorkspaceBytes": 16704,
+    "chargedMembershipUnits": 18,
+    "chargedWholeHistoryReferenceSlots": 32,
+    "newNativeReservationRows": {
+      "registration": 49,
+      "policy": 70,
+      "derivation": "1 starter +3*(stage1+directory4+file2/3+promotion4/6+v2move2+orphan1+retained1+nativeSettlement1/5). Upper-bound placeholder vector, not actual successful ledger row count.",
+      "moveRowsIncluded": 6
+    },
+    "generatedReservation": "Actual starter/plan plus next complete success vector and current possible orphan obligations before each attempt. No newly invented generated attempt ceiling.",
+    "limitation": "At16704 workspace bytes per row, even perfect sharing fits at most16070 rows before additional nodes. Older over-budget history can fail load before completed lookup. No unlimited historical accessibility.",
+    "requiredReaudit": "New requireNativeBlobLocation moves Map and promotions array run inside existing validateMixedHistory/readback queries. Recount simultaneous memberships and query arrays against existing18/32 charges and fixed/sparse floors from source at final head. Do not quietly promote old7748 derivation to a new-source proof."
+  },
+  "mutants": [
+    {
+      "id": "M1",
+      "property": ["P2"],
+      "source": [
+        {
+          "path": "src/controls-publication/native-policy-history.ts",
+          "symbol": "native-host-deployment-intent",
+          "sha256": "d981a7e617721b690d63602fa3934d05712bc332d11207004d37c256defeb304",
+          "symbolOccurrences": [
+            20, 29, 55, 75, 113, 199, 226, 234, 242, 261, 317, 323, 332, 590
+          ]
+        }
+      ],
+      "change": "Make requestIdentity omit native-host-deployment-intent. This single actual projection defect defeats the shared admission lookups while replay retains its independent explicit uniqueness guard.",
+      "scenario": "Register request r successfully, then generated create using r through the public CLI. Require request-conflict and unchanged ledger in fixed control.",
+      "badObservable": "Mutant admits generated create with the registration request ID, appends a second owner, then the next public load refuses multiple owners.",
+      "expectedModelBreak": "RequestOwnerUnique",
+      "restored": "Restore exact source, regenerate legitimate fixture integrity metadata and rerun both collision directions plus exact completed retry."
+    },
+    {
+      "id": "M2",
+      "property": ["P9"],
+      "source": [
+        {
+          "path": "src/controls-publication/store.ts",
+          "symbol": "checkCompletion",
+          "sha256": "d25612039e56e00e92fcfea1f07de039079ed32b291d043d1bd8f91ca61a6e33",
+          "symbolOccurrences": [177, 216, 242]
+        }
+      ],
+      "change": "Remove the complete remaining allocation require at lines230-233, retaining exact append/event checks. Test a real history where the starter fits but the finishing vector does not.",
+      "scenario": "Use unique-pressure public fixture and record actual replay counter plus suffix before calling fresh native install or generated create.",
+      "badObservable": "A starter or filesystem effect is retained before later allocation recovery, contrary to fixed fresh no-starter refusal. Do not accept a digest-drift or thrown mutation setup failure.",
+      "expectedModelBreak": "FreshInfeasibleHasNoStarter with admittedSuffix short",
+      "restored": "Exact restored refusal leaves ledger/output names unchanged and completed historical output readable."
+    },
+    {
+      "id": "M3",
+      "property": ["P4"],
+      "source": [
+        {
+          "path": "src/controls-publication/owner.ts",
+          "symbol": "completed",
+          "sha256": "84596d8d9cfdd0874269ef4c0f4477f8f4ac0e9250131e9952f450da4135dbb7",
+          "symbolOccurrences": [64, 117, 136, 138, 145]
+        }
+      ],
+      "change": "Move requirePendingOrder before completed lookup under input.mutate, recreating the known ordering defect.",
+      "scenario": "Kill unrelated policy update after swap, then retry completed create/publication/registration/native receipt while a before-file-sync fault is armed.",
+      "badObservable": "Exact completed request returns recovery for unrelated pending work instead of its physically verified original result.",
+      "expectedModelBreak": "CompletedLookupPrecedesPending",
+      "restored": "All completed results match and ledger remains byte-identical. Fresh mutation still refuses."
+    },
+    {
+      "id": "M4",
+      "property": ["P3", "P5"],
+      "source": [
+        {
+          "path": "src/controls-publication/native-blob-history.ts",
+          "symbol": "recorded",
+          "sha256": "a28b2fb0055c5120873bffbd8c89c4408ae6c2e970bff49199bd95eaa519a3ab",
+          "symbolOccurrences": [27, 28, 33, 34, 35, 39, 47, 123, 127, 129, 135]
+        }
+      ],
+      "change": "Remove only recorded/reached/current-location clauses from the final path-validity predicate, retaining original claim, object and planned-byte checks.",
+      "scenario": "Canonically rechain a settled registration blob with a nonexistent same-parent raw filename; call exact public registration retry then unrelated generated create.",
+      "badObservable": "False location returns success and/or unrelated generated call appends. Fixed source refuses both with exact unchanged retained history.",
+      "expectedModelBreak": "RecordedLocationReachable",
+      "restored": "Corruption refusal plus legitimate historical archive and unchanged-generation reuse pass."
+    },
+    {
+      "id": "M5",
+      "property": ["P7", "P8"],
+      "source": [
+        {
+          "path": "src/controls-publication/native-policy-persistence.ts",
+          "symbol": "native-selector-move-intent",
+          "sha256": "3aaa8ab9dba8109bb06b51d0a942669219d7e7da41b631d0c7dd1b297bf91c6e",
+          "symbolOccurrences": [223, 228, 575]
+        },
+        {
+          "path": "src/controls-publication/native-policy-persistence.ts",
+          "symbol": "replaceSelectorGuarded",
+          "sha256": "3aaa8ab9dba8109bb06b51d0a942669219d7e7da41b631d0c7dd1b297bf91c6e",
+          "symbolOccurrences": [591, 647]
+        }
+      ],
+      "change": "Move the v2 move-intent append after replaceSelectorGuarded, preserving its binding construction and final uses. This is one order mutation, not a schema or hash mutation.",
+      "scenario": "Kill at actual after-policy-selector-swap on a native update. Inspect old/new/temp/archive identity and exact ledger prefix before any retry.",
+      "badObservable": "Physical new head exists without a preceding durable v2 move intent. The fixed schedule has the intent and its file sync before syscall.",
+      "expectedModelBreak": "IntentBeforeSwap",
+      "restored": "Restored schedule retains exact intent before swap, physically verified old readback remains readonly, and same update recovers once."
+    },
+    {
+      "id": "M6",
+      "property": ["P6"],
+      "source": [
+        {
+          "path": "src/controls-publication/native-source-policy.ts",
+          "symbol": "expectedPriorGeneration",
+          "sha256": "59831ba75afb130aa6bc97266e33b012a01e3fb2a08e0c4dab1a0f55ac22c053",
+          "symbolOccurrences": [483, 666, 682, 713, 736, 996]
+        }
+      ],
+      "change": "Bypass the fresh policy expectedPriorGeneration comparison in validateBeforeSync. Keep native physical expected-old guards and replay validation unchanged.",
+      "scenario": "Submit a fresh policy installation with wrong caller expected-old and otherwise valid owned current output.",
+      "badObservable": "Native mutation/intent is admitted from stale caller input, or success leaves a history whose later selector-intent replay disagrees with frozen expected prior.",
+      "expectedModelBreak": "MixedAdmission.FrozenCallerExpectationBeforeStarter; the physical predecessor guard stays enabled",
+      "restored": "Wrong-old refuses stale-head before starter with unchanged ledger/output. Correct expected-old update succeeds."
+    },
+    {
+      "id": "M7",
+      "property": ["P8"],
+      "source": [
+        {
+          "path": "src/controls-publication/native-source-policy.ts",
+          "symbol": "receipt",
+          "sha256": "59831ba75afb130aa6bc97266e33b012a01e3fb2a08e0c4dab1a0f55ac22c053",
+          "symbolOccurrences": [
+            440, 443, 448, 449, 451, 454, 456, 458, 459, 461, 888, 889, 899,
+            903, 905, 907, 910, 912, 913, 916, 918, 920, 924, 925, 927, 932,
+            935, 936, 940, 944, 946, 947, 952, 953, 988, 989, 1006
+          ]
+        }
+      ],
+      "change": "Return the constructed receipt immediately after its body is formed and before receipt-intent/persistence/settlement.",
+      "scenario": "Drive the public installer and production-packed extracted installer. Parse returned receipt, ledger settlement and physical receipt path.",
+      "badObservable": "Public success returns a receipt lacking its owned receipt file and settled graph.",
+      "expectedModelBreak": "SuccessRequiresSettledReceiptGraph",
+      "restored": "Same call succeeds only with exact owned physical receipt, preceding selector observation/barriers and receipt settlement."
+    },
+    {
+      "id": "M8",
+      "property": ["P10"],
+      "source": [
+        {
+          "path": "src/controls-publication/runtime-consistency.ts",
+          "symbol": "sha256",
+          "sha256": "96f1db6560d47dc8b2ede78f4fffa6d66243af962d58ce0c7036fe18fa7c2adc",
+          "symbolOccurrences": [5, 150, 187, 235]
+        }
+      ],
+      "change": "Bypass installed-artifact content digest comparison while retaining kind/length/read-stability checks. Use an actual same-length stable dependency/data mutation with unchanged integrity/release bytes. Final deep-shadow fix also needs direct regression, not merely this digest mutant.",
+      "scenario": "Change one character in an existing dependency comment without changing grammar or byte length, or use another stable parseable same-length input change. Retain original bytes, release/integrity hashes, owner-entry marker and ledger snapshot. Regenerate only the fixture baseline metadata for the intentionally changed product guard before mutating the installed dependency.",
+      "badObservable": "Changed installed input reaches account/owner or successful policy effects with unchanged metadata. A source-hash failure does not count.",
+      "expectedModelBreak": "RuntimeVerifiedBeforeAccount abstract boundary only; behavioral runtime sensitivity supplies implementation evidence",
+      "restored": "Exact original installed bytes plus original guard refuse changed input before account entry; untouched install/retry passes."
+    }
+  ],
+  "assumptions": [
+    "Native payload acquisition453 and any original-to-input-to-candidate preservation theorem",
+    "Live Module/provider/Drive/Shelf/corpus/teaching operations",
+    "Unbounded completion, infinite interruption tolerance and unlimited historical readback",
+    "Total heap/RSS/GC proof and arbitrary Node/V8 or native memory layouts",
+    "Power-loss durability theorem, filesystem cache persistence, SQLite/N-API/kernel proof",
+    "Malicious bootstrap authentication or universal TOCTOU/hostile distributed writer theorem",
+    "Formal equivalence to all implementation statements or unsupported runtime shapes",
+    "Unchanged unrelated seed models and already reviewed Module academic semantics",
+    "Strict JSON/closed schema, canonical chain and parser bounds",
+    "Exact native stat identity, metadata, ACL/nofollow/private ancestry and signed nanoseconds",
+    "Actual renameatx_np exclusion/swap and kernel permanent gate behavior",
+    "Filesystem file/parent sync behavior and process-death semantics",
+    "Supported Node/V8 retained allocation profile, transient workspaces and reclamation of unreachable objects",
+    "Installed dependency resolution closure and trusted stable bootstrap consistency",
+    "Produced-package account adapter declaration, exact bundle/scanner bytes, CLI/HTTP MCP and portable compatibility"
+  ],
+  "historicalPlanningModels": [
+    {
+      "name": "MixedAdmission",
+      "proposedFile": ".agents/skills/control-publication/MixedAdmission.tla",
+      "purpose": "Ordering and ownership at the shared account boundary without replaying TypeScript JSON or filesystem algorithms.",
+      "variables": {
+        "pc": "Per caller phase",
+        "gate": "None or one of two writers",
+        "owner": "Finite request ID to four starter kinds or internal bridge owner",
+        "historyState": "Supported-valid, invalid canonical chain/schema, invalid scope/graph/location, or unsupported native acquisition",
+        "runtimeVerified": "Boundary predicate checked before account entry",
+        "completed": "Existing completed requests with frozen binding and verifiedOutput predicate",
+        "pending": "None or one unsettled request/family",
+        "result": "None, completed original, refused, recovery, or new success",
+        "starterRows": "Finite retained starter set",
+        "resourceClass": "Fits complete suffix, fits starter only, or exhausted"
+      },
+      "transitions": [
+        "CallerSuppliesFrozenInput",
+        "RuntimeArtifactValidation",
+        "ResolveAccount",
+        "AcquirePermanentGate",
+        "LoadCompleteHistory",
+        "ValidateMixedHistory",
+        "ValidateRequestAndBridgeOwner",
+        "LookupAndPhysicallyVerifyCompleted",
+        "ReturnCompletedReadonly",
+        "RefuseUnrelatedPending",
+        "ValidateDeterminableFeasibility",
+        "ReserveCompleteSuffix",
+        "AppendStarter",
+        "SyncStarter",
+        "AdmitEffect",
+        "RetainFailure",
+        "ExpireAndDrain",
+        "ReleaseGate"
+      ],
+      "bounds": {
+        "writers": 2,
+        "starterFamilies": [
+          "candidate-reserved",
+          "publication-plan",
+          "native-host-deployment-intent",
+          "native-source-policy-install-intent"
+        ],
+        "logicalRequests": "one retained completed request plus at most two new distinct requests",
+        "requestTokens": "completed, fresh, colliding and deterministic bridge equivalence classes",
+        "pendingRequests": 1,
+        "invalidHistoryWitnesses": 1,
+        "effectsPerRequest": 1,
+        "crashRestart": 1,
+        "resourceClasses": 3
+      },
+      "positiveConfigurations": ["mixed normal"],
+      "brokenConfigurations": [
+        "omitted-native-owner",
+        "effects-before-history-validation",
+        "pending-before-completed",
+        "fresh-starter-only-reservation"
+      ],
+      "notes": "Treat completed return as an enabled transition postcondition, not fairness or unbounded accessibility. Normalize IDs by equality/collision classes; actual hash construction and 4096 count are runtime checks.",
+      "actualModelSha256": "aad012b7efd85aebf0ccca802c9517c412f8a3eef8585119956dc2044caa46dd",
+      "implementationStatus": "authored; candidate execution pending"
+    },
+    {
+      "name": "NativeSelectorMove",
+      "proposedFile": ".agents/skills/control-publication/NativeSelectorMove.tla",
+      "purpose": "Exact physical location history and interrupted swap/archive/readback with success graph. Reuse owner premise from MixedAdmission and original publisher, rather than their full state product.",
+      "variables": {
+        "pc": "Updater and readonly caller phases",
+        "gate": "Held or free, effect admitted only while held",
+        "scope": "Frozen request/intent/attempt/bridge tokens",
+        "claims": "Original file claim with object/metadata/bytes/parent/name tokens",
+        "physicalLocation": "new temporary or fixed head; old head, swapped temporary or deterministic archive",
+        "recordedLocation": "Historical blob location along observed chain",
+        "moveIntent": "None, appended, or synced exact v2 intent",
+        "archiveIntent": "None, appended, or synced exact absent-destination v1 intent",
+        "barriers": "Distinct write/file/source-parent/head-parent observations",
+        "moveObserved": "None, appended, or synced exact observation",
+        "nativeSettlement": "Generation/selector/registration settlement token",
+        "receipt": "Intent, claimed bytes, promoted bytes, verified bytes, settled token",
+        "retainedAttempts": "Subset of1..3; retains unclaimed physical artifacts",
+        "success": "False or true"
+      },
+      "transitions": [
+        "ReserveAttemptAppend",
+        "ReserveAttemptSync",
+        "CreateFile",
+        "AppendFullPhysicalClaim",
+        "SyncClaim",
+        "WriteBytes",
+        "SyncFile",
+        "ReadbackBytesAndMetadata",
+        "SyncTemporaryParent",
+        "AppendMoveIntent",
+        "SyncMoveIntent",
+        "AppendArchiveIntent",
+        "SyncArchiveIntent",
+        "GuardFrozenExpectedOld",
+        "SelectorSwapSyscall",
+        "GuardOldArchive",
+        "ArchiveSyscall",
+        "SyncNamespaceAfterSwapArchive",
+        "ReadbackOldAtExactTemporaryOrArchive",
+        "AppendArchiveObserved",
+        "SyncArchiveObserved",
+        "ReadbackNewHead",
+        "SyncNewFile",
+        "SyncNewParent",
+        "AppendMoveObserved",
+        "SyncMoveObserved",
+        "SettleRegistrationOrSelector",
+        "AppendReceiptIntent",
+        "SyncReceiptIntent",
+        "PersistReceiptWithExistingGeneratedClaimPromotionSteps",
+        "ReadbackReceipt",
+        "AppendReceiptSettled",
+        "SyncReceiptSettled",
+        "ReturnSuccess",
+        "ReadonlyCompletedLookup",
+        "Crash",
+        "Restart",
+        "RetainUnclaimedAttempt",
+        "RefuseExhausted"
+      ],
+      "bounds": {
+        "selectorKinds": ["host-deployment.json", "native-source-policy.json"],
+        "positiveConfigurations": "one per selector kind",
+        "updaters": 1,
+        "readonlyHistoricalCaller": 1,
+        "oldSelectors": 1,
+        "newSelectors": 1,
+        "foreignObject": 1,
+        "names": [
+          "original temporary",
+          "fixed head",
+          "swapped temporary",
+          "deterministic archive",
+          "false same-parent name"
+        ],
+        "nativeAttempts": 3,
+        "crashRestart": "two total, sufficient to retain first two attempts then third success; each physical interruption position also separate configured initial-prefix schedule",
+        "generatedAttemptBound": "original publisher remains two; do not add generated attempt ceiling",
+        "readbackDuringPending": "at swapped temporary and archive before observed relocation",
+        "representativeFiles": "generation, selector and receipt roles remain separate"
+      },
+      "positiveConfigurations": [
+        "registration move",
+        "policy move and receipt"
+      ],
+      "brokenConfigurations": [
+        "rebind-expected-old",
+        "swap-before-move-intent-sync",
+        "location-without-observed-chain",
+        "success-before-receipt-settled"
+      ],
+      "notes": "Do not collapse append with file barrier, claim with syscall, swap with archive, or archive observation with move observation. New move rows are schemaVersion2; v1 promotions retain absent-destination semantics. Barrier flags are append claims whose honesty is established by ordered actual operations, not standalone booleans.",
+      "actualModelSha256": "c93b279de85456715b59fecf6d8acdce6e75651848b50146c7eb94c5f773454e",
+      "implementationStatus": "authored; candidate execution pending"
+    }
+  ],
+  "modelBounds": [
+    {
+      "name": "MixedAdmission",
+      "path": ".agents/skills/control-publication/MixedAdmission.tla",
+      "sha256": "22cf937e16f918aa41a52d8499c5fd20e2a4894dcfa7ae18b1f2258ef0166302",
+      "variables": [
+        "pc",
+        "gate",
+        "owner",
+        "historyState",
+        "runtimeVerified",
+        "completed",
+        "pending",
+        "result",
+        "starterRows",
+        "resourceClass",
+        "family",
+        "scenario",
+        "runtimeOK",
+        "effects",
+        "validated",
+        "drained",
+        "callerExpectedOld"
+      ],
+      "actions": [
+        "RuntimeArtifactValidation",
+        "ResolveAccount",
+        "AcquirePermanentGate",
+        "LoadCompleteHistory",
+        "ValidateMixedHistory",
+        "ValidateRequestAndBridgeOwner",
+        "LookupAndPhysicallyVerifyCompleted",
+        "ReturnCompletedReadonly",
+        "RefuseUnrelatedPending",
+        "ValidateDeterminableFeasibility",
+        "ReserveCompleteSuffix",
+        "AppendStarter",
+        "SyncStarter",
+        "AdmitEffect",
+        "ExpireAndDrain",
+        "ReleaseGate"
+      ],
+      "bounds": {
+        "writers": 2,
+        "starterFamilies": 4,
+        "selectedFamilyPerRun": 1,
+        "existingOwnerClasses": [
+          "completed-binding",
+          "native-host-deployment-intent",
+          "internal-bridge"
+        ],
+        "requestTokens": [
+          "completed",
+          "collision",
+          "bridge",
+          "fresh1",
+          "fresh2"
+        ],
+        "historyClasses": [
+          "valid",
+          "invalid-chain",
+          "invalid-location",
+          "unsupported-acquisition"
+        ],
+        "resourceClasses": ["complete", "starter-only", "exhausted"],
+        "unrelatedPending": 1,
+        "newEffectsPerWriter": 1,
+        "crashRestart": 0,
+        "completedResultPremise": "Exact retained completed output is physically valid; runtime checks challenge this predicate. No physically invalid completed-output option is modeled.",
+        "resultVariants": ["none", "pending-refusal", "completed-original"],
+        "completedVariable": "Constant singleton token set; exact request selection uses the same fixed completed token.",
+        "callerInput": "Frozen phase is the initial state, not a modeled input mutation action.",
+        "failureRetention": "Starter set and owner map remain retained; no separate RetainFailure action or recovery-result variant.",
+        "freshCallerExpectedOldClasses": ["matches", "stale"],
+        "freshCallerExpectation": "Frozen before ownership. Fresh expected-old mismatch refuses before starter; completed exact-request binding remains a separate premise.",
+        "candidateExpectedOld": "trivially matches; no expected-old field",
+        "expectationRace": "Not modeled as a selected-head race; source/runtime/original publisher premise."
+      }
+    },
+    {
+      "name": "NativeSelectorMove",
+      "path": ".agents/skills/control-publication/NativeSelectorMove.tla",
+      "sha256": "bcb6f5f842236659ad4d1f194698cf40de9f339dc59c0d3fbfef453e9b28f681",
+      "variables": [
+        "pc",
+        "gate",
+        "scope",
+        "claims",
+        "physicalLocation",
+        "recordedLocation",
+        "moveIntent",
+        "archiveIntent",
+        "barriers",
+        "moveObserved",
+        "nativeSettlement",
+        "receipt",
+        "retainedAttempts",
+        "success",
+        "attempt",
+        "crashCount",
+        "crashed",
+        "savedPc",
+        "expectedOld",
+        "readonlyResult",
+        "readonlyBasis",
+        "archiveObserved",
+        "generationSettled",
+        "refused"
+      ],
+      "actions": [
+        "ReserveAttemptAppend",
+        "ReserveAttemptSync",
+        "GenerationCreate",
+        "GenerationClaimAppend",
+        "GenerationClaimSync",
+        "GenerationWrite",
+        "GenerationFileSync",
+        "GenerationReadback",
+        "GenerationParentSync",
+        "GenerationSettleAppend",
+        "GenerationSettleSync",
+        "CreateFile",
+        "AppendFullPhysicalClaim",
+        "SyncClaim",
+        "WriteBytes",
+        "SyncFile",
+        "ReadbackBytesAndMetadata",
+        "SyncTemporaryParent",
+        "AppendMoveIntent",
+        "SyncMoveIntent",
+        "AppendArchiveIntent",
+        "SyncArchiveIntent",
+        "GuardFrozenExpectedOld",
+        "SelectorSwapSyscall",
+        "GuardOldArchive",
+        "ArchiveSyscall",
+        "SyncNamespaceAfterSwapArchive",
+        "ReadbackOldAtExactTemporaryOrArchive",
+        "AppendArchiveObserved",
+        "SyncArchiveObserved",
+        "ReadbackNewHead",
+        "SyncNewFile",
+        "SyncNewParent",
+        "AppendMoveObserved",
+        "SyncMoveObserved",
+        "SettleRegistrationOrSelector",
+        "SyncNativeSettlement",
+        "AppendReceiptIntent",
+        "SyncReceiptIntent",
+        "ReceiptCreate",
+        "ReceiptClaimAppend",
+        "ReceiptClaimSync",
+        "ReceiptWrite",
+        "ReceiptFileSync",
+        "ReceiptReadbackTemporary",
+        "ReceiptParentSync",
+        "ReceiptPromotionIntentAppend",
+        "ReceiptPromotionIntentSync",
+        "ReceiptPromotionSyscall",
+        "ReceiptDestinationParentSync",
+        "ReceiptPromotionObservedAppend",
+        "ReceiptPromotionObservedSync",
+        "ReadbackReceipt",
+        "AppendReceiptSettled",
+        "SyncReceiptSettled",
+        "ReturnSuccess",
+        "GenerationPromotionIntentAppend",
+        "GenerationPromotionIntentSync",
+        "GenerationPromotionSyscall",
+        "GenerationDestinationParentSync",
+        "GenerationPromotionObservedAppend",
+        "GenerationPromotionObservedSync",
+        "TemporaryReserveAppend",
+        "TemporaryReserveSync",
+        "Crash",
+        "ReadonlyCompletedLookup",
+        "Restart",
+        "RetainUnclaimedAttempt",
+        "SyncRetainedAttempt"
+      ],
+      "bounds": {
+        "selectorKinds": ["registration", "policy"],
+        "updaters": 1,
+        "readonlyHistoricalCaller": 1,
+        "oldSelectors": 1,
+        "newSelectors": 1,
+        "expectedOldClasses": ["old-object-and-bytes", "foreign-object"],
+        "recordedLocationClasses": ["temporary", "false-name"],
+        "physicalLocations": [
+          "temporary",
+          "fixed",
+          "swapped-temporary",
+          "archive"
+        ],
+        "nativeAttempts": 3,
+        "crashRestart": 2,
+        "initialRetainedAttemptSets": [[], [1, 2]],
+        "readonlyReduction": "Only interrupted swapped-temporary/archive historical lookup is modeled. Fixed-head lookup is omitted and covered by public runtime controls.",
+        "readonlyAssertions": [
+          "ReadonlyRequiresOwnedPendingPath",
+          "ReadonlyDoesNotMutate"
+        ],
+        "generationReceiptPremise": "Generation and receipt prefix creation has separate source steps but no physical object identity or unknown-inode recovery. Original generated proof and actual runtime schedules supply that premise.",
+        "restartPremise": "savedPc retains abstract evidence and resumes the first outstanding source step after source-defined replay/resync. This is not implementation equivalence or power-loss recovery."
+      }
+    }
+  ]
+}

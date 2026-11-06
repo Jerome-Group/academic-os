@@ -14,6 +14,7 @@ import {
   unlink,
 } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 import { build, transform } from "esbuild";
 
@@ -27,8 +28,8 @@ export const alive = (pid) => {
   }
 };
 
-export async function makeFixture(root, parent, name, mutate) {
-  const evidence = await mkdtemp(join(await realpath(parent), `${name}-`));
+export async function makeFixture(root, _parent, name, mutate) {
+  const evidence = await mkdtemp(join(await realpath(tmpdir()), `${name}-`));
   await chmod(evidence, 0o700);
   const source = join(evidence, "source"),
     host = join(evidence, "host"),
@@ -44,14 +45,14 @@ export async function makeFixture(root, parent, name, mutate) {
     await mkdir(directory, { mode: 0o700 });
   await cp(join(root, "src"), join(source, "src"), { recursive: true });
   await cp(join(root, "scripts"), join(source, "scripts"), { recursive: true });
-  await writeFile(join(source, "package.json"), '{"type":"module"}');
+  await cp(join(root, "package.json"), join(source, "package.json"));
   await symlink(
     join(root, "node_modules"),
     join(source, "node_modules"),
     "dir",
   );
   await cp(join(root, "dist/src"), join(host, "src"), { recursive: true });
-  await writeFile(join(host, "package.json"), '{"type":"module"}');
+  await cp(join(root, "package.json"), join(host, "package.json"));
   await symlink(join(root, "node_modules"), join(host, "node_modules"), "dir");
   const patches = [];
   const replace = async (file, from, to) => {
@@ -63,34 +64,27 @@ export async function makeFixture(root, parent, name, mutate) {
       `One mutation site in ${file}`,
     );
     await writeFile(path, original.replace(from, to));
-    patches.push({
+    const index = patches.length;
+    const patch = {
       file,
       from,
       to,
       originalSha256: hash(original),
       changedSha256: hash(original.replace(from, to)),
-    });
-  };
-  if (mutate) await mutate(replace);
-  for (let index = 0; index < patches.length; index++) {
-    const patch = patches[index];
-    patch.snapshot = join(evidence, "mutant-sources", patch.file);
+      snapshot: join(evidence, "mutant-sources", String(index), file),
+    };
     await mkdir(dirname(patch.snapshot), { recursive: true, mode: 0o700 });
-    await cp(join(source, patch.file), patch.snapshot);
+    await cp(path, patch.snapshot);
     const diff = spawnSync(
       "git",
-      [
-        "diff",
-        "--no-index",
-        "--",
-        join(root, patch.file),
-        join(source, patch.file),
-      ],
+      ["diff", "--no-index", "--", join(root, file), path],
       { encoding: "utf8" },
     );
     assert.equal(diff.status, 1, "Product mutation has a real source diff");
     await writeFile(join(evidence, `mutation-${index}.patch`), diff.stdout);
-  }
+    patches.push(patch);
+  };
+  if (mutate) await mutate(replace);
   for (const patch of patches.filter((patch) => patch.file.endsWith(".ts"))) {
     const compiled = await transform(
       await readFile(join(source, patch.file), "utf8"),
@@ -206,6 +200,10 @@ process.stdout.write(JSON.stringify(await dispatch(JSON.parse(readFileSync(0,"ut
   );
   for (const [entry, name] of [
     [join(source, "src/controls-publication/standalone.ts"), "publication.mjs"],
+    [
+      join(source, "src/controls-publication/host-deployment.ts"),
+      "host-deployment.mjs",
+    ],
     [mcpEntry, "mcp.mjs"],
   ]) {
     await build({
@@ -244,6 +242,13 @@ process.stdout.write(JSON.stringify(await dispatch(JSON.parse(readFileSync(0,"ut
     join(host, "src/controls-publication/release.json"),
     JSON.stringify(manifest),
   );
+  const { bindFixtureRuntime } = await import(
+    pathToFileURL(
+      join(root, "dist/test/controls-publication/runtime-fixture.js"),
+    ).href
+  );
+  await bindFixtureRuntime(host, host);
+  await bindFixtureRuntime(host, join(host, "src/controls-publication"));
   const fixtureModule = await import(
     pathToFileURL(join(root, "dist/test/controls-publication/fixtures.js")).href
   );
@@ -352,6 +357,10 @@ process.stdout.write(JSON.stringify(await dispatch(JSON.parse(readFileSync(0,"ut
     }
   }
   const save = async (result) => {
+    await writeFile(
+      join(evidence, "mutation.json"),
+      JSON.stringify(patches, null, 2),
+    );
     const artifacts = {};
     const compiledPublication = (
       await readdir(join(host, "src/controls-publication"), {
@@ -413,6 +422,11 @@ process.stdout.write(JSON.stringify(await dispatch(JSON.parse(readFileSync(0,"ut
     bundle,
     identity,
     patches,
+    replace,
+    bindRuntime: async () => {
+      await bindFixtureRuntime(host, host);
+      await bindFixtureRuntime(host, join(host, "src/controls-publication"));
+    },
   };
 }
 

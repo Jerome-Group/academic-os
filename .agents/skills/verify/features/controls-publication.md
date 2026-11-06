@@ -45,9 +45,10 @@ required barriers, not observed survival after power loss.
 
 Admission checks cover independent 8 MiB raw-input, individual-file and encoded-event limits.
 LF counts toward the event limit. A raw input at its ceiling can still exceed the exact create,
-plan or intent limit. Refused create staging stays unchanged. A refused intent retains its
-unselected plan, leaves the selector unchanged, permits a distinct publication, and cannot
-bypass a later stale-head refusal. Wire checks distinguish equal base64 character lengths
+plan or intent limit. Refused create staging stays unchanged. A determinably oversized
+future intent refuses before a new plan or intent, leaves the selector unchanged, permits
+a distinct publication, and cannot bypass a later stale-head refusal. Product `7748ba5`
+and `test/controls-publication/admission.test.ts` establish this stronger admission promise. Wire checks distinguish equal base64 character lengths
 whose decoded lengths fall on opposite sides of the raw ceiling.
 
 Native fixtures append and read beyond 64 MiB in bounded windows. Forged, expired, cross-file,

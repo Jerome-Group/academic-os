@@ -766,7 +766,10 @@ export function capabilityIndex(): object {
       ],
       preview: null,
       implementation: "src/controls-publication/host-deployment-command.ts",
-      tests: ["test/controls-publication/native-policy.test.ts"],
+      tests: [
+        "test/controls-publication/native-policy.test.ts",
+        "test/controls-publication/runtime-consistency.test.ts",
+      ],
       status: "supported",
       health: "not-observed",
       result:

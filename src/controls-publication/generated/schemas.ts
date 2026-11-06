@@ -3193,4 +3193,52 @@ export const publicationSchemas = [
       },
     },
   },
+  {
+    $schema: "http://json-schema.org/draft-07/schema#",
+    $id: "urn:academic-os:runtime-consistency:1",
+    title: "RuntimeConsistency",
+    type: "object",
+    properties: {
+      encoding: { const: "academic-os-runtime-consistency/1" },
+      releaseByteSha256: { type: "string", pattern: "^[a-f0-9]{64}$" },
+      rootFromModule: { enum: ["../../..", "../..", "."] },
+      artifacts: {
+        type: "array",
+        items: { $ref: "#/definitions/RuntimeArtifact" },
+        minItems: 1,
+        maxItems: 8192,
+      },
+    },
+    required: ["encoding", "releaseByteSha256", "rootFromModule", "artifacts"],
+    additionalProperties: false,
+    definitions: {
+      RuntimeArtifact: {
+        type: "object",
+        properties: {
+          path: {
+            type: "string",
+            minLength: 1,
+            maxLength: 1024,
+            format: "publication-relative-path",
+          },
+          role: {
+            enum: [
+              "javascript",
+              "schema-javascript",
+              "native",
+              "scanner",
+              "scanner-source",
+              "package-lock",
+              "release-metadata",
+              "package-metadata",
+            ],
+          },
+          byteLength: { type: "integer", minimum: 0, maximum: 67108864 },
+          sha256: { type: "string", pattern: "^[a-f0-9]{64}$" },
+        },
+        required: ["path", "role", "byteLength", "sha256"],
+        additionalProperties: false,
+      },
+    },
+  },
 ];

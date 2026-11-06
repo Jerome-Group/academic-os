@@ -3,6 +3,7 @@ import { chmod, copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { isAbsolute, join, resolve } from "node:path";
 import { build } from "esbuild";
+import { writeRuntimeIntegrity } from "./build-control-publication-integrity.mjs";
 
 const [output, ...extra] = process.argv.slice(2);
 if (!output || !isAbsolute(output) || extra.length)
@@ -82,5 +83,17 @@ await copyFile(
   "dist/src/controls-publication/release.json",
   join(output, "release.json"),
 );
+await copyFile("package-lock.json", join(output, "package-lock.json"));
+if (process.platform === "darwin") {
+  for (const [source, target] of [
+    ["scan.native", "inventory-scan.native"],
+    ["scan.c", "inventory-scan.c"],
+  ])
+    await copyFile(
+      join("dist/src/migration/native-inventory/native", source),
+      join(output, "native", target),
+    );
+}
+await writeRuntimeIntegrity(output, output);
 await chmod(join(output, "publication.mjs"), 0o755);
 await chmod(join(output, "host-deployment.mjs"), 0o755);

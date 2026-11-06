@@ -36,6 +36,7 @@ import {
   validatePublishResult,
 } from "../../src/controls-publication/schema.js";
 import { publicationFixture } from "./fixtures.js";
+import { bindFixtureRuntime } from "./runtime-fixture.js";
 
 const repository = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -291,6 +292,8 @@ const response = await dispatch(JSON.parse(readFileSync(0,"utf8"))); process.std
       encodePublication(manifest),
     );
     const archive = join(evidence, "standalone.tar.gz");
+    await bindFixtureRuntime(host, join(host, "src/controls-publication"));
+    await bindFixtureRuntime(host, host);
     assert.equal(
       command("/usr/bin/tar", [
         "-czf",
@@ -300,6 +303,9 @@ const response = await dispatch(JSON.parse(readFileSync(0,"utf8"))); process.std
         "publication.mjs",
         "release.json",
         "native/publication-native.node",
+        "native/inventory-scan.native",
+        "native/inventory-scan.c",
+        "package-lock.json",
       ]).status,
       0,
     );
@@ -307,6 +313,7 @@ const response = await dispatch(JSON.parse(readFileSync(0,"utf8"))); process.std
       command("/usr/bin/tar", ["-xzf", archive, "-C", standalone]).status,
       0,
     );
+    await bindFixtureRuntime(standalone, standalone);
     assert.equal(
       digest(
         JSON.parse(await readFile(join(standalone, "release.json"), "utf8")),

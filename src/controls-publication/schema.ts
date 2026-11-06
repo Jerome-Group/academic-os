@@ -27,6 +27,7 @@ import type {
   PublishResult,
   PublishWireInput,
 } from "./generated/publication-contract-1.js";
+import type { RuntimeConsistency } from "./generated/runtime-consistency-1.js";
 import { publicationSchemas } from "./generated/schemas.js";
 
 import { maximumInputBase64Characters, maximumInputBytes } from "./limits.js";
@@ -126,6 +127,9 @@ export const validatePolicySelector = requiredValidator<PolicySelector>(
 );
 export const validateHostRegistration = requiredValidator<HostRegistration>(
   `${nativeSchemaId}#/definitions/HostRegistration`,
+);
+export const validateRuntimeConsistency = requiredValidator<RuntimeConsistency>(
+  "urn:academic-os:runtime-consistency:1",
 );
 export const validateCreateResult = validator<CreateResult>("CreateResult");
 export const validatePublishResult = validator<PublishResult>("PublishResult");

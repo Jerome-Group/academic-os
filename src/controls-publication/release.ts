@@ -1,9 +1,12 @@
-import { readFile } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isRecord } from "../conformance/value-shape.js";
 import { readStrictJson } from "../controls/strict-json.js";
-import { digest, sha256 } from "./codec.js";
+import { digest } from "./codec.js";
+import {
+  readRuntimeMetadata,
+  requireRuntimeConsistency,
+} from "./runtime-consistency.js";
 
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
 export const runtimeDirectory =
@@ -14,8 +17,8 @@ export const runtimeDirectory =
     : moduleDirectory;
 
 export async function publicationRelease(): Promise<string> {
-  const manifestBytes = await readFile(
-    new URL("./release.json", import.meta.url),
+  const manifestBytes = await readRuntimeMetadata(
+    fileURLToPath(new URL("./release.json", import.meta.url)),
   );
   const parsed = readStrictJson(manifestBytes, "publication-release");
   if (parsed.kind !== "read" || !isRecord(parsed.value))
@@ -29,10 +32,10 @@ export async function publicationRelease(): Promise<string> {
     !/^[a-f0-9]{64}$/u.test(manifest.nativeDigest)
   )
     throw new Error("Unsupported publication release manifest.");
-  const native = await readFile(
-    new URL("./native/publication-native.node", import.meta.url),
+  await requireRuntimeConsistency(
+    import.meta.url,
+    manifestBytes,
+    manifest.nativeDigest,
   );
-  if (sha256(native) !== manifest.nativeDigest)
-    throw new Error("Publication native artifact differs from this release.");
   return digest(manifest);
 }

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { encodePublication } from "../dist/src/controls-publication/codec.js";
+import { writeRuntimeIntegrity } from "./build-control-publication-integrity.mjs";
 
 async function files(root) {
   const result = [];
@@ -21,6 +22,9 @@ const sources = [
   "scripts/build-control-publication-release.mjs",
   "scripts/check-control-publication-imports.mjs",
   "scripts/build-control-publication-standalone.mjs",
+  "scripts/build-control-publication-integrity.mjs",
+  "scripts/build-native-inventory.mjs",
+  "scripts/deploy-native-source-policy.mjs",
 ].sort();
 const sourceBindings = [];
 for (const path of sources)
@@ -54,4 +58,8 @@ await mkdir("dist/src/module-activity", { recursive: true });
 await writeFile(
   "dist/src/module-activity/release.json",
   encodePublication(manifest),
+);
+await writeRuntimeIntegrity(
+  process.cwd(),
+  join(process.cwd(), "dist/src/controls-publication"),
 );

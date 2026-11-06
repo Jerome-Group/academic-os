@@ -65,6 +65,24 @@ export function validateVerificationFacts(input: {
         pointer,
         "Fragment range exceeds the exact extraction byte length.",
       );
+    if (
+      fragment.location.length === 0 &&
+      fragment.fragmentSha256 !== sha256(new Uint8Array())
+    )
+      problem(
+        pointer,
+        "Empty fragment hash differs from SHA-256 of empty bytes.",
+      );
+    if (
+      fragment.location.kind === "utf8-bytes" &&
+      fragment.location.start === 0 &&
+      fragment.location.length === fragment.extraction.byteLength &&
+      fragment.fragmentSha256 !== fragment.extraction.byteSha256
+    )
+      problem(
+        pointer,
+        "Whole-extraction fragment hash differs from the exact extraction binding.",
+      );
     if (fragment.extractor.recipe !== "utf8-identity/1") return;
     if (
       digest(fragment.original) !== digest(fragment.extraction) ||

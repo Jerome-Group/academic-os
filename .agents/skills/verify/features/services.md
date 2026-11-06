@@ -5,7 +5,7 @@ The CLI and Operations server read and update target-specific Tasks and Calendar
 ## Sub-features
 
 - Task list provisioning, verified generation receipts and exact-plan operations preserve Module or Research-project identity.
-- Guarded MCP compatibility names negotiate task-plan/1; current clients obtain read snapshots and retain exact operation IDs.
+- Routine MCP create/change/complete calls use normal arguments, including notes and date-only updates, with provider/register verification. Caller plans and policy are optional; explicit managed plans retain exact snapshots and operation IDs.
 - Module completion discovers source context and accepts a labelled module-agent attestation of an explicit Owner instruction for one exact task; it resolves a standing source with no prelisted authorization through the real producer. The serialized journey rejects inferred/wrong/stale attestations, missing bindings, policy/prerequisite conflicts and changed source before send, then proves uncertain recovery and replay without a second mutation.
 - Module completion also discovers and prepares an exact producer-authorized task plan. The local catalog publisher shares ownership with the first send; retained packets and effect fences preserve recovery across changed authority.
 - Versioned Task recovery history and preview/apply recreation use isolated provider fixtures; interrupted sends retain exact source claims and snapshot references.

@@ -26,7 +26,7 @@ import {
   createInMemoryTaskRegisterStore,
 } from "../support/fake-task-list.js";
 
-test("shipped routers and settlement procedures reach the served task-plan protocol", async () => {
+test("shipped routers and settlement procedures reach the served direct Task tools", async () => {
   const [module, research, setup] = await Promise.all([
     loadModuleContract(),
     loadResearchProjectContract(),
@@ -82,38 +82,8 @@ test("shipped routers and settlement procedures reach the served task-plan proto
       /\b(?:tasks|research_tasks)_[a-z_]+\b/gu,
     ))
       assert.ok(names.has(name), `Instruction names an unserved tool: ${name}`);
-    for (const field of [
-      "task-plan/1",
-      "policyVersion",
-      "operationId",
-      "sourceOccurrenceId",
-      "plan_json",
-      "expectedSnapshot",
-    ])
-      assert.ok(
-        text.includes(field),
-        `Missing migration requirement: ${field}`,
-      );
-    assert.match(text, /notes\/descriptions[\s\S]*refused/u);
-    assert.match(
-      text,
-      /`doDate` or `timing`[\s\S]*refused|refused[\s\S]*`doDate` or `timing`/u,
-    );
-    assert.match(text, /authorized UI executor/u);
-    assert.match(text, /account\/list\/task IDs/u);
-    assert.match(text, /same-ID Task saved-field readback/u);
-    assert.match(text, /contradictory|Contradictory/u);
-    assert.match(text, /ordinary.event/u);
-  }
-  for (const router of [
-    module.pinnedDocuments.agents,
-    research.seedFiles["AGENTS.md"],
-  ]) {
-    assert.ok(router);
-    assert.match(router, /immutable plan/u);
-    assert.match(router, /unknown-ID\s+create stays fenced/u);
-    assert.match(router, /conflicts to planning/u);
-    assert.match(router, /never invents or\s+replans/u);
+    assert.match(text, /No caller-authored plan/u);
+    assert.match(text, /date-only/u);
   }
   for (const procedure of [
     module.pinnedDocuments.teachingProcedure,
@@ -127,7 +97,7 @@ test("shipped routers and settlement procedures reach the served task-plan proto
   }
   assert.doesNotMatch(setup, /four `tasks_\*`/u);
   assert.match(setup, /catalog after connecting or upgrading/u);
-  assert.match(setup, /isolated fixtures before enabling writes/u);
+  assert.match(setup, /isolated\s+fixtures before enabling writes/u);
 });
 
 for (const research of [false, true]) {
@@ -138,7 +108,6 @@ for (const research of [false, true]) {
     assert.equal(capabilities.report.protocol, "task-plan/1");
     let createdId = "";
     for (const name of ["create", "change", "complete"] as const) {
-      const before = fixture.list.tasks();
       const legacy = {
         ...fixture.identityArguments,
         ...(name === "create"
@@ -146,10 +115,6 @@ for (const research of [false, true]) {
           : { task_id: "existing" }),
         ...(name === "change" ? { title: "Fixture renamed" } : {}),
       };
-      const missing = await fixture.call(`${prefix}_${name}`, legacy);
-      assert.equal(missing.isError, true);
-      assert.equal(missing.report.code, "exact-plan-required");
-      assert.deepEqual(fixture.list.tasks(), before);
       const read = await fixture.call(
         `${prefix}_read_register`,
         fixture.identityArguments,

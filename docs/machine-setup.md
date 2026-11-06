@@ -18,27 +18,19 @@ Two items. Nothing else travels — no Node, no clone of this repository, no cre
 
    Any other MCP client registers the same URL in whatever way it registers an HTTP server.
 
-The MagicDNS name is the mini's. Refresh the client's tool catalog after connecting or upgrading;
-the server does not push catalog changes. Call `tasks_sync_capabilities` with no arguments and
-require `task-plan/1`, the read tools `tasks_read_register` and `research_tasks_read_register`,
-the apply tool `tasks_apply_plan`, and the advertised `plan_json` compatibility argument. An old
-server or cached schema is a migration requirement, never permission for a fallback write.
+The MagicDNS name is the mini's. Refresh the client's tool catalog after connecting or upgrading.
+`tasks_sync_capabilities` reports ordinary direct operations and optional exact-plan support.
+Module calls name `semester` and `module`; Research calls name `research_project`.
 
-Both target types retain their create/change/complete names, but writes now require an immutable
-plan from a fresh register read. Module calls name `semester` and `module`; Research calls name
-`research_project`. The read returns exact target/list identity and `expectedSnapshot`. Cloud
-planning supplies intent and `policyVersion`; the caller persists `operationId` and, for creation,
-`sourceOccurrenceId` before dispatch. See the folder router's Tasks protocol and the Operations
-section of `operator-guide.md`. Verify all six compatibility names against their refreshed schemas
-using isolated fixtures before enabling writes. Real provider acceptance needs scoped authority.
+Read the live register, select exact task IDs, then use create/change/complete with normal
+arguments. No caller-authored plan, cloud policy or completion attestation is required for
+routine changes. Titles, notes and date-only `do_date` updates reach Google and are read back;
+confirm the returned task ID and register freshness. Verify the six tool names using isolated
+fixtures before enabling writes. Real provider acceptance needs scoped authority.
 
-API writes support undated creation, title changes and explicit completion/cancellation. New
-notes/descriptions and plans containing `doDate` or `timing` are refused. Owner-authorized native
-date/time placement may be delegated only to an already authorized UI executor with fresh complete
-preflight, exact account/list/task IDs or verified aliases, surface/timezone/time observations and
-same-ID Task saved-field readback. Contradictory observations or unavailable support park that work;
-date-only API results cannot prove timing, infer an offset or justify an ordinary-event replacement.
-API success and native acceptance remain separate. This setup grants no UI execution authority.
+Clock-time placement needs a supported authorized UI workflow and same-task saved-field readback.
+An API date-only result proves no clock-time placement. Report unavailable timing separately from
+successful ordinary Task changes. Explicit `tasks_apply_plan` workflows retain their own checks.
 
 Reachability on the Tailnet is the whole of the authorisation, which is why there is no third
 item: a machine signed in to Tailscale is one of the Owner's, and one that is not reaches nothing
@@ -47,9 +39,9 @@ item: a machine signed in to Tailscale is one of the Owner's, and one that is no
 ## When the mini is unreachable
 
 Before dispatch, an unreachable operation parks visibly. There is no offline queue or local
-fallback. After dispatch, a lost response may conceal a provider mutation: retain the identical
-plan, operation ID and uncertain evidence. The next reachable session reconciles that operation
-before any resend or replacement. It never treats lost connectivity as proof that nothing happened.
+fallback. After dispatch, a lost response may conceal a provider mutation. Retain the response and any
+known task ID, then read live state before a resend or replacement. For an explicit plan workflow,
+retain its original plan and operation ID for reconciliation. It never treats lost connectivity as proof that nothing happened.
 
 ## Optional: make the machine teaching-capable
 

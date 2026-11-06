@@ -41,56 +41,26 @@ Read the route's procedure before acting in its area.
 
 **Tasks protocol**
 
-1. Refresh the tool catalog and call `tasks_sync_capabilities`; require `task-plan/1`.
-   Call `tasks_read_register` with the exact configured `semester` and `module`. A successful
-   fresh read supplies `execution.target`, `execution.listId` and `execution.expectedSnapshot`. A
-   stale read supplies no new execution token. Select existing work by its returned `taskId`.
-2. When the Owner explicitly reports finished work, match the exact open task ID from that read.
-   For Module completion, call `tasks_completion_capabilities`, then
-   `tasks_discover_completion` and `tasks_prepare_completion` with the same `semester`, `module`
-   and `task_id`. Discovery may return `attestation-required` with exact `sourceContext`. Only
-   after the Owner explicitly reports that exact task finished, the module agent constructs
-   `completion_attestation_json`: `schemaVersion: 1`, `kind: module-agent-attestation`, a stable
-   `attestationId`, attributable `agentRef`, the actual `ownerInstructionRef` and UTC `reportedAt`,
-   `statement: owner-explicitly-finished`, plus the unchanged context's `target`, `listId`, `taskId`,
-   `sourceVersion`, `sourceOccurrenceId` and `sourceRange`. Pass it to `tasks_prepare_completion`.
-   This is an agent attestation of the instruction, not authenticated chat or inferred completion.
-   Persist the original attestation across retries. Require `status: prepared`; retain the original
-   packet and unchanged `call.arguments.plan_json` for step 4. The producer independently validates
-   source bindings, prerequisites, Owner policy and freshness. Missing legacy bindings need the
-   specific source/version/range clarification reported by the service through the native source
-   coordinator. Never invent a policy, infer bindings from titles, or ask the Owner to build JSON.
-3. For creation and title changes, retain cloud planning's exact intent and current
-   `policyVersion`. Persist an immutable plan
-   with `schemaVersion: 1`, a stable `operationId`, the observed target/list/snapshot and the
-   exact `operation`. Missing intent or policy parks the mutation; the executor never invents or
-   replans them. Creation additionally requires exact source identity as a stable
-   `sourceOccurrenceId`. For creation, retain supplied provenance inside `operation.provenance` as
-   local metadata:
-   `assessment`, `source` and `milestone`. Preserve what was supplied rather than inventing
-   provenance or descriptions.
-4. Call `tasks_apply_plan` with string `plan_json`, or `tasks_create`, `tasks_change` or
-   `tasks_complete` with that same plan and matching legacy arguments. Parse the MCP text JSON;
-   require `isError: false`, `outcome: applied`, the matching `operationId`, a nonempty returned
-   `taskId` and `registerFresh: true`. For change/complete/cancel, also require that returned ID to
-   equal `plan.operation.taskId`. These establish API/register success.
-   Read fresh state before each new operation. Return conflicts to planning; retain the identical
-   plan and operation ID for reconciliation after errors or uncertain effects. Module completion
-   retries apply the retained original call directly: reacquisition, another operation ID or
-   replacement policy cannot authorize resending an uncertain effect. An unknown-ID
-   create stays fenced. Another ID or a title match never authorizes a replacement create.
-5. Supported API writes are undated creation, title changes and explicit completion; cancellation
-   through the generic apply tool requires explicit Owner intent. New notes/descriptions are
-   refused. Plans containing `doDate` or `timing` are refused while the native adapter is
-   unavailable; existing tool names do not promise the former date/notes behavior.
+Routine Google Tasks changes follow the Owner's accepted intent. No caller-authored plan,
+cloud policy or completion attestation is required.
 
-For Owner-authorized date/time placement, delegate the unchanged native plan to an already
-authorized UI executor. Require fresh complete native preflight covering manual placements,
-Busy, meals and dismissals; retain exact account/list/task IDs or evidence-verified aliases,
-surface, displayed timezone and acquisition time. Require same-ID Task saved-field readback
-afterwards. Missing execution support or contradictory observations park the placement. Never
-infer an offset or timing from the date-only API, or substitute an ordinary event. API `applied`
-does not establish native acceptance or grant UI authority. Deadlines remain Calendar milestones.
+1. Call `tasks_read_register` with `semester` and `module`. Select existing work by its returned
+   `taskId`; the live Google list is authoritative.
+2. Call `tasks_create`, `tasks_change` or `tasks_complete` with normal arguments.
+   Supply the title, `do_date`, notes and provenance the Owner requested. Complete an exact task
+   when the Owner requests it or the agreed work is explicitly complete.
+3. Require `isError: false`, `outcome: applied` and a returned `taskId`; changes and completion
+   must retain the selected ID. Confirm the refreshed register is fresh. If Google accepted the
+   write but the register is stale, refresh it without resending the write. Local reading records
+   alone do not establish a Google Tasks update.
+4. An uncertain response needs live readback before another attempt. Do not duplicate a create
+   whose returned ID is unknown. Preserve unrelated tasks and fields.
+
+`do_date` is a date-only Google Tasks field, not a clock-time placement or an assessment deadline.
+Clock-time placement needs a supported authorized UI workflow and same-task readback; report
+unavailable timing separately from successful ordinary Task changes. Calendar owns deadlines.
+Optional `tasks_apply_plan` workflows remain available for explicitly managed plans; their policy
+and attestation requirements do not gate the routine calls above.
 
 ## Domain language
 

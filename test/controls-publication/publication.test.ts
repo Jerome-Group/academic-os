@@ -10,6 +10,7 @@ import {
   freezeBytes,
   thawBytes,
 } from "../../src/controls-publication/codec.js";
+import { readControls } from "../../src/controls/index.js";
 import { publicationFixture } from "./fixtures.js";
 
 describe("publication wire bytes and complete graph", () => {
@@ -45,6 +46,44 @@ describe("publication wire bytes and complete graph", () => {
     assert.deepEqual(
       thawBytes(freezeBytes(fixture.bundleBytes)),
       fixture.bundleBytes,
+    );
+  });
+  it("preserves supported v2 schemas in generation references and keeps verification unavailable", () => {
+    const fixture = publicationFixture("Synthetic v2 controls", 2);
+    const aggregate = moduleAggregate(fixture.identity);
+    const files = generationFiles(
+      decodeBundle(fixture.bundleBytes, aggregate),
+      aggregate,
+      "supported-v2",
+    );
+    const selected = readControls({
+      moduleCode: fixture.identity.moduleCode,
+      files: files.map((file) => ({
+        kind: "file",
+        path: file.path,
+        bytes: thawBytes(file.bytes),
+      })),
+    });
+    assert.ok(
+      selected.kind === "canonical",
+      JSON.stringify(selected.diagnostics),
+    );
+    assert.equal(selected.readiness.verification, "not-implemented");
+    assert.equal(selected.shape.head.contractVersion, 8);
+    assert.deepEqual(
+      selected.shape.generation.controls
+        .filter((ref) => ref.schema === "urn:academic-os:module-data:2")
+        .map((ref) => ref.role),
+      ["learning-records", "verification"],
+    );
+    assert.throws(() =>
+      decodeBundle(
+        encodePublication({
+          ...fixture.bundle,
+          nativeArtifactEffects: [{ path: "kit/run.mjs" }],
+        }),
+        aggregate,
+      ),
     );
   });
   it("refuses duplicate JSON, unsafe numbers, bad byte bindings, incomplete roles and unsupported effects", () => {

@@ -125,3 +125,41 @@ Read-only scans may advance access times; optional inventory logs create private
 Neither acquires publication ownership. Arbitrary hostile races, native memory safety, exhaustive
 callback behavior, device/dataless fixtures, acquisition and preservation remain outside this claim.
 The prior full schedules are source-applicable evidence, not a newly executed complete scanner run.
+
+## Versioned Module control applicability
+
+`moduleVerificationMaintenance` binds the approved Module change and its executing validation closure.
+The source set grows from 172 to 202 files. Seventeen inherited bindings change, and 30 are added.
+The 44 local execution inputs include 13 previously implicit helpers whose bytes remain unchanged.
+Schema sources, generated declarations, CLI reporting and relevant fixture dependencies are also bound.
+Every mapped symbol has its current hash, Git blob and literal line occurrences.
+
+The registry supports 20 role/schema pairs across the same 18 roles. Only verification and learning
+records gain v2 alternatives. The seven prior control, activity and publication schemas remain exact.
+Generated filenames, request identity widths and head contract version 8 remain unchanged.
+V1 inspection keeps its output shape. V2 reports verification as `not-implemented`.
+
+The new checks validate canonical references, declared source bindings, fragment hash contradictions,
+known local decision scope and numeric assessment structure. They add diagnostics before a new plan
+append. Matching retries retain their original binding and settlement path. No owner, ledger,
+selector, receipt or recovery transition changes, so all three models and their bounds remain exact.
+Module record preservation and assessment semantics remain runtime obligations outside these models.
+
+Replay accounting keeps its 16704-byte row charge and conditional 18-membership/32-slot profile.
+The eight mixed-history maps/sets, pending settled set and two store caches remain unchanged.
+Generated, host and policy settlement keys remain at most 90, 80 and 78 code units within 256 charged.
+Pending descriptors still have three properties within four charged. The unchanged native planner
+reserves 49 registration rows or 70 policy rows, including six selector-move rows.
+Generated completion iterates actual plan files and dependencies, including their encoded bytes.
+It has no fixed role-count allocation shortcut or added attempt ceiling. New validation temporaries
+are outside the replay account, which proves neither total heap usage nor unlimited history access.
+
+Fresh discovery and Module activity drives check public CLI, HTTP MCP, unchanged refusal inputs,
+ledger snapshots and current/pinned readers. Produced-package readbacks retain exact executable
+bundles and scanner core/header bytes under declared fixed-account fixture adaptations.
+Six rich assessment variants have pure transition preservation/refusal evidence only; native-source
+admission remains closed. Structural checks establish no extraction provenance, rubric truth,
+grading accuracy, mathematical proof, verification execution or accepted evaluation.
+The 21 bounded model cases and stale-symbol negative control supplement the retained native full
+proof. A model-only run remains incomplete and exits 1. The 115 crash schedules and 16 actual-code
+mutant families are historical evidence at their recorded revision, not fresh Module execution.

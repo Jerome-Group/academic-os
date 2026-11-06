@@ -1,8 +1,8 @@
 {
-  "productRevision": "dbe0be191cd60275e40c44164c6edb40fa6a75f2",
+  "productRevision": "09b37d1dc8bfdfac2a45f35f9d57fd848df109ef",
   "base": "b81c7635a8122f11cd2e174842b036e8584ecbb3",
   "planningRevision": "c13d4b1af465ee7efa4cea380d77af83f6150c62",
-  "status": "current source-bound scanner applicability mapping; original complete native proof retained at its own revision",
+  "status": "current Module v2 source applicability mapping; original complete native proof retained at its own revision",
   "properties": [
     {
       "id": "P1",
@@ -854,7 +854,8 @@
           "sha256": "28050934bfd4c5f83ea53d01617a5fc9b2b8715df37b243b9bd1fc8bb0ab65d7",
           "symbolOccurrences": [
             20, 29, 55, 82, 120, 206, 233, 241, 249, 268, 324, 330, 339, 598
-          ]
+          ],
+          "gitBlob": "f8f8b42fdf906acaef3113be284bdfbb657df29a"
         }
       ],
       "change": "Make requestIdentity omit native-host-deployment-intent. This single actual projection defect defeats the shared admission lookups while replay retains its independent explicit uniqueness guard.",
@@ -871,7 +872,8 @@
           "path": "src/controls-publication/store.ts",
           "symbol": "checkCompletion",
           "sha256": "d25612039e56e00e92fcfea1f07de039079ed32b291d043d1bd8f91ca61a6e33",
-          "symbolOccurrences": [177, 216, 242]
+          "symbolOccurrences": [177, 216, 242],
+          "gitBlob": "95b51b1eba75aa251eaaeec11c51b346ac6d019b"
         }
       ],
       "change": "Remove the complete remaining allocation require at lines230-233, retaining exact append/event checks. Test a real history where the starter fits but the finishing vector does not.",
@@ -888,7 +890,8 @@
           "path": "src/controls-publication/owner.ts",
           "symbol": "completed",
           "sha256": "84596d8d9cfdd0874269ef4c0f4477f8f4ac0e9250131e9952f450da4135dbb7",
-          "symbolOccurrences": [64, 117, 136, 138, 145]
+          "symbolOccurrences": [64, 117, 136, 138, 145],
+          "gitBlob": "b56c6ef3e4b1a97c99ed64fba48f43d464bb1995"
         }
       ],
       "change": "Move requirePendingOrder before completed lookup under input.mutate, recreating the known ordering defect.",
@@ -905,7 +908,8 @@
           "path": "src/controls-publication/native-blob-history.ts",
           "symbol": "recorded",
           "sha256": "a28b2fb0055c5120873bffbd8c89c4408ae6c2e970bff49199bd95eaa519a3ab",
-          "symbolOccurrences": [27, 28, 33, 34, 35, 39, 47, 123, 127, 129, 135]
+          "symbolOccurrences": [27, 28, 33, 34, 35, 39, 47, 123, 127, 129, 135],
+          "gitBlob": "92d71d281d5b6fe7191ccddfb7e77964e7a758b6"
         }
       ],
       "change": "Remove only recorded/reached/current-location clauses from the final path-validity predicate, retaining original claim, object and planned-byte checks.",
@@ -922,13 +926,15 @@
           "path": "src/controls-publication/native-policy-persistence.ts",
           "symbol": "native-selector-move-intent",
           "sha256": "3aaa8ab9dba8109bb06b51d0a942669219d7e7da41b631d0c7dd1b297bf91c6e",
-          "symbolOccurrences": [223, 228, 575]
+          "symbolOccurrences": [223, 228, 575],
+          "gitBlob": "d6e5bfb5dbacbdd984cfde00534295e7a800cd62"
         },
         {
           "path": "src/controls-publication/native-policy-persistence.ts",
           "symbol": "replaceSelectorGuarded",
           "sha256": "3aaa8ab9dba8109bb06b51d0a942669219d7e7da41b631d0c7dd1b297bf91c6e",
-          "symbolOccurrences": [591, 647]
+          "symbolOccurrences": [591, 647],
+          "gitBlob": "d6e5bfb5dbacbdd984cfde00534295e7a800cd62"
         }
       ],
       "change": "Move the v2 move-intent append after replaceSelectorGuarded, preserving its binding construction and final uses. This is one order mutation, not a schema or hash mutation.",
@@ -945,7 +951,8 @@
           "path": "src/controls-publication/native-source-policy.ts",
           "symbol": "expectedPriorGeneration",
           "sha256": "59831ba75afb130aa6bc97266e33b012a01e3fb2a08e0c4dab1a0f55ac22c053",
-          "symbolOccurrences": [483, 666, 682, 713, 736, 996]
+          "symbolOccurrences": [483, 666, 682, 713, 736, 996],
+          "gitBlob": "a8ad3903af64f8415bad3acf9f92b4431367d163"
         }
       ],
       "change": "Bypass the fresh policy expectedPriorGeneration comparison in validateBeforeSync. Keep native physical expected-old guards and replay validation unchanged.",
@@ -966,7 +973,8 @@
             440, 443, 448, 449, 451, 454, 456, 458, 459, 461, 888, 889, 899,
             903, 905, 907, 910, 912, 913, 916, 918, 920, 924, 925, 927, 932,
             935, 936, 940, 944, 946, 947, 952, 953, 988, 989, 1006
-          ]
+          ],
+          "gitBlob": "a8ad3903af64f8415bad3acf9f92b4431367d163"
         }
       ],
       "change": "Return the constructed receipt immediately after its body is formed and before receipt-intent/persistence/settlement.",
@@ -1242,7 +1250,7 @@
     "scanner-binding.mjs": "Physically copied public inventory CLI; six malformed source-binding refusals/restorations and actual order-guard mutant/restoration",
     "source-map.mjs": "Pre-TLC source hash and literal symbol occurrence guard; navigation only"
   },
-  "verificationCompletion": "Unchanged model/property applicability is separate from fresh scanner and installed-package runtime evidence. The retained native parent full proof is not a fresh complete integrated 115-schedule run.",
+  "verificationCompletion": "Fresh Module-specific runtime and unchanged bounded models establish this applicability update only. The complete 115-schedule and 16-mutant native run remains historical at its original revision. Model-only exits 1 and is incomplete.",
   "sourceOrderCorrection": {
     "basis": "Root accepted the bounded corrected correspondence at45fe746 after independent review. All75 ordered actions are unchanged in this complete candidate; final combined review remains separate.",
     "oldNativeModels": "Superseded by current source-order correction; old runtime candidate failed separately at legitimate bootstrap retry. No composed candidate pass.",
@@ -1471,6 +1479,251 @@
       "negativeControlRevision": "3f8e5429c010de152d32b0215f6a7e16caa7e7ea",
       "negativeControl": "Actual committed stale M1 record has current source SHA but outdated locations; isolated record and current map carrying it both refuse.",
       "correctedReferenceCount": 90
+    }
+  },
+  "moduleVerificationMaintenance": {
+    "productRevision": "09b37d1dc8bfdfac2a45f35f9d57fd848df109ef",
+    "classification": "source and navigation drift; pure admission expanded; no modeled state or promise change",
+    "compatibility": {
+      "distinctRoles": 18,
+      "supportedRoleSchemaPairs": 20,
+      "v2Roles": ["learning-records", "verification"],
+      "headContractVersion": 8,
+      "frozenSchemas": [
+        "src/controls/schemas/control-generation-1.schema.json",
+        "src/controls/schemas/control-generation-2.schema.json",
+        "src/controls/schemas/module-head-1.schema.json",
+        "src/controls/schemas/module-identity-1.schema.json",
+        "src/controls/schemas/module-data-1.schema.json",
+        "src/controls-publication/schemas/publication-contract-1.schema.json",
+        "src/module-activity/workflow.schema.json"
+      ],
+      "v1VerificationReadiness": "field absent",
+      "v2VerificationReadiness": "not-implemented"
+    },
+    "models": {
+      "changed": false,
+      "propertiesChanged": false,
+      "boundsChanged": false,
+      "files": {
+        ".agents/skills/control-publication/MixedAdmission.tla": "e780900c62f60c7da7976e636271c5b6424f9dfd927d9c5f7812758991d76716",
+        ".agents/skills/control-publication/NativeSelectorMove.tla": "32e5cc6776cf95842b2ef981eb643d3aff548f5e5991ee1941586a0807aa7214",
+        ".agents/skills/control-publication/ControlPublication.tla": "b2cef468000c7ff6c372f307aca2463d24c0c117e84d9ad7dd79abf57901b4cd",
+        ".agents/skills/control-publication/native-models.mjs": "2f3cb54f1a98fb61fe6da3e00472be89505490e901a7f0214498ef290dfffb8e",
+        ".agents/skills/control-publication/normal.cfg": "6059322626e236b648887a6126a8f9ec4349465be9d4f373d4431bad53409066"
+      },
+      "admissionReduction": "ControlPublication assumes admitted payloads. Pure validation precedes PlanAppend, without new persisted state; MixedAdmission and NativeSelectorMove do not model Module records.",
+      "noHistoryOrGradingTheorem": true
+    },
+    "allocationApplicability": {
+      "unchangedSources": [
+        "src/controls-publication/replay-allocation.ts",
+        "src/controls-publication/native-policy-history.ts",
+        "src/controls-publication/store.ts",
+        "src/controls-publication/generated-completion.ts",
+        "src/controls-publication/native-policy-reservation.ts",
+        "src/controls-publication/event-envelope.ts",
+        "src/controls-publication/limits.ts"
+      ],
+      "membershipRecount": "Eight validateMixedHistory maps/sets, the pending classifier settled set, and two store digest/position caches give the prior conservative eleven memberships. No new Module validator writes these structures; eighteen charged units remain. Unreachable query generations still require reclamation.",
+      "queryArrays": "The retained mixedRecords array, filtered records, completed/request lookup arrays, nested settlement projections and pending descriptors remain in unchanged publisher helpers. Prior nine-array projection and 32 charged slots remain conditional; new graph validation temporaries are caller workspaces, outside this replay account.",
+      "rowWorkspaceBytes": 16704,
+      "chargedMembershipUnits": 18,
+      "chargedWholeHistoryReferenceSlots": 32,
+      "maximumRowsBeforeNodes": 16070,
+      "budgetBytes": 268435456,
+      "taggedKeyCodeUnits": {
+        "generated": 90,
+        "hostDeployment": 80,
+        "nativePolicy": 78,
+        "charged": 256
+      },
+      "pendingDescriptorProperties": 3,
+      "chargedPendingDescriptorProperties": 4,
+      "nativeReservationRows": {
+        "registration": 49,
+        "policy": 70,
+        "moveRows": 6,
+        "reason": "Native reservation planner and native contract are byte-identical. Module v2 does not add native attempts or rows."
+      },
+      "generatedReservation": "Iterates actual plan.files and retained dependencies before each attempt; no fixed eighteen-file allocation assumption or new generated attempt ceiling.",
+      "names": "Role filenames, generation/request IDs, digest width, native component limits and publication wire schemas stay fixed. Longer v2 JSON is charged through actual encoded plan/file/event bytes under unchanged 8 MiB guards.",
+      "limit": "Pure schema/graph/decimal validation, decoder/encoder/native/caller allocations, total heap/RSS and unlimited history are unproved. Structural numeric sums prove no grading or mathematical truth."
+    },
+    "proofLimit": "Fresh Module-specific runtime and unchanged bounded models establish this applicability update only. The complete 115-schedule and 16-mutant native run remains historical at its original revision. Model-only exits 1 and is incomplete.",
+    "source": [
+      {
+        "path": "src/controls-publication/bundle.ts",
+        "symbol": "decodeData",
+        "sha256": "afad8769837f8ee0764ed918f61cf35a93b11669c81974ed72cda630253f7900",
+        "gitBlob": "b05f4d0179fe0f8cc32ace99bc57ded68a4da6ad",
+        "symbolOccurrences": [63, 181, 233]
+      },
+      {
+        "path": "src/controls-publication/publication-plan.ts",
+        "symbol": "validateControlTransition",
+        "sha256": "7f96e4f073c4ac5c981939729537a795f89faa8d0b973a477d0527881b6543d0",
+        "gitBlob": "3aa4e0a2b2184a5e047b60472d1817c610062430",
+        "symbolOccurrences": [1, 85]
+      },
+      {
+        "path": "src/controls/generated/supported-controls.ts",
+        "symbol": "supportedControlSchemas",
+        "sha256": "6483e4935fe16e234e500911b9b21495d806de1b925b14f847e496f0d1125eb6",
+        "gitBlob": "71b56ad42d3382c92c4935f61fde0c06327981f5",
+        "symbolOccurrences": [5]
+      },
+      {
+        "path": "src/controls/generated/verification-dependencies.ts",
+        "symbol": "verificationDependencies",
+        "sha256": "f2f4528e9d26473fdd2d3306817d4648790e38a111a55789c8fc5e42566d4e7d",
+        "gitBlob": "70d055021cfbbaec322a363e805e1a6bb8730d7c",
+        "symbolOccurrences": [2]
+      },
+      {
+        "path": "scripts/generate-control-types.mjs",
+        "symbol": "localProjection",
+        "sha256": "84e25abecc41d90b853c947cbd5337bfc82ad22af7b49ff8c89b36d08d4c08f3",
+        "gitBlob": "6b22465900f2b8f9e739232e02047fc1ce3479c5",
+        "symbolOccurrences": [220, 266]
+      },
+      {
+        "path": "src/controls/schema-registry.ts",
+        "symbol": "validateSupportedModuleData",
+        "sha256": "21f9cf3c537da4778428a928318d521e598f6e821366f6a4879e17e46ea59436",
+        "gitBlob": "fd0725d9173afa67ebe18f5f041661cff13cee79",
+        "symbolOccurrences": [71]
+      },
+      {
+        "path": "src/controls/read-controls.ts",
+        "symbol": "candidateVerification",
+        "sha256": "82b983fb50ed4077b1dc1711b86a99e2cfe9bbc83a0466dba459c3f1116c033b",
+        "gitBlob": "7b15a334718c72aa0abad81149ec73266baad292",
+        "symbolOccurrences": [253, 270, 276]
+      },
+      {
+        "path": "src/controls/validate-module-graph.ts",
+        "symbol": "canonicalReferenceKinds",
+        "sha256": "153ff4a9c4177676f4832f5a7579226ee4f9cfe61d6c9409dd9b492cab54e413",
+        "gitBlob": "9b2b0efb954115343649f6e4447516d4f88e99b9",
+        "symbolOccurrences": [17, 244]
+      },
+      {
+        "path": "src/controls/validate-module-facts.ts",
+        "symbol": "const accepted",
+        "sha256": "b213f8387b4eff16976b15b46f73752b344b1154a3da9e3d46295675ebadcdde",
+        "gitBlob": "d57c057f858ac3815434ccee26efe2d2bd233bcf",
+        "symbolOccurrences": [59]
+      },
+      {
+        "path": "src/controls/verification-facts.ts",
+        "symbol": "validateVerificationFacts",
+        "sha256": "20ce592ea62b10f18344538daed550b6b7fd1a1abdd084acc2d806a35dd1cf08",
+        "gitBlob": "e275378ece32381debe0da2dfac57d4a0797a618",
+        "symbolOccurrences": [10]
+      },
+      {
+        "path": "src/controls/verification-reviews.ts",
+        "symbol": "assessmentProblems",
+        "sha256": "db7239290039f1c18dd6217900dd57443acb9ba1b7e436484773746666d924cf",
+        "gitBlob": "a3f50361559ae21bc6c691ed3302bda409594803",
+        "symbolOccurrences": [7]
+      },
+      {
+        "path": "src/commands/module-inspect-command.ts",
+        "symbol": "verification: not-implemented",
+        "sha256": "16c9c7939b71de3664fb99ca30e20553b91571a07f7aba824cc69d3380ec8ae6",
+        "gitBlob": "a6412a96e560f9f1ca50ec146fb640fca9d6b88e",
+        "symbolOccurrences": [75]
+      },
+      {
+        "path": "test/controls/decision-scope-cli.test.ts",
+        "symbol": "validate(",
+        "sha256": "bc79f2affb7d4210f645b34bda8d9358d3c42605e889434026a2db8e8ba24b3d",
+        "gitBlob": "5e0bd7ae88b4f9f4c4ba5b6bf6aba91fa5223690",
+        "symbolOccurrences": [29, 154, 183]
+      },
+      {
+        "path": "test/controls/fragment-hash-cli.test.ts",
+        "symbol": "fragmentSha256",
+        "sha256": "64cffd4c0ed75654b1c3194b6d4f923987b465d5d41bb4613d315eaf8dcdae4a",
+        "gitBlob": "e23e6213f45ac850df2ed5f1a13a219b1b3b2b02",
+        "symbolOccurrences": [83, 89, 94, 104, 107]
+      },
+      {
+        "path": "test/controls/module-verification.test.ts",
+        "symbol": "eighteen roles",
+        "sha256": "9b5ff968f1818ee04da88b25ddfe51cdfd78437918aea6d9745c83747bc0d95f",
+        "gitBlob": "2b4eee67fbb15ab2446812581c3e83c3bb9186f8",
+        "symbolOccurrences": [50]
+      },
+      {
+        "path": "test/controls-publication/verification-activity.test.ts",
+        "symbol": "preserves every v2 assessment variant",
+        "sha256": "81ed47b4c3fc870b18d54233429742dd808daad2eef182b1f358ae541d714d70",
+        "gitBlob": "e93fc5943871028c4849153610cf2cf0037dbf63",
+        "symbolOccurrences": [30]
+      },
+      {
+        "path": "test/controls-publication/journey.ts",
+        "symbol": "Synthetic generation B",
+        "sha256": "50ce775bff1c89348bc93ecefa6196a51c2b1a9d76cfd7b6c9f263e4fa41bf87",
+        "gitBlob": "864ad5eda70bf3a143f31afb46f7f0435bdd5ff3",
+        "symbolOccurrences": [324]
+      },
+      {
+        "path": "test/module-activity/journey.ts",
+        "symbol": "activityFixture",
+        "sha256": "eaf2ea398a51b97b2b2ab404674fa0f7f01332c8cc3654777cdaba8834cb4b07",
+        "gitBlob": "7dd214948142b30aee681d64c3e56a52e69b5607",
+        "symbolOccurrences": [32, 93, 680]
+      }
+    ],
+    "boundedModelRun": {
+      "outcome": "model-only",
+      "exitCode": 1,
+      "evidenceName": "control-publication-9R15Jc",
+      "resultsSha256": "8e94e66e88453fba8d3e552653841d9ad9456b949b048422dfc8819ed706c672",
+      "modelConfigurations": 21,
+      "positive": 6,
+      "requiredCounterexamples": 15,
+      "sourceBindingCount": 202,
+      "mappedReferences": 108,
+      "toolSha256": "d15655eeaff4b3f7b3d65c46b838bc0f35d131b2ef4b1e473689b62c98d4726f"
+    },
+    "focusedRuntime": {
+      "discovery": {
+        "total": 318,
+        "passed": 317,
+        "skipped": 1,
+        "failed": 0,
+        "skip": "unsupported-platform fixture inapplicable on Darwin"
+      },
+      "moduleActivity": {
+        "passed": 8,
+        "failed": 0
+      },
+      "purePublicationAndRichTransitions": {
+        "passed": 5,
+        "richVariants": 6
+      },
+      "publicDecisionScopeCases": 13,
+      "publicFragmentCases": 38,
+      "unchangedActivityLedgerPairs": 6,
+      "producedPackage": {
+        "v1ToV2Publication": true,
+        "currentAndPinnedReads": true,
+        "originalRequestReplay": true,
+        "physicalReadbacks": 43,
+        "productionExecutableAndScannerBytesPreserved": true
+      },
+      "artifactReadbackSha256": "ec05de0b2a90bb2b19355b778bccab8cc0e5da77230a6699f9a0a916f9e4640b",
+      "guardControl": {
+        "references": 108,
+        "staleM1OccurrencesRefusedWithCurrentHash": true,
+        "restoredPassed": true
+      },
+      "claim": "Fresh selected synthetic workflows and exact physical readbacks; not fresh complete publication/formal verification."
     }
   }
 }

@@ -33,6 +33,8 @@ import {
   moduleDataFixture,
 } from "./module-data-fixtures.js";
 
+import { verificationFixture } from "./module-verification-fixtures.js";
+
 const roots: string[] = [];
 afterEach(async () => {
   for (const root of roots.splice(0))
@@ -119,6 +121,40 @@ describe("read-only module inspection through the compiled CLI", () => {
     const audit = await runCli("audit", "--config", target.config, "--json");
     assert.equal(audit.exitCode, 2, audit.stderr);
     assert.equal(JSON.parse(audit.stdout).outcome, "unsupported-controls");
+    assert.deepEqual(await manifest(target.root), before);
+  });
+
+  it("reports candidate verification as unavailable through public JSON and human validation without writes", async () => {
+    const target = await fixture(verificationFixture());
+    const before = await manifest(target.root);
+    for (const command of ["inspect", "validate"]) {
+      const result = await runCli(
+        "module",
+        command,
+        "--root",
+        target.moduleRoot,
+        "--json",
+      );
+      assert.equal(result.exitCode, 0, result.stderr);
+      const report = JSON.parse(result.stdout);
+      assert.equal(report.coverage, "validated-module-data");
+      assert.equal(report.readiness.verification, "not-implemented");
+      assert.equal(report.controls.length, 18);
+      assert.equal(report.shape.head.contractVersion, 8);
+      assert.match(report.limitations.join(" "), /does not execute checks/u);
+      assert.equal(JSON.stringify(report).includes("candidate-ready"), false);
+    }
+    const human = await runCli(
+      "module",
+      "validate",
+      "--root",
+      target.moduleRoot,
+    );
+    assert.equal(human.exitCode, 0, human.stderr);
+    assert.match(
+      human.stdout,
+      /verification: not-implemented; structural validation only/u,
+    );
     assert.deepEqual(await manifest(target.root), before);
   });
 

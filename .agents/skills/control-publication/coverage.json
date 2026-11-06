@@ -1,7 +1,7 @@
 {
-  "syncRevision": "dbe0be191cd60275e40c44164c6edb40fa6a75f2",
+  "syncRevision": "09b37d1dc8bfdfac2a45f35f9d57fd848df109ef",
   "outcome": "updated",
-  "reason": "Shared scanner maintenance binds the actual formatter/core/header, loader and builder plus native fixtures. Seven inherited source changes affect installed input enumeration or runtime checks; modeled owner, ledger, selector, receipt and capacity transitions remain unchanged. Fresh scanner/installed-package observations supplement the retained complete native proof. No new complete 115-schedule proof is claimed.",
+  "reason": "Module v2 maintenance binds complete pure control validation and selected public drivers. Eighteen roles retain their file graph; two schema alternatives expand admission. Publication ownership, request, replay, selector and receipt transitions are unchanged. Fresh bounded model and targeted Module runtime evidence supplement the retained native full proof; no new complete crash or mutation suite is claimed.",
   "bounds": {
     "writers": 2,
     "candidates": 2,
@@ -23,11 +23,22 @@
     "scripts/check-control-publication-imports.mjs": "f3978a446c50f0f2dd269bed5c55778fd3262917fc7dcfa70161b18851e68f0c",
     "scripts/clean-build-output.mjs": "bdff6799692cfdc5ef94c546fd11a49cf621b1c44350cf2141ac77e979c0e147",
     "scripts/deploy-native-source-policy.mjs": "aa29937842477c86a2e97d124749c1f59285c32634eb586097df9030041ae8cf",
-    "scripts/generate-control-types.mjs": "b9755176889cc65cf6b1b3871ef89874104dba94411f308b64726d9017e8d9f0",
-    "src/capabilities/catalog.ts": "fdcca29e2c120937747bc7b1c445109009658babd2286b5f976ed59522341250",
+    "scripts/generate-control-types.mjs": "84e25abecc41d90b853c947cbd5337bfc82ad22af7b49ff8c89b36d08d4c08f3",
+    "src/capabilities/catalog.ts": "da6281b8b28c1ac84379cd1428e47695b34c8dbad0de47b52fd30d5d9155495b",
     "src/cli.ts": "9b0b516a9966f2aa769cf6790a83a76a1fe40828dbffb213b5a962bb8a9ca8cd",
+    "src/commands/module-inspect-command.ts": "16c9c7939b71de3664fb99ca30e20553b91571a07f7aba824cc69d3380ec8ae6",
     "src/commands/repair-command.ts": "2757e213e77e850465588bf0bd1712260309128fb53ce02a47e6ab84c4814f44",
-    "src/controls-publication/bundle.ts": "eb97766179b00cab75e689883b9cb7c38efd4f1ea14d96a608e8dc9cdb425861",
+    "src/conformance/control-document.ts": "e0c95fec7272f92bc0d54e12f88f1e55c42e82e63e33991584fa59b2bbe7a81f",
+    "src/conformance/control-finding.ts": "1f782d2344d7331615aca1f1f9d13c866b47f29775932b311b5b291c5ba83592",
+    "src/conformance/control-paths.ts": "6a77bc0eec2186c405e343e8b584320c88afedcf6daf86e99f472ab52653ee43",
+    "src/conformance/rule-enforcement.ts": "85db2bd240a46c75bf11e523ce787a4103b4fe52d62676bb6673c3a6df79ebb1",
+    "src/conformance/source-map.ts": "b87de7b01eab15c94b909f849b23e1bafbd59cf75468c257cf7e8872849a75e6",
+    "src/conformance/value-shape.ts": "2cce5143d000f8d8bff5d7b725af902d05df30a816e67ce6993b62c22ed2a1b6",
+    "src/contract/pinned-documents.ts": "f642e15926c05d90e30015f30f4dc6e862f4b72a9b2bbc1478f7386b7a88a2b6",
+    "src/contract/seed-source-template-path.ts": "e4192b0dcc6497947bc164263a18c726b3d7e26ecbd1d50571fdd356e21ef1fd",
+    "src/contract/task-register.ts": "528b62b835d2a9eef5e2645050b639be80f5207df93c388651b78a88ea04da5f",
+    "src/contract/textbook-register.ts": "ee610072abdfcbe79f3548fd2a7a746fae2481bcd161eb143174e4bd6a2a4676",
+    "src/controls-publication/bundle.ts": "afad8769837f8ee0764ed918f61cf35a93b11669c81974ed72cda630253f7900",
     "src/controls-publication/candidate.ts": "8f6ce67e2ea17df77008814d921063f30704a0a682a1aea87e9e5523cdcdf594",
     "src/controls-publication/codec.ts": "442864c0d371d1f1bebb95f391a144f4543d678e47691968af56b4a02fe735c1",
     "src/controls-publication/command.ts": "efb070290dcd93b8959fe8655d572d15cec87699e8ac82b307d61979e7abae56",
@@ -71,7 +82,7 @@
     "src/controls-publication/store.ts": "d25612039e56e00e92fcfea1f07de039079ed32b291d043d1bd8f91ca61a6e33",
     "src/controls-publication/tools.ts": "b08d8d6dd5e28abab7a94e3483cfae91e30d2b13a18efd170eb3260a958d9508",
     "src/controls/activity-closeout.ts": "9a5db795376a5db4b5e441589616f21e9756644768aed535dadb49da43a33726",
-    "src/controls/activity-closure.ts": "9f424e46fff877a013848b5f7b728fd303eee909557d3e310809f25f2fdd2c12",
+    "src/controls/activity-closure.ts": "e04d7ca156b83a3b976a2b22f2ff493f76d8f1ac7030166574f840478340c027",
     "src/controls/activity-evidence.ts": "61d9b29f2cca70fc9bd98651fa7d92b38c0b904ad4e7c053df95fcb1c78748be",
     "src/controls/activity-failure.ts": "af1615c73ce9482091d4003f8f784977f96a88c1b20998bcc0c1786b5a221c40",
     "src/controls/activity-packets.ts": "5af1c70741fdd3bdcf24e40a5a2c3a2737e9ea0a98d14f9160ba286411d18d86",
@@ -83,30 +94,41 @@
     "src/controls/generated/control-generation-1.d.ts": "451c57c1a60f3255783f52d59f998fedf6413bff41000f8c7b34f4097340176c",
     "src/controls/generated/control-generation-2.d.ts": "06f1c440d5a7509fc9e3379ae7b6171c18e695c66ef39c8472c7071114cb2cb8",
     "src/controls/generated/module-data-1.d.ts": "e1c8885e1281afd41d484550e8eb67401b86cd0c3d5b885931b6a9dcff3d4132",
+    "src/controls/generated/module-data-2.d.ts": "a8ee8a709f99973b2e2783ce1dafff4e10e9d11800cd4bfec4459d23b08b5a5a",
     "src/controls/generated/module-head-1.d.ts": "d765c654feb00453dbf4ac55ab2bd7d1756f8986f12d4980e6bddaea91c57d77",
     "src/controls/generated/module-identity-1.d.ts": "21605c7a76379e678aba371b0f8449709dbb03a6b256bcc55e6302b3ae89d758",
-    "src/controls/generated/schemas.ts": "c54e9b9dbb620adbf25ba4b53853324ea91f7631bdede2d3175d188fb825016a",
-    "src/controls/index.ts": "2de20576fe16cf595eff696abb17dde0dee033f43b75d8770061bf779f16fe99",
+    "src/controls/generated/module-verification-1.d.ts": "9d8fbfb40cb964fb84c48c30ad34622a1c0f4d14fc91c8070ae8c4bb602c51a4",
+    "src/controls/generated/schemas.ts": "c6a049509901ca981730da2ea3113a95c36ac8f85a51f6ce4dd4f2982702474f",
+    "src/controls/generated/supported-controls.ts": "6483e4935fe16e234e500911b9b21495d806de1b925b14f847e496f0d1125eb6",
+    "src/controls/generated/verification-dependencies.ts": "f2f4528e9d26473fdd2d3306817d4648790e38a111a55789c8fc5e42566d4e7d",
+    "src/controls/index.ts": "76e59c56f7b37372772a62c95931d25fdd245e01033ae6f25feabdee95ae563a",
     "src/controls/legacy/read-module-controls.ts": "55dd88905b90c81b66389f8ad92e3251e029300a38c52e0b0ea3b0ae1350c6b8",
     "src/controls/module-activity.ts": "4d9cb1dd924457b2ed3a41379289fe50ee90e504dcedcbc1d38bbcc9c1676190",
     "src/controls/module-data-formats.ts": "e522999a04c9aa0775e9d9b3b455c17c00b6c9ab3726bb2086adb37e332d0b6f",
-    "src/controls/read-controls.ts": "5be6be306c27d1116d129edc4a9c0965ba9c899f5054c15a8a528e540241a85d",
-    "src/controls/schema-registry.ts": "ad55e9e60739a25d325e9076dfd206f540999e5e022bcb9da1079da8d8921a05",
+    "src/controls/read-controls.ts": "82b983fb50ed4077b1dc1711b86a99e2cfe9bbc83a0466dba459c3f1116c033b",
+    "src/controls/schema-registry.ts": "21f9cf3c537da4778428a928318d521e598f6e821366f6a4879e17e46ea59436",
     "src/controls/schemas/control-generation-1.schema.json": "822b768600835979770c948fa1143c0e898a1518b3bd78ffef3a64e386f7a818",
     "src/controls/schemas/control-generation-2.schema.json": "82aa079d0451fe261580a4322a01bd83b3b5ba0c699e09fe0fad261ef1bb2285",
     "src/controls/schemas/module-data-1.schema.json": "05342f8c51ea144104526ff71965a91a9c37fb4b1dadfcfd7128a68611fc6d20",
+    "src/controls/schemas/module-data-2.schema.json": "73237af3dcdc2c3b89a65ba050c50e36572d379a01f23fde73fc6480e6ec55d9",
     "src/controls/schemas/module-head-1.schema.json": "16c846c4e541bbe3d7757b1eed74cde542ece7a30fbb7a2df66e0d602a233e77",
     "src/controls/schemas/module-identity-1.schema.json": "7e6c37c9e1acf44c911ff8cb4f2f24221f84532d2cccefbb76885d16df3b59ea",
+    "src/controls/schemas/module-verification-1.schema.json": "a40b736a1e3f866862cc530cb6680cdcf5a1207a81ccf4153b9ab71d63d48261",
     "src/controls/strict-json.ts": "da9937bb9e913979d71f60432d23d5f8226cf91d69cb0224eff688963358d4d2",
-    "src/controls/types.ts": "d8261019fb37efaca58a9881d7f112bda4c380fd658b480fe72af0dff09449d8",
-    "src/controls/validate-module-facts.ts": "44aa8f391ae8445e66b901448d5831df1d4b13dca67b8c876b75097f35894e4f",
-    "src/controls/validate-module-graph.ts": "004d28a7406a11ccdbc5aadf59775e3bcd3d789641d1b9de6d58b40cee697ec9",
+    "src/controls/types.ts": "85f36373448df6a344a59eb1c6ee332dbac50b167f6faf5263be8ee26dcca887",
+    "src/controls/validate-module-facts.ts": "b213f8387b4eff16976b15b46f73752b344b1154a3da9e3d46295675ebadcdde",
+    "src/controls/validate-module-graph.ts": "153ff4a9c4177676f4832f5a7579226ee4f9cfe61d6c9409dd9b492cab54e413",
     "src/controls/validate-native-representations.ts": "35b3ead6de3947274b5736087942d89defb7b0936bda68ee76cce10d2816ea7f",
+    "src/controls/verification-facts.ts": "20ce592ea62b10f18344538daed550b6b7fd1a1abdd084acc2d806a35dd1cf08",
+    "src/controls/verification-reviews.ts": "db7239290039f1c18dd6217900dd57443acb9ba1b7e436484773746666d924cf",
     "src/curation/append-proved-register-lines.ts": "c4d4651d710584277112c47567b2047deea64f0016d486ae5d7f7e4f37d7d66f",
     "src/curation/curation-register-journal.ts": "01c68e9cfb2f46163731d10e8bd0997b83c4f3cfe96fca837db64bdfe34b0da3",
     "src/curation/execute-curation-identity-migration.ts": "eb37006a67bdf42ad074efe3ff693c46a889a9abe39763cc4abedc48a4249c32",
     "src/curation/execute-curation-rederivation.ts": "f6d1fce07fefcb5ceef839eb7163fc3984a364b9dcefc918cca1f3e668fbcdee",
     "src/curation/hash-source.ts": "f5e950223ba147e46847e4dfb55a812b248a031c7c815136e36259a617342a0c",
+    "src/curation/read-curation-register.ts": "7c3422e0901f706e91d516082762aa4dcdd23da3947189b3537825d58f832da2",
+    "src/curation/recorded-checksum.ts": "da8739e0292a02bf8eaa4a567ecd238c4296a9098edb21069b38df07e4e4a2cc",
+    "src/curation/unnumbered-source-path.ts": "5ddfa83f9fc82bfe7e95c1f035655b97b78f027327bb5ca807877afbeeda04dd",
     "src/journal-mutation-owner.ts": "0e0123904932abca3bcb70c7a63503789c1b7fffa99f66e67e83c8ddeb885b1c",
     "src/migration/native-inventory/index.ts": "123a8563683658d0023fed693bfb0d295eedb27eaabc1bf375e073e4df0f54c8",
     "src/migration/native-inventory/native/helper-binding.d.ts": "a46bad62e1f3fdf38c7a4fbfefa7baa071b122ed8aa55c43f8205792b9cbafc5",
@@ -157,11 +179,11 @@
     "test/controls-publication/bootstrap-request.test.ts": "8b35d576c78258c944a0af1b0cb23fb58ccf14dac239e4de8880db71f6b3af30",
     "test/controls-publication/capacity.test.ts": "ad417f368f603639216fb1b039c4b88eb401509cf89ee0523b421d927ea7a44a",
     "test/controls-publication/durability.test.ts": "5f4b91feeb821d34b08f87b97b54ecf4715218d799800fa27928b5dd49be6ab7",
-    "test/controls-publication/fixtures.ts": "b6771bca5157b75986b73d1ec1dee9cba7bd638457a1aff3934e7e3d6e2c5846",
+    "test/controls-publication/fixtures.ts": "29e804bbabf94c9318a554c28dcc92f9938cee98dd14d72c00d312d4d2cad449",
     "test/controls-publication/generated-pending-host.test.ts": "2c091838ce68e9b59ccdec246f7fa4bc6a32466e3319ec8f3fb8f685e1ea8cfd",
     "test/controls-publication/host-results.test.ts": "8ae66c3dba9c328e6e576bd4f5ac233218cd8fc6f72f240df4038b6c5f2f845d",
     "test/controls-publication/import-boundary.test.ts": "d270dc367f2602f4200964bc1779a71e0233182684bf3fa7f6cdbf6f322d1a6d",
-    "test/controls-publication/journey.ts": "28d070b56c91ac0606ea9271f9bb0c8f7b7daa18650562a49dbadbefd816f580",
+    "test/controls-publication/journey.ts": "50ce775bff1c89348bc93ecefa6196a51c2b1a9d76cfd7b6c9f263e4fa41bf87",
     "test/controls-publication/native-policy-admission.test.ts": "b2ee689d7070c918f5c831581291524f2c40118175f9c03e45670f2ed67468e4",
     "test/controls-publication/native-policy-boundary.test.ts": "f94ad78c4bc4df9bf3b02334f1d8648405b8b81b3963e74c7f316190efa469f4",
     "test/controls-publication/native-policy-fixture.ts": "616a1efc2008bf20b9358e54fdec304af6eac17800a6cf3d3867b8eb00984fce",
@@ -172,22 +194,30 @@
     "test/controls-publication/policy-roots.test.ts": "c852ce804fd22fafac181bdbc33b952cb4ceea7b3c2fdc8aa5f52e7a8a70cc57",
     "test/controls-publication/publication-journey.test.ts": "93dc67d360e5eec78d6a257406a4c6539aa96479b15dc47697ef4418a6eea780",
     "test/controls-publication/publication-schema.test.ts": "1183364670e185d9c57d1176d44ba45bb3ffba927cde079386ee653887c0ba3e",
-    "test/controls-publication/publication.test.ts": "c84b74a18307e770d619c98408ed629fddb50ab4c17c9d6a2778e2fce97ff7a4",
+    "test/controls-publication/publication.test.ts": "969799fd2d9adc8f565e5efbc9e769de0fae94e481029b4a089ff21245a2a6ad",
     "test/controls-publication/replay-capacity.test.ts": "6d26f78d4ff446bc0af093b74ef407e05969b661e3adde3ea4e3e1ed62fcb015",
     "test/controls-publication/runtime-consistency.test.ts": "1447451db7ba0bc6db5785310c52a2661d3a79f446b3a0b8704cde1a6ace130e",
     "test/controls-publication/runtime-fixture.ts": "a90306f345a7925ff730a8e1e3c9b8c31ea870940ecdbb5efba6d1549b366ad4",
     "test/controls-publication/standalone-package.test.ts": "de34ddbb1297f37d344b20b8c28cacbbfe3228a3d45d7059dcc8b34adca01a20",
+    "test/controls-publication/verification-activity.test.ts": "81ed47b4c3fc870b18d54233429742dd808daad2eef182b1f358ae541d714d70",
+    "test/controls/decision-scope-cli.test.ts": "bc79f2affb7d4210f645b34bda8d9358d3c42605e889434026a2db8e8ba24b3d",
+    "test/controls/fixtures.ts": "e41ae2d2e89f7e12025d21fdb4c5f120469f52122f3e37ca71511a4695ee3849",
+    "test/controls/fragment-hash-cli.test.ts": "64cffd4c0ed75654b1c3194b6d4f923987b465d5d41bb4613d315eaf8dcdae4a",
+    "test/controls/module-data-fixtures.ts": "19b8d116d158035aa5aa21d5208c6eb84df698223a6ae59826526705a071f92d",
+    "test/controls/module-inspect-cli.test.ts": "6650ab6d71e54467068f51bc6527f9cc704adf85416af19925e8e1fc46493133",
+    "test/controls/module-verification-fixtures.ts": "5148c11f957a399152d468b94f08c04cb3a93956b48c2e10fcfe858c5032d011",
+    "test/controls/module-verification.test.ts": "9b5ff968f1818ee04da88b25ddfe51cdfd78437918aea6d9745c83747bc0d95f",
     "test/migration/native-inventory-cli.test.ts": "c913e706c80db828657a021fa4d766b227b2d57c7430742653f16fad6376d51f",
     "test/migration/native-scan-core-fixture.cc": "25762434d023f008eb2c8652c24df5403a14487d4bb826bdbe565b614faba3e7",
-    "test/module-activity/fixtures.ts": "88d3af3dd024300bac3234a58fbfd62e30225b93adeaf009c4fe286d1f14e087",
-    "test/module-activity/journey.test.ts": "8655dce48c2f1ca3019c3b59aedc49654880409eb1ee6933c029d5772b4044af",
-    "test/module-activity/journey.ts": "ad3448cc8404d3677998884b8641423765fb8d324df5c36251b42aa2a6b3ca9b",
+    "test/module-activity/fixtures.ts": "bba9bc187f89a4d857f5e0a5826bfaefd800df978979f8aef99b24d202552018",
+    "test/module-activity/journey.test.ts": "99fbcf866c3b5b8c78574363fbcb4cc0092a40edb547451d7ac852bf977e391c",
+    "test/module-activity/journey.ts": "eaf2ea398a51b97b2b2ab404674fa0f7f01332c8cc3654777cdaba8834cb4b07",
     "test/module-activity/module-activity.test.ts": "a1ab510ca3b3732716c7029e884706163fd0eaa14b3f9d5a0b07275c67b36abe",
     "test/module-activity/transport-compatibility.test.ts": "2553466b50d1ab1392c3a97ab62200dea88a3c34615a82556c219194d63363b4",
     "test/support/curation-ownership-preload.mjs": "35db12d4e3cf6b7cf40807ee4b2555d0aa244ee97e958d94f6a0edf2f8108498",
     "test/support/journal-process.ts": "a585f8eed7c534ae17b20144019d2caedd46faaea197b3c9cb7f4c9f1fa0ac76"
   },
-  "previousSyncRevision": "3d4ae3aef0dbee591cc06e8c39abaa1c14b7152d",
+  "previousSyncRevision": "dbe0be191cd60275e40c44164c6edb40fa6a75f2",
   "modelMaintenance": {
     "finding": "MF1",
     "classification": "model drift",
@@ -537,5 +567,331 @@
     "sourceBindings": 172,
     "priorScannerRuntimeEvidencePreserved": true,
     "missingPublicCapabilityParityCheckRequired": true
+  },
+  "moduleVerificationMaintenance": {
+    "productRevision": "09b37d1dc8bfdfac2a45f35f9d57fd848df109ef",
+    "approvedModuleRevision": "e1d39b5b82f685e34062c5f8a64e6e6da4ef33a3",
+    "previousSyncRevision": "dbe0be191cd60275e40c44164c6edb40fa6a75f2",
+    "classification": "source and navigation drift; pure admission expanded; no modeled state or promise change",
+    "changedCoveredSources": [
+      {
+        "path": "scripts/generate-control-types.mjs",
+        "before": "b9755176889cc65cf6b1b3871ef89874104dba94411f308b64726d9017e8d9f0",
+        "after": "84e25abecc41d90b853c947cbd5337bfc82ad22af7b49ff8c89b36d08d4c08f3"
+      },
+      {
+        "path": "src/capabilities/catalog.ts",
+        "before": "fdcca29e2c120937747bc7b1c445109009658babd2286b5f976ed59522341250",
+        "after": "da6281b8b28c1ac84379cd1428e47695b34c8dbad0de47b52fd30d5d9155495b"
+      },
+      {
+        "path": "src/controls-publication/bundle.ts",
+        "before": "eb97766179b00cab75e689883b9cb7c38efd4f1ea14d96a608e8dc9cdb425861",
+        "after": "afad8769837f8ee0764ed918f61cf35a93b11669c81974ed72cda630253f7900"
+      },
+      {
+        "path": "src/controls/activity-closure.ts",
+        "before": "9f424e46fff877a013848b5f7b728fd303eee909557d3e310809f25f2fdd2c12",
+        "after": "e04d7ca156b83a3b976a2b22f2ff493f76d8f1ac7030166574f840478340c027"
+      },
+      {
+        "path": "src/controls/generated/schemas.ts",
+        "before": "c54e9b9dbb620adbf25ba4b53853324ea91f7631bdede2d3175d188fb825016a",
+        "after": "c6a049509901ca981730da2ea3113a95c36ac8f85a51f6ce4dd4f2982702474f"
+      },
+      {
+        "path": "src/controls/index.ts",
+        "before": "2de20576fe16cf595eff696abb17dde0dee033f43b75d8770061bf779f16fe99",
+        "after": "76e59c56f7b37372772a62c95931d25fdd245e01033ae6f25feabdee95ae563a"
+      },
+      {
+        "path": "src/controls/read-controls.ts",
+        "before": "5be6be306c27d1116d129edc4a9c0965ba9c899f5054c15a8a528e540241a85d",
+        "after": "82b983fb50ed4077b1dc1711b86a99e2cfe9bbc83a0466dba459c3f1116c033b"
+      },
+      {
+        "path": "src/controls/schema-registry.ts",
+        "before": "ad55e9e60739a25d325e9076dfd206f540999e5e022bcb9da1079da8d8921a05",
+        "after": "21f9cf3c537da4778428a928318d521e598f6e821366f6a4879e17e46ea59436"
+      },
+      {
+        "path": "src/controls/types.ts",
+        "before": "d8261019fb37efaca58a9881d7f112bda4c380fd658b480fe72af0dff09449d8",
+        "after": "85f36373448df6a344a59eb1c6ee332dbac50b167f6faf5263be8ee26dcca887"
+      },
+      {
+        "path": "src/controls/validate-module-facts.ts",
+        "before": "44aa8f391ae8445e66b901448d5831df1d4b13dca67b8c876b75097f35894e4f",
+        "after": "b213f8387b4eff16976b15b46f73752b344b1154a3da9e3d46295675ebadcdde"
+      },
+      {
+        "path": "src/controls/validate-module-graph.ts",
+        "before": "004d28a7406a11ccdbc5aadf59775e3bcd3d789641d1b9de6d58b40cee697ec9",
+        "after": "153ff4a9c4177676f4832f5a7579226ee4f9cfe61d6c9409dd9b492cab54e413"
+      },
+      {
+        "path": "test/controls-publication/fixtures.ts",
+        "before": "b6771bca5157b75986b73d1ec1dee9cba7bd638457a1aff3934e7e3d6e2c5846",
+        "after": "29e804bbabf94c9318a554c28dcc92f9938cee98dd14d72c00d312d4d2cad449"
+      },
+      {
+        "path": "test/controls-publication/journey.ts",
+        "before": "28d070b56c91ac0606ea9271f9bb0c8f7b7daa18650562a49dbadbefd816f580",
+        "after": "50ce775bff1c89348bc93ecefa6196a51c2b1a9d76cfd7b6c9f263e4fa41bf87"
+      },
+      {
+        "path": "test/controls-publication/publication.test.ts",
+        "before": "c84b74a18307e770d619c98408ed629fddb50ab4c17c9d6a2778e2fce97ff7a4",
+        "after": "969799fd2d9adc8f565e5efbc9e769de0fae94e481029b4a089ff21245a2a6ad"
+      },
+      {
+        "path": "test/module-activity/fixtures.ts",
+        "before": "88d3af3dd024300bac3234a58fbfd62e30225b93adeaf009c4fe286d1f14e087",
+        "after": "bba9bc187f89a4d857f5e0a5826bfaefd800df978979f8aef99b24d202552018"
+      },
+      {
+        "path": "test/module-activity/journey.test.ts",
+        "before": "8655dce48c2f1ca3019c3b59aedc49654880409eb1ee6933c029d5772b4044af",
+        "after": "99fbcf866c3b5b8c78574363fbcb4cc0092a40edb547451d7ac852bf977e391c"
+      },
+      {
+        "path": "test/module-activity/journey.ts",
+        "before": "ad3448cc8404d3677998884b8641423765fb8d324df5c36251b42aa2a6b3ca9b",
+        "after": "eaf2ea398a51b97b2b2ab404674fa0f7f01332c8cc3654777cdaba8834cb4b07"
+      }
+    ],
+    "addedSourceBindings": [
+      "src/commands/module-inspect-command.ts",
+      "src/conformance/control-document.ts",
+      "src/conformance/control-finding.ts",
+      "src/conformance/control-paths.ts",
+      "src/conformance/rule-enforcement.ts",
+      "src/conformance/source-map.ts",
+      "src/conformance/value-shape.ts",
+      "src/contract/pinned-documents.ts",
+      "src/contract/seed-source-template-path.ts",
+      "src/contract/task-register.ts",
+      "src/contract/textbook-register.ts",
+      "src/controls/generated/module-data-2.d.ts",
+      "src/controls/generated/module-verification-1.d.ts",
+      "src/controls/generated/supported-controls.ts",
+      "src/controls/generated/verification-dependencies.ts",
+      "src/controls/schemas/module-data-2.schema.json",
+      "src/controls/schemas/module-verification-1.schema.json",
+      "src/controls/verification-facts.ts",
+      "src/controls/verification-reviews.ts",
+      "src/curation/read-curation-register.ts",
+      "src/curation/recorded-checksum.ts",
+      "src/curation/unnumbered-source-path.ts",
+      "test/controls-publication/verification-activity.test.ts",
+      "test/controls/decision-scope-cli.test.ts",
+      "test/controls/fixtures.ts",
+      "test/controls/fragment-hash-cli.test.ts",
+      "test/controls/module-data-fixtures.ts",
+      "test/controls/module-inspect-cli.test.ts",
+      "test/controls/module-verification-fixtures.ts",
+      "test/controls/module-verification.test.ts"
+    ],
+    "sourceBindingCount": 202,
+    "unchangedInheritedBindings": 155,
+    "executingClosure": {
+      "entryPoints": [
+        "src/controls-publication/bundle.ts",
+        "src/controls/read-controls.ts",
+        "src/controls/module-activity.ts"
+      ],
+      "localInputCount": 44,
+      "newlyBoundExistingHelpers": 13,
+      "method": "esbuild write:false metafile with installed packages external; all 44 local inputs now bound. Source schemas, generated declarations, CLI and relevant fixture dependencies are bound separately."
+    },
+    "sourceEffect": [
+      {
+        "paths": [
+          "scripts/generate-control-types.mjs",
+          "src/controls/schema-registry.ts",
+          "src/controls/generated/supported-controls.ts",
+          "src/controls/generated/verification-dependencies.ts",
+          "src/controls/generated/schemas.ts",
+          "src/controls/schemas/module-data-2.schema.json",
+          "src/controls/schemas/module-verification-1.schema.json"
+        ],
+        "classification": "intended pure admission expansion",
+        "reason": "Generated registry admits exactly 20 role/schema pairs across the same 18 roles; v2 alternatives only for verification and learning-records. Frozen v1 schemas and public publication/activity envelopes remain identical."
+      },
+      {
+        "paths": [
+          "src/controls/validate-module-graph.ts",
+          "src/controls/validate-module-facts.ts",
+          "src/controls/verification-facts.ts",
+          "src/controls/verification-reviews.ts"
+        ],
+        "classification": "pure validation before existing plan append",
+        "reason": "Canonical references, exact source bindings, intrinsic fragment hashes, known local decision scope and assessment arithmetic can refuse admission. They write diagnostics only; no new owner, request, journal, selector, recovery or receipt state."
+      },
+      {
+        "paths": [
+          "src/controls-publication/bundle.ts",
+          "src/controls/read-controls.ts",
+          "src/controls/activity-closure.ts",
+          "src/controls/types.ts",
+          "src/controls/index.ts",
+          "src/commands/module-inspect-command.ts"
+        ],
+        "classification": "reader and payload typing/schema selection",
+        "reason": "Generation files retain each admitted schema. Readers expose verification:not-implemented only for v2 candidate-required controls. Matching retained requests still bypass new-plan validation and return their original binding."
+      },
+      {
+        "paths": ["src/capabilities/catalog.ts"],
+        "classification": "discovery metadata",
+        "reason": "Adds structural test mappings plus the independently approved Tasks MCP envelope correction; no publication effect."
+      },
+      {
+        "paths": [
+          "test/controls-publication/fixtures.ts",
+          "test/controls-publication/journey.ts",
+          "test/controls-publication/publication.test.ts",
+          "test/controls-publication/verification-activity.test.ts",
+          "test/module-activity/fixtures.ts",
+          "test/module-activity/journey.ts",
+          "test/module-activity/journey.test.ts"
+        ],
+        "classification": "runtime driver expansion",
+        "reason": "Public control-only v2 publication/activity and extracted readers complement v1 pinned history. Six rich assessment variants are pure transition evidence and remain refused by native-source admission."
+      }
+    ],
+    "compatibility": {
+      "distinctRoles": 18,
+      "supportedRoleSchemaPairs": 20,
+      "v2Roles": ["learning-records", "verification"],
+      "headContractVersion": 8,
+      "frozenSchemas": [
+        "src/controls/schemas/control-generation-1.schema.json",
+        "src/controls/schemas/control-generation-2.schema.json",
+        "src/controls/schemas/module-head-1.schema.json",
+        "src/controls/schemas/module-identity-1.schema.json",
+        "src/controls/schemas/module-data-1.schema.json",
+        "src/controls-publication/schemas/publication-contract-1.schema.json",
+        "src/module-activity/workflow.schema.json"
+      ],
+      "v1VerificationReadiness": "field absent",
+      "v2VerificationReadiness": "not-implemented"
+    },
+    "models": {
+      "changed": false,
+      "propertiesChanged": false,
+      "boundsChanged": false,
+      "files": {
+        ".agents/skills/control-publication/MixedAdmission.tla": "e780900c62f60c7da7976e636271c5b6424f9dfd927d9c5f7812758991d76716",
+        ".agents/skills/control-publication/NativeSelectorMove.tla": "32e5cc6776cf95842b2ef981eb643d3aff548f5e5991ee1941586a0807aa7214",
+        ".agents/skills/control-publication/ControlPublication.tla": "b2cef468000c7ff6c372f307aca2463d24c0c117e84d9ad7dd79abf57901b4cd",
+        ".agents/skills/control-publication/native-models.mjs": "2f3cb54f1a98fb61fe6da3e00472be89505490e901a7f0214498ef290dfffb8e",
+        ".agents/skills/control-publication/normal.cfg": "6059322626e236b648887a6126a8f9ec4349465be9d4f373d4431bad53409066"
+      },
+      "admissionReduction": "ControlPublication assumes admitted payloads. Pure validation precedes PlanAppend, without new persisted state; MixedAdmission and NativeSelectorMove do not model Module records.",
+      "noHistoryOrGradingTheorem": true
+    },
+    "allocationApplicability": {
+      "unchangedSources": [
+        "src/controls-publication/replay-allocation.ts",
+        "src/controls-publication/native-policy-history.ts",
+        "src/controls-publication/store.ts",
+        "src/controls-publication/generated-completion.ts",
+        "src/controls-publication/native-policy-reservation.ts",
+        "src/controls-publication/event-envelope.ts",
+        "src/controls-publication/limits.ts"
+      ],
+      "membershipRecount": "Eight validateMixedHistory maps/sets, the pending classifier settled set, and two store digest/position caches give the prior conservative eleven memberships. No new Module validator writes these structures; eighteen charged units remain. Unreachable query generations still require reclamation.",
+      "queryArrays": "The retained mixedRecords array, filtered records, completed/request lookup arrays, nested settlement projections and pending descriptors remain in unchanged publisher helpers. Prior nine-array projection and 32 charged slots remain conditional; new graph validation temporaries are caller workspaces, outside this replay account.",
+      "rowWorkspaceBytes": 16704,
+      "chargedMembershipUnits": 18,
+      "chargedWholeHistoryReferenceSlots": 32,
+      "maximumRowsBeforeNodes": 16070,
+      "budgetBytes": 268435456,
+      "taggedKeyCodeUnits": {
+        "generated": 90,
+        "hostDeployment": 80,
+        "nativePolicy": 78,
+        "charged": 256
+      },
+      "pendingDescriptorProperties": 3,
+      "chargedPendingDescriptorProperties": 4,
+      "nativeReservationRows": {
+        "registration": 49,
+        "policy": 70,
+        "moveRows": 6,
+        "reason": "Native reservation planner and native contract are byte-identical. Module v2 does not add native attempts or rows."
+      },
+      "generatedReservation": "Iterates actual plan.files and retained dependencies before each attempt; no fixed eighteen-file allocation assumption or new generated attempt ceiling.",
+      "names": "Role filenames, generation/request IDs, digest width, native component limits and publication wire schemas stay fixed. Longer v2 JSON is charged through actual encoded plan/file/event bytes under unchanged 8 MiB guards.",
+      "limit": "Pure schema/graph/decimal validation, decoder/encoder/native/caller allocations, total heap/RSS and unlimited history are unproved. Structural numeric sums prove no grading or mathematical truth."
+    },
+    "parentOrdinaryProof": {
+      "revision": "3f8e5429c010de152d32b0215f6a7e16caa7e7ea",
+      "evidenceName": "control-publication-bupiIU",
+      "resultsSha256": "0a6c05235dfdcefc6a5bf7a641d8cd57956217a6078946c40af49bc79dd79e29",
+      "outcome": "passed",
+      "sourceBindingCount": 164,
+      "modelConfigurations": 21,
+      "positive": 6,
+      "requiredCounterexamples": 15,
+      "actualMutantFamilies": 16,
+      "originalBoundaries": 115,
+      "publicTests": 33,
+      "physicalReadbacks": 5147
+    },
+    "proofLimit": "Fresh Module-specific runtime and unchanged bounded models establish this applicability update only. The complete 115-schedule and 16-mutant native run remains historical at its original revision. Model-only exits 1 and is incomplete.",
+    "seedApplicability": "All 23 seed bindings unchanged; no fresh seed proof.",
+    "runtimeCommands": [
+      "node dist/src/cli.js capabilities verify --workflow discovery --json --log <new-private-log>",
+      "node dist/src/cli.js capabilities verify --workflow module-activity --json --log <new-private-log>",
+      "node --test dist/test/controls-publication/verification-activity.test.js dist/test/controls-publication/publication.test.js dist/test/controls-publication/capacity.test.js",
+      "node .agents/skills/control-publication/run.mjs --model-only --evidence-parent <private-log-parent>"
+    ],
+    "boundedModelRun": {
+      "outcome": "model-only",
+      "exitCode": 1,
+      "evidenceName": "control-publication-9R15Jc",
+      "resultsSha256": "8e94e66e88453fba8d3e552653841d9ad9456b949b048422dfc8819ed706c672",
+      "modelConfigurations": 21,
+      "positive": 6,
+      "requiredCounterexamples": 15,
+      "sourceBindingCount": 202,
+      "mappedReferences": 108,
+      "toolSha256": "d15655eeaff4b3f7b3d65c46b838bc0f35d131b2ef4b1e473689b62c98d4726f"
+    },
+    "focusedRuntime": {
+      "discovery": {
+        "total": 318,
+        "passed": 317,
+        "skipped": 1,
+        "failed": 0,
+        "skip": "unsupported-platform fixture inapplicable on Darwin"
+      },
+      "moduleActivity": {
+        "passed": 8,
+        "failed": 0
+      },
+      "purePublicationAndRichTransitions": {
+        "passed": 5,
+        "richVariants": 6
+      },
+      "publicDecisionScopeCases": 13,
+      "publicFragmentCases": 38,
+      "unchangedActivityLedgerPairs": 6,
+      "producedPackage": {
+        "v1ToV2Publication": true,
+        "currentAndPinnedReads": true,
+        "originalRequestReplay": true,
+        "physicalReadbacks": 43,
+        "productionExecutableAndScannerBytesPreserved": true
+      },
+      "artifactReadbackSha256": "ec05de0b2a90bb2b19355b778bccab8cc0e5da77230a6699f9a0a916f9e4640b",
+      "guardControl": {
+        "references": 108,
+        "staleM1OccurrencesRefusedWithCurrentHash": true,
+        "restoredPassed": true
+      },
+      "claim": "Fresh selected synthetic workflows and exact physical readbacks; not fresh complete publication/formal verification."
+    }
   }
 }

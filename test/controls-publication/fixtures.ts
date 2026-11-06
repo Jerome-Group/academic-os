@@ -1,3 +1,4 @@
+import type { SupportedModuleData } from "../../src/controls/generated/supported-controls.js";
 import type { ModuleDataControl } from "../../src/controls/generated/module-data-1.js";
 import type { ModuleIdentity } from "../../src/controls/generated/module-identity-1.js";
 import {
@@ -6,7 +7,10 @@ import {
 } from "../../src/controls-publication/codec.js";
 import type { PublicationBundle } from "../../src/controls-publication/generated/publication-contract-1.js";
 
-export function publicationFixture(title = "Synthetic private controls") {
+export function publicationFixture(
+  title = "Synthetic private controls",
+  dataVersion: 1 | 2 = 1,
+) {
   const documents: (ModuleIdentity | ModuleDataControl)[] = [
     {
       $schema: "urn:academic-os:module-identity:1",
@@ -292,10 +296,51 @@ export function publicationFixture(title = "Synthetic private controls") {
   );
   if (!identity) throw new Error("Missing synthetic identity.");
   identity.title = title;
+  const supportedDocuments = documents.map(
+    (document): ModuleIdentity | SupportedModuleData => {
+      if (dataVersion === 1 || !("role" in document)) return document;
+      if (document.role === "learning-records")
+        return {
+          ...document,
+          $schema: "urn:academic-os:module-data:2",
+          schemaVersion: 2,
+        };
+      if (document.role !== "verification") return document;
+      const futureRuntime = freezeBytes(
+        Buffer.from(
+          "Synthetic future runtime binding. No executable verification.\n",
+        ),
+      );
+      return {
+        $schema: "urn:academic-os:module-data:2",
+        schemaVersion: 2,
+        module: document.module,
+        moduleCode: document.moduleCode,
+        role: "verification",
+        protocol: "module-verification/1",
+        activation: "candidate-required",
+        runtime: {
+          byteLength: futureRuntime.byteLength,
+          byteSha256: futureRuntime.byteSha256,
+        },
+        evaluationPolicy: {
+          protocol: "module-review-evaluation/1",
+          caseSet: "paired-24-plus-checker-3/1",
+          threshold: "every-frozen-case",
+          ordinaryReviewIndependence: "separate-per-review-evidence",
+        },
+        checks: [{ kind: "controls", id: "verification-check:controls" }],
+        adaptationDecisions: [],
+        limitations: [
+          "Synthetic declarations only. No runtime, grading, formal checker or evaluation.",
+        ],
+      };
+    },
+  );
   const bundle: PublicationBundle = {
     $schema: "urn:academic-os:publication-bundle:1",
     schemaVersion: 1,
-    controls: documents.map((document) => ({
+    controls: supportedDocuments.map((document) => ({
       role: "role" in document ? document.role : "module-identity",
       file: `${"role" in document ? document.role : "module-identity"}.json`,
       bytes: freezeBytes(encodePublication(document)),

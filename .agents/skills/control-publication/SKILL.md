@@ -51,6 +51,11 @@ Existing seed evidence is checked for applicability only and supplies no publish
 Pure Module transition validation precedes only new publication plans. Matching retries retain their original binding and settlement behavior.
 The publisher model assumes admitted payloads. It has no Module history variables and proves no history-preservation theorem.
 Run the separate `module-activity` workflow for source-bound public transition refusals and exact ledger readbacks.
+For versioned Module controls, read `moduleVerificationMaintenance` in both source records.
+Require 18 distinct roles and 20 supported role/schema pairs, with v2 alternatives only for verification and learning records.
+Drive discovery, Module activity and produced/extracted current-v2 and pinned-v1 readbacks.
+V2 structural acceptance must report verification as `not-implemented`; v1 keeps that field absent.
+Schema declarations do not supply a verification compiler, grading engine or mathematical checker.
 
 ## Maintain
 

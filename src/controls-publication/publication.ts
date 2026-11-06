@@ -15,6 +15,7 @@ import {
   readPlanFiles,
 } from "./publication-reader.js";
 import { prepareHead, settleIntent } from "./publication-settlement.js";
+import { reservePublicationCompletion } from "./generated-completion.js";
 import {
   nativeValue,
   type PublicationStore,
@@ -131,6 +132,7 @@ export function performPublication(
 ): PublicationReceipt {
   const complete = completedReceipt(store, plan);
   if (complete) return complete;
+  reservePublicationCompletion(store, plan, false);
   const pending = store
     .records()
     .find(

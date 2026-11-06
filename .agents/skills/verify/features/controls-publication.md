@@ -6,6 +6,23 @@ health steps. Run `capabilities check --profile publication` with a unique priva
 Require its outer outcome and every child check to pass. Retain its native and publication
 fixture paths exactly as printed.
 
+The same profile drives trusted host deployment registration and native-source policy installation
+through the host and extracted deployment entrypoints. Retain the policy lifecycle, refusal and
+interruption fixture paths. These fixtures grant read permission to synthetic private snapshots;
+they do not copy payloads or admit migration sources. Registered configuration coverage remains
+explicit and does not discover undisclosed academic roots.
+
+Runtime consistency fixtures modify, remove and restore actual host and extracted JavaScript,
+schema code, scanner, native addon and lockfile artifacts. A native checkpoint establishes refusal
+before account resolution. Closed metadata and a complete installed artifact inventory reject
+omitted bindings. This assumes a trusted installed bootstrap held unchanged during execution;
+it supplies neither bootstrap authentication nor a universal filesystem-race guarantee.
+
+Host deployment uses the existing closed publisher owner failures because refusal or recovery
+can precede a native installation intent. Its result fixtures validate actual unavailable,
+interrupted and restored operations without inventing a native pending scope. Native acquisition
+result types remain separate and its implementation remains unavailable.
+
 For publisher protocol changes, also follow [control publication](../../control-publication/SKILL.md)
 and run the local `publication-formal` profile from a clean committed checkout.
 Read its nested models, compiled fault schedules, exact source bindings, actual public mutant

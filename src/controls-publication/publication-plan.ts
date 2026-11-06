@@ -9,6 +9,7 @@ import type {
 } from "./generated/publication-contract-1.js";
 import { resolveExpectedHead } from "./publication-reader.js";
 import type { PublicationStore } from "./store.js";
+import { reservePublicationCompletion } from "./generated-completion.js";
 
 export function freezePlan(
   store: PublicationStore,
@@ -119,6 +120,7 @@ export function freezePlan(
     nativeArtifactEffects: [],
   };
   store.preflightRecord(plan);
+  reservePublicationCompletion(store, plan, true);
   store.append(plan);
   return plan;
 }

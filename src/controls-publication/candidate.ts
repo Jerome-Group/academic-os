@@ -6,8 +6,9 @@ import type {
   GeneratedCandidateAdmission,
   ModuleAggregate,
 } from "./generated/publication-contract-1.js";
-import type { DirectoryHandle } from "./native-contract.js";
 import { requireInputBytes } from "./limits.js";
+import type { DirectoryHandle } from "./native-contract.js";
+import { reserveCandidateCompletion } from "./generated-completion.js";
 import { nativeValue, type PublicationStore, sameObject } from "./store.js";
 
 export type Candidate = {
@@ -72,6 +73,47 @@ export function bootstrapCatalog(store: PublicationStore): void {
     store.directory(store.namespace, name, "bootstrap", "bootstrap");
 }
 
+export function completedCandidate(
+  store: PublicationStore,
+  input: {
+    requestId: string;
+    identityBytes: Uint8Array;
+    releaseDigest: string;
+  },
+): GeneratedCandidateAdmission | undefined {
+  const reservation = store
+    .records()
+    .find(
+      (record): record is CandidateReservation =>
+        record.kind === "candidate-reserved" &&
+        record.binding.requestId === input.requestId,
+    );
+  if (!reservation) return undefined;
+  const binding = {
+    requestId: input.requestId,
+    identityBytes: freezeBytes(input.identityBytes),
+    releaseDigest: input.releaseDigest,
+    effect: "private-generated-controls/1" as const,
+  };
+  if (digest(reservation.binding) !== digest(binding))
+    refuse("request-conflict", "Create request identity was rebound.");
+  const admitted = store
+    .records()
+    .find(
+      (record): record is GeneratedCandidateAdmission =>
+        record.kind === "generated-candidate-admitted" &&
+        record.candidateId === reservation.candidateId,
+    );
+  if (!admitted) return undefined;
+  if (admitted.createBindingDigest !== digest(binding))
+    recover(
+      "journal-recovery-required",
+      "Completed candidate binding differs from its reservation.",
+    );
+  openCandidate(store, admitted.candidateId);
+  return admitted;
+}
+
 export function createCandidate(
   store: PublicationStore,
   input: {
@@ -126,15 +168,16 @@ export function createCandidate(
   }
   const candidates = catalogDirectory(store, "candidates");
   const staging = catalogDirectory(store, "staging");
+  const reservation: CandidateReservation = existing ?? {
+    schemaVersion: 1,
+    kind: "candidate-reserved",
+    candidateId,
+    binding,
+    aggregate,
+    target: store.location(candidates, candidateId),
+  };
+  reserveCandidateCompletion(store, reservation, !existing);
   if (!existing) {
-    const reservation: CandidateReservation = {
-      schemaVersion: 1,
-      kind: "candidate-reserved",
-      candidateId,
-      binding,
-      aggregate,
-      target: store.location(candidates, candidateId),
-    };
     store.preflightRecord(reservation);
     store.append(reservation);
   }

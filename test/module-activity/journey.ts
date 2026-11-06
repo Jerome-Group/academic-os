@@ -27,6 +27,7 @@ import type {
   CloseoutPlan,
   Preparation,
 } from "../../src/module-activity/generated/workflow.js";
+import { bindFixtureRuntime } from "../controls-publication/runtime-fixture.js";
 import {
   activityFixture,
   activityJudgment,
@@ -139,6 +140,7 @@ export function loadPublicationNative(){const value=createRequire(import.meta.ur
     encodeCanonicalJson(manifest),
   );
   const cli = join(host, "src/cli.js");
+  await bindFixtureRuntime(host, join(host, "src/controls-publication"));
   async function packet(name: string, value: unknown) {
     const path = join(inputs, `${name}.json`);
     await writeFile(path, encodeCanonicalJson(value));

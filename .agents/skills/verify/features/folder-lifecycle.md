@@ -31,6 +31,8 @@ node dist/src/cli.js capabilities verify --workflow recovery --json --log "$aos_
 Require a passed outcome. The existing CLI journeys check preview leaves the destination absent, apply publishes a conformant Module and audit reads it back.
 Research-project journeys check profile-derived folders, meeting-free seeding and complete manifest-v2 Meeting intake.
 They compare exact note, schedule and binary payload bytes after publication and replay, then audit the result through the compiled CLI.
+Meeting-note journeys accept LF and CRLF front matter and preserve the approved note bytes through preview, publication, replay and audit.
+CRLF notes with incomplete delimiters, malformed YAML or a mismatched date refuse before publication.
 Missing or invalid notes, inconsistent schedules, binary schedule controls, pinned replacements, existing-content conflicts and unsupported policies refuse before publication.
 Saved-plan cases reject mixed Module and Research identities, including a supported policy attached to the wrong variant, without changing the journal or target.
 They verify the entire stored plan against its recorded digest, reject both supported policy transitions and altered saved operation bytes, and preserve every Research target file.

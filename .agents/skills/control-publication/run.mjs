@@ -180,6 +180,9 @@ try {
     "NativeSelectorMove.tla",
     "native-models.mjs",
     "native-runtime.mjs",
+    "native-fixture.mjs",
+    "native-capacity.mjs",
+    "native-package.mjs",
     "code-model-map.json",
   ];
   result.verificationHashes = {};

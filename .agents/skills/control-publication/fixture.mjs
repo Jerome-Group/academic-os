@@ -3,6 +3,8 @@ import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   chmod,
+  copyFile,
+  lstat,
   cp,
   mkdir,
   mkdtemp,
@@ -242,11 +244,70 @@ process.stdout.write(JSON.stringify(await dispatch(JSON.parse(readFileSync(0,"ut
     join(host, "src/controls-publication/release.json"),
     JSON.stringify(manifest),
   );
-  const { bindFixtureRuntime } = await import(
+  const { installedRuntimeDependencyFiles } = await import(
     pathToFileURL(
-      join(root, "dist/test/controls-publication/runtime-fixture.js"),
+      join(root, "dist/src/controls-publication/runtime-dependencies.js"),
     ).href
   );
+  const bindFixtureRuntime = async (installation, moduleDirectory) => {
+    await copyFile(
+      join(root, "package-lock.json"),
+      join(installation, "package-lock.json"),
+    );
+    if (installation !== moduleDirectory) {
+      await copyFile(
+        join(root, "package.json"),
+        join(installation, "package.json"),
+      );
+      const modules = join(installation, "node_modules");
+      if (
+        await lstat(modules).then(
+          (value) => value.isSymbolicLink(),
+          () => false,
+        )
+      )
+        await unlink(modules);
+      for (const file of await installedRuntimeDependencyFiles(root)) {
+        await mkdir(dirname(join(installation, file)), {
+          recursive: true,
+          mode: 0o700,
+        });
+        await copyFile(join(root, file), join(installation, file));
+      }
+    } else
+      for (const [source, target] of [
+        ["scan.native", "inventory-scan.native"],
+        ["scan.c", "inventory-scan.c"],
+      ])
+        await copyFile(
+          join(root, "dist/src/migration/native-inventory/native", source),
+          join(installation, "native", target),
+        );
+    const built = spawnSync(
+      process.execPath,
+      [
+        join(root, "scripts/build-control-publication-integrity.mjs"),
+        installation,
+        moduleDirectory,
+      ],
+      { cwd: root, encoding: "utf8", timeout: 30000 },
+    );
+    await writeFile(
+      join(moduleDirectory, "runtime-binding-build.json"),
+      JSON.stringify(
+        {
+          pid: built.pid,
+          status: built.status,
+          signal: built.signal,
+          stdout: built.stdout,
+          stderr: built.stderr,
+        },
+        null,
+        2,
+      ),
+    );
+    assert.equal(built.status, 0, built.stdout + built.stderr);
+  };
   await bindFixtureRuntime(host, host);
   await bindFixtureRuntime(host, join(host, "src/controls-publication"));
   const fixtureModule = await import(
@@ -423,6 +484,8 @@ process.stdout.write(JSON.stringify(await dispatch(JSON.parse(readFileSync(0,"ut
     identity,
     patches,
     replace,
+    bindStandaloneRuntime: (installation) =>
+      bindFixtureRuntime(installation, installation),
     bindRuntime: async () => {
       await bindFixtureRuntime(host, host);
       await bindFixtureRuntime(host, join(host, "src/controls-publication"));

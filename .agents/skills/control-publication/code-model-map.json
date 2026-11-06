@@ -940,167 +940,6 @@
     "Installed dependency resolution closure and trusted stable bootstrap consistency",
     "Produced-package account adapter declaration, exact bundle/scanner bytes, CLI/HTTP MCP and portable compatibility"
   ],
-  "historicalPlanningModels": [
-    {
-      "name": "MixedAdmission",
-      "proposedFile": ".agents/skills/control-publication/MixedAdmission.tla",
-      "purpose": "Ordering and ownership at the shared account boundary without replaying TypeScript JSON or filesystem algorithms.",
-      "variables": {
-        "pc": "Per caller phase",
-        "gate": "None or one of two writers",
-        "owner": "Finite request ID to four starter kinds or internal bridge owner",
-        "historyState": "Supported-valid, invalid canonical chain/schema, invalid scope/graph/location, or unsupported native acquisition",
-        "runtimeVerified": "Boundary predicate checked before account entry",
-        "completed": "Existing completed requests with frozen binding and verifiedOutput predicate",
-        "pending": "None or one unsettled request/family",
-        "result": "None, completed original, refused, recovery, or new success",
-        "starterRows": "Finite retained starter set",
-        "resourceClass": "Fits complete suffix, fits starter only, or exhausted"
-      },
-      "transitions": [
-        "CallerSuppliesFrozenInput",
-        "RuntimeArtifactValidation",
-        "ResolveAccount",
-        "AcquirePermanentGate",
-        "LoadCompleteHistory",
-        "ValidateMixedHistory",
-        "ValidateRequestAndBridgeOwner",
-        "LookupAndPhysicallyVerifyCompleted",
-        "ReturnCompletedReadonly",
-        "RefuseUnrelatedPending",
-        "ValidateDeterminableFeasibility",
-        "ReserveCompleteSuffix",
-        "AppendStarter",
-        "SyncStarter",
-        "AdmitEffect",
-        "RetainFailure",
-        "ExpireAndDrain",
-        "ReleaseGate"
-      ],
-      "bounds": {
-        "writers": 2,
-        "starterFamilies": [
-          "candidate-reserved",
-          "publication-plan",
-          "native-host-deployment-intent",
-          "native-source-policy-install-intent"
-        ],
-        "logicalRequests": "one retained completed request plus at most two new distinct requests",
-        "requestTokens": "completed, fresh, colliding and deterministic bridge equivalence classes",
-        "pendingRequests": 1,
-        "invalidHistoryWitnesses": 1,
-        "effectsPerRequest": 1,
-        "crashRestart": 1,
-        "resourceClasses": 3
-      },
-      "positiveConfigurations": ["mixed normal"],
-      "brokenConfigurations": [
-        "omitted-native-owner",
-        "effects-before-history-validation",
-        "pending-before-completed",
-        "fresh-starter-only-reservation"
-      ],
-      "notes": "Treat completed return as an enabled transition postcondition, not fairness or unbounded accessibility. Normalize IDs by equality/collision classes; actual hash construction and 4096 count are runtime checks.",
-      "actualModelSha256": "aad012b7efd85aebf0ccca802c9517c412f8a3eef8585119956dc2044caa46dd",
-      "implementationStatus": "authored; candidate execution pending"
-    },
-    {
-      "name": "NativeSelectorMove",
-      "proposedFile": ".agents/skills/control-publication/NativeSelectorMove.tla",
-      "purpose": "Exact physical location history and interrupted swap/archive/readback with success graph. Reuse owner premise from MixedAdmission and original publisher, rather than their full state product.",
-      "variables": {
-        "pc": "Updater and readonly caller phases",
-        "gate": "Held or free, effect admitted only while held",
-        "scope": "Frozen request/intent/attempt/bridge tokens",
-        "claims": "Original file claim with object/metadata/bytes/parent/name tokens",
-        "physicalLocation": "new temporary or fixed head; old head, swapped temporary or deterministic archive",
-        "recordedLocation": "Historical blob location along observed chain",
-        "moveIntent": "None, appended, or synced exact v2 intent",
-        "archiveIntent": "None, appended, or synced exact absent-destination v1 intent",
-        "barriers": "Distinct write/file/source-parent/head-parent observations",
-        "moveObserved": "None, appended, or synced exact observation",
-        "nativeSettlement": "Generation/selector/registration settlement token",
-        "receipt": "Intent, claimed bytes, promoted bytes, verified bytes, settled token",
-        "retainedAttempts": "Subset of1..3; retains unclaimed physical artifacts",
-        "success": "False or true"
-      },
-      "transitions": [
-        "ReserveAttemptAppend",
-        "ReserveAttemptSync",
-        "CreateFile",
-        "AppendFullPhysicalClaim",
-        "SyncClaim",
-        "WriteBytes",
-        "SyncFile",
-        "ReadbackBytesAndMetadata",
-        "SyncTemporaryParent",
-        "AppendMoveIntent",
-        "SyncMoveIntent",
-        "AppendArchiveIntent",
-        "SyncArchiveIntent",
-        "GuardFrozenExpectedOld",
-        "SelectorSwapSyscall",
-        "GuardOldArchive",
-        "ArchiveSyscall",
-        "SyncNamespaceAfterSwapArchive",
-        "ReadbackOldAtExactTemporaryOrArchive",
-        "AppendArchiveObserved",
-        "SyncArchiveObserved",
-        "ReadbackNewHead",
-        "SyncNewFile",
-        "SyncNewParent",
-        "AppendMoveObserved",
-        "SyncMoveObserved",
-        "SettleRegistrationOrSelector",
-        "AppendReceiptIntent",
-        "SyncReceiptIntent",
-        "PersistReceiptWithExistingGeneratedClaimPromotionSteps",
-        "ReadbackReceipt",
-        "AppendReceiptSettled",
-        "SyncReceiptSettled",
-        "ReturnSuccess",
-        "ReadonlyCompletedLookup",
-        "Crash",
-        "Restart",
-        "RetainUnclaimedAttempt",
-        "RefuseExhausted"
-      ],
-      "bounds": {
-        "selectorKinds": ["host-deployment.json", "native-source-policy.json"],
-        "positiveConfigurations": "one per selector kind",
-        "updaters": 1,
-        "readonlyHistoricalCaller": 1,
-        "oldSelectors": 1,
-        "newSelectors": 1,
-        "foreignObject": 1,
-        "names": [
-          "original temporary",
-          "fixed head",
-          "swapped temporary",
-          "deterministic archive",
-          "false same-parent name"
-        ],
-        "nativeAttempts": 3,
-        "crashRestart": "two total, sufficient to retain first two attempts then third success; each physical interruption position also separate configured initial-prefix schedule",
-        "generatedAttemptBound": "original publisher remains two; do not add generated attempt ceiling",
-        "readbackDuringPending": "at swapped temporary and archive before observed relocation",
-        "representativeFiles": "generation, selector and receipt roles remain separate"
-      },
-      "positiveConfigurations": [
-        "registration move",
-        "policy move and receipt"
-      ],
-      "brokenConfigurations": [
-        "rebind-expected-old",
-        "swap-before-move-intent-sync",
-        "location-without-observed-chain",
-        "success-before-receipt-settled"
-      ],
-      "notes": "Do not collapse append with file barrier, claim with syscall, swap with archive, or archive observation with move observation. New move rows are schemaVersion2; v1 promotions retain absent-destination semantics. Barrier flags are append claims whose honesty is established by ordered actual operations, not standalone booleans.",
-      "actualModelSha256": "c93b279de85456715b59fecf6d8acdce6e75651848b50146c7eb94c5f773454e",
-      "implementationStatus": "authored; candidate execution pending"
-    }
-  ],
   "modelBounds": [
     {
       "name": "MixedAdmission",
@@ -1307,5 +1146,12 @@
         "restartPremise": "savedPc retains abstract evidence and resumes the first outstanding source step after source-defined replay/resync. This is not implementation equivalence or power-loss recovery."
       }
     }
-  ]
+  ],
+  "historicalPlanningReference": "Accepted planning snapshot c13d4b1af465ee7efa4cea380d77af83f6150c62 is historical. Actual modelBounds above describe the authored models.",
+  "verificationModules": {
+    "native-runtime.mjs": "Eight actual guard mutants and restored public scenarios",
+    "native-fixture.mjs": "Compile-time private host inputs and explicit product root",
+    "native-capacity.mjs": "Actual production planner observation, unique pressure and retained capacity mutant/restoration",
+    "native-package.mjs": "Actual production builder/archive/extraction and complete native output readback"
+  }
 }

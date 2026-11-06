@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { execFile, execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
+import { createReadStream } from "node:fs";
 import {
   chmod,
   cp,
@@ -18,7 +19,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { test } from "node:test";
@@ -257,6 +258,39 @@ test("native CLI refuses changed source instead of returning a stale complete fi
   );
 });
 
+test("native CLI refuses changing enumeration instead of a complete stale membership", {
+  skip: process.platform !== "darwin",
+  timeout: 15000,
+}, async () => {
+  const { root } = await fixture();
+  const large = await open(join(root, "large"), "wx");
+  await large.truncate(128 * 1024 * 1024);
+  await large.close();
+  const first = join(root, "member-a");
+  const second = join(root, "member-b");
+  await writeFile(first, "membership");
+  let active = true;
+  const changing = (async () => {
+    while (active) {
+      await rename(first, second);
+      await rename(second, first);
+    }
+  })();
+  let result: Awaited<ReturnType<typeof inventory>>;
+  try {
+    result = await inventory(root);
+  } finally {
+    active = false;
+    await changing;
+  }
+  assert.equal(result.exit, 2);
+  assert.equal(result.report.complete, false);
+  assert.equal(result.report.sourceFingerprint, null);
+  assert(
+    result.report.diagnostics.some((entry) => entry.code === "source-changed"),
+  );
+});
+
 test("native CLI log is exclusive, private and outside source/repository", {
   skip: process.platform !== "darwin",
 }, async () => {
@@ -318,14 +352,23 @@ test("native CLI rejects changed bundled helper artifacts", {
     ),
   );
   await writeFile(helper, bytes);
-  await writeFile(source, "changed source");
-  result = await inventory(root, [], copiedCli);
-  assert.equal(result.report.outcome, "refused");
-  assert(
-    result.report.diagnostics.some(
-      (item) => item.code === "invalid-adapter-binding",
-    ),
-  );
+  for (const path of [
+    source,
+    join(dirname(source), "scan-core.c"),
+    join(dirname(source), "scan-core.h"),
+  ]) {
+    const original = await readFile(path);
+    await writeFile(path, "changed source");
+    result = await inventory(root, [], copiedCli);
+    assert.equal(result.report.outcome, "refused");
+    assert(
+      result.report.diagnostics.some(
+        (item) => item.code === "invalid-adapter-binding",
+      ),
+    );
+    await writeFile(path, original);
+  }
+  assert.equal((await inventory(root, [], copiedCli)).report.complete, true);
 });
 
 test("native CLI reports an oversized resource fork as unavailable", {
@@ -351,6 +394,125 @@ test("native CLI reports an oversized resource fork as unavailable", {
     null,
   );
   assert(report.diagnostics.some((item) => item.code === "xattrs-unreadable"));
+});
+
+test("native CLI streams files above64MiB and retains signed dates and fragmented metadata", {
+  skip: process.platform !== "darwin",
+}, async () => {
+  const { root } = await fixture();
+  const path = join(root, "large");
+  const length = 64 * 1024 * 1024 + 1;
+  const file = await open(path, "wx");
+  await file.truncate(length);
+  await file.write(Buffer.from([7]), 0, 1, length - 1);
+  await file.close();
+  const hash = createHash("sha256");
+  for await (const chunk of createReadStream(path)) hash.update(chunk);
+  const forkBytes = Buffer.alloc(65537, 0x31);
+  const fork = await open(`${path}/..namedfork/rsrc`, "w");
+  await fork.writeFile(forkBytes);
+  await fork.close();
+  execFileSync("/usr/bin/xattr", ["-wx", "academic-os.empty", "", path]);
+  await utimes(path, new Date(-12345000), new Date(-12345000));
+  const before = await lstat(path, { bigint: true });
+  const { report, exit } = await inventory(root);
+  assert.equal(exit, 0);
+  const observed = report.entries.find(
+    (entry) => entry.pathHex === hex("large"),
+  );
+  assert(observed);
+  assert.equal(observed.dataSha256, hash.digest("hex"));
+  assert.equal(observed.before.size, String(length));
+  assert.equal(observed.before.mtimeNs, "-12345000000000");
+  assert.equal(observed.before.birthtimeNs, before.birthtimeNs.toString());
+  assert.equal(
+    observed.xattrs?.find(
+      (entry) => entry.nameHex === hex("com.apple.ResourceFork"),
+    )?.payload?.valueHex,
+    forkBytes.toString("hex"),
+  );
+  assert.equal(
+    observed.xattrs?.find((entry) => entry.nameHex === hex("academic-os.empty"))
+      ?.payload?.valueHex,
+    "",
+  );
+});
+
+test("native CLI distinguishes the supported depth boundary from its existing limit", {
+  skip: process.platform !== "darwin",
+}, async () => {
+  const { root } = await fixture();
+  let deepest = root;
+  for (let depth = 0; depth < 256; depth++) {
+    deepest = join(deepest, "d");
+    await mkdir(deepest);
+  }
+  const supported = await inventory(root);
+  assert.equal(supported.report.complete, true);
+  assert.equal(supported.report.entries.length, 257);
+  await mkdir(join(deepest, "d"));
+  const exceeded = await inventory(root);
+  assert.equal(exceeded.exit, 2);
+  assert.equal(exceeded.report.complete, false);
+  assert.equal(exceeded.report.sourceFingerprint, null);
+  assert(
+    exceeded.report.diagnostics.some(
+      (entry) => entry.code === "inventory-limit",
+    ),
+  );
+});
+
+test("the synchronous scanner supports a C++ consumer, bounded fragments and abort without descriptor leaks", {
+  skip: process.platform !== "darwin",
+}, async () => {
+  const { proof, root } = await fixture();
+  const path = join(root, "fragmented");
+  await writeFile(path, "fixture");
+  const fork = await open(`${path}/..namedfork/rsrc`, "w");
+  await fork.writeFile(Buffer.alloc(65537, 0x31));
+  await fork.close();
+  const object = join(proof, "scan-core.o");
+  const executable = join(proof, "scan-core-fixture");
+  await run("/usr/bin/xcrun", [
+    "clang",
+    "-std=c11",
+    "-O2",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-Wno-deprecated-declarations",
+    "-c",
+    resolve("src/migration/native-inventory/native/scan-core.c"),
+    "-o",
+    object,
+  ]);
+  await run("/usr/bin/xcrun", [
+    "clang++",
+    "-std=c++17",
+    "-O2",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    resolve("test/migration/native-scan-core-fixture.cc"),
+    object,
+    "-o",
+    executable,
+  ]);
+  const result = await run(executable, [root]);
+  const observed: unknown = JSON.parse(result.stdout);
+  assert(
+    typeof observed === "object" &&
+      observed !== null &&
+      "fragments" in observed,
+  );
+  assert(typeof observed.fragments === "number" && observed.fragments >= 2);
+  assert.deepEqual(observed, {
+    entries: 2,
+    maximumWindow: 65536,
+    fragments: observed.fragments,
+    abortCount: 16,
+    descriptorCountPreserved: true,
+  });
 });
 
 test("a built native adapter runs without compiler availability", {

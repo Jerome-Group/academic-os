@@ -41,7 +41,11 @@ async function inspectArtifacts(directory) {
         path !== join(output, "src/module-activity/release.json") &&
         path !==
           join(output, "src/migration/native-inventory/native/scan.native") &&
-        path !== join(output, "src/migration/native-inventory/native/scan.c"))
+        path !== join(output, "src/migration/native-inventory/native/scan.c") &&
+        path !==
+          join(output, "src/migration/native-inventory/native/scan-core.c") &&
+        path !==
+          join(output, "src/migration/native-inventory/native/scan-core.h"))
     )
       refuse(path);
   }

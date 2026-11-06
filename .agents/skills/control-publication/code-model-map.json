@@ -2,7 +2,7 @@
   "productRevision": "3d4ae3aef0dbee591cc06e8c39abaa1c14b7152d",
   "base": "b81c7635a8122f11cd2e174842b036e8584ecbb3",
   "planningRevision": "c13d4b1af465ee7efa4cea380d77af83f6150c62",
-  "status": "approved product and corrected order models integrated; full candidate/ordinary pending",
+  "status": "current source-bound mapping with complete candidate evidence; ordinary clean committed command is final check",
   "properties": [
     {
       "id": "P1",
@@ -821,7 +821,7 @@
     },
     "generatedReservation": "Actual starter/plan plus next complete success vector and current possible orphan obligations before each attempt. No newly invented generated attempt ceiling.",
     "limitation": "At16704 workspace bytes per row, even perfect sharing fits at most16070 rows before additional nodes. Older over-budget history can fail load before completed lookup. No unlimited historical accessibility.",
-    "requiredReaudit": "New requireNativeBlobLocation moves Map and promotions array run inside existing validateMixedHistory/readback queries. Recount simultaneous memberships and query arrays against existing18/32 charges and fixed/sparse floors from source at final head. Do not quietly promote old7748 derivation to a new-source proof.",
+    "requiredReaudit": "Completed conditional74-binding source-profile applicability check at reviewed3d4ae3a. 11 memberships and nine query arrays remain within existing18/32 charges; tagged keys at most90 code units remain within256, pending descriptor3 properties within4. No heap/RSS theorem.",
     "pendingCorrectionApplicability": {
       "sourceRevision": "1fbd21e3018fd6b8d761beb707006eabec974298",
       "sourceSha256": "5eb85da6a052b0dbec86329e4a298599443e5d9e52acaf11200346b882af44d1",
@@ -1239,9 +1239,9 @@
     "native-capacity.mjs": "Actual production planner observation, unique pressure and retained capacity mutant/restoration",
     "native-package.mjs": "Actual production builder/archive/extraction and complete native output readback"
   },
-  "verificationCompletion": "All corrected models and interpretations passed separately at3a13e78. Failed previous runtime cannot compose. New complete candidate and ordinary required; source sync unchanged.",
+  "verificationCompletion": "Complete candidate passed with21 configurations,16 actual-code mutant/restored families and all original runtime checks. Run the ordinary command cold after this binding commit; its external evidence is the final proof.",
   "sourceOrderCorrection": {
-    "basis": "Root-accepted preliminary source correspondence review at b875ad4; final independent verification remains required.",
+    "basis": "Root accepted the bounded corrected correspondence at45fe746 after independent review. All75 ordered actions are unchanged in this complete candidate; final combined review remains separate.",
     "oldNativeModels": "Superseded by current source-order correction; old runtime candidate failed separately at legitimate bootstrap retry. No composed candidate pass.",
     "newActions": [
       "ReserveAttemptAppend",
@@ -1325,5 +1325,16 @@
       "pending=unrelated means the coordinator requires refusal for this caller; permitted all-generated and matching-family recovery remain original publisher/runtime obligations."
     ],
     "brokenIntent": "Only move append/sync omitted; archive intent and frozen physical expected-old guard remain before normal swap, matching actual M5 interrupted prefix."
+  },
+  "candidate": {
+    "verificationRevision": "f63318dd3af48943cab19c8ea6b2383591a8433e",
+    "outcome": "passed",
+    "evidenceName": "control-publication-GAo5ue",
+    "resultsSha256": "7d3e0b81ddaf3ce786ab87f57ff5a0bcdda574bf2bfff5b849909c0ded86917a",
+    "modelConfigurations": 21,
+    "positive": 6,
+    "requiredCounterexamples": 15,
+    "originalBoundaries": 115,
+    "actualMutantFamilies": 16
   }
 }

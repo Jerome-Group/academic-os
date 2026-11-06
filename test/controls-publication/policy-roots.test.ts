@@ -8,6 +8,8 @@ import {
   parseBytes,
   validatePolicy,
 } from "../../src/controls-publication/schema.js";
+import type { NativeInventory } from "../../src/migration/native-inventory/index.js";
+import { validateNativeInventory } from "../../src/migration/native-inventory/schema.js";
 import { fixture, raw } from "./native-policy-fixture.js";
 
 it("binds actual signed source birthtime without changing frozen generated identity and refuses physical overlap in both directions", {
@@ -16,6 +18,10 @@ it("binds actual signed source birthtime without changing frozen generated ident
 }, async (context) => {
   const f = await fixture("signed-source-root");
   context.diagnostic(`Retained signed source-root fixture ${f.root}`);
+  await writeFile(
+    join(f.source, "synthetic-source.txt"),
+    "Retained source bytes.\n",
+  );
   const executable = join(f.root, "policy-date-fixture");
   const build = spawnSync(
     "xcrun",
@@ -44,6 +50,27 @@ it("binds actual signed source birthtime without changing frozen generated ident
     BigInt(observed.nanoseconds)
   ).toString();
   await chmod(f.source, 0o777);
+  async function inventory(name: string) {
+    const result = f.command([
+      "dist/src/cli.js",
+      "migration",
+      "inventory",
+      "--root",
+      f.source,
+      "--json",
+      "--log",
+      join(f.root, `source-${name}.json`),
+    ]);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    const parsed: unknown = JSON.parse(result.stdout);
+    assert.ok(validateNativeInventory(parsed));
+    const value = parsed as NativeInventory;
+    assert.equal(value.complete, true);
+    assert.notEqual(value.sourceFingerprint, null);
+    assert.equal(value.entries[0]?.before.birthtimeNs, expected);
+    return value;
+  }
+  const before = await inventory("before");
   const input = await f.request();
   const installed = await f.run("install-native-source-policy", input);
   assert.equal(installed.status, 0, JSON.stringify(installed.value));
@@ -62,6 +89,13 @@ it("binds actual signed source birthtime without changing frozen generated ident
     validatePolicy,
   );
   assert.equal(policy.slots[0].snapshot.object.birthtimeNs, expected);
+  const afterInstall = await inventory("after-install");
+  assert.equal(afterInstall.sourceFingerprint, before.sourceFingerprint);
+  const retry = await f.run("retry-native-source-policy", input.requestId);
+  assert.equal(retry.status, 0, JSON.stringify(retry.value));
+  assert.deepEqual(retry.value, installed.value);
+  const afterRetry = await inventory("after-retry");
+  assert.equal(afterRetry.sourceFingerprint, before.sourceFingerprint);
   await writeFile(
     join(f.root, "source-date-evidence.json"),
     JSON.stringify(
@@ -70,6 +104,13 @@ it("binds actual signed source birthtime without changing frozen generated ident
         expected,
         actual: policy.slots[0].snapshot.object.birthtimeNs,
         ordinaryMode: 0o777,
+        installed: installed.value,
+        completedRetry: retry.value,
+        sourceFingerprints: {
+          before: before.sourceFingerprint,
+          afterInstall: afterInstall.sourceFingerprint,
+          afterRetry: afterRetry.sourceFingerprint,
+        },
       },
       null,
       2,

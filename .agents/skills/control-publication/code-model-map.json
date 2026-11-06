@@ -1,8 +1,8 @@
 {
-  "productRevision": "1fbd21e3018fd6b8d761beb707006eabec974298",
+  "productRevision": "3d4ae3aef0dbee591cc06e8c39abaa1c14b7152d",
   "base": "b81c7635a8122f11cd2e174842b036e8584ecbb3",
   "planningRevision": "c13d4b1af465ee7efa4cea380d77af83f6150c62",
-  "status": "source-mapping-ready; approved pending correction integrated; full candidate/ordinary pending",
+  "status": "approved product and corrected order models integrated; full candidate/ordinary pending",
   "properties": [
     {
       "id": "P1",
@@ -55,9 +55,9 @@
         {
           "path": "src/controls-publication/native-policy-history.ts",
           "symbol": "requireRecordAdmission",
-          "symbolOccurrences": [100],
-          "sha256": "5eb85da6a052b0dbec86329e4a298599443e5d9e52acaf11200346b882af44d1",
-          "gitBlob": "1b77326e2b394bfbcde4c77782996064361ab15e"
+          "symbolOccurrences": [107],
+          "sha256": "28050934bfd4c5f83ea53d01617a5fc9b2b8715df37b243b9bd1fc8bb0ab65d7",
+          "gitBlob": "f8f8b42fdf906acaef3113be284bdfbb657df29a"
         },
         {
           "path": "src/controls-publication/owner.ts",
@@ -85,8 +85,15 @@
           "path": "test/controls-publication/native-policy-admission.test.ts",
           "symbol": "refuses cross-family and internal bridge",
           "symbolOccurrences": [113],
-          "sha256": "16d745a37dacb1e8ec3370b18757f40656960819a0868418351219808cd17031",
-          "gitBlob": "103b14243eb24bac47f0fea2b878e5428465b62f"
+          "sha256": "b2ee689d7070c918f5c831581291524f2c40118175f9c03e45670f2ed67468e4",
+          "gitBlob": "2081ed80888c0aaf317aefb42432f99a94597b95"
+        },
+        {
+          "path": "test/controls-publication/bootstrap-request.test.ts",
+          "symbol": "bootstrap",
+          "sha256": "8b35d576c78258c944a0af1b0cb23fb58ccf14dac239e4de8880db71f6b3af30",
+          "gitBlob": "a48535da1d54bc575647698b40a3b40399209af5",
+          "symbolOccurrences": [8, 12, 13, 29, 33]
         }
       ],
       "needed": "Use the existing cross-family/bridge matrix, retain exact ledger/output snapshots and successful final retry. Do not equate replay-only uniqueness with admission.",
@@ -98,7 +105,10 @@
         "issue": 483,
         "trigger": "Original public bootstrap request retries before a candidate starter while four fixed catalog directory labels use requestId/attemptId bootstrap.",
         "wrongOutcome": "request-conflict at public starter admission after catalog writes.",
-        "claim": "Fixed internal directory labels are not public request ownership. Compatibility remains a runtime obligation; product repair is separate."
+        "claim": "Fixed internal directory labels are not public request ownership. Compatibility remains a runtime obligation; product repair is separate.",
+        "correctionRevision": "3d4ae3aef0dbee591cc06e8c39abaa1c14b7152d",
+        "proofStatus": "Independently approved product correction; fresh complete candidate pending.",
+        "modelPremise": "Owner map represents actual public starters and computed native bridges. Fixed catalog directory kind/request/attempt labels are not public request ownership."
       }
     },
     {
@@ -132,9 +142,9 @@
         {
           "path": "src/controls-publication/native-policy-history.ts",
           "symbol": "validateMixedHistory",
-          "symbolOccurrences": [156, 557],
-          "sha256": "5eb85da6a052b0dbec86329e4a298599443e5d9e52acaf11200346b882af44d1",
-          "gitBlob": "1b77326e2b394bfbcde4c77782996064361ab15e"
+          "symbolOccurrences": [163, 564],
+          "sha256": "28050934bfd4c5f83ea53d01617a5fc9b2b8715df37b243b9bd1fc8bb0ab65d7",
+          "gitBlob": "f8f8b42fdf906acaef3113be284bdfbb657df29a"
         }
       ],
       "checkpoints": [
@@ -205,9 +215,9 @@
         {
           "path": "src/controls-publication/native-policy-history.ts",
           "symbol": "requirePendingOrder",
-          "symbolOccurrences": [553],
-          "sha256": "5eb85da6a052b0dbec86329e4a298599443e5d9e52acaf11200346b882af44d1",
-          "gitBlob": "1b77326e2b394bfbcde4c77782996064361ab15e"
+          "symbolOccurrences": [560],
+          "sha256": "28050934bfd4c5f83ea53d01617a5fc9b2b8715df37b243b9bd1fc8bb0ab65d7",
+          "gitBlob": "f8f8b42fdf906acaef3113be284bdfbb657df29a"
         }
       ],
       "checkpoints": [
@@ -221,8 +231,8 @@
           "path": "test/controls-publication/native-policy-admission.test.ts",
           "symbol": "replays completed generated and native output",
           "symbolOccurrences": [10],
-          "sha256": "16d745a37dacb1e8ec3370b18757f40656960819a0868418351219808cd17031",
-          "gitBlob": "103b14243eb24bac47f0fea2b878e5428465b62f"
+          "sha256": "b2ee689d7070c918f5c831581291524f2c40118175f9c03e45670f2ed67468e4",
+          "gitBlob": "2081ed80888c0aaf317aefb42432f99a94597b95"
         },
         {
           "path": "test/controls-publication/native-policy-boundary.test.ts",
@@ -236,7 +246,7 @@
           "symbol": "reports truthful host recovery",
           "sha256": "2c091838ce68e9b59ccdec246f7fa4bc6a32466e3319ec8f3fb8f685e1ea8cfd",
           "gitBlob": "25e2639e013cc4f201dfd72f87cbd427f8fdff7c",
-          "symbolOccurrences": [18]
+          "symbolOccurrences": [16]
         }
       ],
       "needed": "Keep generated create/publication, registration and native receipt readback. Exercise two operations times two interrupted physical positions. Kill after swap and after archive. Assert unchanged ledger during completed readback, forced-sync marker absent, and fresh mutation refusal.",
@@ -281,9 +291,9 @@
         {
           "path": "src/controls-publication/native-policy-history.ts",
           "symbol": "owned",
-          "symbolOccurrences": [175, 268, 367, 440, 475, 476, 477, 494, 536],
-          "sha256": "5eb85da6a052b0dbec86329e4a298599443e5d9e52acaf11200346b882af44d1",
-          "gitBlob": "1b77326e2b394bfbcde4c77782996064361ab15e"
+          "symbolOccurrences": [182, 275, 374, 447, 482, 483, 484, 501, 543],
+          "sha256": "28050934bfd4c5f83ea53d01617a5fc9b2b8715df37b243b9bd1fc8bb0ab65d7",
+          "gitBlob": "f8f8b42fdf906acaef3113be284bdfbb657df29a"
         },
         {
           "path": "src/controls-publication/native-policy-persistence.ts",
@@ -317,9 +327,9 @@
         {
           "path": "test/controls-publication/native-policy-admission.test.ts",
           "symbol": "converges new unchanged",
-          "symbolOccurrences": [264],
-          "sha256": "16d745a37dacb1e8ec3370b18757f40656960819a0868418351219808cd17031",
-          "gitBlob": "103b14243eb24bac47f0fea2b878e5428465b62f"
+          "symbolOccurrences": [273],
+          "sha256": "b2ee689d7070c918f5c831581291524f2c40118175f9c03e45670f2ed67468e4",
+          "gitBlob": "2081ed80888c0aaf317aefb42432f99a94597b95"
         },
         {
           "path": "test/controls-publication/native-policy.test.ts",
@@ -418,9 +428,9 @@
         {
           "path": "src/controls-publication/native-policy-history.ts",
           "symbol": "native-selector-move-intent",
-          "symbolOccurrences": [308, 373],
-          "sha256": "5eb85da6a052b0dbec86329e4a298599443e5d9e52acaf11200346b882af44d1",
-          "gitBlob": "1b77326e2b394bfbcde4c77782996064361ab15e"
+          "symbolOccurrences": [315, 380],
+          "sha256": "28050934bfd4c5f83ea53d01617a5fc9b2b8715df37b243b9bd1fc8bb0ab65d7",
+          "gitBlob": "f8f8b42fdf906acaef3113be284bdfbb657df29a"
         },
         {
           "path": "src/controls-publication/native/filesystem.cc",
@@ -486,9 +496,9 @@
         {
           "path": "src/controls-publication/native-policy-history.ts",
           "symbol": "native-source-policy-receipt-intent",
-          "symbolOccurrences": [501, 524],
-          "sha256": "5eb85da6a052b0dbec86329e4a298599443e5d9e52acaf11200346b882af44d1",
-          "gitBlob": "1b77326e2b394bfbcde4c77782996064361ab15e"
+          "symbolOccurrences": [508, 531],
+          "sha256": "28050934bfd4c5f83ea53d01617a5fc9b2b8715df37b243b9bd1fc8bb0ab65d7",
+          "gitBlob": "f8f8b42fdf906acaef3113be284bdfbb657df29a"
         }
       ],
       "checkpoints": [
@@ -605,9 +615,9 @@
         {
           "path": "test/controls-publication/native-policy-admission.test.ts",
           "symbol": "rejects an oversized",
-          "symbolOccurrences": [225],
-          "sha256": "16d745a37dacb1e8ec3370b18757f40656960819a0868418351219808cd17031",
-          "gitBlob": "103b14243eb24bac47f0fea2b878e5428465b62f"
+          "symbolOccurrences": [234],
+          "sha256": "b2ee689d7070c918f5c831581291524f2c40118175f9c03e45670f2ed67468e4",
+          "gitBlob": "2081ed80888c0aaf317aefb42432f99a94597b95"
         },
         {
           "path": "test/controls-publication/native-policy.test.ts",
@@ -825,6 +835,12 @@
       "chargedPendingProperties": 4,
       "publicationPlanDigest": "Fits existing two digest-string charges per event.",
       "claim": "Conditional source-profile applicability; no heap/RSS measurement or theorem."
+    },
+    "bootstrapCorrectionApplicability": {
+      "sourceRevision": "3d4ae3aef0dbee591cc06e8c39abaa1c14b7152d",
+      "sourceSha256": "28050934bfd4c5f83ea53d01617a5fc9b2b8715df37b243b9bd1fc8bb0ab65d7",
+      "change": "Exclude only fixed directory-claimed/bootstrap/bootstrap labels from generic internal ownership. Actual public starter lookup and computed native bridge checks stay first.",
+      "allocations": "Boolean discriminant/string comparisons only; no new Set/Map/array, retained descriptor or key width."
     }
   },
   "mutants": [
@@ -835,7 +851,7 @@
         {
           "path": "src/controls-publication/native-policy-history.ts",
           "symbol": "native-host-deployment-intent",
-          "sha256": "5eb85da6a052b0dbec86329e4a298599443e5d9e52acaf11200346b882af44d1",
+          "sha256": "28050934bfd4c5f83ea53d01617a5fc9b2b8715df37b243b9bd1fc8bb0ab65d7",
           "symbolOccurrences": [
             20, 29, 55, 75, 113, 199, 226, 234, 242, 261, 317, 323, 332, 590
           ]
@@ -1223,7 +1239,7 @@
     "native-capacity.mjs": "Actual production planner observation, unique pressure and retained capacity mutant/restoration",
     "native-package.mjs": "Actual production builder/archive/extraction and complete native output readback"
   },
-  "verificationCompletion": "Corrected model order awaits fresh model-only checks. Candidate2 runtime failed on genuine bootstrap public-ID regression; no composed candidate or source-sync advance.",
+  "verificationCompletion": "All corrected models and interpretations passed separately at3a13e78. Failed previous runtime cannot compose. New complete candidate and ordinary required; source sync unchanged.",
   "sourceOrderCorrection": {
     "basis": "Root-accepted preliminary source correspondence review at b875ad4; final independent verification remains required.",
     "oldNativeModels": "Superseded by current source-order correction; old runtime candidate failed separately at legitimate bootstrap retry. No composed candidate pass.",

@@ -148,6 +148,7 @@
     "src/repair/repair-journal.ts": "f3952080ee6e52ea3f7dc21d9b02915fb49ead456048d50a554b06b8efd7ee90",
     "test/cli/curation-register-ownership-cli.test.ts": "cf8a88a8c6f9c278ed130068f33762d304d2bffaf77363045b413e1797f012c2",
     "test/controls-publication/alias-fixture.cc": "e94d761318e33072349437cf18077a35d3f82a27e3539ad471ee56c880e8bc2d",
+    "test/controls-publication/bootstrap-request.test.ts": "8b35d576c78258c944a0af1b0cb23fb58ccf14dac239e4de8880db71f6b3af30",
     "test/controls-publication/capacity.test.ts": "7e52cbe3bc62594832c94f46924ea208a1a2278d068809dd9646aeafdcb5df07",
     "test/controls-publication/durability.test.ts": "405e0a013f51ca74bfed0bad6f89ccac4dec95ae314c6ea81cbb7c0af4b33e6e",
     "test/controls-publication/fixtures.ts": "b6771bca5157b75986b73d1ec1dee9cba7bd638457a1aff3934e7e3d6e2c5846",
@@ -245,9 +246,9 @@
     "historicalPublisherRecord": "earlierBaseMaintenance remains 85-source publisher history, not current 109-source workflow proof."
   },
   "nativePolicyMaintenance": {
-    "productRevision": "1fbd21e3018fd6b8d761beb707006eabec974298",
+    "productRevision": "3d4ae3aef0dbee591cc06e8c39abaa1c14b7152d",
     "base": "b81c7635a8122f11cd2e174842b036e8584ecbb3",
-    "status": "candidate-pending; sync not advanced",
+    "status": "full candidate required after reviewed483; sync unchanged",
     "existingWorkflowSourceBindings": 109,
     "changedExistingBindings": 26,
     "addedSourceBindings": 52,
@@ -271,6 +272,13 @@
         "test/controls-publication/generated-pending-host.test.ts"
       ],
       "sourceSyncAdvanced": false
+    },
+    "bootstrapCorrection": {
+      "productRevision": "3d4ae3aef0dbee591cc06e8c39abaa1c14b7152d",
+      "issue": 483,
+      "fixedCatalogMarkersArePublicOwnership": false,
+      "literalOriginalBootstrapSchedulesPreserved": true,
+      "newRuntimeRegression": "test/controls-publication/bootstrap-request.test.ts"
     }
   }
 }

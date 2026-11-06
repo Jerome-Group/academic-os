@@ -433,7 +433,7 @@ try {
       [
         "--input-type=module",
         "-e",
-        `import {runPublicationJourney} from './dist/test/controls-publication/journey.js';console.log(await runPublicationJourney(${JSON.stringify(evidence)}));`,
+        `import {runPublicationJourney} from './dist/test/controls-publication/journey.js';console.log(await runPublicationJourney(${JSON.stringify(process.env.TMPDIR ?? tmpdir())}));`,
       ],
       root,
       "public-cli-mcp-extracted",

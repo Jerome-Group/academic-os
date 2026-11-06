@@ -37,6 +37,7 @@ import {
   parseBytes,
   validateMixedEvent,
 } from "./schema.js";
+import { ReplayAllocation, unsharedAllocation } from "./replay-allocation.js";
 
 export const ledgerName = "academic-os-control-publication.jsonl";
 export const namespaceName = "academic-os-control-publication";
@@ -88,6 +89,14 @@ type StageInput = {
 export class PublicationStore {
   readonly handles: (DirectoryHandle | RegularHandle)[] = [];
   private retainedRecords: MixedRecord[] = [];
+  private readonly retainedDigests = new WeakMap<MixedRecord, string>();
+  private recordPositions: Map<string, number> | undefined;
+  private replayAllocation = new ReplayAllocation();
+  private completion:
+    | { bytes: number; rows: number; allocation: number }
+    | undefined;
+  private completionKey: string | undefined;
+  private preparedAllocation = 0;
   private mutationPreflight: (() => void) | undefined;
   private nextSequence: number | null = 0;
   private ledgerLength = 0;
@@ -165,6 +174,7 @@ export class PublicationStore {
   mutating(): MutationInterval {
     if (this.interval === null) throw new Error("Read-only publication store.");
     this.mutationPreflight?.();
+    if (this.completion) this.checkCompletion(this.completion);
     return this.interval;
   }
   records(): readonly PublicationRecord[] {
@@ -175,8 +185,63 @@ export class PublicationStore {
   mixedRecords(): readonly MixedRecord[] {
     return this.retainedRecords;
   }
+  recordDigest(record: MixedRecord): string {
+    const prior = this.retainedDigests.get(record);
+    if (prior) return prior;
+    const value = digest(record);
+    if (Object.isFrozen(record)) this.retainedDigests.set(record, value);
+    return value;
+  }
+  recordPosition(record: MixedRecord): number {
+    if (!this.recordPositions) {
+      const positions = new Map<string, number>();
+      this.retainedRecords.forEach((row, index) => {
+        const key = this.recordDigest(row);
+        if (!positions.has(key)) positions.set(key, index);
+      });
+      this.recordPositions = positions;
+    }
+    return this.recordPositions.get(this.recordDigest(record)) ?? -1;
+  }
   beforeMutation(preflight: () => void): void {
     this.mutationPreflight = preflight;
+  }
+  private allocation(): ReplayAllocation {
+    if (!this.replayAllocation) this.replayAllocation = new ReplayAllocation();
+    return this.replayAllocation;
+  }
+  replayAllocationBytes(): number {
+    return this.allocation().byteLength;
+  }
+  private checkCompletion(suffix: {
+    bytes: number;
+    rows: number;
+    allocation: number;
+  }): void {
+    if (
+      !Number.isSafeInteger(suffix.allocation) ||
+      suffix.allocation < this.preparedAllocation
+    )
+      recover(
+        "durability-unavailable",
+        "The frozen replay allocation suffix is exhausted.",
+      );
+    this.requireAppendCapacity(suffix.bytes, suffix.rows);
+    this.allocation().require(
+      suffix.allocation - this.preparedAllocation,
+      suffix.rows,
+    );
+  }
+  completionReservedFor(key: string): boolean {
+    return this.completion !== undefined && this.completionKey === key;
+  }
+  reserveCompletion(
+    suffix: { bytes: number; rows: number; allocation: number },
+    key?: string,
+  ): void {
+    this.checkCompletion(suffix);
+    this.completion = { ...suffix };
+    this.completionKey = key;
   }
   requireAppendCapacity(additionalBytes: number, additionalRows = 1): void {
     if (
@@ -213,10 +278,26 @@ export class PublicationStore {
       );
     parseBytes(bytes, validateMixedEvent);
     this.requireAppendCapacity(bytes.byteLength + 1);
+    if (
+      this.completion &&
+      (bytes.byteLength + 1 > this.completion.bytes ||
+        this.completion.rows < 1 ||
+        unsharedAllocation(record) > this.completion.allocation)
+    )
+      recover(
+        "durability-unavailable",
+        "The complete publication recovery suffix is exhausted.",
+      );
+    this.allocation().require(
+      this.completion ? 0 : unsharedAllocation(record),
+      1,
+    );
     return bytes;
   }
   append(record: MixedRecord): void {
     const bytes = this.preflightRecord(record);
+    this.preparedAllocation = unsharedAllocation(record);
+    const retained = this.allocation().retain(record);
     const sequence = this.nextSequence;
     if (sequence === null)
       recover("durability-unavailable", "Publication sequence is exhausted.");
@@ -234,7 +315,20 @@ export class PublicationStore {
       this.native.syncFile({ interval: this.mutating(), file: this.ledger }),
       "durability-unavailable",
     );
-    this.retainedRecords.push(record);
+    this.retainedRecords.push(retained);
+    if (this.recordPositions) {
+      const key = this.recordDigest(retained);
+      if (!this.recordPositions.has(key))
+        this.recordPositions.set(key, this.retainedRecords.length - 1);
+    }
+    this.allocation().addRow();
+    if (this.completion) {
+      this.completion.bytes -= bytes.byteLength + 1;
+      this.completion.rows--;
+      this.completion.allocation -= unsharedAllocation(record);
+      if (this.completion.rows === 0) this.completion = undefined;
+    }
+    this.preparedAllocation = 0;
     this.ledgerLength += bytes.byteLength + 1;
     this.previousHash = sha256(bytes);
     this.nextSequence =
@@ -242,7 +336,6 @@ export class PublicationStore {
   }
   load(): void {
     const records: MixedRecord[] = [];
-    let projectionBytes = 0;
     let sequence: number | null = 0;
     let previousHash: string | null = null;
     let offset = 0;
@@ -294,13 +387,8 @@ export class PublicationStore {
             "journal-recovery-required",
             "Ledger sequence, chain or deterministic encoding differs.",
           );
-        projectionBytes += line.byteLength;
-        if (projectionBytes > 256 * 1024 * 1024)
-          recover(
-            "journal-recovery-required",
-            "Mixed ledger replay exceeds its 256 MiB projection budget.",
-          );
-        records.push(event.record);
+        records.push(this.allocation().retain(event.record));
+        this.allocation().addRow();
         previousHash = sha256(line);
         sequence = sequence === Number.MAX_SAFE_INTEGER ? null : sequence + 1;
         fragments = [];

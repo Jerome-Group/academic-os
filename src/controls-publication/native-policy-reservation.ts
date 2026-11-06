@@ -12,6 +12,7 @@ import { maximumEventBytes } from "./limits.js";
 import { attemptScope, operationBinding } from "./native-policy-history.js";
 import { planned } from "./native-policy-persistence.js";
 import { type MixedRecord, parseBytes, validateMixedEvent } from "./schema.js";
+import { unsharedAllocation } from "./replay-allocation.js";
 
 export const emptyReservation: Reservation = {
   eventCount: "0",
@@ -21,9 +22,28 @@ export const emptyReservation: Reservation = {
   maximumAttempts: 3,
 };
 
+const capacities = new WeakMap<
+  object,
+  { reservation: Reservation; allocation: number }
+>();
+
 export function reserveNativePlan(
   intent: HostRegistrationIntent | PolicyInstallIntent,
 ): Reservation {
+  return nativePlanCapacity(intent).reservation;
+}
+
+export function nativePlanAllocation(
+  intent: HostRegistrationIntent | PolicyInstallIntent,
+): number {
+  return nativePlanCapacity(intent).allocation;
+}
+
+function nativePlanCapacity(
+  intent: HostRegistrationIntent | PolicyInstallIntent,
+): { reservation: Reservation; allocation: number } {
+  const prior = capacities.get(intent);
+  if (prior) return prior;
   const hash = "f".repeat(64);
   const identity = {
     kind: "regular" as const,
@@ -230,6 +250,7 @@ export function reserveNativePlan(
     }
   }
   let ledgerBytes = 0;
+  let allocation = 0;
   for (const record of records) {
     const bytes = encodePublication({
       schemaVersion: 1,
@@ -244,12 +265,16 @@ export function reserveNativePlan(
       );
     parseBytes(bytes, validateMixedEvent);
     ledgerBytes += bytes.byteLength + 1;
+    allocation += unsharedAllocation(record);
   }
-  return {
+  const reservation: Reservation = {
     eventCount: String(records.length),
     ledgerBytes: String(ledgerBytes),
     retainedBytes: String(retainedBytes),
     indexBytes: "0",
     maximumAttempts: 3,
   };
+  const capacity = { reservation, allocation };
+  capacities.set(intent, capacity);
+  return capacity;
 }

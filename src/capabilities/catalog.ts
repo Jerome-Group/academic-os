@@ -7,6 +7,8 @@ import { checkProfiles } from "./checks.js";
 
 const buildPrerequisite =
   "built runtime from npm ci && npm run build; macOS compilation requires Xcode Command Line Tools (/usr/bin/xcrun clang)";
+const replayAccountingPrerequisite =
+  "64-bit arm64 or x64; Node 24 with V8 13, or Node 25/26 with V8 14, for bounded mixed-ledger replay";
 
 export interface Capability {
   id: string;
@@ -108,7 +110,7 @@ export const cliCapabilities: Capability[] = [
       surface: "cli",
       invocation: `node dist/src/cli.js controls ${operation} --json`,
       prerequisites: [
-        "Node >=24",
+        replayAccountingPrerequisite,
         "npm ci && npm run build",
         "supported Darwin account, private local Application Support anchor and native addon",
         "generated candidate admission for publish and inspect",
@@ -133,6 +135,7 @@ export const cliCapabilities: Capability[] = [
       tests: [
         "test/controls-publication/publication.test.ts",
         "test/controls-publication/capacity.test.ts",
+        "test/controls-publication/replay-capacity.test.ts",
         "test/controls-publication/native.test.ts",
         "test/controls-publication/durability.test.ts",
         "test/controls-publication/import-boundary.test.ts",
@@ -725,7 +728,7 @@ export function capabilityIndex(): object {
       surface: "script",
       invocation: `node scripts/deploy-native-source-policy.mjs ${operation} ${operation === "retry-native-source-policy" ? "--request <request-id>" : "--input <absolute-private-json>"}`,
       prerequisites: [
-        "Node >=24",
+        replayAccountingPrerequisite,
         buildPrerequisite,
         "deliberate trusted host deployment",
         "explicit registered versioned configuration set and available local roots",
@@ -748,6 +751,7 @@ export function capabilityIndex(): object {
       implementation: "src/controls-publication/host-deployment-command.ts",
       tests: [
         "test/controls-publication/native-policy.test.ts",
+        "test/controls-publication/replay-capacity.test.ts",
         "test/controls-publication/runtime-consistency.test.ts",
         "test/controls-publication/native-policy-admission.test.ts",
         "test/controls-publication/packaged-policy.test.ts",
@@ -793,6 +797,7 @@ export function capabilityIndex(): object {
       invocation: `tools/call ${tool.name}`,
       prerequisites: [
         "supported Darwin host and private local account anchor",
+        replayAccountingPrerequisite,
         "generated candidate admission for publication and inspection",
       ],
       reads: [
@@ -810,6 +815,7 @@ export function capabilityIndex(): object {
         "test/controls-publication/publication-journey.test.ts",
         "test/controls-publication/publication-schema.test.ts",
         "test/controls-publication/capacity.test.ts",
+        "test/controls-publication/replay-capacity.test.ts",
         "test/controls-publication/native.test.ts",
       ],
       status: "supported",
@@ -1163,6 +1169,11 @@ export function capabilityIndex(): object {
       invocation: `node dist/src/cli.js capabilities check --profile ${profile} --json`,
       prerequisites: [
         buildPrerequisite,
+        ...(["publication", "publication-formal", "full", "tests"].includes(
+          profile,
+        )
+          ? [replayAccountingPrerequisite]
+          : []),
         ...(profile === "full" ||
         profile === "templates" ||
         profile === "coverage"

@@ -17,7 +17,8 @@ import type {
 } from "./generated/publication-contract-1.js";
 import type { DirectoryHandle } from "./native-contract.js";
 import { attemptScope, operationBinding } from "./native-policy-history.js";
-import type { MixedRecord } from "./schema.js";
+import { nativePlanAllocation } from "./native-policy-reservation.js";
+import { unsharedAllocation } from "./replay-allocation.js";
 import {
   nativeEffect,
   nativeValue,
@@ -659,10 +660,10 @@ export function withAttempts<T>(
 export function reserveSuffix(
   store: PublicationStore,
   reservation: Reservation,
-  intent: MixedRecord,
+  intent: HostRegistrationIntent | PolicyInstallIntent,
 ): void {
   const history = store.mixedRecords();
-  const start = history.findIndex((row) => digest(row) === digest(intent));
+  const start = store.recordPosition(intent);
   const remainingRows =
     Number(reservation.eventCount) - (start < 0 ? 0 : history.length - start);
   const spentBytes =
@@ -690,5 +691,16 @@ export function reserveSuffix(
       "durability-unavailable",
       "The frozen native recovery suffix is exhausted.",
     );
-  store.requireAppendCapacity(remainingBytes, remainingRows);
+  const remainingAllocation =
+    nativePlanAllocation(intent) -
+    (start < 0
+      ? 0
+      : history
+          .slice(start)
+          .reduce((sum, row) => sum + unsharedAllocation(row), 0));
+  store.reserveCompletion({
+    bytes: remainingBytes,
+    rows: remainingRows,
+    allocation: remainingAllocation,
+  });
 }

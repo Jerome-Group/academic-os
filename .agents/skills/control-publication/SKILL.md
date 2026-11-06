@@ -1,6 +1,6 @@
 ---
 name: control-publication
-description: Check generated control publication after changes to its account resolver, owner lifetime, claims, ledger replay, expected heads, complete graph, receipts, CLI, MCP or standalone package.
+description: Check generated control publication and native host policy after changes to its account resolver, owner lifetime, claims, ledger replay, expected heads, complete graph, receipts, CLI, MCP or standalone package.
 ---
 
 # Check control publication
@@ -42,7 +42,7 @@ The statechart tool's interpreter is separate from the pinned checker identity.
 
 [Coverage](coverage.md) maps actions, source functions, runtime observations and reductions.
 [The source binding](coverage.json) records the checked product commit and exact covered-source hashes.
-The model bounds are two writers, two candidates, two generations, one conflicting alias, one physical replacement, one crash/restart and one admitted effect.
+The publisher model bounds are two writers, two candidates, two generations, one conflicting alias, one physical replacement, one crash/restart and one admitted effect.
 One crash permits one retained unclaimed attempt and one fresh attempt. Orphan append, its file barrier and fresh reservation remain separate.
 The native operations are synchronous. Expiry/drain tests establish ordering; no asynchronous native worker exists in this implementation.
 Kernel exclusion, account discovery, native syscall behavior and filesystem durability remain runtime premises.
@@ -66,3 +66,11 @@ Use pstack `/maintain-formal-verification-skill` for changes that skipped these 
 Keep each native binary and its fixture at its original absolute path.
 Inspect SQLite sidecars through metadata only. Preserve links and FIFO entries without opening or following them.
 Keep product repair, live data, provider access, Shelf probes and deployment outside this verification task.
+
+## Native host policy
+
+Read `code-model-map.json` for the eleven source-bound properties and explicit reductions. Require21 TLC cases in every full run: six positive configurations and fifteen intentional counterexamples. Require the original eight and added eight actual-code mutant families, each with its predicted harmful observable and exact restored behavior. Read the native public-contract, repeated-history and unique-pressure results, planner accounting, physical output readbacks and actual produced/extracted-package evidence.
+
+Native fixtures use the OS temporary directory. Set `TMPDIR`, `TMP` and `TEMP` to the same existing private directory on a supported local filesystem before building or running. Model outputs, logs and checker state may use a separate evidence parent. Never relax private-ancestry guards to accommodate an evidence volume. The runner retains fixture paths separately from model/log paths. Inspect SQLite sidecars through metadata only.
+
+Require the source-derived49/70 native row vectors and all six added selector-move rows. Preserve the source-profile accounting premises and finite historical replay limit. Completed output retrieval is required only after supported history loads and physically verifies. Generated retries reserve the next complete path and retained obligations, without an invented attempt ceiling. Source identity, exact scope/metadata/bytes, dependency resolution, filesystem and process behavior remain runtime obligations. No acquisition, corpus preservation, total heap/RSS, infinite completion, power-loss or malicious-bootstrap theorem follows.

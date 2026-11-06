@@ -326,9 +326,11 @@ export async function runtime(root, evidence) {
       const manifest = JSON.parse(manifestBytes);
       manifest.sourceDigest = "a".repeat(64);
       await writeFile(manifestPath, JSON.stringify(manifest));
+      await f.bindRuntime();
       refusal(f.publish(c3, "pending-a"), "request-conflict");
     } finally {
       await writeFile(manifestPath, manifestBytes);
+      await f.bindRuntime();
     }
     const settledLedger = await readFile(f.ledger);
     assert.equal(

@@ -6,6 +6,23 @@ health steps. Run `capabilities check --profile publication` with a unique priva
 Require its outer outcome and every child check to pass. Retain its native and publication
 fixture paths exactly as printed.
 
+The same profile drives trusted host deployment registration and native-source policy installation
+through the host and extracted deployment entrypoints. Retain the policy lifecycle, refusal and
+interruption fixture paths. These fixtures grant read permission to synthetic private snapshots;
+they do not copy payloads or admit migration sources. Registered configuration coverage remains
+explicit and does not discover undisclosed academic roots.
+
+Runtime consistency fixtures modify, remove and restore actual host and extracted JavaScript,
+schema code, scanner, native addon and lockfile artifacts. A native checkpoint establishes refusal
+before account resolution. Closed metadata and a complete installed artifact inventory reject
+omitted bindings. This assumes a trusted installed bootstrap held unchanged during execution;
+it supplies neither bootstrap authentication nor a universal filesystem-race guarantee.
+
+Host deployment uses the existing closed publisher owner failures because refusal or recovery
+can precede a native installation intent. Its result fixtures validate actual unavailable,
+interrupted and restored operations without inventing a native pending scope. Native acquisition
+result types remain separate and its implementation remains unavailable.
+
 For publisher protocol changes, also follow [control publication](../../control-publication/SKILL.md)
 and run the local `publication-formal` profile from a clean committed checkout.
 Read its nested models, compiled fault schedules, exact source bindings, actual public mutant
@@ -28,9 +45,10 @@ required barriers, not observed survival after power loss.
 
 Admission checks cover independent 8 MiB raw-input, individual-file and encoded-event limits.
 LF counts toward the event limit. A raw input at its ceiling can still exceed the exact create,
-plan or intent limit. Refused create staging stays unchanged. A refused intent retains its
-unselected plan, leaves the selector unchanged, permits a distinct publication, and cannot
-bypass a later stale-head refusal. Wire checks distinguish equal base64 character lengths
+plan or intent limit. Refused create staging stays unchanged. A determinably oversized
+future intent refuses before a new plan or intent, leaves the selector unchanged, permits
+a distinct publication, and cannot bypass a later stale-head refusal. Product `7748ba5`
+and `test/controls-publication/admission.test.ts` establish this stronger admission promise. Wire checks distinguish equal base64 character lengths
 whose decoded lengths fall on opposite sides of the raw ceiling.
 
 Native fixtures append and read beyond 64 MiB in bounded windows. Forged, expired, cross-file,

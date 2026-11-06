@@ -47,11 +47,14 @@ struct Handle {
   explicit Handle(int fd) : descriptor(fd) {}
 };
 struct PathSnapshot {
-  std::string path, signature, resolved;
+  std::string path, signature, resolved, privateEnclosure;
   bool optional = false;
   bool absent = false;
   std::vector<Identity> ancestry;
+  std::vector<Observation> observations;
+  std::vector<std::string> names;
 };
+struct DeploymentFile { PathSnapshot path; std::vector<uint8_t> bytes; };
 struct Exclusions {
   std::vector<PathSnapshot> paths;
   std::string cloudChildren;
@@ -61,6 +64,8 @@ struct Anchor {
   std::string path, home, syncHome, accountUuid, hostUuid;
   uid_t uid;
   std::shared_ptr<Exclusions> exclusions;
+  std::vector<PathSnapshot> policyRoots;
+  std::vector<DeploymentFile> deploymentFiles;
 };
 struct Interval {
   std::shared_ptr<Anchor> anchor;
@@ -97,9 +102,12 @@ std::vector<uint8_t> readExact(const std::shared_ptr<Handle>& handle, size_t max
 void writeExact(const std::shared_ptr<Interval>& interval, const std::shared_ptr<Handle>& handle, const std::vector<uint8_t>& bytes, const Identity& expected, bool append, size_t expectedLength);
 void sync(const std::shared_ptr<Interval>& interval, const std::shared_ptr<Handle>& handle);
 void replaceHead(const std::shared_ptr<Interval>& interval, const std::shared_ptr<Handle>& parent, const std::string& temporaryName, const Identity& temporaryObject, const std::string& headName, const Identity* oldObject, const std::vector<uint8_t>& oldBytes);
+void replaceSelector(const std::shared_ptr<Interval>& interval, const std::shared_ptr<Handle>& parent, const std::string& temporaryName, const Identity& temporaryObject, const std::string& headName, const Identity* oldObject, const std::vector<uint8_t>& oldBytes, const std::string& historyName);
 void promote(const std::shared_ptr<Interval>& interval, const std::shared_ptr<Handle>& sourceParent, const std::string& sourceName, const std::shared_ptr<Handle>& destinationParent, const std::string& destinationName, const Identity& expected, bool exclusive);
 void closeHandle(const std::shared_ptr<Handle>& handle);
 std::shared_ptr<Exclusions> observeExclusions(const std::shared_ptr<Anchor>& anchor, const std::vector<std::string>& required);
 void requireNonoverlap(const std::shared_ptr<Anchor>& anchor, const std::shared_ptr<Handle>& nameSpace, const std::shared_ptr<Exclusions>& exclusions);
 void recheckExclusions(const std::shared_ptr<Anchor>& anchor);
+DeploymentFile readDeploymentFile(const std::shared_ptr<Anchor>& anchor, const std::string& path, bool retain = true);
+std::vector<std::pair<PathSnapshot, PathSnapshot>> observePolicySlots(const std::shared_ptr<Anchor>& anchor, const std::vector<std::pair<std::string, std::string>>& slots);
 }

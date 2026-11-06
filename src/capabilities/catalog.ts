@@ -7,6 +7,8 @@ import { checkProfiles } from "./checks.js";
 
 const buildPrerequisite =
   "built runtime from npm ci && npm run build; macOS compilation requires Xcode Command Line Tools (/usr/bin/xcrun clang)";
+const replayAccountingPrerequisite =
+  "64-bit arm64 or x64; Node 24 with V8 13, or Node 25/26 with V8 14, for bounded mixed-ledger replay";
 
 export interface Capability {
   id: string;
@@ -108,7 +110,7 @@ export const cliCapabilities: Capability[] = [
       surface: "cli",
       invocation: `node dist/src/cli.js controls ${operation} --json`,
       prerequisites: [
-        "Node >=24",
+        replayAccountingPrerequisite,
         "npm ci && npm run build",
         "supported Darwin account, private local Application Support anchor and native addon",
         "generated candidate admission for publish and inspect",
@@ -132,7 +134,9 @@ export const cliCapabilities: Capability[] = [
       implementation: "src/controls-publication/command.ts",
       tests: [
         "test/controls-publication/publication.test.ts",
+        "test/controls-publication/bootstrap-request.test.ts",
         "test/controls-publication/capacity.test.ts",
+        "test/controls-publication/replay-capacity.test.ts",
         "test/controls-publication/native.test.ts",
         "test/controls-publication/durability.test.ts",
         "test/controls-publication/import-boundary.test.ts",
@@ -144,6 +148,26 @@ export const cliCapabilities: Capability[] = [
         "Generated candidates only. Complete module-data graph or explicit refusal/recovery. Other workflows, migration and conformance remain not-implemented. No arbitrary target admission.",
     }),
   ),
+  {
+    ...cli("module validate", [], [], null, [
+      "test/controls/module-data.test.ts",
+      "test/controls/native-data-validation.test.ts",
+      "test/controls/module-inspect-cli.test.ts",
+    ]),
+    invocation:
+      "node dist/src/cli.js module validate --root <candidate-module-root> --json",
+    implementation: "src/commands/module-inspect-command.ts",
+    prerequisites: [
+      "Node >=24",
+      "npm ci && npm run build",
+      "complete isolated candidate module-data generation2",
+    ],
+    reads: [
+      "safe candidate control bytes; selected byte hashes; closed module graph",
+    ],
+    result:
+      "Validated module data or structured refusal. Publication, workflows, module conformance and migration readiness remain unimplemented; no writes.",
+  },
   {
     id: "migration inventory",
     surface: "cli",
@@ -178,26 +202,6 @@ export const cliCapabilities: Capability[] = [
       "--log":
         "New absolute file in an existing private owner directory outside source/repository",
     },
-  },
-  {
-    ...cli("module validate", [], [], null, [
-      "test/controls/module-data.test.ts",
-      "test/controls/native-data-validation.test.ts",
-      "test/controls/module-inspect-cli.test.ts",
-    ]),
-    invocation:
-      "node dist/src/cli.js module validate --root <candidate-module-root> --json",
-    implementation: "src/commands/module-inspect-command.ts",
-    prerequisites: [
-      "Node >=24",
-      "npm ci && npm run build",
-      "complete isolated candidate module-data generation2",
-    ],
-    reads: [
-      "safe candidate control bytes; selected byte hashes; closed module graph",
-    ],
-    result:
-      "Validated module data or structured refusal. Publication, workflows, module conformance and migration readiness remain unimplemented; no writes.",
   },
   {
     ...cli("config validate", [], [], null, [
@@ -715,6 +719,53 @@ export const cliCapabilities: Capability[] = [
 
 export function capabilityIndex(): object {
   const actions = [...cliCapabilities];
+  for (const operation of [
+    "register",
+    "install-native-source-policy",
+    "retry-native-source-policy",
+  ])
+    actions.push({
+      id: `host deployment ${operation}`,
+      surface: "script",
+      invocation: `node scripts/deploy-native-source-policy.mjs ${operation} ${operation === "retry-native-source-policy" ? "--request <request-id>" : "--input <absolute-private-json>"}`,
+      prerequisites: [
+        replayAccountingPrerequisite,
+        buildPrerequisite,
+        "deliberate trusted host deployment",
+        "explicit registered versioned configuration set and available local roots",
+      ],
+      reads: [
+        "actual account and host",
+        "fixed physically claimed deployment registration",
+        "registered configuration bytes and root ancestry",
+        "known local cloud, runtime and repository roots",
+        "private enclosure and snapshot ancestry",
+      ],
+      writes: [
+        "host-owned deployment registration, immutable policy generations, selectors, installation receipts and the existing mixed publication ledger",
+      ],
+      riskFlags: [
+        "trusted-host-deployment-only",
+        "writes-private-source-read-permission",
+      ],
+      preview: null,
+      implementation: "src/controls-publication/host-deployment-command.ts",
+      tests: [
+        "test/controls-publication/native-policy.test.ts",
+        "test/controls-publication/native-policy-boundary.test.ts",
+        "test/controls-publication/replay-capacity.test.ts",
+        "test/controls-publication/runtime-consistency.test.ts",
+        "test/controls-publication/native-policy-admission.test.ts",
+        "test/controls-publication/generated-pending-host.test.ts",
+        "test/controls-publication/packaged-policy.test.ts",
+        "test/controls-publication/policy-roots.test.ts",
+        "test/controls-publication/host-results.test.ts",
+      ],
+      status: "supported",
+      health: "not-observed",
+      result:
+        "Registered-deployment coverage and cooperating private-input permission only. Native payload copying and source admission remain unavailable.",
+    });
   actions.push({
     id: "controls publication standalone",
     surface: "script",
@@ -749,6 +800,7 @@ export function capabilityIndex(): object {
       invocation: `tools/call ${tool.name}`,
       prerequisites: [
         "supported Darwin host and private local account anchor",
+        replayAccountingPrerequisite,
         "generated candidate admission for publication and inspection",
       ],
       reads: [
@@ -766,6 +818,7 @@ export function capabilityIndex(): object {
         "test/controls-publication/publication-journey.test.ts",
         "test/controls-publication/publication-schema.test.ts",
         "test/controls-publication/capacity.test.ts",
+        "test/controls-publication/replay-capacity.test.ts",
         "test/controls-publication/native.test.ts",
       ],
       status: "supported",
@@ -1123,6 +1176,11 @@ export function capabilityIndex(): object {
       invocation: `node dist/src/cli.js capabilities check --profile ${profile} --json`,
       prerequisites: [
         buildPrerequisite,
+        ...(["publication", "publication-formal", "full", "tests"].includes(
+          profile,
+        )
+          ? [replayAccountingPrerequisite]
+          : []),
         ...(profile === "full" ||
         profile === "templates" ||
         profile === "coverage"
@@ -1159,7 +1217,7 @@ export function capabilityIndex(): object {
       health: "not-observed",
       result:
         profile === "publication-formal"
-          ? "Bounded source-bound generated control publisher model, compiled fault schedules, exact byte readbacks and eight behavioral mutants with restored controls. Native account/kernel/syscall behavior remains a runtime premise. Local only; no live admission or whole-system proof."
+          ? "Local bounded source-bound generated control publisher model, compiled fault schedules, exact byte readbacks and eight behavioral mutants with restored controls. Native account/kernel/syscall behavior remains a runtime premise. Local only; no live admission or whole-system proof."
           : profile === "formal"
             ? "Local bounded seed filesystem and cooperating journal-owner models, compiled schedules and mutation controls; expected counterexamples are required. Same-host canonical-state assumptions apply. No guarantee against syscall swaps, uncontrolled writers or distributed ownership."
             : "Local per-check exit, duration, bounded output count/hash; full includes all compiled tests, privacy checks and seed ownership verification. Hosted Organisation conformance supplies separate policy evidence.",

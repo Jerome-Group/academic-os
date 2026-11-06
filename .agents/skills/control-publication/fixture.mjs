@@ -3,6 +3,8 @@ import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   chmod,
+  copyFile,
+  lstat,
   cp,
   mkdir,
   mkdtemp,
@@ -14,6 +16,7 @@ import {
   unlink,
 } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 import { build, transform } from "esbuild";
 
@@ -27,8 +30,8 @@ export const alive = (pid) => {
   }
 };
 
-export async function makeFixture(root, parent, name, mutate) {
-  const evidence = await mkdtemp(join(await realpath(parent), `${name}-`));
+export async function makeFixture(root, _parent, name, mutate) {
+  const evidence = await mkdtemp(join(await realpath(tmpdir()), `${name}-`));
   await chmod(evidence, 0o700);
   const source = join(evidence, "source"),
     host = join(evidence, "host"),
@@ -44,14 +47,14 @@ export async function makeFixture(root, parent, name, mutate) {
     await mkdir(directory, { mode: 0o700 });
   await cp(join(root, "src"), join(source, "src"), { recursive: true });
   await cp(join(root, "scripts"), join(source, "scripts"), { recursive: true });
-  await writeFile(join(source, "package.json"), '{"type":"module"}');
+  await cp(join(root, "package.json"), join(source, "package.json"));
   await symlink(
     join(root, "node_modules"),
     join(source, "node_modules"),
     "dir",
   );
   await cp(join(root, "dist/src"), join(host, "src"), { recursive: true });
-  await writeFile(join(host, "package.json"), '{"type":"module"}');
+  await cp(join(root, "package.json"), join(host, "package.json"));
   await symlink(join(root, "node_modules"), join(host, "node_modules"), "dir");
   const patches = [];
   const replace = async (file, from, to) => {
@@ -63,34 +66,27 @@ export async function makeFixture(root, parent, name, mutate) {
       `One mutation site in ${file}`,
     );
     await writeFile(path, original.replace(from, to));
-    patches.push({
+    const index = patches.length;
+    const patch = {
       file,
       from,
       to,
       originalSha256: hash(original),
       changedSha256: hash(original.replace(from, to)),
-    });
-  };
-  if (mutate) await mutate(replace);
-  for (let index = 0; index < patches.length; index++) {
-    const patch = patches[index];
-    patch.snapshot = join(evidence, "mutant-sources", patch.file);
+      snapshot: join(evidence, "mutant-sources", String(index), file),
+    };
     await mkdir(dirname(patch.snapshot), { recursive: true, mode: 0o700 });
-    await cp(join(source, patch.file), patch.snapshot);
+    await cp(path, patch.snapshot);
     const diff = spawnSync(
       "git",
-      [
-        "diff",
-        "--no-index",
-        "--",
-        join(root, patch.file),
-        join(source, patch.file),
-      ],
+      ["diff", "--no-index", "--", join(root, file), path],
       { encoding: "utf8" },
     );
     assert.equal(diff.status, 1, "Product mutation has a real source diff");
     await writeFile(join(evidence, `mutation-${index}.patch`), diff.stdout);
-  }
+    patches.push(patch);
+  };
+  if (mutate) await mutate(replace);
   for (const patch of patches.filter((patch) => patch.file.endsWith(".ts"))) {
     const compiled = await transform(
       await readFile(join(source, patch.file), "utf8"),
@@ -206,6 +202,10 @@ process.stdout.write(JSON.stringify(await dispatch(JSON.parse(readFileSync(0,"ut
   );
   for (const [entry, name] of [
     [join(source, "src/controls-publication/standalone.ts"), "publication.mjs"],
+    [
+      join(source, "src/controls-publication/host-deployment.ts"),
+      "host-deployment.mjs",
+    ],
     [mcpEntry, "mcp.mjs"],
   ]) {
     await build({
@@ -244,6 +244,102 @@ process.stdout.write(JSON.stringify(await dispatch(JSON.parse(readFileSync(0,"ut
     join(host, "src/controls-publication/release.json"),
     JSON.stringify(manifest),
   );
+  const { installedRuntimeDependencyFiles } = await import(
+    pathToFileURL(
+      join(root, "dist/src/controls-publication/runtime-dependencies.js"),
+    ).href
+  );
+  let bindingIndex = 0;
+  const bindFixtureRuntime = async (installation, moduleDirectory) => {
+    await copyFile(
+      join(root, "package-lock.json"),
+      join(installation, "package-lock.json"),
+    );
+    if (installation !== moduleDirectory) {
+      await copyFile(
+        join(root, "package.json"),
+        join(installation, "package.json"),
+      );
+      const modules = join(installation, "node_modules");
+      if (
+        await lstat(modules).then(
+          (value) => value.isSymbolicLink(),
+          () => false,
+        )
+      )
+        await unlink(modules);
+      for (const file of await installedRuntimeDependencyFiles(root)) {
+        await mkdir(dirname(join(installation, file)), {
+          recursive: true,
+          mode: 0o700,
+        });
+        await copyFile(join(root, file), join(installation, file));
+      }
+    } else
+      for (const [source, target] of [
+        ["scan.native", "inventory-scan.native"],
+        ["scan.c", "inventory-scan.c"],
+      ])
+        await copyFile(
+          join(root, "dist/src/migration/native-inventory/native", source),
+          join(installation, "native", target),
+        );
+    const args = [
+      join(root, "scripts/build-control-publication-integrity.mjs"),
+      installation,
+      moduleDirectory,
+    ];
+    const started = new Date().toISOString();
+    const built = spawnSync(process.execPath, args, {
+      cwd: root,
+      encoding: "utf8",
+      timeout: 30000,
+    });
+    const record = {
+      executable: process.execPath,
+      args,
+      cwd: root,
+      started,
+      ended: new Date().toISOString(),
+      pid: built.pid,
+      status: built.status,
+      signal: built.signal,
+      stdout: built.stdout,
+      stderr: built.stderr,
+      error: built.error?.message,
+      aliveAfter: alive(built.pid),
+    };
+    commands.push(record);
+    const retained = join(evidence, `runtime-binding-${bindingIndex++}.json`);
+    await writeFile(retained, JSON.stringify(record, null, 2));
+    await writeFile(
+      join(evidence, "commands.json"),
+      JSON.stringify(commands, null, 2),
+    );
+    if (built.status === 0) {
+      const bytes = await readFile(
+        join(moduleDirectory, "runtime-integrity.json"),
+      );
+      record.integritySnapshot = join(
+        evidence,
+        `runtime-integrity-${bindingIndex - 1}.json`,
+      );
+      record.integritySha256 = hash(bytes);
+      await writeFile(record.integritySnapshot, bytes);
+      await writeFile(retained, JSON.stringify(record, null, 2));
+      await writeFile(
+        join(evidence, "commands.json"),
+        JSON.stringify(commands, null, 2),
+      );
+    }
+    await writeFile(
+      join(moduleDirectory, "runtime-binding-build.json"),
+      JSON.stringify({ ...record, retained }, null, 2),
+    );
+    assert.equal(built.status, 0, built.stdout + built.stderr);
+  };
+  await bindFixtureRuntime(host, host);
+  await bindFixtureRuntime(host, join(host, "src/controls-publication"));
   const fixtureModule = await import(
     pathToFileURL(join(root, "dist/test/controls-publication/fixtures.js")).href
   );
@@ -296,9 +392,8 @@ process.stdout.write(JSON.stringify(await dispatch(JSON.parse(readFileSync(0,"ut
       if (error.code !== "ENOENT") throw error;
     });
   };
-  async function stopped(args, key, whileStopped, occurrence = 1) {
+  async function stoppedCommand(argv, key, whileStopped, occurrence = 1) {
     await fault({ key, mode: "stop", occurrence });
-    const argv = [join(host, "src/cli.js"), "controls", ...args, "--json"];
     const child = spawn(process.execPath, argv, {
       cwd: source,
       stdio: ["ignore", "pipe", "pipe"],
@@ -351,7 +446,18 @@ process.stdout.write(JSON.stringify(await dispatch(JSON.parse(readFileSync(0,"ut
       await done;
     }
   }
+  const stopped = (args, key, whileStopped, occurrence = 1) =>
+    stoppedCommand(
+      [join(host, "src/cli.js"), "controls", ...args, "--json"],
+      key,
+      whileStopped,
+      occurrence,
+    );
   const save = async (result) => {
+    await writeFile(
+      join(evidence, "mutation.json"),
+      JSON.stringify(patches, null, 2),
+    );
     const artifacts = {};
     const compiledPublication = (
       await readdir(join(host, "src/controls-publication"), {
@@ -408,11 +514,19 @@ process.stdout.write(JSON.stringify(await dispatch(JSON.parse(readFileSync(0,"ut
     fault,
     clear,
     stopped,
+    stoppedCommand,
     save,
     sample,
     bundle,
     identity,
     patches,
+    replace,
+    bindStandaloneRuntime: (installation) =>
+      bindFixtureRuntime(installation, installation),
+    bindRuntime: async () => {
+      await bindFixtureRuntime(host, host);
+      await bindFixtureRuntime(host, join(host, "src/controls-publication"));
+    },
   };
 }
 

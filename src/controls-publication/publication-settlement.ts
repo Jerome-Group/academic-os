@@ -11,12 +11,8 @@ import {
   sha256,
   thawBytes,
 } from "./codec.js";
-import {
-  futureEventEnvelope,
-  maximumReceiptBytes,
-  normalPostIntentKinds,
-} from "./event-envelope.js";
-import { maximumEventBytes, requireFileBytes } from "./limits.js";
+import { maximumReceiptBytes } from "./event-envelope.js";
+import { requireFileBytes } from "./limits.js";
 import { recover, refuse } from "./failure.js";
 import type {
   HeadReady,
@@ -29,6 +25,7 @@ import type {
   SelectedHead,
 } from "./generated/publication-contract-1.js";
 import { currentHead, planFor, readPlanFiles } from "./publication-reader.js";
+import { reservePublicationCompletion } from "./generated-completion.js";
 import {
   nativeEffect,
   nativeValue,
@@ -124,25 +121,13 @@ export function prepareHead(
     pendingReceipt: freezeBytes(encodePublication(receipt)),
     receipt,
   };
-  const intentBytes = store.preflightRecord(intent);
+  store.preflightRecord(intent);
   requireFileBytes(intent.pendingReceipt.byteLength);
   if (intent.pendingReceipt.byteLength > maximumReceiptBytes())
     refuse(
       "invalid-controls",
       "Pending receipt exceeds the admitted intent envelope.",
     );
-  const envelope = futureEventEnvelope();
-  let remainingBytes = intentBytes.byteLength + 1;
-  for (const kind of normalPostIntentKinds) {
-    const bound = envelope.get(kind);
-    if (bound === undefined || bound > maximumEventBytes)
-      refuse(
-        "invalid-controls",
-        "Publication suffix exceeds the event envelope.",
-      );
-    remainingBytes += bound;
-  }
-  store.requireAppendCapacity(remainingBytes, normalPostIntentKinds.length + 1);
   store.append(intent);
   return intent;
 }
@@ -222,6 +207,7 @@ export function settleIntent(
   intent: PublicationIntent,
 ): void {
   const plan = planFor(store, intent.requestId);
+  reservePublicationCompletion(store, plan, false);
   const candidate = openCandidate(store, intent.receipt.candidateId);
   if (
     digest(plan) !== intent.planDigest ||

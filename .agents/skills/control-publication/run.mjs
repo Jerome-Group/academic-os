@@ -19,6 +19,8 @@ import {
   tlcJavaEnvironment,
 } from "../seed-ownership/tlc-toolchain.mjs";
 import { alive, hash } from "./fixture.mjs";
+import { nativeModels } from "./native-models.mjs";
+import { nativeMutations } from "./native-runtime.mjs";
 import {
   barrierRetries,
   bootstrap,
@@ -174,6 +176,14 @@ try {
     "SKILL.md",
     "coverage.json",
     "coverage.md",
+    "MixedAdmission.tla",
+    "NativeSelectorMove.tla",
+    "native-models.mjs",
+    "native-runtime.mjs",
+    "native-fixture.mjs",
+    "native-capacity.mjs",
+    "native-package.mjs",
+    "code-model-map.json",
   ];
   result.verificationHashes = {};
   for (const file of verificationFiles)
@@ -186,7 +196,7 @@ try {
   });
   result.tool = tool;
   const java = process.env.JAVA ?? "/opt/homebrew/opt/openjdk@21/bin/java";
-  const environment = tlcJavaEnvironment(evidence);
+  const environment = tlcJavaEnvironment(process.env.TMPDIR ?? tmpdir());
   const javaVersion = await checked(
     java,
     ["-version"],
@@ -259,7 +269,7 @@ try {
       java,
       [
         "-XX:+UseParallelGC",
-        `-Djava.io.tmpdir=${model}`,
+        `-Djava.io.tmpdir=${process.env.TMPDIR ?? tmpdir()}`,
         "-cp",
         tool.jar,
         "tlc2.TLC",
@@ -315,6 +325,14 @@ try {
       )?.[0],
     });
   }
+  result.nativeModels = await nativeModels({
+    directory,
+    evidence,
+    java,
+    tool,
+    environment,
+    command,
+  });
   if (!values["model-only"]) {
     assert.equal(
       process.platform,
@@ -373,6 +391,37 @@ try {
       root,
       "numeric-event-limits",
     );
+    await checked(
+      process.execPath,
+      [
+        "--test",
+        "--test-concurrency=1",
+        ...[
+          "bootstrap-request",
+          "generated-pending-host",
+          "native-policy",
+          "native-policy-admission",
+          "native-policy-boundary",
+          "runtime-consistency",
+          "policy-roots",
+          "host-results",
+          "packaged-policy",
+        ].map((name) => `dist/test/controls-publication/${name}.test.js`),
+      ],
+      root,
+      "native-public-contract",
+    );
+    await checked(
+      process.execPath,
+      [
+        "--test",
+        "--test-name-pattern=replays the original near",
+        "dist/test/controls-publication/replay-capacity.test.js",
+      ],
+      root,
+      "native-repeated-history",
+    );
+    result.nativeMutations = await nativeMutations(root, evidence);
     result.runtime = await runtime(root, evidence);
     result.bootstrap = await bootstrap(root, evidence);
     result.orphanBoundaries = await orphanBoundaries(root, evidence);
@@ -384,7 +433,7 @@ try {
       [
         "--input-type=module",
         "-e",
-        `import {runPublicationJourney} from './dist/test/controls-publication/journey.js';console.log(await runPublicationJourney(${JSON.stringify(evidence)}));`,
+        `import {runPublicationJourney} from './dist/test/controls-publication/journey.js';console.log(await runPublicationJourney(${JSON.stringify(process.env.TMPDIR ?? tmpdir())}));`,
       ],
       root,
       "public-cli-mcp-extracted",

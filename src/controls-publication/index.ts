@@ -6,6 +6,7 @@ import {
 } from "./bundle.js";
 import {
   bootstrapCatalog,
+  completedCandidate,
   createCandidate,
   openCandidate,
   recoverPendingCreates,
@@ -80,7 +81,17 @@ export function createPublicationService(
         mutate: true,
         bootstrap: true,
         requestId: input.requestId,
+        requestKind: "candidate-reserved",
         context,
+        completed(store, releaseDigest) {
+          const admission = completedCandidate(store, {
+            ...input,
+            releaseDigest,
+          });
+          return admission
+            ? { kind: "created", candidate: summary(admission) }
+            : undefined;
+        },
         run: (store, releaseDigest) => {
           bootstrapCatalog(store);
           reconcilePending(store, releaseDigest);
@@ -126,7 +137,38 @@ export function createPublicationService(
       return withPublicationOwner<PublishResult>({
         mutate: true,
         requestId: input.requestId,
+        requestKind: "publication-plan",
         context,
+        completed(store, releaseDigest) {
+          if (
+            !store
+              .records()
+              .some(
+                (record) =>
+                  record.kind === "settled" &&
+                  record.requestId === input.requestId,
+              )
+          )
+            return undefined;
+          const candidate = openCandidate(store, input.candidateId);
+          const plan = freezePlan(store, candidate, {
+            ...input,
+            releaseDigest,
+          });
+          const receipt = completedReceipt(store, plan);
+          if (!receipt)
+            recover(
+              "journal-recovery-required",
+              "Completed publication receipt is unavailable.",
+            );
+          inspectPinned(store, candidate, plan.generationId);
+          return {
+            kind: "published",
+            receipt,
+            replayed: true,
+            currentHead: currentHead(store, candidate),
+          };
+        },
         run: (store, releaseDigest) => {
           reconcilePending(store, releaseDigest);
           recoverPendingCreates(store, releaseDigest);

@@ -61,6 +61,24 @@ The private handoff report names their original evidence paths and digests. They
 The ordinary runner checks the seed skill's 23 exact source hashes without repeating its unrelated heavy suites.
 That result is applicability only. Neither historical prototypes nor unchanged seed theorems establish publisher correctness.
 
+## Native host policy maintenance
+
+`code-model-map.json` binds eleven properties to the final source functions, exact blobs and public drivers. Existing workflow109 history, publisher bounds, invariants and all original mutation/boundary obligations remain. `MixedAdmission` adds finite shared namespace, full-history-before-success/effects, completed-before-pending, runtime-before-account and full-suffix ordering. Both new writers use one selected starter family per run. Retained owner classes cover cross-family and internal-bridge collisions. It does not model two simultaneously distinct new writer families.
+
+`NativeSelectorMove` adds one updater and one historical readonly caller, one new and old selector, foreign/false-location identity classes, three attempts and two process crashes. Its initial prefix also permits two already retained attempts. Every modeled append, file barrier, create, claim, write, selector swap, archive, archive observation and move observation is separate. Generation and receipt promotion remain separate from selector installation. Restart continues the source-defined outstanding operation after supported replay and resync. This assumes retained process-crash bytes, not persistence through power loss. The generation/receipt prefixes have no modeled physical object identity. Their unknown-inode recovery remains an original generated-proof and actual runtime premise. Fixed-head readonly lookup is outside this interrupted-read reduction.
+
+The normal run adds three positive configurations and eight shortest intentional counterexamples. `native-runtime.mjs` removes the actual namespace, suffix, pending-order, complete-location, move-order, expected-old, receipt-completion and artifact-digest guards. Each requires its predicted public wrong result or persisted state, exact source restoration and the corresponding restored control. Source hash drift or setup failure never counts as sensitivity. The unique-pressure fixture remains retained after the wrong starter. Restoring its guard never rewinds its ledger or removes its residue. The receipt mutant also runs the actual production builder, tar archive and extracted installer. Only its declared account adapter, addon and native-digest metadata change after extraction. Both bundles and scanner bytes remain exact.
+
+Public product fixtures cover complete canonical history, scoped v2 move lineage, required same-bridge archive observation, pending-only predecessor readback, all four registration/policy swap/archive interruptions, generated CLI/HTTP MCP/standalone compatibility, signed nanoseconds, authority isolation and installed transitive/non-JavaScript/resolution inputs. A changed dependency can execute during trusted bootstrap before consistency refusal. This is installed consistency before account entry, not malicious-bootstrap authentication.
+
+Capacity uses the actual production planners and replay allocator, not a second allocator implementation. An observation adapter exposes the existing planner's records and compares unchanged outputs to production exports. Registration reserves49 rows, policy70, each including six move rows across three attempts. One repeated-history and one unique-pressure group run per full check. The source-profile arithmetic charges16704 bytes per row, eighteen membership units and32 reference slots. The final helper has at most eleven simultaneous memberships and nine relevant whole-history arrays. Fixed/sparse floors require11136 bytes, within11648 charged at two rows. These bounds assume supported Node/V8 layouts, stated allocation/growth costs and reclamation of unreachable query generations. Decoder/encoder, native, planning and caller workspaces remain separate. No total heap/RSS theorem follows.
+
+Even perfect sharing permits at most16070 rows before retained nodes. Older over-budget history may refuse before completed lookup. Generated retries retain no new attempt ceiling. Each admission reserves the next complete successful path and existing orphan obligations; infinitely repeated interruptions can exhaust finite resources and leave retained recovery. Native payload acquisition453, Module/corpus preservation, infinite completion and unlimited historical accessibility remain outside this claim.
+
+P4 requires a sound pending classifier. `UnrelatedPendingHasNoFreshStarter` asserts the consequence under the abstract pending predicate. Family-tagged settlement classification remains runtime-checked. The retained `569cf9e` issue481 counterexample makes a pending generated request ID equal a settled native host intent digest, then admits unrelated host registration. The corrected-source public regression must refuse it with unchanged history. This finite model does not independently verify the classifier implementation.
+
+Source-order maintenance distinguishes immutable promotion's source-parent barrier, destination-parent barrier and destination readback before observation. Both blobs then perform final owned read, file sync and parent sync. Only policy appends a native generation settlement and selector intent. Registration skips those rows. Selector move observation is followed by its own owned read before native settlement. Policy receipt settlement is followed by a separate owned read before success. The intentional move-order break omits only move-intent append/sync; archive intent and physical expected-old guards remain enabled.
+
 ## Direct Google Tasks applicability
 
 Normal calls without `plan_json` delegate to existing Google Tasks provider and generated Task-register operations.
@@ -68,3 +86,7 @@ They do not acquire control-publication ownership or alter its ledger, claims, c
 The explicit-plan branch and modeled properties and bounds remain unchanged.
 `taskDirectMaintenance` records the one changed source binding and preserves historical proof provenance.
 This applicability update claims no fresh complete formal-suite pass or broader ownership theorem.
+
+The delivery integration also updates capability metadata and binds both changed executing sources.
+The 162 remaining publisher bindings and all 23 seed bindings remain unchanged.
+An ordinary complete run on the integrated source is required before delivery.

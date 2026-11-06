@@ -193,11 +193,10 @@ async function buildFixture(context: TestContext) {
     "src",
   ])
     await cp(name, join(installation, name), { recursive: true });
-  await symlink(
-    resolve("node_modules"),
-    join(installation, "node_modules"),
-    "junction",
-  );
+  await cp(resolve("node_modules"), join(installation, "node_modules"), {
+    recursive: true,
+    verbatimSymlinks: true,
+  });
   await writeFile(
     join(installation, "src/entry.ts"),
     'export const value = "current";\n',

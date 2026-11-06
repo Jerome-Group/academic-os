@@ -412,6 +412,64 @@ void replaceHead(const std::shared_ptr<Interval>& interval, const std::shared_pt
   checkpoint("after-head-rename");
   guard(temporary);
 }
+void replaceSelector(const std::shared_ptr<Interval>& interval, const std::shared_ptr<Handle>& parent, const std::string& temporaryName, const Identity& temporaryObject, const std::string& headName, const Identity* oldObject, const std::vector<uint8_t>& oldBytes, const std::string& historyName) {
+  component(temporaryName); component(headName); component(historyName);
+  if (temporaryName == headName || historyName == headName || historyName == temporaryName || temporaryObject.kind != "regular") fail("unsafe-ancestry");
+  guardInterval(interval, parent);
+  rejectSidecarDirectory(parent, temporaryName); rejectSidecarDirectory(parent, headName); rejectSidecarDirectory(parent, historyName);
+  struct stat selected;
+  bool exists = fstatat(parent->descriptor.fd, headName.c_str(), &selected, AT_SYMLINK_NOFOLLOW) == 0;
+  if (!exists && errno != ENOENT) syscallResult(-1);
+  bool replay = false;
+  if (exists) {
+    auto current = openChild(parent, headName, false, false);
+    replay = current->object == temporaryObject;
+    if (!replay && (!oldObject || !(current->object == *oldObject) || readExact(current, maximumBytes, oldBytes.size()) != oldBytes)) fail("identity-changed");
+  } else if (oldObject) fail("identity-changed");
+  if (!replay) {
+    auto temporary = openChild(parent, temporaryName, false, false);
+    requireIdentity(temporary->object, temporaryObject);
+    std::vector<std::shared_ptr<Handle>> oldHandles;
+    if (oldObject) {
+      auto old = openChild(parent, headName, false, false);
+      oldHandles = linkedHandlesAt(old);
+      struct stat archived;
+      if (fstatat(parent->descriptor.fd, historyName.c_str(), &archived, AT_SYMLINK_NOFOLLOW) == 0) fail("exists");
+      if (errno != ENOENT) syscallResult(-1);
+    }
+    auto newHandles = linkedHandlesAt(temporary);
+    guardInterval(interval, parent);
+    checkpoint("before-policy-selector-swap");
+    syscallResult(renameatx_np(parent->descriptor.fd, temporaryName.c_str(), parent->descriptor.fd, headName.c_str(), oldObject ? RENAME_SWAP : RENAME_EXCL));
+    for (const auto& handle : newHandles) { handle->parent = parent; handle->name = headName; }
+    for (const auto& handle : oldHandles) { handle->parent = parent; handle->name = temporaryName; }
+    checkpoint("after-policy-selector-swap");
+  }
+  if (oldObject) {
+    struct stat archived;
+    if (fstatat(parent->descriptor.fd, historyName.c_str(), &archived, AT_SYMLINK_NOFOLLOW) == 0) {
+      auto old = openChild(parent, historyName, false, false);
+      requireIdentity(old->object, *oldObject);
+      if (readExact(old, maximumBytes, oldBytes.size()) != oldBytes) fail("identity-changed");
+      struct stat residue;
+      if (fstatat(parent->descriptor.fd, temporaryName.c_str(), &residue, AT_SYMLINK_NOFOLLOW) == 0) fail("identity-changed");
+      if (errno != ENOENT) syscallResult(-1);
+    } else {
+      if (errno != ENOENT) syscallResult(-1);
+      auto old = openChild(parent, temporaryName, false, false);
+      requireIdentity(old->object, *oldObject);
+      if (readExact(old, maximumBytes, oldBytes.size()) != oldBytes) fail("identity-changed");
+      auto oldHandles = linkedHandlesAt(old);
+      guardInterval(interval, parent);
+      checkpoint("before-policy-selector-archive");
+      syscallResult(renameatx_np(parent->descriptor.fd, temporaryName.c_str(), parent->descriptor.fd, historyName.c_str(), RENAME_EXCL));
+      for (const auto& handle : oldHandles) { handle->parent = parent; handle->name = historyName; }
+      checkpoint("after-policy-selector-archive");
+    }
+  }
+  auto current = openChild(parent, headName, false, false);
+  requireIdentity(current->object, temporaryObject);
+}
 void closeHandle(const std::shared_ptr<Handle>& handle) {
   if (handle->descriptor.fd < 0) return;
   int fd = handle->descriptor.fd;

@@ -9,8 +9,19 @@ import type {
   Refused,
 } from "./generated/publication-contract-1.js";
 import { loadPublicationNative } from "./native/index.js";
-import type { PublicationNative } from "./native-contract.js";
+import type {
+  ExclusionObservation,
+  PublicationNative,
+  ValidatedAccountAnchor,
+} from "./native-contract.js";
+import {
+  type RequestKind,
+  requirePendingOrder,
+  requireRequestOwnership,
+  validateMixedHistory,
+} from "./native-policy-history.js";
 import { publicationRelease, runtimeDirectory } from "./release.js";
+import { validatePublicationRecoveryRequestId } from "./schema.js";
 import {
   ledgerName,
   namespaceName,
@@ -48,6 +59,15 @@ export async function withPublicationOwner<T>(input: {
   mutate: boolean;
   bootstrap?: true;
   requestId?: string;
+  family?: "host-deployment" | "native-policy";
+  requestKind?: RequestKind;
+  completed?: (store: PublicationStore, releaseDigest: string) => T | undefined;
+  prepare?: (
+    native: PublicationNative,
+    anchor: ValidatedAccountAnchor,
+    releaseDigest: string,
+  ) => ExclusionObservation;
+  validateBeforeSync?: (store: PublicationStore) => void;
   context: RuntimeContext;
   run: (store: PublicationStore, releaseDigest: string) => T;
 }): Promise<T | Refused | RecoveryRequired> {
@@ -60,7 +80,7 @@ export async function withPublicationOwner<T>(input: {
     const releaseDigest = await publicationRelease();
     anchor = binding.resolveAccountAnchor();
     const observed = nativeValue(anchor);
-    const exclusions = nativeValue(
+    let exclusions = nativeValue(
       binding.observeExclusionRoots({
         anchor: observed,
         requiredRepositoryAndSourcePaths: [
@@ -69,6 +89,8 @@ export async function withPublicationOwner<T>(input: {
         ].map((path) => Buffer.from(path)),
       }),
     );
+    if (input.prepare)
+      exclusions = input.prepare(binding, observed, releaseDigest);
     if (!input.bootstrap && !(await existingGate(observed.canonicalAnchorPath)))
       refuse(
         "unknown-candidate",
@@ -80,6 +102,8 @@ export async function withPublicationOwner<T>(input: {
         journalPath: join(observed.canonicalAnchorPath, ledgerName),
       },
       async () => {
+        if (input.prepare)
+          exclusions = input.prepare(binding, observed, releaseDigest);
         const interval = input.mutate
           ? nativeValue(binding.beginIntervalUnderHeldGate(observed))
           : null;
@@ -90,9 +114,35 @@ export async function withPublicationOwner<T>(input: {
           interval,
         );
         entered = true;
+        let completed: { value: T } | undefined;
         try {
           try {
-            openStore(store, input.bootstrap === true);
+            openStore(
+              store,
+              input.bootstrap === true,
+              (loaded) => {
+                validateMixedHistory(loaded);
+              },
+              (loaded) => {
+                const kind =
+                  input.requestKind ??
+                  (input.family === "host-deployment"
+                    ? "native-host-deployment-intent"
+                    : input.family === "native-policy"
+                      ? "native-source-policy-install-intent"
+                      : undefined);
+                if (kind && input.requestId)
+                  requireRequestOwnership(loaded, input.requestId, kind);
+                const value = input.completed?.(loaded, releaseDigest);
+                if (value !== undefined) {
+                  completed = { value };
+                  return false;
+                }
+                if (input.mutate) requirePendingOrder(loaded, input);
+                input.validateBeforeSync?.(loaded);
+              },
+            );
+            if (completed) return completed.value;
             return input.run(store, releaseDigest);
           } finally {
             store.close();
@@ -128,7 +178,22 @@ export async function withPublicationOwner<T>(input: {
       );
     return result.value;
   } catch (error) {
-    if (error instanceof PublicationFailure) return error.result;
+    if (error instanceof PublicationFailure) {
+      const result = error.result;
+      if (
+        result.kind === "recovery-required" &&
+        !validatePublicationRecoveryRequestId(result.requestId)
+      )
+        return {
+          ...result,
+          requestId: null,
+          evidence: [
+            ...result.evidence,
+            `Request identity outside the publication identifier grammar: ${JSON.stringify(result.requestId)}`,
+          ],
+        };
+      return result;
+    }
     return {
       kind: "recovery-required",
       code: "uncertain-publication",

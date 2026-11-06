@@ -28,6 +28,7 @@ import {
   validatePublishResult,
 } from "../../src/controls-publication/schema.js";
 import { publicationFixture } from "./fixtures.js";
+import { bindFixtureRuntime } from "./runtime-fixture.js";
 
 const repository = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -147,6 +148,7 @@ export function loadPublicationNative() {
 `,
       );
       const fixture = publicationFixture();
+      await bindFixtureRuntime(host, join(host, "src/controls-publication"));
       const identityPath = join(inputs, "identity.json");
       const bundlePath = join(inputs, "bundle.json");
       await writeFile(identityPath, fixture.identityBytes);

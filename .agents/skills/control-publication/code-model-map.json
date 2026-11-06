@@ -1,8 +1,8 @@
 {
-  "productRevision": "569cf9e5991fc5f8ee83235c913760ebcdc270c3",
+  "productRevision": "1fbd21e3018fd6b8d761beb707006eabec974298",
   "base": "b81c7635a8122f11cd2e174842b036e8584ecbb3",
   "planningRevision": "c13d4b1af465ee7efa4cea380d77af83f6150c62",
-  "status": "source-mapping-ready; full candidate and ordinary execution pending",
+  "status": "source-mapping-ready; approved pending correction integrated; full candidate/ordinary pending",
   "properties": [
     {
       "id": "P1",
@@ -56,8 +56,8 @@
           "path": "src/controls-publication/native-policy-history.ts",
           "symbol": "requireRecordAdmission",
           "symbolOccurrences": [100],
-          "sha256": "d981a7e617721b690d63602fa3934d05712bc332d11207004d37c256defeb304",
-          "gitBlob": "5b35bde326ddf4842087bc8e9de1f6fc7b7b7a62"
+          "sha256": "5eb85da6a052b0dbec86329e4a298599443e5d9e52acaf11200346b882af44d1",
+          "gitBlob": "1b77326e2b394bfbcde4c77782996064361ab15e"
         },
         {
           "path": "src/controls-publication/owner.ts",
@@ -126,8 +126,8 @@
           "path": "src/controls-publication/native-policy-history.ts",
           "symbol": "validateMixedHistory",
           "symbolOccurrences": [156, 557],
-          "sha256": "d981a7e617721b690d63602fa3934d05712bc332d11207004d37c256defeb304",
-          "gitBlob": "5b35bde326ddf4842087bc8e9de1f6fc7b7b7a62"
+          "sha256": "5eb85da6a052b0dbec86329e4a298599443e5d9e52acaf11200346b882af44d1",
+          "gitBlob": "1b77326e2b394bfbcde4c77782996064361ab15e"
         }
       ],
       "checkpoints": [
@@ -199,8 +199,8 @@
           "path": "src/controls-publication/native-policy-history.ts",
           "symbol": "requirePendingOrder",
           "symbolOccurrences": [553],
-          "sha256": "d981a7e617721b690d63602fa3934d05712bc332d11207004d37c256defeb304",
-          "gitBlob": "5b35bde326ddf4842087bc8e9de1f6fc7b7b7a62"
+          "sha256": "5eb85da6a052b0dbec86329e4a298599443e5d9e52acaf11200346b882af44d1",
+          "gitBlob": "1b77326e2b394bfbcde4c77782996064361ab15e"
         }
       ],
       "checkpoints": [
@@ -223,6 +223,13 @@
           "symbolOccurrences": [392],
           "sha256": "f94ad78c4bc4df9bf3b02334f1d8648405b8b81b3963e74c7f316190efa469f4",
           "gitBlob": "0121cc23e2a76ed92c5cae6683dfc25effa6fc57"
+        },
+        {
+          "path": "test/controls-publication/generated-pending-host.test.ts",
+          "symbol": "reports truthful host recovery",
+          "sha256": "2c091838ce68e9b59ccdec246f7fa4bc6a32466e3319ec8f3fb8f685e1ea8cfd",
+          "gitBlob": "25e2639e013cc4f201dfd72f87cbd427f8fdff7c",
+          "symbolOccurrences": [18]
         }
       ],
       "needed": "Keep generated create/publication, registration and native receipt readback. Exercise two operations times two interrupted physical positions. Kill after swap and after archive. Assert unchanged ledger during completed readback, forced-sync marker absent, and fresh mutation refusal.",
@@ -237,7 +244,16 @@
           "productRevision": "569cf9e5991fc5f8ee83235c913760ebcdc270c3",
           "trigger": "A pending generated request ID equals a previously settled native host intent digest.",
           "wrongOutcome": "Unrelated host registration succeeds and appends despite pending generated work.",
-          "proofStatus": "Current product bug; corrected-source public regression and mapping remain pending."
+          "proofStatus": "Product correction independently approved at1fbd21e; complete fresh formal candidate pending."
+        },
+        "correctedSource": {
+          "productRevision": "1fbd21e3018fd6b8d761beb707006eabec974298",
+          "symbol": "requirePendingOrder",
+          "settlementKeys": "generated:<requestId>, host-deployment:<recordDigest>, native-policy:<intentDigest>",
+          "diagnostic": "Original generated request ID; publication-plan actual record digest, candidate reservation null.",
+          "publicRegression": "test/controls-publication/generated-pending-host.test.ts",
+          "newCases": 6,
+          "runtimeOnlyIndependentChallenges": "Native-policy receipt digest and maximum80-character request IDs; namespace/ledger unchanged and exact recovery."
         }
       }
     },
@@ -259,8 +275,8 @@
           "path": "src/controls-publication/native-policy-history.ts",
           "symbol": "owned",
           "symbolOccurrences": [175, 268, 367, 440, 475, 476, 477, 494, 536],
-          "sha256": "d981a7e617721b690d63602fa3934d05712bc332d11207004d37c256defeb304",
-          "gitBlob": "5b35bde326ddf4842087bc8e9de1f6fc7b7b7a62"
+          "sha256": "5eb85da6a052b0dbec86329e4a298599443e5d9e52acaf11200346b882af44d1",
+          "gitBlob": "1b77326e2b394bfbcde4c77782996064361ab15e"
         },
         {
           "path": "src/controls-publication/native-policy-persistence.ts",
@@ -396,8 +412,8 @@
           "path": "src/controls-publication/native-policy-history.ts",
           "symbol": "native-selector-move-intent",
           "symbolOccurrences": [308, 373],
-          "sha256": "d981a7e617721b690d63602fa3934d05712bc332d11207004d37c256defeb304",
-          "gitBlob": "5b35bde326ddf4842087bc8e9de1f6fc7b7b7a62"
+          "sha256": "5eb85da6a052b0dbec86329e4a298599443e5d9e52acaf11200346b882af44d1",
+          "gitBlob": "1b77326e2b394bfbcde4c77782996064361ab15e"
         },
         {
           "path": "src/controls-publication/native/filesystem.cc",
@@ -464,8 +480,8 @@
           "path": "src/controls-publication/native-policy-history.ts",
           "symbol": "native-source-policy-receipt-intent",
           "symbolOccurrences": [501, 524],
-          "sha256": "d981a7e617721b690d63602fa3934d05712bc332d11207004d37c256defeb304",
-          "gitBlob": "5b35bde326ddf4842087bc8e9de1f6fc7b7b7a62"
+          "sha256": "5eb85da6a052b0dbec86329e4a298599443e5d9e52acaf11200346b882af44d1",
+          "gitBlob": "1b77326e2b394bfbcde4c77782996064361ab15e"
         }
       ],
       "checkpoints": [
@@ -788,7 +804,21 @@
     },
     "generatedReservation": "Actual starter/plan plus next complete success vector and current possible orphan obligations before each attempt. No newly invented generated attempt ceiling.",
     "limitation": "At16704 workspace bytes per row, even perfect sharing fits at most16070 rows before additional nodes. Older over-budget history can fail load before completed lookup. No unlimited historical accessibility.",
-    "requiredReaudit": "New requireNativeBlobLocation moves Map and promotions array run inside existing validateMixedHistory/readback queries. Recount simultaneous memberships and query arrays against existing18/32 charges and fixed/sparse floors from source at final head. Do not quietly promote old7748 derivation to a new-source proof."
+    "requiredReaudit": "New requireNativeBlobLocation moves Map and promotions array run inside existing validateMixedHistory/readback queries. Recount simultaneous memberships and query arrays against existing18/32 charges and fixed/sparse floors from source at final head. Do not quietly promote old7748 derivation to a new-source proof.",
+    "pendingCorrectionApplicability": {
+      "sourceRevision": "1fbd21e3018fd6b8d761beb707006eabec974298",
+      "sourceSha256": "5eb85da6a052b0dbec86329e4a298599443e5d9e52acaf11200346b882af44d1",
+      "sameSingleSettledSet": true,
+      "sameMembershipAndArrayCount": true,
+      "generatedKeyMaxCodeUnits": 90,
+      "hostKeyMaxCodeUnits": 80,
+      "nativePolicyKeyMaxCodeUnits": 78,
+      "chargedKeyCodeUnits": 256,
+      "pendingProperties": 3,
+      "chargedPendingProperties": 4,
+      "publicationPlanDigest": "Fits existing two digest-string charges per event.",
+      "claim": "Conditional source-profile applicability; no heap/RSS measurement or theorem."
+    }
   },
   "mutants": [
     {
@@ -798,7 +828,7 @@
         {
           "path": "src/controls-publication/native-policy-history.ts",
           "symbol": "native-host-deployment-intent",
-          "sha256": "d981a7e617721b690d63602fa3934d05712bc332d11207004d37c256defeb304",
+          "sha256": "5eb85da6a052b0dbec86329e4a298599443e5d9e52acaf11200346b882af44d1",
           "symbolOccurrences": [
             20, 29, 55, 75, 113, 199, 226, 234, 242, 261, 317, 323, 332, 590
           ]
@@ -1172,5 +1202,5 @@
     "native-capacity.mjs": "Actual production planner observation, unique pressure and retained capacity mutant/restoration",
     "native-package.mjs": "Actual production builder/archive/extraction and complete native output readback"
   },
-  "verificationCompletion": "Parked at Root request. Candidate1 failed verification adapter setup; corrected focused controls passed. Source sync has not advanced. Product569 has confirmed480/481 bugs. Reviewed replacement and full candidate/ordinary runs remain required."
+  "verificationCompletion": "Reviewed product integrated. Complete candidate and ordinary runs remain required. No sync advanced."
 }

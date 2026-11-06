@@ -397,6 +397,7 @@ try {
         "--test",
         "--test-concurrency=1",
         ...[
+          "generated-pending-host",
           "native-policy",
           "native-policy-admission",
           "native-policy-boundary",

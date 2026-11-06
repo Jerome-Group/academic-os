@@ -17,6 +17,8 @@ export {
 } from "./canonical-json.js";
 export { detectControlShape } from "./detect-control-shape.js";
 export type { ModuleDataControl } from "./generated/module-data-1.js";
+export type { SupportedModuleData } from "./generated/supported-controls.js";
+export { supportedControlSchemas } from "./generated/supported-controls.js";
 export {
   activityBundleFromPreparation,
   activityProblem,

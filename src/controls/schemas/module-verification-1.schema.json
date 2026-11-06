@@ -1,0 +1,3479 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "urn:academic-os:module-verification:1",
+  "title": "ModuleVerificationContract",
+  "$ref": "#/definitions/WireAction",
+  "definitions": {
+    "ByteBinding": {
+      "$ref": "urn:academic-os:publication-contract:1#/definitions/ByteBinding"
+    },
+    "FrozenBytes": {
+      "$ref": "urn:academic-os:publication-contract:1#/definitions/FrozenBytes"
+    },
+    "EvidenceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "evidence"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+        }
+      },
+      "required": ["kind", "id"]
+    },
+    "ArtifactRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "artifact"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+        }
+      },
+      "required": ["kind", "id"]
+    },
+    "CheckId": {
+      "type": "string",
+      "pattern": "^verification-check:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+    },
+    "DecisionRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "decision"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+        }
+      },
+      "required": ["kind", "id"]
+    },
+    "Target": {
+      "$ref": "urn:academic-os:module-data:1#/definitions/target"
+    },
+    "LogicalFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content": {
+          "$ref": "#/definitions/FrozenBytes"
+        }
+      },
+      "required": ["path", "content"]
+    },
+    "Fragment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "$ref": "#/definitions/EvidenceRef"
+        },
+        "original": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "extraction": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "extractor": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "recipe": {
+              "enum": ["utf8-identity/1", "pdf-text/1", "docx-text/1"]
+            }
+          },
+          "required": ["name", "version", "recipe"]
+        },
+        "location": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "utf8-bytes"
+                },
+                "start": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "length": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": ["kind", "start", "length"]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "page-text"
+                },
+                "page": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "start": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "length": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": ["kind", "page", "start", "length"]
+            }
+          ]
+        },
+        "fragmentSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "source",
+        "original",
+        "extraction",
+        "extractor",
+        "location",
+        "fragmentSha256"
+      ]
+    },
+    "Independence": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "attributed"
+            },
+            "limitations": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1
+            }
+          },
+          "required": ["kind", "limitations"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "context-separated"
+            },
+            "request": {
+              "$ref": "#/definitions/ByteBinding"
+            },
+            "response": {
+              "$ref": "#/definitions/ByteBinding"
+            },
+            "contextManifest": {
+              "$ref": "#/definitions/ByteBinding"
+            },
+            "toolReads": {
+              "$ref": "#/definitions/ByteBinding"
+            },
+            "separateDerivation": {
+              "$ref": "#/definitions/ByteBinding"
+            },
+            "acceptedJudgment": {
+              "$ref": "#/definitions/ByteBinding"
+            }
+          },
+          "required": [
+            "kind",
+            "request",
+            "response",
+            "contextManifest",
+            "toolReads",
+            "separateDerivation",
+            "acceptedJudgment"
+          ]
+        }
+      ]
+    },
+    "Provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "actor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "invocation": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "independence": {
+          "$ref": "#/definitions/Independence"
+        }
+      },
+      "required": ["actor", "subject", "invocation", "independence"]
+    },
+    "Allocation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "numeric"
+            },
+            "unit": {
+              "const": "points"
+            },
+            "maximum": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+            },
+            "allocationSource": {
+              "$ref": "#/definitions/Fragment"
+            },
+            "estimate": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "known"
+                    },
+                    "value": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                    }
+                  },
+                  "required": ["kind", "value"]
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "unknown"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": ["kind", "reason"]
+                }
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "unit",
+            "maximum",
+            "allocationSource",
+            "estimate"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "qualitative"
+            },
+            "bands": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+                  },
+                  "label": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "descriptor": {
+                    "$ref": "#/definitions/Fragment"
+                  }
+                },
+                "required": ["id", "label", "descriptor"]
+              },
+              "minItems": 1
+            },
+            "estimate": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "band"
+                    },
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+                    }
+                  },
+                  "required": ["kind", "id"]
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "unknown"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": ["kind", "reason"]
+                }
+              ]
+            }
+          },
+          "required": ["kind", "bands", "estimate"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unknown"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "observation": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["kind", "reason", "observation"]
+        }
+      ]
+    },
+    "Basis": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "rubric"
+            },
+            "fragment": {
+              "$ref": "#/definitions/Fragment"
+            },
+            "applicabilityDecision": {
+              "$ref": "#/definitions/DecisionRef"
+            }
+          },
+          "required": ["kind", "fragment", "applicabilityDecision"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "inferred"
+            },
+            "sources": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Fragment"
+              },
+              "minItems": 1
+            },
+            "rationale": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uncertainty": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["kind", "sources", "rationale", "uncertainty"]
+        }
+      ]
+    },
+    "Criterion": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "applicability": {
+              "const": "applies"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+            },
+            "label": {
+              "type": "string",
+              "minLength": 1
+            },
+            "basis": {
+              "$ref": "#/definitions/Basis"
+            },
+            "allocation": {
+              "$ref": "#/definitions/Allocation"
+            },
+            "observations": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/EvidenceRef"
+              },
+              "minItems": 1
+            },
+            "reasoning": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "applicability",
+            "id",
+            "label",
+            "basis",
+            "allocation",
+            "observations",
+            "reasoning"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "applicability": {
+              "const": "excluded"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+            },
+            "fragment": {
+              "$ref": "#/definitions/Fragment"
+            },
+            "decision": {
+              "$ref": "#/definitions/DecisionRef"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["applicability", "id", "fragment", "decision", "reason"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "applicability": {
+              "const": "unresolved"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+            },
+            "fragment": {
+              "$ref": "#/definitions/Fragment"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["applicability", "id", "fragment", "reason"]
+        }
+      ]
+    },
+    "AssessmentReviewV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "recordVersion": {
+          "const": 2
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^assessment:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+        },
+        "kind": {
+          "enum": ["rubric-linked", "provisional"]
+        },
+        "official": {
+          "const": false
+        },
+        "submission": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "reference": {
+              "$ref": "#/definitions/ArtifactRef"
+            },
+            "bytes": {
+              "$ref": "#/definitions/ByteBinding"
+            }
+          },
+          "required": ["reference", "bytes"]
+        },
+        "question": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "reference": {
+              "$ref": "#/definitions/EvidenceRef"
+            },
+            "bytes": {
+              "$ref": "#/definitions/ByteBinding"
+            }
+          },
+          "required": ["reference", "bytes"]
+        },
+        "component": {
+          "type": "string",
+          "pattern": "^assessment-component:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+        },
+        "criteria": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Criterion"
+          },
+          "minItems": 1
+        },
+        "aggregate": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "numeric-estimate"
+                },
+                "value": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                },
+                "maximum": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                },
+                "aggregationSource": {
+                  "$ref": "#/definitions/Fragment"
+                },
+                "criterionIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "kind",
+                "value",
+                "maximum",
+                "aggregationSource",
+                "criterionIds"
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "not-aggregated"
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": ["kind", "reason"]
+            }
+          ]
+        },
+        "reviewer": {
+          "$ref": "#/definitions/Provenance"
+        },
+        "independentReference": {
+          "$ref": "#/definitions/EvidenceRef"
+        },
+        "uncertainty": {
+          "type": "string",
+          "minLength": 1
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "recordVersion",
+        "id",
+        "kind",
+        "official",
+        "submission",
+        "question",
+        "component",
+        "criteria",
+        "aggregate",
+        "reviewer",
+        "independentReference",
+        "uncertainty",
+        "limitations"
+      ]
+    },
+    "Support": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "independent-derivation"
+            },
+            "derivation": {
+              "$ref": "#/definitions/EvidenceRef"
+            },
+            "provenance": {
+              "$ref": "#/definitions/Provenance"
+            }
+          },
+          "required": ["kind", "derivation", "provenance"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "counterexample"
+            },
+            "obligation": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+            },
+            "assignment": {
+              "$ref": "#/definitions/EvidenceRef"
+            },
+            "domainMembership": {
+              "$ref": "#/definitions/EvidenceRef"
+            },
+            "contradiction": {
+              "$ref": "#/definitions/EvidenceRef"
+            }
+          },
+          "required": [
+            "kind",
+            "obligation",
+            "assignment",
+            "domainMembership",
+            "contradiction"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "computational-candidate"
+            },
+            "recipe": {
+              "const": "arithmetic-check/1"
+            },
+            "input": {
+              "$ref": "#/definitions/EvidenceRef"
+            }
+          },
+          "required": ["kind", "recipe", "input"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "formal-candidate"
+            },
+            "recipe": {
+              "const": "lean4/1"
+            },
+            "artifact": {
+              "$ref": "#/definitions/ArtifactRef"
+            },
+            "theorem": {
+              "type": "string",
+              "minLength": 1
+            },
+            "assumptionIds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+              },
+              "minItems": 0
+            },
+            "correspondence": {
+              "$ref": "#/definitions/EvidenceRef"
+            }
+          },
+          "required": [
+            "kind",
+            "recipe",
+            "artifact",
+            "theorem",
+            "assumptionIds",
+            "correspondence"
+          ]
+        }
+      ]
+    },
+    "MathematicalReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": "mathematical-review/1"
+        },
+        "check": {
+          "$ref": "#/definitions/CheckId"
+        },
+        "claim": {
+          "$ref": "#/definitions/Fragment"
+        },
+        "attempt": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "reference": {
+              "$ref": "#/definitions/ArtifactRef"
+            },
+            "bytes": {
+              "$ref": "#/definitions/ByteBinding"
+            }
+          },
+          "required": ["reference", "bytes"]
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+              },
+              "status": {
+                "enum": ["stated", "inferred", "unresolved"]
+              },
+              "statement": {
+                "type": "string",
+                "minLength": 1
+              },
+              "evidence": {
+                "$ref": "#/definitions/EvidenceRef"
+              }
+            },
+            "required": ["id", "status", "statement", "evidence"]
+          },
+          "minItems": 0
+        },
+        "domains": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+              },
+              "statement": {
+                "type": "string",
+                "minLength": 1
+              },
+              "evidence": {
+                "$ref": "#/definitions/EvidenceRef"
+              }
+            },
+            "required": ["id", "statement", "evidence"]
+          },
+          "minItems": 1
+        },
+        "quantifiers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "enum": ["forall", "exists"]
+              },
+              "variable": {
+                "type": "string",
+                "minLength": 1
+              },
+              "domain": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+              },
+              "dependsOnVariables": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 0
+              }
+            },
+            "required": ["kind", "variable", "domain", "dependsOnVariables"]
+          },
+          "minItems": 0
+        },
+        "obligations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+              },
+              "statement": {
+                "type": "string",
+                "minLength": 1
+              },
+              "assumptionIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+                },
+                "minItems": 0
+              },
+              "requiredCases": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+                },
+                "minItems": 0
+              },
+              "dependsOn": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+                },
+                "minItems": 0
+              },
+              "support": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/Support"
+                },
+                "minItems": 0
+              }
+            },
+            "required": [
+              "id",
+              "statement",
+              "assumptionIds",
+              "requiredCases",
+              "dependsOn",
+              "support"
+            ]
+          },
+          "minItems": 1
+        },
+        "omittedCases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "statement": {
+                "type": "string",
+                "minLength": 1
+              },
+              "affects": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+                },
+                "minItems": 1
+              }
+            },
+            "required": ["statement", "affects"]
+          },
+          "minItems": 0
+        },
+        "verdict": {
+          "enum": ["supported", "refuted", "incomplete", "unknown"]
+        },
+        "reviewer": {
+          "$ref": "#/definitions/Provenance"
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "protocol",
+        "check",
+        "claim",
+        "attempt",
+        "assumptions",
+        "domains",
+        "quantifiers",
+        "obligations",
+        "omittedCases",
+        "verdict",
+        "reviewer",
+        "limitations"
+      ]
+    },
+    "ReviewPacket": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "assessment"
+            },
+            "check": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "review": {
+              "$ref": "#/definitions/AssessmentReviewV2"
+            }
+          },
+          "required": ["kind", "check", "review"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "mathematics"
+            },
+            "check": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "review": {
+              "$ref": "#/definitions/MathematicalReview"
+            }
+          },
+          "required": ["kind", "check", "review"]
+        }
+      ]
+    },
+    "Check": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "controls"
+            },
+            "id": {
+              "$ref": "#/definitions/CheckId"
+            }
+          },
+          "required": ["kind", "id"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "naming"
+            },
+            "id": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ArtifactRef"
+              },
+              "minItems": 1
+            }
+          },
+          "required": ["kind", "id", "artifacts"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "artifact"
+            },
+            "id": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "artifact": {
+              "$ref": "#/definitions/ArtifactRef"
+            },
+            "requiredSources": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/EvidenceRef"
+              },
+              "minItems": 1
+            }
+          },
+          "required": ["kind", "id", "artifact", "requiredSources"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "build"
+            },
+            "id": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "artifact": {
+              "$ref": "#/definitions/ArtifactRef"
+            },
+            "recipe": {
+              "const": "latex-portable/1"
+            }
+          },
+          "required": ["kind", "id", "artifact", "recipe"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "workflow"
+            },
+            "id": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "target": {
+              "$ref": "#/definitions/Target"
+            },
+            "procedure": {
+              "$ref": "#/definitions/EvidenceRef"
+            },
+            "scope": {
+              "enum": ["pure-content-contract", "native-execution"]
+            }
+          },
+          "required": ["kind", "id", "target", "procedure", "scope"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "assessment"
+            },
+            "id": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "submission": {
+              "$ref": "#/definitions/ArtifactRef"
+            },
+            "question": {
+              "$ref": "#/definitions/EvidenceRef"
+            },
+            "applicabilityDecisions": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/DecisionRef"
+              },
+              "minItems": 0
+            },
+            "allocationRequirement": {
+              "enum": ["truthful-review", "allocated-numeric-score"]
+            }
+          },
+          "required": [
+            "kind",
+            "id",
+            "submission",
+            "question",
+            "applicabilityDecisions",
+            "allocationRequirement"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "mathematics"
+            },
+            "id": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "claim": {
+              "$ref": "#/definitions/Fragment"
+            },
+            "attempt": {
+              "$ref": "#/definitions/ArtifactRef"
+            },
+            "requiredVerdict": {
+              "const": "supported"
+            },
+            "requiredStrength": {
+              "enum": ["reasoned-review", "checked-formal-artifact"]
+            }
+          },
+          "required": [
+            "kind",
+            "id",
+            "claim",
+            "attempt",
+            "requiredVerdict",
+            "requiredStrength"
+          ]
+        }
+      ]
+    },
+    "EvaluationPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": "module-review-evaluation/1"
+        },
+        "caseSet": {
+          "const": "paired-24-plus-checker-3/1"
+        },
+        "threshold": {
+          "const": "every-frozen-case"
+        },
+        "ordinaryReviewIndependence": {
+          "const": "separate-per-review-evidence"
+        }
+      },
+      "required": [
+        "protocol",
+        "caseSet",
+        "threshold",
+        "ordinaryReviewIndependence"
+      ]
+    },
+    "Observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reference": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/EvidenceRef"
+            },
+            {
+              "$ref": "#/definitions/ArtifactRef"
+            },
+            {
+              "$ref": "#/definitions/DecisionRef"
+            }
+          ]
+        },
+        "role": {
+          "enum": [
+            "source",
+            "artifact",
+            "question",
+            "attempt",
+            "rubric",
+            "extraction",
+            "procedure",
+            "preferences",
+            "accepted-decision",
+            "formal-import"
+          ]
+        },
+        "file": {
+          "$ref": "#/definitions/LogicalFile"
+        },
+        "origin": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "direct"
+                },
+                "binding": {
+                  "$ref": "#/definitions/ByteBinding"
+                }
+              },
+              "required": ["kind", "binding"]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "extracted"
+                },
+                "original": {
+                  "$ref": "#/definitions/ByteBinding"
+                },
+                "extractor": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "recipe": {
+                  "enum": ["utf8-identity/1", "pdf-text/1", "docx-text/1"]
+                },
+                "transcript": {
+                  "$ref": "#/definitions/LogicalFile"
+                }
+              },
+              "required": [
+                "kind",
+                "original",
+                "extractor",
+                "version",
+                "recipe",
+                "transcript"
+              ]
+            }
+          ]
+        }
+      },
+      "required": ["reference", "role", "file", "origin"]
+    },
+    "AcceptedDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reference": {
+          "$ref": "#/definitions/DecisionRef"
+        },
+        "status": {
+          "const": "accepted"
+        },
+        "subject": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "rubric-applicability"
+                },
+                "module": {
+                  "type": "string",
+                  "pattern": "^module:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+                },
+                "component": {
+                  "type": "string",
+                  "pattern": "^assessment-component:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+                },
+                "question": {
+                  "$ref": "#/definitions/ByteBinding"
+                },
+                "submission": {
+                  "$ref": "#/definitions/ByteBinding"
+                },
+                "fragment": {
+                  "$ref": "#/definitions/Fragment"
+                }
+              },
+              "required": [
+                "kind",
+                "module",
+                "component",
+                "question",
+                "submission",
+                "fragment"
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "procedure-adaptation"
+                },
+                "procedure": {
+                  "$ref": "#/definitions/ByteBinding"
+                },
+                "preferences": {
+                  "$ref": "#/definitions/ByteBinding"
+                },
+                "target": {
+                  "$ref": "#/definitions/Target"
+                }
+              },
+              "required": ["kind", "procedure", "preferences", "target"]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "verification-adaptation"
+                },
+                "checks": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/CheckId"
+                  },
+                  "minItems": 1
+                },
+                "inputs": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/ByteBinding"
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": ["kind", "checks", "inputs"]
+            }
+          ]
+        },
+        "judgment": {
+          "$ref": "#/definitions/LogicalFile"
+        }
+      },
+      "required": ["reference", "status", "subject", "judgment"]
+    },
+    "SnapshotPacket": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": "module-verification-observation/1"
+        },
+        "admission": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "isolated-synthetic/1"
+                },
+                "fixtureManifest": {
+                  "$ref": "#/definitions/ByteBinding"
+                }
+              },
+              "required": ["kind", "fixtureManifest"]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "acquisition-handle/1"
+                },
+                "owner": {
+                  "const": "module-acquisition"
+                },
+                "handle": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "receipt": {
+                  "$ref": "#/definitions/ByteBinding"
+                },
+                "manifest": {
+                  "$ref": "#/definitions/ByteBinding"
+                }
+              },
+              "required": ["kind", "owner", "handle", "receipt", "manifest"]
+            }
+          ]
+        },
+        "scope": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "supplied-bytes"
+                },
+                "limitations": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": ["kind", "limitations"]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "local-read-only"
+                },
+                "collectorRelease": {
+                  "$ref": "#/definitions/ByteBinding"
+                },
+                "before": {
+                  "$ref": "#/definitions/ByteBinding"
+                },
+                "after": {
+                  "$ref": "#/definitions/ByteBinding"
+                },
+                "physicalReadReceipt": {
+                  "$ref": "#/definitions/LogicalFile"
+                }
+              },
+              "required": [
+                "kind",
+                "collectorRelease",
+                "before",
+                "after",
+                "physicalReadReceipt"
+              ]
+            }
+          ]
+        },
+        "selectedFiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LogicalFile"
+          },
+          "minItems": 20
+        },
+        "observations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Observation"
+          },
+          "minItems": 0
+        },
+        "acceptedDecisions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AcceptedDecision"
+          },
+          "minItems": 0
+        },
+        "procedurePreferences": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LogicalFile"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "protocol",
+        "admission",
+        "scope",
+        "selectedFiles",
+        "observations",
+        "acceptedDecisions",
+        "procedurePreferences"
+      ]
+    },
+    "SyntheticFixtureManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": "module-verification-observation/1"
+        },
+        "scope": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "supplied-bytes"
+                },
+                "limitations": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": ["kind", "limitations"]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "local-read-only"
+                },
+                "collectorRelease": {
+                  "$ref": "#/definitions/ByteBinding"
+                },
+                "before": {
+                  "$ref": "#/definitions/ByteBinding"
+                },
+                "after": {
+                  "$ref": "#/definitions/ByteBinding"
+                },
+                "physicalReadReceipt": {
+                  "$ref": "#/definitions/LogicalFile"
+                }
+              },
+              "required": [
+                "kind",
+                "collectorRelease",
+                "before",
+                "after",
+                "physicalReadReceipt"
+              ]
+            }
+          ]
+        },
+        "selectedFiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LogicalFile"
+          },
+          "minItems": 20
+        },
+        "observations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Observation"
+          },
+          "minItems": 0
+        },
+        "acceptedDecisions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AcceptedDecision"
+          },
+          "minItems": 0
+        },
+        "procedurePreferences": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LogicalFile"
+          },
+          "minItems": 1
+        },
+        "admission": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "isolated-synthetic/1"
+            }
+          },
+          "required": ["kind"]
+        }
+      },
+      "required": [
+        "protocol",
+        "scope",
+        "selectedFiles",
+        "observations",
+        "acceptedDecisions",
+        "procedurePreferences",
+        "admission"
+      ]
+    },
+    "ToolRecipe": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "latex-portable/1"
+            },
+            "engine": {
+              "const": "pdflatex"
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "binary": {
+              "$ref": "#/definitions/ByteBinding"
+            },
+            "distributionManifest": {
+              "$ref": "#/definitions/LogicalFile"
+            },
+            "arguments": {
+              "const": [
+                "-interaction=nonstopmode",
+                "-halt-on-error",
+                "-no-shell-escape",
+                "-recorder"
+              ]
+            },
+            "environment": {
+              "const": "latex-offline/1"
+            }
+          },
+          "required": [
+            "kind",
+            "engine",
+            "version",
+            "binary",
+            "distributionManifest",
+            "arguments",
+            "environment"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "lean4/1"
+            },
+            "engine": {
+              "const": "lean"
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "binary": {
+              "$ref": "#/definitions/ByteBinding"
+            },
+            "imports": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/LogicalFile"
+              },
+              "minItems": 0
+            },
+            "axiomPolicy": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "lean-standard-no-placeholder/1"
+                },
+                "admitted": {
+                  "const": ["propext", "Quot.sound", "Classical.choice"]
+                },
+                "incomplete": {
+                  "const": "reject-sorryAx-and-unresolved-metavariables"
+                },
+                "newAxioms": {
+                  "const": "reject-any-unlisted-axiom"
+                }
+              },
+              "required": ["kind", "admitted", "incomplete", "newAxioms"]
+            },
+            "arguments": {
+              "const": []
+            },
+            "environment": {
+              "const": "lean-offline/1"
+            }
+          },
+          "required": [
+            "kind",
+            "engine",
+            "version",
+            "binary",
+            "imports",
+            "axiomPolicy",
+            "arguments",
+            "environment"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "arithmetic-check/1"
+            },
+            "engine": {
+              "const": "exact-rational"
+            },
+            "version": {
+              "const": "1"
+            },
+            "limits": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "maximumOperations": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": ["maximumOperations"]
+            }
+          },
+          "required": ["kind", "engine", "version", "limits"]
+        }
+      ]
+    },
+    "ReleasePacket": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": "module-verification-release/1"
+        },
+        "nodeMajor": {
+          "const": 24
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "identity": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "git"
+                      },
+                      "gitBlob": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{40}$"
+                      }
+                    },
+                    "required": ["kind", "gitBlob"]
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "private-contract"
+                      },
+                      "binding": {
+                        "$ref": "#/definitions/ByteBinding"
+                      }
+                    },
+                    "required": ["kind", "binding"]
+                  }
+                ]
+              },
+              "content": {
+                "$ref": "#/definitions/FrozenBytes"
+              }
+            },
+            "required": ["path", "identity", "content"]
+          },
+          "minItems": 1
+        },
+        "lockfile": {
+          "$ref": "#/definitions/FrozenBytes"
+        },
+        "schemas": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LogicalFile"
+          },
+          "minItems": 1
+        },
+        "templates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LogicalFile"
+          },
+          "minItems": 1
+        },
+        "runner": {
+          "$ref": "#/definitions/FrozenBytes"
+        },
+        "runtimeDescriptor": {
+          "$ref": "#/definitions/FrozenBytes"
+        },
+        "toolRecipes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ToolRecipe"
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "protocol",
+        "nodeMajor",
+        "sources",
+        "lockfile",
+        "schemas",
+        "templates",
+        "runner",
+        "runtimeDescriptor",
+        "toolRecipes"
+      ]
+    },
+    "InstalledReleaseAnchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": "installed-module-verification-release/1"
+        },
+        "release": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "runner": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "runtimeDescriptor": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "sources": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "schemas": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "templates": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "toolRecipes": {
+          "$ref": "#/definitions/ByteBinding"
+        }
+      },
+      "required": [
+        "protocol",
+        "release",
+        "runner",
+        "runtimeDescriptor",
+        "sources",
+        "schemas",
+        "templates",
+        "toolRecipes"
+      ]
+    },
+    "OwnerEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "owner-evidence"
+        },
+        "owner": {
+          "enum": [
+            "controls",
+            "graph",
+            "facts",
+            "naming",
+            "conformance",
+            "activity",
+            "compilation"
+          ]
+        },
+        "diagnostics": {
+          "$ref": "#/definitions/FrozenBytes"
+        },
+        "subject": {
+          "$ref": "#/definitions/ByteBinding"
+        }
+      },
+      "required": ["kind", "owner", "diagnostics", "subject"]
+    },
+    "Prerequisite": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "missing-review"
+            },
+            "check": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "request": {
+              "$ref": "#/definitions/ByteBinding"
+            }
+          },
+          "required": ["kind", "check", "request"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unresolved-applicability"
+            },
+            "check": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "fragment": {
+              "$ref": "#/definitions/Fragment"
+            }
+          },
+          "required": ["kind", "check", "fragment"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "missing-subject"
+            },
+            "check": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "reference": {
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/EvidenceRef"
+                },
+                {
+                  "$ref": "#/definitions/ArtifactRef"
+                }
+              ]
+            }
+          },
+          "required": ["kind", "check", "reference"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "allocation-required"
+            },
+            "check": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "criterion": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+            },
+            "required": {
+              "const": "allocated-numeric-score"
+            }
+          },
+          "required": ["kind", "check", "criterion", "required"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unavailable-tool"
+            },
+            "check": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "recipe": {
+              "enum": ["latex-portable/1", "lean4/1"]
+            }
+          },
+          "required": ["kind", "check", "recipe"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unsupported-recipe"
+            },
+            "check": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "requested": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["kind", "check", "requested"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "native-workflow-unmet"
+            },
+            "check": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "owner": {
+              "$ref": "#/definitions/OwnerEvidence"
+            }
+          },
+          "required": ["kind", "check", "owner"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "review-independence-unmet"
+            },
+            "check": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "provenance": {
+              "$ref": "#/definitions/Provenance"
+            }
+          },
+          "required": ["kind", "check", "provenance"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "evaluation-missing"
+            },
+            "policy": {
+              "$ref": "#/definitions/EvaluationPolicy"
+            }
+          },
+          "required": ["kind", "policy"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "evaluation-stale"
+            },
+            "expected": {
+              "$ref": "#/definitions/ByteBinding"
+            },
+            "observed": {
+              "$ref": "#/definitions/ByteBinding"
+            }
+          },
+          "required": ["kind", "expected", "observed"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "evaluation-failed"
+            },
+            "report": {
+              "$ref": "#/definitions/ByteBinding"
+            }
+          },
+          "required": ["kind", "report"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "kit-missing"
+            }
+          },
+          "required": ["kind"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "proof-missing"
+            }
+          },
+          "required": ["kind"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "incomplete-coverage"
+            },
+            "checks": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/CheckId"
+              },
+              "minItems": 1
+            }
+          },
+          "required": ["kind", "checks"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "formal-import-missing"
+            },
+            "check": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["kind", "check", "path"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "correspondence-unmet"
+            },
+            "check": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "theorem": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["kind", "check", "theorem"]
+        }
+      ]
+    },
+    "Refusal": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "malformed-packet"
+            },
+            "diagnostics": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1
+            }
+          },
+          "required": ["kind", "diagnostics"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unsupported-version"
+            },
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["kind", "schema"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unsupported-admission"
+            },
+            "admission": {
+              "const": "acquisition-handle/1"
+            }
+          },
+          "required": ["kind", "admission"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "stale-input"
+            },
+            "subject": {
+              "type": "string",
+              "minLength": 1
+            },
+            "expected": {
+              "$ref": "#/definitions/ByteBinding"
+            },
+            "observed": {
+              "$ref": "#/definitions/ByteBinding"
+            }
+          },
+          "required": ["kind", "subject", "expected", "observed"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "binding-mismatch"
+            },
+            "subject": {
+              "type": "string",
+              "minLength": 1
+            },
+            "expected": {
+              "$ref": "#/definitions/ByteBinding"
+            },
+            "observed": {
+              "$ref": "#/definitions/ByteBinding"
+            }
+          },
+          "required": ["kind", "subject", "expected", "observed"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "owner-refused"
+            },
+            "evidence": {
+              "$ref": "#/definitions/OwnerEvidence"
+            }
+          },
+          "required": ["kind", "evidence"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "packet-overflow"
+            },
+            "direction": {
+              "enum": ["request", "response"]
+            },
+            "actualBytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "limitBytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": ["kind", "direction", "actualBytes", "limitBytes"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unsafe-output"
+            },
+            "reason": {
+              "enum": [
+                "existing-output",
+                "link",
+                "traversal",
+                "foreign-claim",
+                "changed-claim"
+              ]
+            }
+          },
+          "required": ["kind", "reason"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "untrusted-release"
+            },
+            "expected": {
+              "$ref": "#/definitions/ByteBinding"
+            },
+            "observed": {
+              "$ref": "#/definitions/ByteBinding"
+            }
+          },
+          "required": ["kind", "expected", "observed"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "untrusted-fixture"
+            },
+            "expectedFixtures": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ByteBinding"
+              },
+              "minItems": 0
+            },
+            "observed": {
+              "$ref": "#/definitions/ByteBinding"
+            }
+          },
+          "required": ["kind", "expectedFixtures", "observed"]
+        }
+      ]
+    },
+    "ReleaseAuthorityResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "authorized-release"
+            },
+            "release": {
+              "$ref": "#/definitions/ReleasePacket"
+            },
+            "anchor": {
+              "$ref": "#/definitions/InstalledReleaseAnchor"
+            }
+          },
+          "required": ["kind", "release", "anchor"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "refused"
+            },
+            "refusal": {
+              "$ref": "#/definitions/Refusal"
+            }
+          },
+          "required": ["kind", "refusal"]
+        }
+      ]
+    },
+    "SyntheticAuthorityResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "authorized-synthetic"
+            },
+            "snapshot": {
+              "$ref": "#/definitions/SnapshotPacket"
+            },
+            "manifest": {
+              "$ref": "#/definitions/ByteBinding"
+            }
+          },
+          "required": ["kind", "snapshot", "manifest"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "refused"
+            },
+            "refusal": {
+              "$ref": "#/definitions/Refusal"
+            }
+          },
+          "required": ["kind", "refusal"]
+        }
+      ]
+    },
+    "PlanPrerequisite": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unresolved-applicability"
+            },
+            "check": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "fragment": {
+              "$ref": "#/definitions/Fragment"
+            }
+          },
+          "required": ["kind", "check", "fragment"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "missing-subject"
+            },
+            "check": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "reference": {
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/EvidenceRef"
+                },
+                {
+                  "$ref": "#/definitions/ArtifactRef"
+                }
+              ]
+            }
+          },
+          "required": ["kind", "check", "reference"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "allocation-required"
+            },
+            "check": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "criterion": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+            },
+            "required": {
+              "const": "allocated-numeric-score"
+            }
+          },
+          "required": ["kind", "check", "criterion", "required"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unsupported-recipe"
+            },
+            "check": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "requested": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["kind", "check", "requested"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "native-workflow-unmet"
+            },
+            "check": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "owner": {
+              "$ref": "#/definitions/OwnerEvidence"
+            }
+          },
+          "required": ["kind", "check", "owner"]
+        }
+      ]
+    },
+    "Plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": "module-verification-plan/1"
+        },
+        "module": {
+          "type": "string",
+          "pattern": "^module:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+        },
+        "moduleCode": {
+          "type": "string",
+          "pattern": "^[A-Z]{2,4}[0-9]{4}[A-Z]?$"
+        },
+        "selectedHead": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "selectedGeneration": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "inputManifest": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "procedurePreferences": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "acceptedDecisions": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "runtimeRelease": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "entryTemplate": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "evaluationPolicy": {
+          "$ref": "#/definitions/EvaluationPolicy"
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Check"
+          },
+          "minItems": 1
+        },
+        "prerequisites": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PlanPrerequisite"
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "protocol",
+        "module",
+        "moduleCode",
+        "selectedHead",
+        "selectedGeneration",
+        "inputManifest",
+        "procedurePreferences",
+        "acceptedDecisions",
+        "runtimeRelease",
+        "entryTemplate",
+        "evaluationPolicy",
+        "checks",
+        "prerequisites"
+      ]
+    },
+    "ManifestEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "binding": {
+          "$ref": "#/definitions/ByteBinding"
+        }
+      },
+      "required": ["path", "binding"]
+    },
+    "KitManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": "module-verification-kit/1"
+        },
+        "plan": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "runtimeRelease": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ManifestEntry"
+          },
+          "minItems": 1
+        }
+      },
+      "required": ["protocol", "plan", "runtimeRelease", "files"]
+    },
+    "KitPacket": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "plan": {
+          "$ref": "#/definitions/Plan"
+        },
+        "releaseAuthority": {
+          "$ref": "#/definitions/InstalledReleaseAnchor"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LogicalFile"
+          },
+          "minItems": 1
+        },
+        "manifest": {
+          "$ref": "#/definitions/KitManifest"
+        },
+        "digest": {
+          "$ref": "#/definitions/ByteBinding"
+        }
+      },
+      "required": ["plan", "releaseAuthority", "files", "manifest", "digest"]
+    },
+    "CheckedFormalRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "formal-checked"
+        },
+        "check": {
+          "$ref": "#/definitions/CheckId"
+        },
+        "recipe": {
+          "const": "lean4/1"
+        },
+        "artifact": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "importManifest": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "binary": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "theorem": {
+          "type": "string",
+          "minLength": 1
+        },
+        "extractedStatement": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "dependencyClosure": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "extractedAxioms": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "acceptedAssumptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+          },
+          "minItems": 0
+        },
+        "axiomPolicy": {
+          "const": "lean-standard-no-placeholder/1"
+        },
+        "transcript": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "exitCode": {
+          "const": 0
+        },
+        "correspondenceReview": {
+          "$ref": "#/definitions/ByteBinding"
+        }
+      },
+      "required": [
+        "kind",
+        "check",
+        "recipe",
+        "artifact",
+        "importManifest",
+        "binary",
+        "version",
+        "theorem",
+        "extractedStatement",
+        "dependencyClosure",
+        "extractedAxioms",
+        "acceptedAssumptions",
+        "axiomPolicy",
+        "transcript",
+        "exitCode",
+        "correspondenceReview"
+      ]
+    },
+    "CheckResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "observed"
+            },
+            "check": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ByteBinding"
+              },
+              "minItems": 1
+            },
+            "claim": {
+              "enum": [
+                "controls",
+                "naming",
+                "artifact",
+                "build-executed",
+                "pure-workflow-contract"
+              ]
+            }
+          },
+          "required": ["kind", "check", "evidence", "claim"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "review-contract-valid"
+            },
+            "check": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "review": {
+              "$ref": "#/definitions/ByteBinding"
+            },
+            "provenance": {
+              "$ref": "#/definitions/Provenance"
+            },
+            "limitations": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1
+            }
+          },
+          "required": ["kind", "check", "review", "provenance", "limitations"]
+        },
+        {
+          "$ref": "#/definitions/CheckedFormalRecord"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unmet"
+            },
+            "prerequisite": {
+              "$ref": "#/definitions/Prerequisite"
+            }
+          },
+          "required": ["kind", "prerequisite"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "failed"
+            },
+            "check": {
+              "$ref": "#/definitions/CheckId"
+            },
+            "reason": {
+              "enum": [
+                "owner-finding",
+                "build-failed",
+                "artifact-mismatch",
+                "review-contract-invalid",
+                "claim-refuted",
+                "claim-incomplete",
+                "circular-support",
+                "axiom-policy",
+                "formal-check-failed"
+              ]
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ByteBinding"
+              },
+              "minItems": 1
+            }
+          },
+          "required": ["kind", "check", "reason", "evidence"]
+        }
+      ]
+    },
+    "RunProof": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": "module-verification-run/1"
+        },
+        "kit": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "inputManifest": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "runtimeRelease": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "scope": {
+          "enum": ["supplied-bytes", "local-read-only"]
+        },
+        "reviews": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ByteBinding"
+          },
+          "minItems": 0
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CheckResult"
+          },
+          "minItems": 1
+        },
+        "evidenceFiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LogicalFile"
+          },
+          "minItems": 1
+        },
+        "cleanup": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "pending"
+                },
+                "claim": {
+                  "$ref": "#/definitions/ByteBinding"
+                }
+              },
+              "required": ["kind", "claim"]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "retained"
+                },
+                "claim": {
+                  "$ref": "#/definitions/ByteBinding"
+                },
+                "teardown": {
+                  "$ref": "#/definitions/ByteBinding"
+                },
+                "evidenceReadback": {
+                  "$ref": "#/definitions/ByteBinding"
+                }
+              },
+              "required": ["kind", "claim", "teardown", "evidenceReadback"]
+            }
+          ]
+        }
+      },
+      "required": [
+        "protocol",
+        "kit",
+        "inputManifest",
+        "runtimeRelease",
+        "scope",
+        "reviews",
+        "results",
+        "evidenceFiles",
+        "cleanup"
+      ]
+    },
+    "CompileResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "compiled"
+            },
+            "kit": {
+              "$ref": "#/definitions/KitPacket"
+            }
+          },
+          "required": ["kind", "kit"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unmet"
+            },
+            "prerequisites": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Prerequisite"
+              },
+              "minItems": 1
+            }
+          },
+          "required": ["kind", "prerequisites"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "refused"
+            },
+            "refusal": {
+              "$ref": "#/definitions/Refusal"
+            }
+          },
+          "required": ["kind", "refusal"]
+        }
+      ]
+    },
+    "RunResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "recorded"
+            },
+            "proof": {
+              "$ref": "#/definitions/RunProof"
+            }
+          },
+          "required": ["kind", "proof"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "review-required"
+            },
+            "proof": {
+              "$ref": "#/definitions/RunProof"
+            },
+            "requests": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/LogicalFile"
+              },
+              "minItems": 1
+            }
+          },
+          "required": ["kind", "proof", "requests"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "retained-locally"
+            },
+            "runHandle": {
+              "type": "string",
+              "minLength": 1
+            },
+            "proof": {
+              "$ref": "#/definitions/ByteBinding"
+            },
+            "receipt": {
+              "$ref": "#/definitions/ByteBinding"
+            },
+            "completeBytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": ["kind", "runHandle", "proof", "receipt", "completeBytes"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "refused"
+            },
+            "refusal": {
+              "$ref": "#/definitions/Refusal"
+            }
+          },
+          "required": ["kind", "refusal"]
+        }
+      ]
+    },
+    "DoctorResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "healthy"
+            },
+            "kit": {
+              "$ref": "#/definitions/ByteBinding"
+            },
+            "tools": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ByteBinding"
+              },
+              "minItems": 0
+            },
+            "observationScope": {
+              "enum": ["supplied-bytes", "local-read-only"]
+            }
+          },
+          "required": ["kind", "kit", "tools", "observationScope"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unmet"
+            },
+            "prerequisites": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Prerequisite"
+              },
+              "minItems": 1
+            }
+          },
+          "required": ["kind", "prerequisites"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "refused"
+            },
+            "refusal": {
+              "$ref": "#/definitions/Refusal"
+            }
+          },
+          "required": ["kind", "refusal"]
+        }
+      ]
+    },
+    "Readiness": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "candidate-ready"
+            },
+            "scope": {
+              "const": "isolated-candidate"
+            },
+            "kit": {
+              "$ref": "#/definitions/ByteBinding"
+            },
+            "proof": {
+              "$ref": "#/definitions/ByteBinding"
+            },
+            "acceptedEvaluation": {
+              "$ref": "#/definitions/ByteBinding"
+            },
+            "judgmentStatus": {
+              "const": "attributed-with-separate-context-evidence"
+            }
+          },
+          "required": [
+            "kind",
+            "scope",
+            "kit",
+            "proof",
+            "acceptedEvaluation",
+            "judgmentStatus"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unmet"
+            },
+            "prerequisites": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Prerequisite"
+              },
+              "minItems": 1
+            }
+          },
+          "required": ["kind", "prerequisites"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "refused"
+            },
+            "refusal": {
+              "$ref": "#/definitions/Refusal"
+            }
+          },
+          "required": ["kind", "refusal"]
+        }
+      ]
+    },
+    "EvaluationReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": "module-review-evaluation/1"
+        },
+        "policy": {
+          "$ref": "#/definitions/EvaluationPolicy"
+        },
+        "runtimeRelease": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "evaluatedKits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kit": {
+                "$ref": "#/definitions/ByteBinding"
+              },
+              "files": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/ManifestEntry"
+                },
+                "minItems": 1
+              }
+            },
+            "required": ["kit", "files"]
+          },
+          "minItems": 1
+        },
+        "oracleManifest": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "referenceDerivations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ByteBinding"
+          },
+          "minItems": 24
+        },
+        "referenceAdjudication": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "freezeEvent": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "reviewerInvocations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LogicalFile"
+          },
+          "minItems": 24
+        },
+        "contextLineage": {
+          "$ref": "#/definitions/LogicalFile"
+        },
+        "allowedInputs": {
+          "$ref": "#/definitions/LogicalFile"
+        },
+        "actualToolReads": {
+          "$ref": "#/definitions/LogicalFile"
+        },
+        "responses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LogicalFile"
+          },
+          "minItems": 24
+        },
+        "scorerReport": {
+          "$ref": "#/definitions/LogicalFile"
+        },
+        "checkerReports": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LogicalFile"
+          },
+          "minItems": 3
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "protocol",
+        "policy",
+        "runtimeRelease",
+        "evaluatedKits",
+        "oracleManifest",
+        "referenceDerivations",
+        "referenceAdjudication",
+        "freezeEvent",
+        "reviewerInvocations",
+        "contextLineage",
+        "allowedInputs",
+        "actualToolReads",
+        "responses",
+        "scorerReport",
+        "checkerReports",
+        "limitations"
+      ]
+    },
+    "AcceptedManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": "accepted-module-review-evaluation/1"
+        },
+        "receipt": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "oracleManifest": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "runtimeRelease": {
+          "$ref": "#/definitions/ByteBinding"
+        },
+        "evaluatedKits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ByteBinding"
+          },
+          "minItems": 1
+        },
+        "acceptanceJudgment": {
+          "$ref": "#/definitions/LogicalFile"
+        },
+        "retainedContextJudgments": {
+          "const": "coordinator-authority-and-context-separation-not-offline-authenticated"
+        }
+      },
+      "required": [
+        "protocol",
+        "receipt",
+        "oracleManifest",
+        "runtimeRelease",
+        "evaluatedKits",
+        "acceptanceJudgment",
+        "retainedContextJudgments"
+      ]
+    },
+    "IndividualReviewAcceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": "accepted-individual-review-contexts/1"
+        },
+        "reviews": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "request": {
+                "$ref": "#/definitions/ByteBinding"
+              },
+              "response": {
+                "$ref": "#/definitions/ByteBinding"
+              },
+              "contextManifest": {
+                "$ref": "#/definitions/ByteBinding"
+              },
+              "actualToolReads": {
+                "$ref": "#/definitions/ByteBinding"
+              },
+              "separateDerivation": {
+                "$ref": "#/definitions/ByteBinding"
+              },
+              "acceptedJudgment": {
+                "$ref": "#/definitions/ByteBinding"
+              }
+            },
+            "required": [
+              "request",
+              "response",
+              "contextManifest",
+              "actualToolReads",
+              "separateDerivation",
+              "acceptedJudgment"
+            ]
+          },
+          "minItems": 1
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        }
+      },
+      "required": ["protocol", "reviews", "limitations"]
+    },
+    "WireAction": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "const": "compile"
+            },
+            "snapshot": {
+              "$ref": "#/definitions/SnapshotPacket"
+            }
+          },
+          "required": ["action", "snapshot"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "const": "run"
+            },
+            "snapshot": {
+              "$ref": "#/definitions/SnapshotPacket"
+            },
+            "kit": {
+              "$ref": "#/definitions/KitPacket"
+            },
+            "reviews": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ReviewPacket"
+              },
+              "minItems": 0
+            }
+          },
+          "required": ["action", "snapshot", "kit", "reviews"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "const": "ready"
+            },
+            "snapshot": {
+              "$ref": "#/definitions/SnapshotPacket"
+            },
+            "kit": {
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/KitPacket"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "proof": {
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/RunProof"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": ["action", "snapshot", "kit", "proof"]
+        }
+      ]
+    }
+  }
+}

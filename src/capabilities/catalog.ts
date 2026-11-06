@@ -182,6 +182,7 @@ export const cliCapabilities: Capability[] = [
   {
     ...cli("module validate", [], [], null, [
       "test/controls/module-data.test.ts",
+      "test/controls/module-verification.test.ts",
       "test/controls/native-data-validation.test.ts",
       "test/controls/module-inspect-cli.test.ts",
     ]),
@@ -197,7 +198,7 @@ export const cliCapabilities: Capability[] = [
       "safe candidate control bytes; selected byte hashes; closed module graph",
     ],
     result:
-      "Validated module data or structured refusal. Publication, workflows, module conformance and migration readiness remain unimplemented; no writes.",
+      "Structural module data validation or refusal, including verification and learning-records module-data:2. Candidate verification explicitly remains unimplemented; no runtime, grading, mathematical correctness or evaluation acceptance claim. No writes.",
   },
   {
     ...cli("config validate", [], [], null, [

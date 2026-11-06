@@ -89,7 +89,7 @@ export async function runModuleActivityJourney(
     assert.equal(alive, false);
     return result;
   }
-  const fixture = activityFixture();
+  const fixture = activityFixture(false, 2);
   const addon = join(host, "fixture.node");
   await command([
     "scripts/build-control-publication-native.mjs",
@@ -745,6 +745,8 @@ export function loadPublicationNative(){const value=createRequire(import.meta.ur
       const read = await command([readerEntry, path]);
       const result = JSON.parse(read.stdout);
       assert.equal(result.coverage, "validated-module-data");
+      assert.equal(result.readiness.verification, "not-implemented");
+      assert.equal(result.shape.head.contractVersion, 8);
       await writeFile(join(evidence, `reader-${name}.json`), read.stdout);
     }
     await writeFile(

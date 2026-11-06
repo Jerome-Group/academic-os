@@ -314,7 +314,7 @@ const response = await dispatch(JSON.parse(readFileSync(0,"utf8"))); process.std
       digest(manifest),
     );
     const a = publicationFixture("Synthetic generation A"),
-      b = publicationFixture("Synthetic generation B");
+      b = publicationFixture("Synthetic generation B", 2);
     await writeFile(join(inputs, "identity.json"), a.identityBytes);
     await writeFile(join(inputs, "a.json"), a.bundleBytes);
     const cli = join(host, "src/cli.js");

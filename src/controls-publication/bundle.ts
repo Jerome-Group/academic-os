@@ -1,5 +1,5 @@
 import type { ModuleDataGeneration } from "../controls/generated/control-generation-2.js";
-import type { ModuleDataControl } from "../controls/generated/module-data-1.js";
+import type { SupportedModuleData as ModuleDataControl } from "../controls/generated/supported-controls.js";
 import type { ModuleHead } from "../controls/generated/module-head-1.js";
 import type { ModuleIdentity } from "../controls/generated/module-identity-1.js";
 import {
@@ -11,9 +11,8 @@ import {
   headSchemaId,
   identitySchemaId,
   moduleDataGenerationSchemaId,
-  moduleDataSchemaId,
   validateIdentity,
-  validateModuleData,
+  validateSupportedModuleData,
 } from "../controls/schema-registry.js";
 import { digest, encodePublication, freezeBytes, thawBytes } from "./codec.js";
 import type {
@@ -61,7 +60,7 @@ export function decodeBundle(
     const value =
       control.role === "module-identity"
         ? decodeIdentity(raw)
-        : parseBytes(raw, validateModuleData);
+        : decodeData(raw);
     if (
       value.module !== aggregate.module ||
       value.moduleCode !== aggregate.moduleCode
@@ -179,7 +178,7 @@ export function generationFiles(
       schema:
         control.role === "module-identity"
           ? identitySchemaId
-          : moduleDataSchemaId,
+          : decodeData(thawBytes(control.bytes)).$schema,
       byteSha256: control.bytes.byteSha256,
     })),
     coverage: "module-data",
@@ -229,6 +228,10 @@ export function generationFiles(
   for (const file of files) requireFileBytes(file.bytes.byteLength);
   validateCompleteFiles(files, aggregate);
   return files;
+}
+
+function decodeData(bytes: Uint8Array): ModuleDataControl {
+  return parseBytes(bytes, validateSupportedModuleData);
 }
 
 export function validateCompleteFiles(

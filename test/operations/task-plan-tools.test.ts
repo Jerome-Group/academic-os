@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { guardedTaskTools } from "../../src/operations/task-plan-tools.js";
 import type { OperationTool } from "../../src/operations/types.js";
 
-test("production legacy mutations cannot bypass exact-plan execution", async () => {
+test("routine mutations use normal arguments without a caller-authored plan", async () => {
   let oldWrites = 0;
   const tools: OperationTool[] = [
     "tasks_create",
@@ -33,13 +33,9 @@ test("production legacy mutations cannot bypass exact-plan execution", async () 
       tool.name !== "tasks_sync_capabilities",
   )) {
     const result = await tool.call(new Map());
-    assert.equal(result.failed, true);
-    assert.equal(
-      (result.report as { code: string }).code,
-      "exact-plan-required",
-    );
+    assert.equal(result.failed, false);
   }
-  assert.equal(oldWrites, 0);
+  assert.equal(oldWrites, 6);
 });
 
 test("both client identities submit the same exact plan and receive live conflicts unchanged", async () => {

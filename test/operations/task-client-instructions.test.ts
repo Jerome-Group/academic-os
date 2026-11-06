@@ -245,6 +245,47 @@ for (const research of [false, true]) {
   });
 }
 
+for (const research of [false, true]) {
+  test(`routine ${research ? "research" : "module"} MCP calls change live task state without plans or policy`, async () => {
+    const fixture = taskClientFixture(research);
+    const prefix = research ? "research_tasks" : "tasks";
+    await fixture.call(`${prefix}_read_register`, fixture.identityArguments);
+    const created = await fixture.call(`${prefix}_create`, {
+      ...fixture.identityArguments,
+      title: "Read the next section",
+      do_date: "2030-01-02",
+      notes: "Requested reading scope",
+    });
+    assert.equal(created.isError, false, JSON.stringify(created.report));
+    assert.equal(created.report.outcome, "applied");
+    assert.equal(created.report.register.freshness, "fresh");
+    const taskId = created.report.taskId;
+    assert.equal(typeof taskId, "string");
+    const changed = await fixture.call(`${prefix}_change`, {
+      ...fixture.identityArguments,
+      task_id: taskId,
+      title: "Read the revised section",
+      do_date: "2030-01-03",
+      notes: "Revised reading scope",
+    });
+    assert.equal(changed.isError, false, JSON.stringify(changed.report));
+    const completed = await fixture.call(`${prefix}_complete`, {
+      ...fixture.identityArguments,
+      task_id: taskId,
+    });
+    assert.equal(completed.isError, false, JSON.stringify(completed.report));
+    const live = fixture.list.tasks().find((task) => task.id === taskId);
+    assert.ok(live);
+    assert.equal(live.title, "Read the revised section");
+    assert.equal(live.notes, "Revised reading scope");
+    assert.match(live.due ?? "", /^2030-01-03T/);
+    assert.equal(live.status, "completed");
+    assert.equal(fixture.mutationCalls(), 3);
+    const capabilities = await fixture.call("tasks_sync_capabilities", {});
+    assert.equal(capabilities.report.requiresPlan, false);
+  });
+}
+
 function taskClientFixture(research: boolean) {
   const identity: TaskTargetIdentity = research
     ? {

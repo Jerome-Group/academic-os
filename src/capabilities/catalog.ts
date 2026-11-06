@@ -755,6 +755,7 @@ export function capabilityIndex(): object {
         "test/controls-publication/replay-capacity.test.ts",
         "test/controls-publication/runtime-consistency.test.ts",
         "test/controls-publication/native-policy-admission.test.ts",
+        "test/controls-publication/generated-pending-host.test.ts",
         "test/controls-publication/packaged-policy.test.ts",
         "test/controls-publication/policy-roots.test.ts",
         "test/controls-publication/host-results.test.ts",

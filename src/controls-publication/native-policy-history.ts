@@ -61,7 +61,14 @@ export function requireRequestOwnership(
   if (
     bridge ||
     records.some(
-      (record) => "requestId" in record && record.requestId === requestId,
+      (record) =>
+        "requestId" in record &&
+        record.requestId === requestId &&
+        !(
+          record.kind === "directory-claimed" &&
+          record.requestId === "bootstrap" &&
+          record.attemptId === "bootstrap"
+        ),
     )
   )
     refuse(

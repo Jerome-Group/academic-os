@@ -134,6 +134,7 @@ export const cliCapabilities: Capability[] = [
       implementation: "src/controls-publication/command.ts",
       tests: [
         "test/controls-publication/publication.test.ts",
+        "test/controls-publication/bootstrap-request.test.ts",
         "test/controls-publication/capacity.test.ts",
         "test/controls-publication/replay-capacity.test.ts",
         "test/controls-publication/native.test.ts",

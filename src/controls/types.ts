@@ -3,7 +3,7 @@ import type { ModuleHead } from "./generated/module-head-1.js";
 import type { ControlGeneration } from "./generated/control-generation-1.js";
 import type { ModuleIdentity } from "./generated/module-identity-1.js";
 import type { ModuleDataGeneration } from "./generated/control-generation-2.js";
-import type { ModuleDataControl } from "./generated/module-data-1.js";
+import type { SupportedModuleData } from "./generated/supported-controls.js";
 
 export type CanonicalControl =
   | {
@@ -12,9 +12,9 @@ export type CanonicalControl =
       readonly value: ModuleIdentity;
     }
   | {
-      readonly role: ModuleDataControl["role"];
+      readonly role: SupportedModuleData["role"];
       readonly path: string;
-      readonly value: ModuleDataControl;
+      readonly value: SupportedModuleData;
     };
 
 export type ControlObservation =
@@ -111,6 +111,7 @@ export type ControlRead =
         readonly workflows: "not-implemented";
         readonly moduleConformance: "not-implemented";
         readonly migration: "not-implemented";
+        readonly verification?: "not-implemented";
       };
       readonly limitations: readonly string[];
     }

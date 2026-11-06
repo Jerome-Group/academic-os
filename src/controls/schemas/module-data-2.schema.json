@@ -1,0 +1,143 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "urn:academic-os:module-data:2",
+  "title": "ModuleDataControlV2",
+  "oneOf": [
+    {
+      "$ref": "#/definitions/VerificationControlV2"
+    },
+    {
+      "$ref": "#/definitions/LearningRecordsControlV2"
+    }
+  ],
+  "definitions": {
+    "VerificationControlV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$schema": {
+          "const": "urn:academic-os:module-data:2"
+        },
+        "schemaVersion": {
+          "const": 2
+        },
+        "module": {
+          "type": "string",
+          "pattern": "^module:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+        },
+        "moduleCode": {
+          "type": "string",
+          "pattern": "^[A-Z]{2,4}[0-9]{4}[A-Z]?$"
+        },
+        "role": {
+          "const": "verification"
+        },
+        "protocol": {
+          "const": "module-verification/1"
+        },
+        "activation": {
+          "const": "candidate-required"
+        },
+        "runtime": {
+          "$ref": "urn:academic-os:module-verification:1#/definitions/ByteBinding"
+        },
+        "evaluationPolicy": {
+          "$ref": "urn:academic-os:module-verification:1#/definitions/EvaluationPolicy"
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "$ref": "urn:academic-os:module-verification:1#/definitions/Check"
+          },
+          "minItems": 1
+        },
+        "adaptationDecisions": {
+          "type": "array",
+          "items": {
+            "$ref": "urn:academic-os:module-verification:1#/definitions/DecisionRef"
+          },
+          "minItems": 0
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "$schema",
+        "schemaVersion",
+        "module",
+        "moduleCode",
+        "role",
+        "protocol",
+        "activation",
+        "runtime",
+        "evaluationPolicy",
+        "checks",
+        "adaptationDecisions",
+        "limitations"
+      ]
+    },
+    "LearningRecordsControlV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$schema": {
+          "const": "urn:academic-os:module-data:2"
+        },
+        "schemaVersion": {
+          "const": 2
+        },
+        "module": {
+          "type": "string",
+          "pattern": "^module:[A-Za-z0-9][A-Za-z0-9:._-]{0,159}$"
+        },
+        "moduleCode": {
+          "type": "string",
+          "pattern": "^[A-Z]{2,4}[0-9]{4}[A-Z]?$"
+        },
+        "role": {
+          "const": "learning-records"
+        },
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "urn:academic-os:module-data:1#/definitions/learningRecord"
+          }
+        },
+        "assessments": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "urn:academic-os:module-data:1#/definitions/assessment"
+              },
+              {
+                "$ref": "urn:academic-os:module-verification:1#/definitions/AssessmentReviewV2"
+              }
+            ]
+          }
+        },
+        "activityCloseouts": {
+          "type": "array",
+          "items": {
+            "$ref": "urn:academic-os:module-activity:1#/definitions/StoredCloseout"
+          }
+        }
+      },
+      "required": [
+        "$schema",
+        "schemaVersion",
+        "module",
+        "moduleCode",
+        "role",
+        "records",
+        "assessments"
+      ]
+    }
+  }
+}

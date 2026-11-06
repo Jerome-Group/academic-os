@@ -1,11 +1,16 @@
 import { Ajv, type ValidateFunction } from "ajv";
 import { activitySchemas } from "../module-activity/generated/schemas.js";
+import { verificationDependencies } from "./generated/verification-dependencies.js";
 import type { ControlGeneration } from "./generated/control-generation-1.js";
 import type { ModuleDataGeneration } from "./generated/control-generation-2.js";
 import type { ModuleDataControl } from "./generated/module-data-1.js";
 import type { ModuleHead } from "./generated/module-head-1.js";
 import type { ModuleIdentity } from "./generated/module-identity-1.js";
 import { controlSchemas } from "./generated/schemas.js";
+import {
+  supportedControlSchemas,
+  type SupportedModuleData,
+} from "./generated/supported-controls.js";
 import {
   moduleCalendarDate,
   nativeNulFreeBytes,
@@ -25,7 +30,11 @@ const ajv = new Ajv({ allErrors: true, strict: true, validateFormats: true });
 ajv.addFormat("publication-base64", canonicalBase64);
 ajv.addFormat("module-calendar-date", moduleCalendarDate);
 ajv.addFormat("native-nul-free-bytes", nativeNulFreeBytes);
-for (const schema of [...controlSchemas, ...activitySchemas])
+for (const schema of [
+  ...controlSchemas,
+  ...activitySchemas,
+  verificationDependencies,
+])
   ajv.addSchema(schema);
 
 export const validateHead = validator<ModuleHead>(headSchemaId);
@@ -37,6 +46,31 @@ export const validateModuleDataGeneration = validator<ModuleDataGeneration>(
 );
 export const validateModuleData =
   validator<ModuleDataControl>(moduleDataSchemaId);
+
+const dataValidators = new Map(
+  supportedControlSchemas
+    .filter((entry) => entry.role !== "module-identity")
+    .map((entry) => [
+      entry.schema,
+      validator<SupportedModuleData>(entry.schema),
+    ]),
+);
+
+export function supportedControlSchema(role: string, schema: string): boolean {
+  return supportedControlSchemas.some(
+    (entry) => entry.role === role && entry.schema === schema,
+  );
+}
+
+export function moduleDataValidator(
+  schema: string,
+): ValidateFunction<SupportedModuleData> | undefined {
+  return [...dataValidators].find(([id]) => id === schema)?.[1];
+}
+
+export const validateSupportedModuleData = ajv.compile<SupportedModuleData>({
+  oneOf: [...dataValidators.keys()].map(($ref) => ({ $ref })),
+});
 
 function validator<T>(id: string): ValidateFunction<T> {
   const validate = ajv.getSchema<T>(id);

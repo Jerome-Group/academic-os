@@ -72,7 +72,7 @@ export async function runModuleInspectCommand(
   process.stdout.write(
     json
       ? `${JSON.stringify(report, null, 2)}\n`
-      : `${report.outcome}: ${report.kind}; coverage=${report.coverage}\n${report.diagnostics.map((item) => `${item.code} ${item.path}${item.pointer}: ${item.message} ${item.remediation}`).join("\n")}\n`,
+      : `${report.outcome}: ${report.kind}; coverage=${report.coverage}\n${read.kind === "canonical" && read.readiness.verification ? "verification: not-implemented; structural validation only.\n" : ""}${report.diagnostics.map((item) => `${item.code} ${item.path}${item.pointer}: ${item.message} ${item.remediation}`).join("\n")}\n`,
   );
   process.exitCode = refused ? 2 : 0;
 }

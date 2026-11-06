@@ -1,4 +1,4 @@
-import type { ModuleDataControl } from "../../src/controls/generated/module-data-1.js";
+import type { SupportedModuleData as ModuleDataControl } from "../../src/controls/generated/supported-controls.js";
 import {
   activityBytes,
   activityRegistryDigest,
@@ -17,8 +17,8 @@ import { publicationFixture } from "../controls-publication/fixtures.js";
 export const syntheticActivityProcedure =
   "Synthetic Module procedure. Revision records retained evidence only. One topic. No native output, teaching or provider effect.\n";
 
-export function activityFixture(block = false) {
-  const fixture = publicationFixture();
+export function activityFixture(block = false, dataVersion: 1 | 2 = 1) {
+  const fixture = publicationFixture("Synthetic private controls", dataVersion);
   const bundle = structuredClone(fixture.bundle);
   const values = bundle.controls.flatMap((control) =>
     control.role === "module-identity"

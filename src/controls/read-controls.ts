@@ -7,13 +7,13 @@ import {
   headSchemaId,
   identitySchemaId,
   moduleDataGenerationSchemaId,
-  moduleDataSchemaId,
+  moduleDataValidator,
+  supportedControlSchema,
   schemaDiagnostics,
   validateGeneration,
   validateHead,
   validateIdentity,
   validateModuleDataGeneration,
-  validateModuleData,
 } from "./schema-registry.js";
 import type { ControlGeneration } from "./generated/control-generation-1.js";
 import type { ModuleDataGeneration } from "./generated/control-generation-2.js";
@@ -164,8 +164,8 @@ export function readControls(input: ControlReadInput): ControlRead {
     roles.add(ref.role);
     paths.add(path);
     if (
-      ref.schema !== identitySchemaId &&
-      !(fullModuleData && ref.schema === moduleDataSchemaId)
+      !supportedControlSchema(ref.role, ref.schema) ||
+      (!fullModuleData && ref.schema !== identitySchemaId)
     ) {
       diagnostics.push(unsupportedSchema(path, ref.schema));
       continue;
@@ -184,9 +184,10 @@ export function readControls(input: ControlReadInput): ControlRead {
     const file = referenced(input.files, path, ref.byteSha256, diagnostics);
     const value =
       file === undefined ? undefined : decode(file, ref.schema, diagnostics);
-    if (ref.schema === moduleDataSchemaId) {
-      if (!validateModuleData(value)) {
-        diagnostics.push(...schemaDiagnostics(validateModuleData, path));
+    const validateData = moduleDataValidator(ref.schema);
+    if (validateData !== undefined) {
+      if (!validateData(value)) {
+        diagnostics.push(...schemaDiagnostics(validateData, path));
         continue;
       }
       if (value.role !== ref.role) {
@@ -245,8 +246,16 @@ export function readControls(input: ControlReadInput): ControlRead {
     );
   if (diagnostics.length) return refuse();
   if (fullModuleData)
-    diagnostics.push(...validateModuleGraph(controls, generationPath));
+    diagnostics.push(
+      ...validateModuleGraph(controls, generationPath, input.files),
+    );
   if (diagnostics.length) return refuse();
+  const candidateVerification = controls.some(
+    (control) =>
+      control.role === "verification" &&
+      "activation" in control.value &&
+      control.value.activation === "candidate-required",
+  );
   return {
     kind: "canonical",
     shape: { kind: "canonical", head, generation },
@@ -258,9 +267,17 @@ export function readControls(input: ControlReadInput): ControlRead {
       workflows: "not-implemented",
       moduleConformance: "not-implemented",
       migration: "not-implemented",
+      ...(candidateVerification
+        ? { verification: "not-implemented" as const }
+        : {}),
     },
     limitations: [
       "Validation binds selected control bytes and recorded graph relationships. It does not verify native artifact contents, evidence truth, upstream provider state or corpus completeness.",
+      ...(candidateVerification
+        ? [
+            "Candidate verification is unavailable. Structural validation does not execute checks, establish grading or mathematical correctness, accept evaluation, or establish verification readiness.",
+          ]
+        : []),
     ],
     coverage: fullModuleData
       ? "validated-module-data"

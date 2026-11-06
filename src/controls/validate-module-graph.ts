@@ -2,7 +2,6 @@ import { isRecord } from "../conformance/value-shape.js";
 import type {
   Artifact,
   Decision,
-  ModuleDataControl,
   SourceMapControl,
 } from "./generated/module-data-1.js";
 import { validateModuleFacts } from "./validate-module-facts.js";
@@ -10,31 +9,19 @@ import {
   diagnostic,
   type CanonicalControl,
   type ControlDiagnostic,
+  type ControlObservation,
 } from "./types.js";
 
-export const moduleDataRoles = [
-  "definition",
-  "profile",
-  "evidence",
-  "artifacts",
-  "source-map",
-  "terms",
-  "decisions",
-  "preferences",
-  "learning-records",
-  "revisit",
-  "glossary",
-  "resources",
-  "textbooks",
-  "curation",
-  "provider-mirrors",
-  "verification",
-  "learning-workspace",
-] as const satisfies readonly ModuleDataControl["role"][];
+import {
+  moduleDataRoles,
+  canonicalReferenceKinds,
+} from "./generated/supported-controls.js";
+export { moduleDataRoles };
 
 export function validateModuleGraph(
   controls: readonly CanonicalControl[],
   generationPath: string,
+  observations: readonly ControlObservation[] = [],
 ): ControlDiagnostic[] {
   const diagnostics: ControlDiagnostic[] = [];
   const identities = new Map<
@@ -199,6 +186,8 @@ export function validateModuleGraph(
       artifacts,
       decisions,
       sourceMap,
+      controls,
+      observations,
       supersession,
       problem,
     });
@@ -251,7 +240,8 @@ function visitReferences(
   if (
     Object.keys(value).length === 2 &&
     typeof value.kind === "string" &&
-    typeof value.id === "string"
+    typeof value.id === "string" &&
+    canonicalReferenceKinds.some((kind) => kind === value.kind)
   ) {
     visit({ kind: value.kind, id: value.id }, pointer);
     return;

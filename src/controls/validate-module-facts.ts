@@ -2,12 +2,15 @@ import type {
   Artifact,
   Decision,
   LearningRecord,
-  ModuleDataControl,
   SourceMapControl,
   SourceUse,
   Target,
 } from "./generated/module-data-1.js";
 import { validateNativeRepresentations } from "./validate-native-representations.js";
+import type { SupportedModuleData } from "./generated/supported-controls.js";
+import { assessmentProblems } from "./verification-reviews.js";
+import { validateVerificationFacts } from "./verification-facts.js";
+import type { CanonicalControl, ControlObservation } from "./types.js";
 import { safeRelativePath } from "./read-controls.js";
 
 export function validateModuleFacts({
@@ -17,9 +20,13 @@ export function validateModuleFacts({
   decisions,
   sourceMap,
   supersession,
+  controls,
+  observations,
   problem,
 }: {
-  value: ModuleDataControl;
+  value: SupportedModuleData;
+  controls: readonly CanonicalControl[];
+  observations: readonly ControlObservation[];
   path: string;
   artifacts: ReadonlyMap<string, Artifact>;
   decisions: ReadonlyMap<string, Decision>;
@@ -32,6 +39,14 @@ export function validateModuleFacts({
     message: string,
   ) => void;
 }): void {
+  if (value.schemaVersion === 2)
+    validateVerificationFacts({
+      value,
+      controls,
+      observations,
+      problem: (pointer, message) =>
+        problem("invalid-verification-binding", path, pointer, message),
+    });
   const relative = (value: string, pointer: string) => {
     if (!safeRelativePath(value))
       problem(
@@ -41,13 +56,48 @@ export function validateModuleFacts({
         `Expected a normalized module-relative path, observed ${JSON.stringify(value)}.`,
       );
   };
-  const accepted = (id: string, pointer: string) => {
-    if (decisions.get(id)?.status !== "accepted")
+  const accepted = (id: string, pointer: string, component?: string) => {
+    const decision = decisions.get(id);
+    if (decision?.status !== "accepted")
       problem(
         "unaccepted-control-decision",
         path,
         pointer,
         `${id} must resolve to an accepted decision.`,
+      );
+    if (value.schemaVersion !== 2 || !decision) return;
+    const localComponents = controls.flatMap((control) =>
+      control.role === "profile" &&
+      "role" in control.value &&
+      control.value.role === "profile"
+        ? control.value.assessments.map((entry) => entry.id)
+        : [],
+    );
+    if (
+      decision.scope.subjects.some(
+        (subject) => subject.startsWith("module:") && subject !== value.module,
+      )
+    )
+      problem(
+        "invalid-verification-binding",
+        path,
+        pointer,
+        "Decision scope explicitly names a different Module. Accepted status alone grants no applicability authority.",
+      );
+    if (
+      decision.scope.subjects.some(
+        (subject) =>
+          subject.startsWith("assessment-component:") &&
+          (component === undefined
+            ? !localComponents.includes(subject)
+            : subject !== component),
+      )
+    )
+      problem(
+        "invalid-verification-binding",
+        path,
+        pointer,
+        "Decision scope names an assessment component outside the known local scope.",
       );
   };
   const sourceUse = (use: SourceUse, pointer: string) => {
@@ -229,6 +279,50 @@ export function validateModuleFacts({
           );
       });
       for (const [index, assessment] of value.assessments.entries()) {
+        if ("recordVersion" in assessment) {
+          for (const message of assessmentProblems(assessment))
+            problem(
+              "invalid-assessment-review",
+              path,
+              `/assessments/${index}`,
+              message,
+            );
+          const profile = controls.find(
+            (control) => control.role === "profile",
+          )?.value;
+          if (
+            !profile ||
+            !("role" in profile) ||
+            profile.role !== "profile" ||
+            !profile.assessments.some(
+              (component) => component.id === assessment.component,
+            )
+          )
+            problem(
+              "missing-assessment-component",
+              path,
+              `/assessments/${index}/component`,
+              "Assessment component is absent from this Module profile.",
+            );
+          for (const criterion of assessment.criteria) {
+            if (criterion.applicability === "excluded")
+              accepted(
+                criterion.decision.id,
+                `/assessments/${index}/criteria`,
+                assessment.component,
+              );
+            if (
+              criterion.applicability === "applies" &&
+              criterion.basis.kind === "rubric"
+            )
+              accepted(
+                criterion.basis.applicabilityDecision.id,
+                `/assessments/${index}/criteria`,
+                assessment.component,
+              );
+          }
+          continue;
+        }
         if (
           assessment.kind === "rubric-linked" &&
           assessment.authority.kind !== "known"
@@ -321,10 +415,29 @@ export function validateModuleFacts({
           "A provider target has more than one selected mirror.",
         );
       break;
+    case "verification":
+      if (value.schemaVersion === 2) {
+        for (const [index, check] of value.checks.entries()) {
+          if (check.kind === "workflow")
+            validateTarget(check.target, sourceMap, artifacts, (message) =>
+              problem(
+                "invalid-verification-target",
+                path,
+                `/checks/${index}/target`,
+                message,
+              ),
+            );
+          if (check.kind === "assessment")
+            for (const decision of check.applicabilityDecisions)
+              accepted(decision.id, `/checks/${index}/applicabilityDecisions`);
+        }
+        for (const decision of value.adaptationDecisions)
+          accepted(decision.id, "/adaptationDecisions");
+      }
+      break;
     case "decisions":
     case "glossary":
     case "resources":
-    case "verification":
     case "learning-workspace":
       break;
     default: {

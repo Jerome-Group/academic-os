@@ -10,6 +10,7 @@ import {
 } from "node:fs/promises";
 import { join } from "node:path";
 import { it } from "node:test";
+import { isRecord } from "../../src/conformance/value-shape.js";
 import {
   encodePublication,
   sha256,
@@ -20,6 +21,93 @@ import {
 } from "../../src/controls-publication/schema.js";
 import { fixture, raw } from "./native-policy-fixture.js";
 import { bindFixtureRuntime } from "./runtime-fixture.js";
+
+it("rejects completed selector movement without its preceding archive observation instead of treating the completed move as pending", {
+  skip: process.platform !== "darwin",
+  timeout: 180000,
+}, async (context) => {
+  const f = await fixture("selector-archive-order");
+  context.diagnostic(`Retained selector archive ordering fixture ${f.root}`);
+  const request = await f.request();
+  const first = await f.run("install-native-source-policy", request);
+  assert.equal(first.status, 0, JSON.stringify(first.value));
+  assert.ok(isRecord(first.value.generation));
+  const updated = await f.run("install-native-source-policy", {
+    ...request,
+    requestId: "completed-update",
+    expectedPriorGeneration: first.value.generation.sha256,
+    slots: [{ ...request.slots[0], sourceKey: "updated-private" }],
+  });
+  assert.equal(updated.status, 0, JSON.stringify(updated.value));
+  const before = await readFile(f.ledger);
+  const rows = before
+    .toString()
+    .trimEnd()
+    .split("\n")
+    .map((line) => parseBytes(Buffer.from(line), validateMixedEvent));
+  const retained = rows.filter(
+    (row) =>
+      row.record.kind !== "promotion-observed" ||
+      !Buffer.from(row.record.to.rawNameBase64, "base64")
+        .toString("utf8")
+        .startsWith("native-source-policy-history-"),
+  );
+  assert.equal(rows.length - retained.length, 1);
+  let previous: string | null = null;
+  const corrupted = Buffer.concat(
+    retained.map((row, sequence) => {
+      const bytes = encodePublication({
+        ...row,
+        sequence,
+        previousEventByteSha256: previous,
+      });
+      previous = sha256(bytes);
+      return Buffer.concat([bytes, Buffer.from("\n")]);
+    }),
+  );
+  await writeFile(
+    join(f.root, "ledger-before-archive-observation-removal.jsonl"),
+    before,
+  );
+  await writeFile(f.ledger, corrupted);
+  const retry = await f.run("retry-native-source-policy", request.requestId);
+  const afterRetry = await readFile(f.ledger);
+  const generated = f.command([
+    join(f.host, "publication.mjs"),
+    "create-generated-candidate",
+    "--request",
+    "after-incomplete-archive",
+    "--identity",
+    f.identityPath,
+  ]);
+  const afterGenerated = await readFile(f.ledger);
+  await writeFile(
+    join(f.root, "selector-archive-order-result.json"),
+    JSON.stringify(
+      {
+        retry: retry.value,
+        generated: generated.stdout,
+        retryLedgerUnchanged: afterRetry.equals(corrupted),
+        generatedLedgerUnchanged: afterGenerated.equals(corrupted),
+        commands: f.commands,
+      },
+      null,
+      2,
+    ),
+  );
+  assert.notEqual(
+    retry.status,
+    0,
+    "completed old receipt accepted an unobserved archive",
+  );
+  assert.notEqual(
+    generated.status,
+    0,
+    "unrelated mutation accepted an unobserved completed archive",
+  );
+  assert.deepEqual(afterRetry, corrupted);
+  assert.deepEqual(afterGenerated, corrupted);
+});
 
 it("refuses executable-directory dependency shadows while retaining package-root nested dependency support", {
   skip: process.platform !== "darwin",

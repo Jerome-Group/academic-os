@@ -468,7 +468,7 @@ export const nativeInventorySchemas = [
       acl: {
         type: "object",
         properties: {
-          encoding: { enum: ["darwin-acl-copy-ext"] },
+          encoding: { const: "darwin-acl-copy-ext" },
           valueHex: { type: "string", pattern: "^(?:[0-9a-f]{2})*$" },
           sha256: { type: "string", pattern: "^[0-9a-f]{64}$" },
         },

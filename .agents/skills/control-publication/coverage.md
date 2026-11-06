@@ -78,3 +78,15 @@ Even perfect sharing permits at most16070 rows before retained nodes. Older over
 P4 requires a sound pending classifier. `UnrelatedPendingHasNoFreshStarter` asserts the consequence under the abstract pending predicate. Family-tagged settlement classification remains runtime-checked. The retained `569cf9e` issue481 counterexample makes a pending generated request ID equal a settled native host intent digest, then admits unrelated host registration. The corrected-source public regression must refuse it with unchanged history. This finite model does not independently verify the classifier implementation.
 
 Source-order maintenance distinguishes immutable promotion's source-parent barrier, destination-parent barrier and destination readback before observation. Both blobs then perform final owned read, file sync and parent sync. Only policy appends a native generation settlement and selector intent. Registration skips those rows. Selector move observation is followed by its own owned read before native settlement. Policy receipt settlement is followed by a separate owned read before success. The intentional move-order break omits only move-intent append/sync; archive intent and physical expected-old guards remain enabled.
+
+## Direct Google Tasks applicability
+
+Normal calls without `plan_json` delegate to existing Google Tasks provider and generated Task-register operations.
+They do not acquire control-publication ownership or alter its ledger, claims, candidates, heads or receipts.
+The explicit-plan branch and modeled properties and bounds remain unchanged.
+`taskDirectMaintenance` records the one changed source binding and preserves historical proof provenance.
+This applicability update claims no fresh complete formal-suite pass or broader ownership theorem.
+
+The delivery integration also updates capability metadata and binds both changed executing sources.
+The 162 remaining publisher bindings and all 23 seed bindings remain unchanged.
+An ordinary complete run on the integrated source is required before delivery.

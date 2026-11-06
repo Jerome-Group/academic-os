@@ -27,33 +27,17 @@ export function guardedTaskTools(
           ...tool,
           description:
             tool.description +
-            " Exact-plan protocol v1: read the register to obtain execution.expectedSnapshot and target, then supply plan_json. Missing plans return migration guidance without a provider write.",
+            " Routine changes use the normal arguments directly. Optional plan_json selects exact-plan execution.",
           fields: [
             ...tool.fields,
             {
               name: "plan_json",
               description:
-                "Immutable TaskExecutionPlan v1 JSON from a fresh register observation.",
+                "Optional immutable TaskExecutionPlan v1 JSON for an explicit exact-plan workflow.",
             },
           ],
           call: async (values) => {
-            if (!values.has("plan_json"))
-              return {
-                failed: true,
-                report: {
-                  schemaVersion: 1,
-                  outcome: "conflict",
-                  code: "exact-plan-required",
-                  migration: {
-                    protocol: "task-plan/1",
-                    readTool: tool.name.startsWith("research_")
-                      ? "research_tasks_read_register"
-                      : "tasks_read_register",
-                    writeTool: tool.name,
-                    argument: "plan_json",
-                  },
-                },
-              };
+            if (!values.has("plan_json")) return tool.call(values);
             const plan = parseTaskExecutionPlan(
               parseJson(values.get("plan_json")),
             );
@@ -138,6 +122,9 @@ export function guardedTaskTools(
                 ...report,
                 execution: {
                   protocol: "task-plan/1",
+                  defaultMode: "direct",
+                  requiresPlan: false,
+                  requiresExternalPolicy: false,
                   target,
                   listId: report.register.listId,
                   expectedSnapshot: report.register.providerSnapshot,
@@ -164,19 +151,23 @@ export function guardedTaskTools(
       name: "tasks_sync_capabilities",
       title: "Discover task synchronization protocol",
       description:
-        "Read the supported exact-plan protocol and migration route without contacting providers or changing state.",
+        "Read direct Task operations and optional exact-plan support without contacting providers or changing state.",
       fields: [],
       call: async () => ({
         failed: false,
         report: {
           schemaVersion: 1,
           protocol: "task-plan/1",
+          defaultMode: "direct",
+          requiresPlan: false,
+          requiresExternalPolicy: false,
           readTools: ["tasks_read_register", "research_tasks_read_register"],
           applyTool: "tasks_apply_plan",
           compatibilityTools: [...legacyMutations],
           compatibilityArgument: "plan_json",
           snapshots: "read-register execution.expectedSnapshot",
-          descriptions: "refused",
+          descriptions: "supported-directly",
+          dateOnly: "supported-directly",
           nativeTiming: "separate-contract-unavailable",
           retries:
             "same operationId and identical immutable plan; unknown-ID creates remain blocked",

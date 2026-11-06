@@ -34,39 +34,26 @@ Read `CONTEXT.md`, `00 Project Admin/00 Project Profile.md`,
 
 **Tasks protocol**
 
-1. Refresh the tool catalog and call `tasks_sync_capabilities`; require `task-plan/1`.
-   Call `research_tasks_read_register` with the exact configured `research_project` key. A
-   successful fresh read supplies `execution.target`, `execution.listId` and
-   `execution.expectedSnapshot`. A stale read supplies no new execution token. Select existing
-   work by its returned `taskId`.
-2. Retain cloud planning's exact intent and current `policyVersion`. Persist an immutable plan
-   with `schemaVersion: 1`, a stable `operationId`, the observed target/list/snapshot and the
-   exact `operation`. Missing intent or policy parks the mutation; the executor never invents or
-   replans them. Creation additionally requires exact source identity as a stable
-   `sourceOccurrenceId`. For creation, retain supplied provenance inside `operation.provenance` as
-   local metadata:
-   `assessment`, `source` and `milestone`; Research also permits `claim`, `meeting` and
-   `deliverable`. Preserve what was supplied rather than inventing provenance or descriptions.
-3. Call `tasks_apply_plan` with string `plan_json`, or `research_tasks_create`,
-   `research_tasks_change` or `research_tasks_complete` with that same plan and matching legacy
-   arguments. Parse the MCP text JSON; require `isError: false`, `outcome: applied`, the matching `operationId`, a nonempty returned
-   `taskId` and `registerFresh: true`. For change/complete/cancel, also require that returned ID to
-   equal `plan.operation.taskId`. These establish API/register success.
-   Read fresh state before each new operation. Return conflicts to planning; retain the identical
-   plan and operation ID for reconciliation after errors or uncertain effects. An unknown-ID
-   create stays fenced. Another ID or a title match never authorizes a replacement create.
-4. Supported API writes are undated creation, title changes and explicit completion; cancellation
-   through the generic apply tool requires explicit Owner intent. New notes/descriptions are
-   refused. Plans containing `doDate` or `timing` are refused while the native adapter is
-   unavailable; existing tool names do not promise the former date/notes behavior.
+Routine Google Tasks changes follow the Owner's accepted intent. No caller-authored plan,
+cloud policy or completion attestation is required.
 
-For Owner-authorized date/time placement, delegate the unchanged native plan to an already
-authorized UI executor. Require fresh complete native preflight covering manual placements,
-Busy, meals and dismissals; retain exact account/list/task IDs or evidence-verified aliases,
-surface, displayed timezone and acquisition time. Require same-ID Task saved-field readback
-afterwards. Missing execution support or contradictory observations park the placement. Never
-infer an offset or timing from the date-only API, or substitute an ordinary event. API `applied`
-does not establish native acceptance or grant UI authority. Deadlines remain Calendar milestones.
+1. Call `research_tasks_read_register` with `research_project`. Select existing work by its returned
+   `taskId`; the live Google list is authoritative.
+2. Call `research_tasks_create`, `research_tasks_change` or `research_tasks_complete` with normal arguments.
+   Supply the title, `do_date`, notes and provenance the Owner requested. Complete an exact task
+   when the Owner requests it or the agreed work is explicitly complete.
+3. Require `isError: false`, `outcome: applied` and a returned `taskId`; changes and completion
+   must retain the selected ID. Confirm the refreshed register is fresh. If Google accepted the
+   write but the register is stale, refresh it without resending the write. Local reading records
+   alone do not establish a Google Tasks update.
+4. An uncertain response needs live readback before another attempt. Do not duplicate a create
+   whose returned ID is unknown. Preserve unrelated tasks and fields.
+
+`do_date` is a date-only Google Tasks field, not a clock-time placement or an assessment deadline.
+Clock-time placement needs a supported authorized UI workflow and same-task readback; report
+unavailable timing separately from successful ordinary Task changes. Calendar owns deadlines.
+Optional `tasks_apply_plan` workflows remain available for explicitly managed plans; their policy
+and attestation requirements do not gate the routine calls above.
 
 ## Stable identities
 

@@ -520,7 +520,9 @@ rerun rather than an edit.
 
 ## Tasks operations
 
-Use the exact-plan protocol for Module and Research-project writes. First run a pull and retain the target's providerSnapshot, exact list identity and generation. Stored status reads retained receipts without contacting Google:
+Routine Module and Research-project MCP writes use create/change/complete and their Research equivalents with normal arguments. Read the register first, select exact returned task IDs, and verify provider/register readback. No caller-authored plan, cloud policy or completion attestation is required. Titles, notes and date-only changes are supported. A completed checkbox makes no academic mastery claim.
+
+The CLI below and explicitly managed plan workflows retain the exact-plan protocol. Stored status reads retained receipts without contacting Google:
 
 ```sh
 node dist/src/cli.js tasks refresh --config academic-os.config.json --json
@@ -528,9 +530,9 @@ node dist/src/cli.js tasks status --config academic-os.config.json --json
 node dist/src/cli.js tasks apply-plan --config academic-os.config.json --plan /private/task-plan.json --json
 ```
 
-TaskExecutionPlan schemaVersion 1 contains operationId, target {kind,key,title}, listId, expectedSnapshot, operation, policyVersion, and a stable sourceOccurrenceId for creates. The operation is create {title,provenance?}, change {taskId,title?}, complete {taskId}, or cancel {taskId}. Descriptions/notes are refused. Dated/timed placement is refused while the separate native timing adapter is unavailable. The Mini returns conflicts instead of changing the plan. New Module completion plans come from the configured producer route below; creation, title changes, cancellation and Research-project operations retain their existing exact-plan contracts.
+For an optional managed workflow, TaskExecutionPlan schemaVersion 1 contains operationId, target {kind,key,title}, listId, expectedSnapshot, operation, policyVersion, and a stable sourceOccurrenceId for creates. The operation is create {title,provenance?}, change {taskId,title?}, complete {taskId}, or cancel {taskId}. Descriptions/notes are refused. Dated/timed placement is refused while the separate native timing adapter is unavailable. The Mini returns conflicts instead of changing the plan. New Module completion plans come from the configured producer route below; creation, title changes, cancellation and Research-project operations retain their existing exact-plan contracts.
 
-When the Owner explicitly reports finished Module work, call `tasks_completion_capabilities`, then `tasks_read_register` for its configured semester/module. Match the exact open task ID. Call `tasks_discover_completion` and `tasks_prepare_completion` with that semester, module and `task_id`; require one eligible completion and `status: prepared`. The service retains the original producer packet, source acquisition evidence and immutable plan before returning its `tasks_apply_plan` call. Apply the returned `call.arguments.plan_json` unchanged. Completion callers supply no policy, source path or operation ID. Raw apply, the compatibility `tasks_complete` tool and CLI apply all require this same retained binding.
+For optional source-backed academic completion, call `tasks_completion_capabilities`, then `tasks_read_register` for its configured semester/module. Match the exact open task ID. Call `tasks_discover_completion` and `tasks_prepare_completion` with that semester, module and `task_id`; require one eligible completion and `status: prepared`. The service retains the original producer packet, source acquisition evidence and immutable plan before returning its `tasks_apply_plan` call. Apply the returned `call.arguments.plan_json` unchanged. Completion callers supply no policy, source path or operation ID. Raw apply, a `tasks_complete` call with `plan_json`, and CLI apply require this retained binding. Ordinary `tasks_complete` calls change the checkbox directly.
 
 Preparation reads the official register and acquires particular authority from the configured private catalog. First send holds the catalog publication owner across backup, final official read, original-packet revalidation and provider send. Missing configuration/catalog, changed policy, stale source or snapshot, and ambiguous task authorization refuse new sends. Repeated preparation returns the retained original packet while it remains valid. Uncertain, verified and applied journals reconcile their original plan before requiring producer availability; they never resend. Stable effect reservations and exact-identity legacy sent journals fence rotated operation IDs.
 
@@ -570,7 +572,7 @@ node dist/src/cli.js tasks record-lifecycle --config academic-os.config.json --d
 
 The private decision is a TaskLifecycleEntry containing exact target/source occurrence, owner-dismissed or completed disposition, recordedAt, evidenceRef and retained canonical provider bindings. Aliases require verifiedAt and evidenceRef. This writes only private lifecycle evidence and never mutates Google or generated mirrors. Private owner identities belong in the decision file, never repository source. Titles alone cannot supply dismissal authority.
 
-Direct CLI create/change/complete/cancel aliases return exact-plan-required with the migration route. For MCP, existing module/research operation names remain available with plan_json; read-register exposes execution.expectedSnapshot, exact target/list identity and required fields. tasks_sync_capabilities advertises task-plan/1, tasks_apply_plan and the compatibility names. For creation, title changes and Research-project operations, read fresh state and retain the exact cloud plan, then call the named compatibility operation with matching arguments/plan_json or tasks_apply_plan. Module completion uses discovery/preparation above. Missing plans return explicit guidance with zero provider writes.
+Direct CLI create/change/complete/cancel aliases retain their exact-plan migration route. Ordinary MCP operation names accept normal arguments directly; `plan_json` is optional and selects the managed route. `tasks_sync_capabilities` advertises direct mode with `requiresPlan: false`; read-register still exposes snapshots for optional plans. Missing plans do not block ordinary MCP writes.
 
 Before rollout, refresh every client's tool schema and instructions, verify both Module and Research-project complete/change/create callers, then deliberately build/restart the resident runtime. A source checkout change does not update its already loaded process. The existing 30-minute pull job remains the periodic backstop. After authorized rollout, use official refresh/readback and separately verify current native placements and owner constraints.
 
@@ -606,9 +608,9 @@ Four Module compatibility tools are served: `tasks_create`, `tasks_change`, `tas
 take the stable `research_project` key. Research create additionally accepts `claim`, `meeting` and
 `deliverable` provenance beside the shared fields.
 
-Both surfaces negotiate task-plan/1 through tasks_sync_capabilities. Module completion additionally discovers tasks_completion_capabilities and obtains its exact plan through tasks_discover_completion/tasks_prepare_completion. A read pulls the live list and returns its verified rows, provenance and execution snapshot token. Existing write names accept a matching plan_json envelope; tasks_apply_plan accepts the same plan directly. Target configuration is reloaded for each call; missing targets are refused rather than guessed.
+Both surfaces use direct create/change/complete calls by default. A read pulls the live list and returns verified rows and provenance. Optional managed calls supply matching `plan_json` or use `tasks_apply_plan`; optional academic completion uses its separate preparation tools. Target configuration is reloaded for each call; missing targets are refused rather than guessed.
 
-MCP isError marks every non-applied outcome, including uncertain effects or failed local recording. Keep the operationId and exact plan; the retained journal controls recovery, and an error never authorizes a new-ID retry. Applied requires fresh local readback as well as verified provider state. Client schemas and procedures must be migrated before deploying the new runtime.
+MCP `isError` marks a failed or uncertain direct operation. A verified provider write remains `applied` if its follow-up register refresh fails: refresh before another write rather than duplicating the effect. Inspect register freshness separately. Managed calls retain their original plan/operation ID for journal reconciliation. Lost responses never authorize a blind replacement create.
 
 Inspect the loaded job, watch it serve, and restart it:
 

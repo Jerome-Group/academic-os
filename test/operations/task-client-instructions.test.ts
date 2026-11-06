@@ -26,7 +26,7 @@ import {
   createInMemoryTaskRegisterStore,
 } from "../support/fake-task-list.js";
 
-test("shipped routers and settlement procedures reach the served task-plan protocol", async () => {
+test("shipped routers and settlement procedures reach the served direct Task tools", async () => {
   const [module, research, setup] = await Promise.all([
     loadModuleContract(),
     loadResearchProjectContract(),
@@ -82,38 +82,8 @@ test("shipped routers and settlement procedures reach the served task-plan proto
       /\b(?:tasks|research_tasks)_[a-z_]+\b/gu,
     ))
       assert.ok(names.has(name), `Instruction names an unserved tool: ${name}`);
-    for (const field of [
-      "task-plan/1",
-      "policyVersion",
-      "operationId",
-      "sourceOccurrenceId",
-      "plan_json",
-      "expectedSnapshot",
-    ])
-      assert.ok(
-        text.includes(field),
-        `Missing migration requirement: ${field}`,
-      );
-    assert.match(text, /notes\/descriptions[\s\S]*refused/u);
-    assert.match(
-      text,
-      /`doDate` or `timing`[\s\S]*refused|refused[\s\S]*`doDate` or `timing`/u,
-    );
-    assert.match(text, /authorized UI executor/u);
-    assert.match(text, /account\/list\/task IDs/u);
-    assert.match(text, /same-ID Task saved-field readback/u);
-    assert.match(text, /contradictory|Contradictory/u);
-    assert.match(text, /ordinary.event/u);
-  }
-  for (const router of [
-    module.pinnedDocuments.agents,
-    research.seedFiles["AGENTS.md"],
-  ]) {
-    assert.ok(router);
-    assert.match(router, /immutable plan/u);
-    assert.match(router, /unknown-ID\s+create stays fenced/u);
-    assert.match(router, /conflicts to planning/u);
-    assert.match(router, /never invents or\s+replans/u);
+    assert.match(text, /No caller-authored plan/u);
+    assert.match(text, /date-only/u);
   }
   for (const procedure of [
     module.pinnedDocuments.teachingProcedure,
@@ -127,7 +97,7 @@ test("shipped routers and settlement procedures reach the served task-plan proto
   }
   assert.doesNotMatch(setup, /four `tasks_\*`/u);
   assert.match(setup, /catalog after connecting or upgrading/u);
-  assert.match(setup, /isolated fixtures before enabling writes/u);
+  assert.match(setup, /isolated\s+fixtures before enabling writes/u);
 });
 
 for (const research of [false, true]) {
@@ -138,7 +108,6 @@ for (const research of [false, true]) {
     assert.equal(capabilities.report.protocol, "task-plan/1");
     let createdId = "";
     for (const name of ["create", "change", "complete"] as const) {
-      const before = fixture.list.tasks();
       const legacy = {
         ...fixture.identityArguments,
         ...(name === "create"
@@ -146,10 +115,6 @@ for (const research of [false, true]) {
           : { task_id: "existing" }),
         ...(name === "change" ? { title: "Fixture renamed" } : {}),
       };
-      const missing = await fixture.call(`${prefix}_${name}`, legacy);
-      assert.equal(missing.isError, true);
-      assert.equal(missing.report.code, "exact-plan-required");
-      assert.deepEqual(fixture.list.tasks(), before);
       const read = await fixture.call(
         `${prefix}_read_register`,
         fixture.identityArguments,
@@ -242,6 +207,47 @@ for (const research of [false, true]) {
     });
     assert.equal(notes.isError, true);
     assert.deepEqual(fixture.list.tasks(), before);
+  });
+}
+
+for (const research of [false, true]) {
+  test(`routine ${research ? "research" : "module"} MCP calls change live task state without plans or policy`, async () => {
+    const fixture = taskClientFixture(research);
+    const prefix = research ? "research_tasks" : "tasks";
+    await fixture.call(`${prefix}_read_register`, fixture.identityArguments);
+    const created = await fixture.call(`${prefix}_create`, {
+      ...fixture.identityArguments,
+      title: "Read the next section",
+      do_date: "2030-01-02",
+      notes: "Requested reading scope",
+    });
+    assert.equal(created.isError, false, JSON.stringify(created.report));
+    assert.equal(created.report.outcome, "applied");
+    assert.equal(created.report.register.freshness, "fresh");
+    const taskId = created.report.taskId;
+    assert.equal(typeof taskId, "string");
+    const changed = await fixture.call(`${prefix}_change`, {
+      ...fixture.identityArguments,
+      task_id: taskId,
+      title: "Read the revised section",
+      do_date: "2030-01-03",
+      notes: "Revised reading scope",
+    });
+    assert.equal(changed.isError, false, JSON.stringify(changed.report));
+    const completed = await fixture.call(`${prefix}_complete`, {
+      ...fixture.identityArguments,
+      task_id: taskId,
+    });
+    assert.equal(completed.isError, false, JSON.stringify(completed.report));
+    const live = fixture.list.tasks().find((task) => task.id === taskId);
+    assert.ok(live);
+    assert.equal(live.title, "Read the revised section");
+    assert.equal(live.notes, "Revised reading scope");
+    assert.match(live.due ?? "", /^2030-01-03T/);
+    assert.equal(live.status, "completed");
+    assert.equal(fixture.mutationCalls(), 3);
+    const capabilities = await fixture.call("tasks_sync_capabilities", {});
+    assert.equal(capabilities.report.requiresPlan, false);
   });
 }
 

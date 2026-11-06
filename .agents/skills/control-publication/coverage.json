@@ -23,7 +23,7 @@
     "scripts/clean-build-output.mjs": "ea8ce85fb3c19fc3c20683e0a3160b92c3c579ecc2755c94232b779431a2312d",
     "scripts/deploy-native-source-policy.mjs": "aa29937842477c86a2e97d124749c1f59285c32634eb586097df9030041ae8cf",
     "scripts/generate-control-types.mjs": "b9755176889cc65cf6b1b3871ef89874104dba94411f308b64726d9017e8d9f0",
-    "src/capabilities/catalog.ts": "707b3c9d1385463b4d7a20dc08b20c02d8d66f6075daa656b106ecfdba7d1a6b",
+    "src/capabilities/catalog.ts": "7cfda3c38758214bc81c80ccc198dda4279345ec55731dea1d3cfb7b27051678",
     "src/cli.ts": "9b0b516a9966f2aa769cf6790a83a76a1fe40828dbffb213b5a962bb8a9ca8cd",
     "src/commands/repair-command.ts": "2757e213e77e850465588bf0bd1712260309128fb53ce02a47e6ab84c4814f44",
     "src/controls-publication/bundle.ts": "eb97766179b00cab75e689883b9cb7c38efd4f1ea14d96a608e8dc9cdb425861",
@@ -139,7 +139,7 @@
     "src/operations/run-operations-server.ts": "7f1ff5fe97f834625f21a633ce1cec998be4a3ec03528d46e78509dfe4b1f7be",
     "src/operations/serve-operations.ts": "484f41e2a85082eecd233b74bc3851a14b9dad83a3c27df29b535fa6fd581e78",
     "src/operations/tailnet-address.ts": "0fc09f96fb3a75a8affeb92f27280c3946d862935c8c6477d13c34b422a642fc",
-    "src/operations/task-plan-tools.ts": "3eb3cb5ce7a1edba040813e66eaca7bcb6a59e9120f293a1ae9a691ef8896de4",
+    "src/operations/task-plan-tools.ts": "664101a58ceb4623dafc00c3d2e9e40b5d479c964b71c8b7803b8c6cf9564d20",
     "src/operations/task-tools.ts": "7f5573ce5daa7da8448c6c7f7a7634560138cd0c0e56fc657573cdcebae5125e",
     "src/operations/tool-arguments.ts": "d74473d2927c6c80e0e66eeecb4178c205a22699e9e999d260617fbc003f33b9",
     "src/operations/types.ts": "60b4684e2d0f9a0e9b205bff6083932b27aeee81321e17230b71e4535567707f",
@@ -293,5 +293,45 @@
       "originalBoundaries": 115,
       "actualMutantFamilies": 16
     }
+  },
+  "taskDirectMaintenance": {
+    "productRevision": "659e14ebf00e7523cb28730b12c9e70a43cbb8d5",
+    "classification": "no effect on modeled control publication",
+    "coveredChanges": ["src/operations/task-plan-tools.ts"],
+    "previousSha256": "3eb3cb5ce7a1edba040813e66eaca7bcb6a59e9120f293a1ae9a691ef8896de4",
+    "currentSha256": "664101a58ceb4623dafc00c3d2e9e40b5d479c964b71c8b7803b8c6cf9564d20",
+    "unchangedSourceBindings": 108,
+    "sourceBindingCount": 109,
+    "modelPropertiesAndBoundsChanged": false,
+    "explicitPlanBranchChanged": false,
+    "directRoute": "Calls without plan_json delegate to existing Google Tasks provider and generated Task-register operations. They do not acquire control-publication ownership or mutate its ledger, claims, candidates, heads or receipts.",
+    "runtimeEvidence": "84 Operations tests, including Module/Research normal create-change-complete and explicit-plan validation; six real Google operations through HTTP with physical registers and exact owned-list cleanup.",
+    "proofLimit": "Applicability maintenance only. Historical syncRevision and prior proof provenance remain unchanged; no fresh complete formal-suite pass or expanded theorem is claimed.",
+    "seedApplicability": "All 23 seed-covered source hashes unchanged; no fresh seed theorem.",
+    "directNegotiation": "Both capabilities and fresh register execution metadata explicitly mark direct default calls without required plans or external policy."
+  },
+  "deliveryMainIntegration": {
+    "mainRevision": "f600f8e05d012d1f7bb146000de4c3cabeda6716",
+    "retainedNativeVerificationRevision": "fea07bb76a782f94d1e35180dc6d9528153bdfa0",
+    "classification": "no effect on modeled control publication",
+    "coveredChanges": [
+      {
+        "path": "src/capabilities/catalog.ts",
+        "nativeProofSha256": "707b3c9d1385463b4d7a20dc08b20c02d8d66f6075daa656b106ecfdba7d1a6b",
+        "integratedSha256": "7cfda3c38758214bc81c80ccc198dda4279345ec55731dea1d3cfb7b27051678"
+      },
+      {
+        "path": "src/operations/task-plan-tools.ts",
+        "nativeProofSha256": "3eb3cb5ce7a1edba040813e66eaca7bcb6a59e9120f293a1ae9a691ef8896de4",
+        "integratedSha256": "664101a58ceb4623dafc00c3d2e9e40b5d479c964b71c8b7803b8c6cf9564d20"
+      }
+    ],
+    "unchangedSourceBindings": 162,
+    "sourceBindingCount": 164,
+    "reason": "Direct Google Tasks delegate provider/register changes outside control publication; optional exact-plan validation and all publisher paths remain unchanged. Capability metadata maps normal Tasks and their existing public tests.",
+    "modelPropertiesAndBoundsChanged": false,
+    "historicalProofPreserved": true,
+    "integratedOrdinaryProofRequired": true,
+    "seedApplicability": "23 exact covered source hashes unchanged."
   }
 }

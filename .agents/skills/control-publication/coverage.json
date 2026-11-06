@@ -24,7 +24,7 @@
     "scripts/clean-build-output.mjs": "bdff6799692cfdc5ef94c546fd11a49cf621b1c44350cf2141ac77e979c0e147",
     "scripts/deploy-native-source-policy.mjs": "aa29937842477c86a2e97d124749c1f59285c32634eb586097df9030041ae8cf",
     "scripts/generate-control-types.mjs": "b9755176889cc65cf6b1b3871ef89874104dba94411f308b64726d9017e8d9f0",
-    "src/capabilities/catalog.ts": "7cfda3c38758214bc81c80ccc198dda4279345ec55731dea1d3cfb7b27051678",
+    "src/capabilities/catalog.ts": "fdcca29e2c120937747bc7b1c445109009658babd2286b5f976ed59522341250",
     "src/cli.ts": "9b0b516a9966f2aa769cf6790a83a76a1fe40828dbffb213b5a962bb8a9ca8cd",
     "src/commands/repair-command.ts": "2757e213e77e850465588bf0bd1712260309128fb53ce02a47e6ab84c4814f44",
     "src/controls-publication/bundle.ts": "eb97766179b00cab75e689883b9cb7c38efd4f1ea14d96a608e8dc9cdb425861",
@@ -515,5 +515,27 @@
       "negativeControl": "Actual committed stale M1 record has current source SHA but outdated locations; isolated record and current map carrying it both refuse.",
       "correctedReferenceCount": 90
     }
+  },
+  "capabilityEnvelopeMaintenance": {
+    "productRevision": "77d9d05d67a4c80c46ad01de75b20c52ae31ff0a",
+    "issue": 487,
+    "classification": "no effect on modeled publication or runtime operations",
+    "coveredChanges": ["src/capabilities/catalog.ts"],
+    "previousSha256": "7cfda3c38758214bc81c80ccc198dda4279345ec55731dea1d3cfb7b27051678",
+    "currentSha256": "fdcca29e2c120937747bc7b1c445109009658babd2286b5f976ed59522341250",
+    "unchangedSourceBindings": 163,
+    "modelPropertiesAndBoundsChanged": false,
+    "reason": "One capability-description string now names the actual MCP content and isError envelope fields. Direct Task behavior, schemas, explicit-plan validation and native publication functions are unchanged.",
+    "evidence": "Existing public capability parity assertion reproduced the missing-field failure and passes unchanged after the description correction.",
+    "formalLimit": "Exact source applicability only; no fresh complete formal-suite pass is claimed."
+  },
+  "scannerUpstreamIntegration": {
+    "mainRevision": "bac0a310c69a63fa2ea2293e4dcd623050ed1e0d",
+    "priorScannerVerification": "773b2ec917507a695872607171f1141239567dbf",
+    "coveredChanges": ["src/capabilities/catalog.ts"],
+    "classification": "capability-description only; no modeled or runtime operation change",
+    "sourceBindings": 172,
+    "priorScannerRuntimeEvidencePreserved": true,
+    "missingPublicCapabilityParityCheckRequired": true
   }
 }

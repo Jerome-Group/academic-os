@@ -1,7 +1,7 @@
 {
-  "syncRevision": "dac9de8148a6dd093f51ca379dd5c7765a8748d0",
+  "syncRevision": "a02889aaaea53df97e1fe6434dac1f87fe6b017c",
   "outcome": "updated",
-  "reason": "Separate product fix995226c repeats parent barriers after recovered physical claims. Source inspection, the source-faithful model and all three actual repaired placement retries agree. The original f9 counterexample remains retained. Model actions additionally separate every publication append/barrier and retained unclaimed attempts. The ordinary clean committed run remains the final gate.",
+  "reason": "Main24ccc28 adds an inventory import and dispatch branch to the covered CLI. Publisher protocol sources, properties and bounds remain unchanged. Exact source mapping and the complete candidate model, boundary, mutation and restored-control proof pass at the integrated product revision. The ordinary clean committed run remains the final gate.",
   "bounds": {
     "writers": 2,
     "candidates": 2,
@@ -18,7 +18,7 @@
     "scripts/build-control-publication-release.mjs": "fe3e685af9946ea2505cc358d967aac94324a1d92157654d29f1d20a617573fd",
     "scripts/build-control-publication-standalone.mjs": "10e1613d846972a44ce79de9336adbfef299424f320facd0496618681549dfae",
     "scripts/check-control-publication-imports.mjs": "b9f3c1cae0b34829f0daf4b3cc12820e8cf6952d96a2ee0cd0c0312cca893b85",
-    "src/cli.ts": "a451d3e8f270bb12df37883df66867bf3a2f295e2b55026fcee6a3fa9915a9ee",
+    "src/cli.ts": "4467ef5dc75170abc2b04fbefc35fb205c15d79bd850a0a97e7bb1adeb90f1d0",
     "src/controls-publication/bundle.ts": "eb97766179b00cab75e689883b9cb7c38efd4f1ea14d96a608e8dc9cdb425861",
     "src/controls-publication/candidate.ts": "91d9839fc5a5a9569ece6a881a5d324dda3c1509d2d7d146d8fd7d5005e8a290",
     "src/controls-publication/codec.ts": "88f5e70591bbf4fed6b4712572a93f6b5e8b08a894c0f0a86d0a49078cd3c723",
@@ -100,7 +100,18 @@
     "test/controls-publication/publication.test.ts": "c84b74a18307e770d619c98408ed629fddb50ab4c17c9d6a2778e2fce97ff7a4",
     "test/controls-publication/standalone-package.test.ts": "de34ddbb1297f37d344b20b8c28cacbbfe3228a3d45d7059dcc8b34adca01a20"
   },
-  "previousSyncRevision": "f9b7ad5dc32605e3d800a1fe5a259761420e9c52",
+  "previousSyncRevision": "dac9de8148a6dd093f51ca379dd5c7765a8748d0",
+  "sourceMaintenance": {
+    "classification": "no effect on modeled publisher behavior",
+    "coveredChanges": [
+      "src/cli.ts"
+    ],
+    "inventoryScan": "Read-only payload and metadata observation can advance access times. Imported top-level code performs no application filesystem operation.",
+    "optionalInventoryLog": "Exclusive creation of an unclaimed external file. It does not acquire publisher ownership or append publisher evidence.",
+    "externalWriterLimit": "Arbitrary concurrent cross-command writes and hostile ancestor replacement remain excluded. No global CLI write-free property is claimed.",
+    "propertiesAndBoundsChanged": false,
+    "earlierSyncRevision": "f9b7ad5dc32605e3d800a1fe5a259761420e9c52"
+  },
   "modelMaintenance": {
     "finding": "MF1",
     "classification": "model drift",

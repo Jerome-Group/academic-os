@@ -29,6 +29,8 @@ export async function bindFixtureRuntime(
     for (const [source, target] of [
       ["scan.native", "inventory-scan.native"],
       ["scan.c", "inventory-scan.c"],
+      ["scan-core.c", "inventory-scan-core.c"],
+      ["scan-core.h", "inventory-scan-core.h"],
     ]) {
       assert.ok(source && target);
       await copyFile(

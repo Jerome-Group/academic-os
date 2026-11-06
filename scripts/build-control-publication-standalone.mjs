@@ -88,6 +88,8 @@ if (process.platform === "darwin") {
   for (const [source, target] of [
     ["scan.native", "inventory-scan.native"],
     ["scan.c", "inventory-scan.c"],
+    ["scan-core.c", "inventory-scan-core.c"],
+    ["scan-core.h", "inventory-scan-core.h"],
   ])
     await copyFile(
       join("dist/src/migration/native-inventory/native", source),

@@ -21,10 +21,7 @@ function matchesRole(artifact: RuntimeArtifact): boolean {
         artifact.path.endsWith("/inventory-scan.native")
       );
     case "scanner-source":
-      return (
-        artifact.path.endsWith("/scan.c") ||
-        artifact.path.endsWith("/inventory-scan.c")
-      );
+      return /\/(?:inventory-)?scan(?:-core\.[ch]|\.c)$/u.test(artifact.path);
     case "dependency-input":
       return artifact.path.startsWith("node_modules/");
     case "package-lock":
@@ -79,8 +76,12 @@ async function installedArtifactPaths(
           "publication-native.node",
           "scan.native",
           "scan.c",
+          "scan-core.c",
+          "scan-core.h",
           "inventory-scan.native",
           "inventory-scan.c",
+          "inventory-scan-core.c",
+          "inventory-scan-core.h",
           "release.json",
           "package.json",
         ].includes(entry.name)

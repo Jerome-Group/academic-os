@@ -157,9 +157,7 @@
     "reason": "Main24ccc28 adds an inventory import and dispatch branch to the covered CLI. Publisher protocol sources, properties and bounds remain unchanged. Exact source mapping and the complete candidate model, boundary, mutation and restored-control proof pass at the integrated product revision. The ordinary clean committed run remains the final gate.",
     "sourceMaintenance": {
       "classification": "no effect on modeled publisher behavior",
-      "coveredChanges": [
-        "src/cli.ts"
-      ],
+      "coveredChanges": ["src/cli.ts"],
       "inventoryScan": "Read-only payload and metadata observation can advance access times. Imported top-level code performs no application filesystem operation.",
       "optionalInventoryLog": "Exclusive creation of an unclaimed external file. It does not acquire publisher ownership or append publisher evidence.",
       "externalWriterLimit": "Arbitrary concurrent cross-command writes and hostile ancestor replacement remain excluded. No global CLI write-free property is claimed.",
@@ -195,9 +193,7 @@
   "taskDirectMaintenance": {
     "productRevision": "659e14ebf00e7523cb28730b12c9e70a43cbb8d5",
     "classification": "no effect on modeled control publication",
-    "coveredChanges": [
-      "src/operations/task-plan-tools.ts"
-    ],
+    "coveredChanges": ["src/operations/task-plan-tools.ts"],
     "previousSha256": "3eb3cb5ce7a1edba040813e66eaca7bcb6a59e9120f293a1ae9a691ef8896de4",
     "currentSha256": "664101a58ceb4623dafc00c3d2e9e40b5d479c964b71c8b7803b8c6cf9564d20",
     "unchangedSourceBindings": 108,

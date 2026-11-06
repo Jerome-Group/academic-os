@@ -6,6 +6,12 @@ health steps. Run `capabilities check --profile publication` with a unique priva
 Require its outer outcome and every child check to pass. Retain its native and publication
 fixture paths exactly as printed.
 
+The same profile drives trusted host deployment registration and native-source policy installation
+through the host and extracted deployment entrypoints. Retain the policy lifecycle, refusal and
+interruption fixture paths. These fixtures grant read permission to synthetic private snapshots;
+they do not copy payloads or admit migration sources. Registered configuration coverage remains
+explicit and does not discover undisclosed academic roots.
+
 For publisher protocol changes, also follow [control publication](../../control-publication/SKILL.md)
 and run the local `publication-formal` profile from a clean committed checkout.
 Read its nested models, compiled fault schedules, exact source bindings, actual public mutant

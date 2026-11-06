@@ -6,6 +6,10 @@ import { build } from "esbuild";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const adapters = new Map([
+  [
+    "scripts/deploy-native-source-policy.mjs",
+    "src/controls-publication/host-deployment",
+  ],
   ["src/cli.ts", "src/controls-publication/command"],
   ["src/operations/run-operations-server.ts", "src/controls-publication/tools"],
   ["src/capabilities/catalog.ts", "src/controls-publication/tools"],

@@ -713,6 +713,43 @@ export const cliCapabilities: Capability[] = [
 
 export function capabilityIndex(): object {
   const actions = [...cliCapabilities];
+  for (const operation of [
+    "register",
+    "install-native-source-policy",
+    "retry-native-source-policy",
+  ])
+    actions.push({
+      id: `host deployment ${operation}`,
+      surface: "script",
+      invocation: `node scripts/deploy-native-source-policy.mjs ${operation} ${operation === "retry-native-source-policy" ? "--request <request-id>" : "--input <absolute-private-json>"}`,
+      prerequisites: [
+        "Node >=24",
+        buildPrerequisite,
+        "deliberate trusted host deployment",
+        "explicit registered versioned configuration set and available local roots",
+      ],
+      reads: [
+        "actual account and host",
+        "fixed physically claimed deployment registration",
+        "registered configuration bytes and root ancestry",
+        "known local cloud, runtime and repository roots",
+        "private enclosure and snapshot ancestry",
+      ],
+      writes: [
+        "host-owned deployment registration, immutable policy generations, selectors, installation receipts and the existing mixed publication ledger",
+      ],
+      riskFlags: [
+        "trusted-host-deployment-only",
+        "writes-private-source-read-permission",
+      ],
+      preview: null,
+      implementation: "src/controls-publication/host-deployment-command.ts",
+      tests: ["test/controls-publication/native-policy.test.ts"],
+      status: "supported",
+      health: "not-observed",
+      result:
+        "Registered-deployment coverage and cooperating private-input permission only. Native payload copying and source admission remain unavailable.",
+    });
   actions.push({
     id: "controls publication standalone",
     surface: "script",

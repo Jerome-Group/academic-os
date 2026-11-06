@@ -5,7 +5,6 @@ import type {
   DirectoryClaim,
   FileClaim,
   FrozenBytes,
-  JournalEvent,
   Location,
   NamespaceClaim,
   ObjectIdentity,
@@ -16,6 +15,11 @@ import type {
   StageReservation,
   TemporaryReservation,
 } from "./generated/publication-contract-1.js";
+import {
+  maximumEventBytes,
+  maximumFileBytes,
+  requireFileBytes,
+} from "./limits.js";
 import type {
   DirectoryHandle,
   ExclusionObservation,
@@ -27,11 +31,11 @@ import type {
   ValidatedAccountAnchor,
 } from "./native-contract.js";
 import {
-  maximumEventBytes,
-  maximumFileBytes,
-  requireFileBytes,
-} from "./limits.js";
-import { parseBytes, validateEvent } from "./schema.js";
+  type MixedEvent,
+  type MixedRecord,
+  parseBytes,
+  validateMixedEvent,
+} from "./schema.js";
 
 export const ledgerName = "academic-os-control-publication.jsonl";
 export const namespaceName = "academic-os-control-publication";
@@ -46,7 +50,10 @@ export function nativeValue<T>(result: NativeResult<T>): T {
   refuse("unsafe-namespace", `${result.operation}: ${result.code}`);
 }
 
-export function sameObject(a: ObjectIdentity, b: ObjectIdentity): boolean {
+export function sameObject(
+  a: Omit<ObjectIdentity, "kind"> & { kind: string },
+  b: Omit<ObjectIdentity, "kind"> & { kind: string },
+): boolean {
   return (
     a.kind === b.kind &&
     a.volumeUuid === b.volumeUuid &&
@@ -79,7 +86,8 @@ type StageInput = {
 
 export class PublicationStore {
   readonly handles: (DirectoryHandle | RegularHandle)[] = [];
-  private retainedRecords: PublicationRecord[] = [];
+  private retainedRecords: MixedRecord[] = [];
+  private mutationPreflight: (() => void) | undefined;
   private nextSequence: number | null = 0;
   private ledgerLength = 0;
   private previousHash: string | null = null;
@@ -155,10 +163,19 @@ export class PublicationStore {
   }
   mutating(): MutationInterval {
     if (this.interval === null) throw new Error("Read-only publication store.");
+    this.mutationPreflight?.();
     return this.interval;
   }
   records(): readonly PublicationRecord[] {
+    return this.retainedRecords.filter(
+      (record): record is PublicationRecord => record.schemaVersion === 1,
+    );
+  }
+  mixedRecords(): readonly MixedRecord[] {
     return this.retainedRecords;
+  }
+  beforeMutation(preflight: () => void): void {
+    this.mutationPreflight = preflight;
   }
   requireAppendCapacity(additionalBytes: number, additionalRows = 1): void {
     if (
@@ -175,12 +192,12 @@ export class PublicationStore {
         "Publication ledger offset or sequence is exhausted. Retained evidence requires recovery.",
       );
   }
-  preflightRecord(record: PublicationRecord): Uint8Array {
+  preflightRecord(record: MixedRecord): Uint8Array {
     this.requireAppendCapacity(0);
     const sequence = this.nextSequence;
     if (sequence === null)
       recover("durability-unavailable", "Publication sequence is exhausted.");
-    const event: JournalEvent = {
+    const event: MixedEvent = {
       schemaVersion: 1,
       sequence,
       previousEventByteSha256: this.previousHash,
@@ -192,11 +209,11 @@ export class PublicationStore {
         "invalid-controls",
         "Encoded publication event including LF exceeds 8 MiB.",
       );
-    parseBytes(bytes, validateEvent);
+    parseBytes(bytes, validateMixedEvent);
     this.requireAppendCapacity(bytes.byteLength + 1);
     return bytes;
   }
-  append(record: PublicationRecord): void {
+  append(record: MixedRecord): void {
     const bytes = this.preflightRecord(record);
     const sequence = this.nextSequence;
     if (sequence === null)
@@ -222,7 +239,8 @@ export class PublicationStore {
       sequence === Number.MAX_SAFE_INTEGER ? null : sequence + 1;
   }
   load(): void {
-    const records: PublicationRecord[] = [];
+    const records: MixedRecord[] = [];
+    let projectionBytes = 0;
     let sequence: number | null = 0;
     let previousHash: string | null = null;
     let offset = 0;
@@ -255,9 +273,9 @@ export class PublicationStore {
                 [...fragments, chunk.subarray(start, index)],
                 length,
               );
-        let event: JournalEvent;
+        let event: MixedEvent;
         try {
-          event = parseBytes(line, validateEvent);
+          event = parseBytes(line, validateMixedEvent);
         } catch {
           recover(
             "journal-recovery-required",
@@ -273,6 +291,12 @@ export class PublicationStore {
           recover(
             "journal-recovery-required",
             "Ledger sequence, chain or deterministic encoding differs.",
+          );
+        projectionBytes += line.byteLength;
+        if (projectionBytes > 256 * 1024 * 1024)
+          recover(
+            "journal-recovery-required",
+            "Mixed ledger replay exceeds its 256 MiB projection budget.",
           );
         records.push(event.record);
         previousHash = sha256(line);
@@ -850,7 +874,12 @@ export class PublicationStore {
   }
 }
 
-export function openStore(store: PublicationStore, create: boolean): void {
+export function openStore(
+  store: PublicationStore,
+  create: boolean,
+  afterLoad?: (store: PublicationStore) => void,
+  beforeSync?: (store: PublicationStore) => void,
+): void {
   const native = store.native;
   const anchor = store.anchor.directory;
   const existing = nativeValue(
@@ -894,11 +923,7 @@ export function openStore(store: PublicationStore, create: boolean): void {
       refuse("unsafe-namespace", "Ledger host or first reservation differs.");
     store.ledgerClaim = first.ledger;
     store.requireClaim(anchor, ledgerName, first.ledger);
-    if (store.interval)
-      nativeEffect(
-        native.syncFile({ interval: store.interval, file: store.ledger }),
-        "durability-unavailable",
-      );
+    afterLoad?.(store);
   }
   const reservation = store.records()[0];
   if (reservation?.kind !== "namespace-reserved")
@@ -920,7 +945,6 @@ export function openStore(store: PublicationStore, create: boolean): void {
       namespaceName,
       prior.namespace,
     );
-    if (store.interval) store.syncDirectory(anchor);
   } else {
     if (!create)
       refuse("bootstrap-unclaimed", "Namespace bootstrap is pending.");
@@ -953,4 +977,12 @@ export function openStore(store: PublicationStore, create: boolean): void {
     store.syncDirectory(anchor);
   }
   store.guard();
+  beforeSync?.(store);
+  if (store.interval) {
+    nativeEffect(
+      native.syncFile({ interval: store.mutating(), file: store.ledger }),
+      "durability-unavailable",
+    );
+    store.syncDirectory(anchor);
+  }
 }

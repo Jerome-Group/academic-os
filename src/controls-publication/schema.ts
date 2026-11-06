@@ -9,12 +9,21 @@ import { readStrictJson } from "../controls/strict-json.js";
 import { activitySchemas } from "../module-activity/generated/schemas.js";
 import { base64DecodedLength, canonicalBase64 } from "./codec.js";
 import type {
+  HostInstallInput,
+  HostRegistration,
+  HostRegistrationInput,
+  Record as NativeRecord,
+  Policy,
+  PolicySelector,
+} from "./generated/native-source-contract-1.js";
+import type {
   CreateResult,
   CreateWireInput,
   InspectResult,
   InspectWireInput,
   JournalEvent,
   PublicationBundle,
+  PublicationRecord,
   PublishResult,
   PublishWireInput,
 } from "./generated/publication-contract-1.js";
@@ -72,6 +81,52 @@ export const validateInspectInput =
   validator<InspectWireInput>("InspectWireInput");
 export const validateBundle = validator<PublicationBundle>("PublicationBundle");
 export const validateEvent = validator<JournalEvent>("JournalEvent");
+export type MixedRecord = PublicationRecord | NativeRecord;
+export type MixedEvent = Omit<JournalEvent, "record"> & { record: MixedRecord };
+export const nativeSchemaId = "urn:academic-os:native-source-contract:1";
+ajv.addSchema({
+  $id: "urn:academic-os:mixed-publication-event:1",
+  type: "object",
+  properties: {
+    schemaVersion: { const: 1 },
+    sequence: { type: "integer", minimum: 0, maximum: Number.MAX_SAFE_INTEGER },
+    previousEventByteSha256: {
+      anyOf: [{ type: "null" }, { type: "string", pattern: "^[a-f0-9]{64}$" }],
+    },
+    record: {
+      oneOf: [
+        { $ref: `${publicationSchemaId}#/definitions/PublicationRecord` },
+        { $ref: `${nativeSchemaId}#/definitions/Record` },
+      ],
+    },
+  },
+  required: ["schemaVersion", "sequence", "previousEventByteSha256", "record"],
+  additionalProperties: false,
+});
+function requiredValidator<T>(id: string): ValidateFunction<T> {
+  const result = ajv.getSchema<T>(id);
+  if (!result) throw new Error(`Missing built-in schema ${id}.`);
+  return result;
+}
+export const validateMixedEvent = requiredValidator<MixedEvent>(
+  "urn:academic-os:mixed-publication-event:1",
+);
+export const validateHostInstallInput = requiredValidator<HostInstallInput>(
+  `${nativeSchemaId}#/definitions/HostInstallInput`,
+);
+export const validateHostRegistrationInput =
+  requiredValidator<HostRegistrationInput>(
+    `${nativeSchemaId}#/definitions/HostRegistrationInput`,
+  );
+export const validatePolicy = requiredValidator<Policy>(
+  `${nativeSchemaId}#/definitions/Policy`,
+);
+export const validatePolicySelector = requiredValidator<PolicySelector>(
+  `${nativeSchemaId}#/definitions/PolicySelector`,
+);
+export const validateHostRegistration = requiredValidator<HostRegistration>(
+  `${nativeSchemaId}#/definitions/HostRegistration`,
+);
 export const validateCreateResult = validator<CreateResult>("CreateResult");
 export const validatePublishResult = validator<PublishResult>("PublishResult");
 export const validateInspectResult = validator<InspectResult>("InspectResult");
@@ -90,7 +145,9 @@ export function parseBytes<T>(
 export function wireSchema(
   name: "CreateWireInput" | "PublishWireInput" | "InspectWireInput",
 ): { type: "object"; [key: string]: unknown } {
-  const contract = publicationSchemas[0];
+  const contract = publicationSchemas.find(
+    (schema) => schema.$id === publicationSchemaId,
+  );
   if (contract === undefined)
     throw new Error("Missing built-in publication schema.");
   const input = contract.definitions[name];

@@ -2,6 +2,7 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <sys/mount.h>
 #include <sys/attr.h>
+#include <sys/acl.h>
 #include <CommonCrypto/CommonDigest.h>
 #include <optional>
 #include <dirent.h>
@@ -219,6 +220,141 @@ void nonoverlap(const std::shared_ptr<Anchor>& anchor, const Exclusions& exclusi
     for (const auto& ancestor : ancestry) if (ancestor == path.ancestry.back()) fail("unsafe-ancestry");
   }
 }
+Observation protectedSourceDirectory(int fd) {
+  requireAccount();
+  struct stat value; syscallResult(fstat(fd, &value));
+  if (!S_ISDIR(value.st_mode) || value.st_uid != getuid() || (value.st_mode & 07000) || (value.st_flags & ~(UF_HIDDEN | UF_NODUMP | UF_TRACKED))) fail("unsafe-ancestry");
+  int count = getgroups(0, nullptr); syscallResult(count);
+  std::vector<gid_t> groups(static_cast<size_t>(count));
+  if (count) syscallResult(getgroups(count, groups.data()));
+  if (value.st_gid != getegid() && std::find(groups.begin(), groups.end(), value.st_gid) == groups.end()) fail("unsupported-host");
+  struct statfs filesystem; syscallResult(fstatfs(fd, &filesystem));
+  if (!(filesystem.f_flags & MNT_LOCAL)) fail("unsupported-host");
+  std::vector<uint8_t> raw;
+  acl_t acl = acl_get_fd_np(fd, ACL_TYPE_EXTENDED);
+  if (!acl) { if (errno != ENOENT) fail("unsupported-host"); }
+  else {
+    std::unique_ptr<std::remove_pointer_t<acl_t>, decltype(&acl_free)> owned(acl, acl_free);
+    ssize_t size = acl_size(acl);
+    if (size < 0 || size > 1048576) fail("unsupported-host");
+    raw.resize(static_cast<size_t>(size));
+    if (size && acl_copy_ext_native(raw.data(), acl, size) != size) fail("unsupported-host");
+  }
+  return {physicalIdentityFd(fd), value, std::move(raw)};
+}
+PathSnapshot policyPath(const std::shared_ptr<Anchor>& anchor, const std::string& path, bool regular, int* finalDescriptor = nullptr, const std::string& enclosure = "") {
+  if (path.empty() || path.front() != '/' || path.size() >= PATH_MAX || path.find('\0') != std::string::npos) fail("unsafe-ancestry");
+  auto forbidden = sidecarStorage(anchor);
+  PathSnapshot result;
+  result.path = path; result.resolved = path;
+  result.privateEnclosure = enclosure;
+  int fd = open("/", O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+  syscallResult(fd);
+  auto current = std::make_shared<Descriptor>(fd);
+  auto root = inspectFd(fd, false, true);
+  result.ancestry.push_back(root.object); result.observations.push_back(root); result.names.push_back("");
+  size_t start = 1;
+  std::string traversed;
+  size_t allocation = 0;
+  while (start < path.size()) {
+    size_t end = path.find('/', start);
+    std::string name = path.substr(start, end - start);
+    component(name);
+    traversed += "/" + name;
+    if (result.names.size() >= 256) fail("unsupported-host");
+    if (name == "journal-ownership") fail("unsafe-ancestry");
+    bool last = end == std::string::npos;
+    struct stat before;
+    syscallResult(fstatat(current->fd, name.c_str(), &before, AT_SYMLINK_NOFOLLOW));
+    forbidden.reject(before);
+    bool directory = !(last && regular);
+    if (directory ? !S_ISDIR(before.st_mode) : (!S_ISREG(before.st_mode) || before.st_nlink != 1)) fail("unsafe-ancestry");
+    int child = openat(current->fd, name.c_str(), O_RDONLY | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC | (directory ? O_DIRECTORY : 0));
+    syscallResult(child);
+    auto next = std::make_shared<Descriptor>(child);
+    bool protectedSource = !enclosure.empty() && traversed.size() > enclosure.size() && traversed.compare(0, enclosure.size() + 1, enclosure + "/") == 0;
+    auto observed = protectedSource ? protectedSourceDirectory(child) : inspectFd(child, last && regular, directory);
+    allocation += observed.acl.size() * 3 + name.size() + 1024;
+    if (allocation > 256 * 1024 * 1024) fail("unsupported-host");
+    if (observed.stat.st_dev != before.st_dev || observed.stat.st_ino != before.st_ino || observed.stat.st_birthtimespec.tv_sec != before.st_birthtimespec.tv_sec || observed.stat.st_birthtimespec.tv_nsec != before.st_birthtimespec.tv_nsec) fail("identity-changed");
+    result.ancestry.push_back(observed.object); result.observations.push_back(observed); result.names.push_back(name);
+    current = next;
+    if (last) break;
+    start = end + 1;
+  }
+  if (descriptorPath(current->fd) != path) fail("unsafe-ancestry");
+  for (size_t i = 0; i < result.observations.size(); ++i) {
+    const auto& value = result.observations[i];
+    result.signature += base64(result.names[i].data(), result.names[i].size()) + ":" + identityText(value.object) + ":" + std::to_string(value.stat.st_uid) + ":" + std::to_string(value.stat.st_gid) + ":" + std::to_string(value.stat.st_mode) + ":" + std::to_string(value.stat.st_flags) + ":" + base64(value.acl.data(), value.acl.size()) + ";";
+  }
+  if (finalDescriptor) { *finalDescriptor = dup(current->fd); syscallResult(*finalDescriptor); }
+  return result;
+}
+bool includes(const std::vector<Identity>& chain, const Identity& object) { return std::find(chain.begin(), chain.end(), object) != chain.end(); }
+void sourceNonoverlap(const std::shared_ptr<Anchor>& anchor, const PathSnapshot& source) {
+  if (!anchor->exclusions) fail("unsafe-ancestry");
+  std::vector<Identity> owner;
+  for (auto handle = anchor->directory; handle; handle = handle->parent) owner.push_back(handle->object);
+  if (includes(source.ancestry, anchor->directory->object) || includes(owner, source.ancestry.back())) fail("unsafe-ancestry");
+  for (const auto& excluded : anchor->exclusions->paths) {
+    if (excluded.absent) continue;
+    if (includes(source.ancestry, excluded.ancestry.back()) || includes(excluded.ancestry, source.ancestry.back())) fail("unsafe-ancestry");
+  }
+}
+}
+DeploymentFile readDeploymentFile(const std::shared_ptr<Anchor>& anchor, const std::string& path, bool retain) {
+  guard(anchor->directory);
+  int fd;
+  auto observed = policyPath(anchor, path, true, &fd);
+  Descriptor owned(fd);
+  struct stat before;
+  syscallResult(fstat(fd, &before));
+  size_t length = checkedLength(before.st_size);
+  if (length > 1048576) fail("unsafe-ancestry");
+  std::vector<uint8_t> data(length);
+  size_t offset = 0;
+  while (offset < length) {
+    ssize_t count = pread(fd, data.data() + offset, std::min<size_t>(65536, length - offset), static_cast<off_t>(offset));
+    if (count < 0 && errno == EINTR) continue;
+    if (count <= 0) fail("io");
+    offset += static_cast<size_t>(count);
+  }
+  struct stat after;
+  syscallResult(fstat(fd, &after));
+  auto fresh = policyPath(anchor, path, true);
+  if (fresh.signature != observed.signature || before.st_size != after.st_size || before.st_mtimespec.tv_sec != after.st_mtimespec.tv_sec || before.st_mtimespec.tv_nsec != after.st_mtimespec.tv_nsec || before.st_ctimespec.tv_sec != after.st_ctimespec.tv_sec || before.st_ctimespec.tv_nsec != after.st_ctimespec.tv_nsec) fail("identity-changed");
+  DeploymentFile result = {observed, data};
+  if (retain) {
+    auto prior = std::find_if(anchor->deploymentFiles.begin(), anchor->deploymentFiles.end(), [&](const DeploymentFile& value) { return value.path.path == path; });
+    if (prior != anchor->deploymentFiles.end()) {
+      if (prior->path.signature != result.path.signature || prior->bytes != result.bytes) fail("identity-changed");
+    } else {
+      if (anchor->deploymentFiles.size() >= 65) fail("unsafe-ancestry");
+      anchor->deploymentFiles.push_back(result);
+    }
+  }
+  return result;
+}
+std::vector<std::pair<PathSnapshot, PathSnapshot>> observePolicySlots(const std::shared_ptr<Anchor>& anchor, const std::vector<std::pair<std::string, std::string>>& slots) {
+  guard(anchor->directory);
+  if (slots.empty() || slots.size() > 64 || !anchor->exclusions) fail("unsafe-ancestry");
+  std::vector<std::pair<PathSnapshot, PathSnapshot>> result;
+  std::vector<PathSnapshot> retained;
+  for (const auto& slot : slots) {
+    auto enclosure = policyPath(anchor, slot.first, false);
+    auto source = policyPath(anchor, slot.second, false, nullptr, slot.first);
+    const auto& privateRoot = enclosure.observations.back();
+    int fd;
+    policyPath(anchor, slot.first, false, &fd); Descriptor owned(fd);
+    inspectFd(fd, true, true);
+    if (privateRoot.stat.st_uid != getuid() || source.observations.back().stat.st_uid != getuid() || source.ancestry.size() <= enclosure.ancestry.size() || !includes(source.ancestry, enclosure.ancestry.back())) fail("unsafe-ancestry");
+    sourceNonoverlap(anchor, enclosure); sourceNonoverlap(anchor, source);
+    for (const auto& prior : result) if (includes(source.ancestry, prior.second.ancestry.back()) || includes(prior.second.ancestry, source.ancestry.back())) fail("unsafe-ancestry");
+    retained.push_back(enclosure); retained.push_back(source);
+    result.emplace_back(std::move(enclosure), std::move(source));
+  }
+  anchor->policyRoots = std::move(retained);
+  return result;
 }
 std::shared_ptr<Exclusions> observeExclusions(const std::shared_ptr<Anchor>& anchor, const std::vector<std::string>& required) {
   guard(anchor->directory);
@@ -242,6 +378,15 @@ void recheckExclusions(const std::shared_ptr<Anchor>& anchor) {
   }
   if (cloudChildren(anchor->syncHome, forbidden) != anchor->exclusions->cloudChildren) fail("identity-changed");
   nonoverlap(anchor, *anchor->exclusions);
+  for (const auto& file : anchor->deploymentFiles) {
+    auto fresh = readDeploymentFile(anchor, file.path.path, false);
+    if (fresh.path.signature != file.path.signature || fresh.bytes != file.bytes) fail("identity-changed");
+  }
+  for (const auto& root : anchor->policyRoots) {
+    auto fresh = policyPath(anchor, root.path, false, nullptr, root.privateEnclosure);
+    if (fresh.signature != root.signature) fail("identity-changed");
+    sourceNonoverlap(anchor, fresh);
+  }
 }
 void requireNonoverlap(const std::shared_ptr<Anchor>& anchor, const std::shared_ptr<Handle>& nameSpace, const std::shared_ptr<Exclusions>& exclusions) {
   guard(anchor->directory); guard(nameSpace);

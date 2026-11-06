@@ -9,7 +9,15 @@ import type {
   Refused,
 } from "./generated/publication-contract-1.js";
 import { loadPublicationNative } from "./native/index.js";
-import type { PublicationNative } from "./native-contract.js";
+import type {
+  ExclusionObservation,
+  PublicationNative,
+  ValidatedAccountAnchor,
+} from "./native-contract.js";
+import {
+  requirePendingOrder,
+  validateMixedHistory,
+} from "./native-policy-history.js";
 import { publicationRelease, runtimeDirectory } from "./release.js";
 import {
   ledgerName,
@@ -48,6 +56,13 @@ export async function withPublicationOwner<T>(input: {
   mutate: boolean;
   bootstrap?: true;
   requestId?: string;
+  family?: "host-deployment" | "native-policy";
+  prepare?: (
+    native: PublicationNative,
+    anchor: ValidatedAccountAnchor,
+    releaseDigest: string,
+  ) => ExclusionObservation;
+  validateBeforeSync?: (store: PublicationStore) => void;
   context: RuntimeContext;
   run: (store: PublicationStore, releaseDigest: string) => T;
 }): Promise<T | Refused | RecoveryRequired> {
@@ -60,7 +75,7 @@ export async function withPublicationOwner<T>(input: {
     const releaseDigest = await publicationRelease();
     anchor = binding.resolveAccountAnchor();
     const observed = nativeValue(anchor);
-    const exclusions = nativeValue(
+    let exclusions = nativeValue(
       binding.observeExclusionRoots({
         anchor: observed,
         requiredRepositoryAndSourcePaths: [
@@ -69,6 +84,8 @@ export async function withPublicationOwner<T>(input: {
         ].map((path) => Buffer.from(path)),
       }),
     );
+    if (input.prepare)
+      exclusions = input.prepare(binding, observed, releaseDigest);
     if (!input.bootstrap && !(await existingGate(observed.canonicalAnchorPath)))
       refuse(
         "unknown-candidate",
@@ -80,6 +97,8 @@ export async function withPublicationOwner<T>(input: {
         journalPath: join(observed.canonicalAnchorPath, ledgerName),
       },
       async () => {
+        if (input.prepare)
+          exclusions = input.prepare(binding, observed, releaseDigest);
         const interval = input.mutate
           ? nativeValue(binding.beginIntervalUnderHeldGate(observed))
           : null;
@@ -92,7 +111,15 @@ export async function withPublicationOwner<T>(input: {
         entered = true;
         try {
           try {
-            openStore(store, input.bootstrap === true);
+            openStore(
+              store,
+              input.bootstrap === true,
+              (loaded) => {
+                if (input.mutate) requirePendingOrder(loaded, input);
+                else validateMixedHistory(loaded);
+              },
+              input.validateBeforeSync,
+            );
             return input.run(store, releaseDigest);
           } finally {
             store.close();

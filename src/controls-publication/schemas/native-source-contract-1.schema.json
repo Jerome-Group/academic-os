@@ -1,0 +1,3342 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "urn:academic-os:native-source-contract:1",
+  "title": "NativeSourceContract",
+  "definitions": {
+    "Digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "Decimal": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,19})$"
+    },
+    "SignedNanoseconds": {
+      "type": "string",
+      "pattern": "^(0|-?[1-9][0-9]{0,28})$"
+    },
+    "RawName": {
+      "type": "string",
+      "minLength": 4,
+      "maxLength": 340,
+      "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$"
+    },
+    "RawLocator": {
+      "type": "string",
+      "minLength": 4,
+      "maxLength": 21848,
+      "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$"
+    },
+    "RawBytes": {
+      "type": "string",
+      "maxLength": 44739244,
+      "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$"
+    },
+    "Identity": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": ["directory", "regular", "symlink"]
+        },
+        "volumeUuid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "device": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "inode": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "birthtimeNs": {
+          "$ref": "#/definitions/SignedNanoseconds"
+        }
+      },
+      "required": ["kind", "volumeUuid", "device", "inode", "birthtimeNs"],
+      "additionalProperties": false
+    },
+    "Scope": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "intentDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "candidateId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": ["requestId", "intentDigest", "candidateId"],
+      "additionalProperties": false
+    },
+    "AttemptScope": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "intentDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "candidateId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "attemptId": {
+          "$ref": "#/definitions/Digest"
+        },
+        "attemptNumber": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        }
+      },
+      "required": [
+        "requestId",
+        "intentDigest",
+        "candidateId",
+        "attemptId",
+        "attemptNumber"
+      ],
+      "additionalProperties": false
+    },
+    "Location": {
+      "type": "object",
+      "properties": {
+        "parentClaimId": {
+          "$ref": "#/definitions/Digest"
+        },
+        "rawNameBase64": {
+          "$ref": "#/definitions/RawName"
+        }
+      },
+      "required": ["parentClaimId", "rawNameBase64"],
+      "additionalProperties": false
+    },
+    "Binding": {
+      "type": "object",
+      "properties": {
+        "operationId": {
+          "$ref": "#/definitions/Digest"
+        },
+        "effect": {
+          "enum": [
+            "reserve-stage",
+            "create-envelope",
+            "create-entry",
+            "copy-data",
+            "metadata-epoch",
+            "link-alias",
+            "entry-parent",
+            "write-evidence",
+            "seal-evidence",
+            "preservation",
+            "promotion",
+            "promotion-parent",
+            "receipt",
+            "admission",
+            "retain-attempt",
+            "install-policy",
+            "policy-selector",
+            "install-receipt"
+          ]
+        },
+        "claimId": {
+          "$ref": "#/definitions/Digest"
+        },
+        "location": {
+          "$ref": "#/definitions/Location"
+        },
+        "plannedEffectDigest": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": [
+        "operationId",
+        "effect",
+        "claimId",
+        "location",
+        "plannedEffectDigest"
+      ],
+      "additionalProperties": false
+    },
+    "StrictClaim": {
+      "type": "object",
+      "properties": {
+        "claimId": {
+          "$ref": "#/definitions/Digest"
+        },
+        "generatedClaimRecordDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "object": {
+          "$ref": "#/definitions/Identity"
+        },
+        "location": {
+          "$ref": "#/definitions/Location"
+        }
+      },
+      "required": [
+        "claimId",
+        "generatedClaimRecordDigest",
+        "object",
+        "location"
+      ],
+      "additionalProperties": false
+    },
+    "PayloadClaim": {
+      "type": "object",
+      "properties": {
+        "claimId": {
+          "$ref": "#/definitions/Digest"
+        },
+        "object": {
+          "$ref": "#/definitions/Identity"
+        },
+        "primaryLocation": {
+          "$ref": "#/definitions/Location"
+        }
+      },
+      "required": ["claimId", "object", "primaryLocation"],
+      "additionalProperties": false
+    },
+    "PlannedEvidence": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "planned"
+        },
+        "evidenceId": {
+          "$ref": "#/definitions/Digest"
+        },
+        "purpose": {
+          "enum": [
+            "source-before",
+            "source-after",
+            "destination",
+            "operation-plan",
+            "relation",
+            "claims",
+            "differences",
+            "receipt",
+            "policy",
+            "installation-receipt",
+            "chunk-index",
+            "host-deployment"
+          ]
+        },
+        "format": {
+          "enum": [
+            "native-representation/1",
+            "native-plan/1",
+            "native-relation/1",
+            "native-claims/1",
+            "native-differences/1",
+            "native-receipt/1",
+            "native-policy/1",
+            "native-policy-install-receipt/1",
+            "native-chunk-index/1",
+            "host-deployment/1"
+          ]
+        },
+        "byteLength": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "sha256": {
+          "$ref": "#/definitions/Digest"
+        },
+        "chunkCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2048
+        }
+      },
+      "required": [
+        "kind",
+        "evidenceId",
+        "purpose",
+        "format",
+        "byteLength",
+        "sha256",
+        "chunkCount"
+      ],
+      "additionalProperties": false
+    },
+    "OwnedBlob": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "owned-blob"
+        },
+        "evidenceId": {
+          "$ref": "#/definitions/Digest"
+        },
+        "claim": {
+          "$ref": "#/definitions/StrictClaim"
+        },
+        "byteLength": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "sha256": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": ["kind", "evidenceId", "claim", "byteLength", "sha256"],
+      "additionalProperties": false
+    },
+    "SealedEvidence": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "sealed"
+        },
+        "planned": {
+          "$ref": "#/definitions/PlannedEvidence"
+        },
+        "index": {
+          "$ref": "#/definitions/OwnedBlob"
+        }
+      },
+      "required": ["kind", "planned", "index"],
+      "additionalProperties": false
+    },
+    "Chunk": {
+      "type": "object",
+      "properties": {
+        "ordinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2047
+        },
+        "offset": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "blob": {
+          "$ref": "#/definitions/OwnedBlob"
+        }
+      },
+      "required": ["ordinal", "offset", "blob"],
+      "additionalProperties": false
+    },
+    "ChunkPage": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": "native-chunk-page/1"
+        },
+        "evidenceId": {
+          "$ref": "#/definitions/Digest"
+        },
+        "chunks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Chunk"
+          },
+          "minItems": 1,
+          "maxItems": 512
+        }
+      },
+      "required": ["schema", "evidenceId", "chunks"],
+      "additionalProperties": false
+    },
+    "ChunkIndex": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": "native-chunk-index/1"
+        },
+        "evidenceId": {
+          "$ref": "#/definitions/Digest"
+        },
+        "chunkCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2048
+        },
+        "pages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OwnedBlob"
+          },
+          "minItems": 1,
+          "maxItems": 4
+        }
+      },
+      "required": ["schema", "evidenceId", "chunkCount", "pages"],
+      "additionalProperties": false
+    },
+    "SourceBinding": {
+      "type": "object",
+      "properties": {
+        "sourceKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "policyGenerationDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "deploymentDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "exclusionsDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "ancestryDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "root": {
+          "$ref": "#/definitions/Identity"
+        },
+        "manifest": {
+          "$ref": "#/definitions/PlannedEvidence"
+        },
+        "bindingDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "observation": {
+          "const": "two-pass-non-atomic-quiescence-required"
+        },
+        "originalProvenance": {
+          "const": "unknown"
+        }
+      },
+      "required": [
+        "sourceKey",
+        "policyGenerationDigest",
+        "deploymentDigest",
+        "exclusionsDigest",
+        "ancestryDigest",
+        "root",
+        "manifest",
+        "bindingDigest",
+        "observation",
+        "originalProvenance"
+      ],
+      "additionalProperties": false
+    },
+    "Reservation": {
+      "type": "object",
+      "properties": {
+        "eventCount": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "ledgerBytes": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "retainedBytes": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "indexBytes": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "maximumAttempts": {
+          "const": 3
+        }
+      },
+      "required": [
+        "eventCount",
+        "ledgerBytes",
+        "retainedBytes",
+        "indexBytes",
+        "maximumAttempts"
+      ],
+      "additionalProperties": false
+    },
+    "CreateInput": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "sourceKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "expectedBinding": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": ["requestId", "sourceKey", "expectedBinding"],
+      "additionalProperties": false
+    },
+    "RetryInput": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": ["requestId"],
+      "additionalProperties": false
+    },
+    "InspectRequest": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "request"
+        },
+        "requestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": ["kind", "requestId"],
+      "additionalProperties": false
+    },
+    "InspectCandidate": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "candidate"
+        },
+        "candidateId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": ["kind", "candidateId"],
+      "additionalProperties": false
+    },
+    "InspectInput": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/InspectRequest"
+        },
+        {
+          "$ref": "#/definitions/InspectCandidate"
+        }
+      ]
+    },
+    "HostInstallSlot": {
+      "type": "object",
+      "properties": {
+        "sourceKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "enclosureLocatorBase64": {
+          "$ref": "#/definitions/RawLocator"
+        },
+        "snapshotLocatorBase64": {
+          "$ref": "#/definitions/RawLocator"
+        }
+      },
+      "required": [
+        "sourceKey",
+        "enclosureLocatorBase64",
+        "snapshotLocatorBase64"
+      ],
+      "additionalProperties": false
+    },
+    "HostInstallInput": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "deploymentRegistrationDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "slots": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/HostInstallSlot"
+          },
+          "minItems": 1,
+          "maxItems": 64
+        },
+        "expectedPriorGeneration": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "requestId",
+        "deploymentRegistrationDigest",
+        "slots",
+        "expectedPriorGeneration"
+      ],
+      "additionalProperties": false
+    },
+    "PhysicalRoot": {
+      "type": "object",
+      "properties": {
+        "locatorBase64": {
+          "$ref": "#/definitions/RawLocator"
+        },
+        "object": {
+          "$ref": "#/definitions/Identity"
+        },
+        "ancestryDigest": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": ["locatorBase64", "object", "ancestryDigest"],
+      "additionalProperties": false
+    },
+    "PolicySlot": {
+      "type": "object",
+      "properties": {
+        "sourceKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "enclosure": {
+          "$ref": "#/definitions/PhysicalRoot"
+        },
+        "snapshot": {
+          "$ref": "#/definitions/PhysicalRoot"
+        }
+      },
+      "required": ["sourceKey", "enclosure", "snapshot"],
+      "additionalProperties": false
+    },
+    "PolicySelector": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": "native-source-policy-selector/1"
+        },
+        "generation": {
+          "$ref": "#/definitions/OwnedBlob"
+        },
+        "hostAccountDigest": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": ["schema", "generation", "hostAccountDigest"],
+      "additionalProperties": false
+    },
+    "Policy": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": "native-source-policy/1"
+        },
+        "hostAccountDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "deploymentRegistrationDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "configurationSetDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "exclusionSetDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "slots": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PolicySlot"
+          },
+          "minItems": 1,
+          "maxItems": 64
+        },
+        "releaseDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "preservationPolicy": {
+          "const": "darwin-native-provenance-accounted/1"
+        },
+        "coverage": {
+          "const": "registered-deployments-only"
+        },
+        "quiescence": {
+          "const": "cooperating-private-input-required"
+        }
+      },
+      "required": [
+        "schema",
+        "hostAccountDigest",
+        "deploymentRegistrationDigest",
+        "configurationSetDigest",
+        "exclusionSetDigest",
+        "slots",
+        "releaseDigest",
+        "preservationPolicy",
+        "coverage",
+        "quiescence"
+      ],
+      "additionalProperties": false
+    },
+    "NativeIntent": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-copy-intent"
+        },
+        "scope": {
+          "$ref": "#/definitions/Scope"
+        },
+        "source": {
+          "$ref": "#/definitions/SourceBinding"
+        },
+        "plan": {
+          "$ref": "#/definitions/PlannedEvidence"
+        },
+        "reservation": {
+          "$ref": "#/definitions/Reservation"
+        },
+        "releaseDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "mechanismDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "policy": {
+          "const": "darwin-native-provenance-accounted/1"
+        },
+        "effects": {
+          "const": "private-native-source-acquisition/1"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "source",
+        "plan",
+        "reservation",
+        "releaseDigest",
+        "mechanismDigest",
+        "policy",
+        "effects"
+      ],
+      "additionalProperties": false
+    },
+    "AttemptReserved": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-stage-reserved"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "stage": {
+          "$ref": "#/definitions/Location"
+        },
+        "final": {
+          "$ref": "#/definitions/Location"
+        },
+        "envelopeClaimId": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "stage",
+        "final",
+        "envelopeClaimId"
+      ],
+      "additionalProperties": false
+    },
+    "StrictBound": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-strict-claim-bound"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "claim": {
+          "$ref": "#/definitions/StrictClaim"
+        }
+      },
+      "required": ["schemaVersion", "kind", "scope", "binding", "claim"],
+      "additionalProperties": false
+    },
+    "StageParentDurable": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-stage-parent-durable"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "stageReservedDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "parentClaimId": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "stageReservedDigest",
+        "parentClaimId"
+      ],
+      "additionalProperties": false
+    },
+    "EntryIntent": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "payload-entry-intent"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "entryId": {
+          "$ref": "#/definitions/Digest"
+        },
+        "sourceEntryOrdinal": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "creationKind": {
+          "enum": ["directory", "regular", "symlink", "hardlink-alias"]
+        },
+        "sourceRepresentationDigest": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "entryId",
+        "sourceEntryOrdinal",
+        "creationKind",
+        "sourceRepresentationDigest"
+      ],
+      "additionalProperties": false
+    },
+    "PayloadClaimed": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "payload-object-claimed"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "entryId": {
+          "$ref": "#/definitions/Digest"
+        },
+        "claim": {
+          "$ref": "#/definitions/PayloadClaim"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "entryId",
+        "claim"
+      ],
+      "additionalProperties": false
+    },
+    "AliasClaimed": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "payload-alias-claimed"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "entryId": {
+          "$ref": "#/definitions/Digest"
+        },
+        "objectClaimId": {
+          "$ref": "#/definitions/Digest"
+        },
+        "object": {
+          "$ref": "#/definitions/Identity"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "entryId",
+        "objectClaimId",
+        "object"
+      ],
+      "additionalProperties": false
+    },
+    "EntryParentDurable": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "payload-entry-parent-durable"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "entryId": {
+          "$ref": "#/definitions/Digest"
+        },
+        "creationOperationId": {
+          "$ref": "#/definitions/Digest"
+        },
+        "parentClaimId": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "entryId",
+        "creationOperationId",
+        "parentClaimId"
+      ],
+      "additionalProperties": false
+    },
+    "EffectIntent": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "payload-effect-intent"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "sourceEntryOrdinal": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "sourceBindingDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "exactLength": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "dataSha256": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "sourceEntryOrdinal",
+        "sourceBindingDigest",
+        "exactLength",
+        "dataSha256"
+      ],
+      "additionalProperties": false
+    },
+    "EffectDurable": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "payload-effect-durable"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "effectIntentDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "byteLength": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "dataSha256": {
+          "$ref": "#/definitions/Digest"
+        },
+        "readbackDigest": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "effectIntentDigest",
+        "byteLength",
+        "dataSha256",
+        "readbackDigest"
+      ],
+      "additionalProperties": false
+    },
+    "MetadataIntent": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "payload-metadata-intent"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "before": {
+          "$ref": "#/definitions/Identity"
+        },
+        "after": {
+          "$ref": "#/definitions/Identity"
+        },
+        "representationDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "sourceBindingDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "mechanismDigest": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "before",
+        "after",
+        "representationDigest",
+        "sourceBindingDigest",
+        "mechanismDigest"
+      ],
+      "additionalProperties": false
+    },
+    "MetadataDurable": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "payload-metadata-durable"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "metadataIntentDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "readback": {
+          "$ref": "#/definitions/Identity"
+        },
+        "representationDigest": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "metadataIntentDigest",
+        "readback",
+        "representationDigest"
+      ],
+      "additionalProperties": false
+    },
+    "EvidenceIntent": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-evidence-intent"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "planned": {
+          "$ref": "#/definitions/PlannedEvidence"
+        },
+        "ordinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2047
+        },
+        "offset": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "chunkLength": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "chunkSha256": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "planned",
+        "ordinal",
+        "offset",
+        "chunkLength",
+        "chunkSha256"
+      ],
+      "additionalProperties": false
+    },
+    "EvidenceClaimed": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-evidence-claimed"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "evidenceIntentDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "blob": {
+          "$ref": "#/definitions/OwnedBlob"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "evidenceIntentDigest",
+        "blob"
+      ],
+      "additionalProperties": false
+    },
+    "EvidenceDurable": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-evidence-durable"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "evidenceIntentDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "blob": {
+          "$ref": "#/definitions/OwnedBlob"
+        },
+        "readbackSha256": {
+          "$ref": "#/definitions/Digest"
+        },
+        "fileBarrier": {
+          "const": true
+        },
+        "parentBarrier": {
+          "const": true
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "evidenceIntentDigest",
+        "blob",
+        "readbackSha256",
+        "fileBarrier",
+        "parentBarrier"
+      ],
+      "additionalProperties": false
+    },
+    "EvidenceSealed": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-evidence-sealed"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "sealed": {
+          "$ref": "#/definitions/SealedEvidence"
+        }
+      },
+      "required": ["schemaVersion", "kind", "scope", "binding", "sealed"],
+      "additionalProperties": false
+    },
+    "Preservation": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-preservation-durable"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "sourceBefore": {
+          "$ref": "#/definitions/SealedEvidence"
+        },
+        "sourceAfter": {
+          "$ref": "#/definitions/SealedEvidence"
+        },
+        "destination": {
+          "$ref": "#/definitions/SealedEvidence"
+        },
+        "differences": {
+          "$ref": "#/definitions/SealedEvidence"
+        },
+        "claims": {
+          "$ref": "#/definitions/SealedEvidence"
+        },
+        "result": {
+          "enum": ["exact", "accounted-provenance-difference"]
+        },
+        "comparisonDigest": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "sourceBefore",
+        "sourceAfter",
+        "destination",
+        "differences",
+        "claims",
+        "result",
+        "comparisonDigest"
+      ],
+      "additionalProperties": false
+    },
+    "PromotionIntent": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-promotion-intent"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "envelopeClaimId": {
+          "$ref": "#/definitions/Digest"
+        },
+        "stage": {
+          "$ref": "#/definitions/Location"
+        },
+        "final": {
+          "$ref": "#/definitions/Location"
+        },
+        "preservationRecordDigest": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "envelopeClaimId",
+        "stage",
+        "final",
+        "preservationRecordDigest"
+      ],
+      "additionalProperties": false
+    },
+    "PromotionObserved": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-promotion-observed"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "promotionIntentDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "envelope": {
+          "$ref": "#/definitions/StrictClaim"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "promotionIntentDigest",
+        "envelope"
+      ],
+      "additionalProperties": false
+    },
+    "PromotionParent": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-promotion-parent-durable"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "promotionIntentDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "side": {
+          "enum": ["staging", "final"]
+        },
+        "parentClaimId": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "promotionIntentDigest",
+        "side",
+        "parentClaimId"
+      ],
+      "additionalProperties": false
+    },
+    "ReceiptIntent": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-receipt-intent"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "promotionIntentDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "planned": {
+          "$ref": "#/definitions/PlannedEvidence"
+        },
+        "body": {
+          "$ref": "#/definitions/Receipt"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "promotionIntentDigest",
+        "planned",
+        "body"
+      ],
+      "additionalProperties": false
+    },
+    "ReceiptClaimed": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-receipt-claimed"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "receiptIntentDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "blob": {
+          "$ref": "#/definitions/OwnedBlob"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "receiptIntentDigest",
+        "blob"
+      ],
+      "additionalProperties": false
+    },
+    "ReceiptSettled": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-receipt-settled"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "receiptIntentDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "blob": {
+          "$ref": "#/definitions/OwnedBlob"
+        },
+        "readbackSha256": {
+          "$ref": "#/definitions/Digest"
+        },
+        "fileBarrier": {
+          "const": true
+        },
+        "parentBarrier": {
+          "const": true
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "receiptIntentDigest",
+        "blob",
+        "readbackSha256",
+        "fileBarrier",
+        "parentBarrier"
+      ],
+      "additionalProperties": false
+    },
+    "Admitted": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-source-admitted"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "receiptSettledDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "receipt": {
+          "$ref": "#/definitions/OwnedBlob"
+        },
+        "readiness": {
+          "const": "immutable-migration-source-only"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "receiptSettledDigest",
+        "receipt",
+        "readiness"
+      ],
+      "additionalProperties": false
+    },
+    "Retained": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-attempt-retained"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "reason": {
+          "enum": [
+            "creation-without-claim",
+            "identity-not-at-transition-endpoint",
+            "metadata-unreadable",
+            "source-changed",
+            "capacity-exhausted",
+            "uncertain-durability"
+          ]
+        },
+        "pendingOperationsDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "observationDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "processDrained": {
+          "const": true
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "reason",
+        "pendingOperationsDigest",
+        "observationDigest",
+        "processDrained"
+      ],
+      "additionalProperties": false
+    },
+    "PolicyInstallIntent": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-source-policy-install-intent"
+        },
+        "scope": {
+          "$ref": "#/definitions/Scope"
+        },
+        "policy": {
+          "$ref": "#/definitions/Policy"
+        },
+        "planned": {
+          "$ref": "#/definitions/PlannedEvidence"
+        },
+        "expectedPriorGeneration": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reservation": {
+          "$ref": "#/definitions/Reservation"
+        },
+        "releaseDigest": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "policy",
+        "planned",
+        "expectedPriorGeneration",
+        "reservation",
+        "releaseDigest"
+      ],
+      "additionalProperties": false
+    },
+    "PolicyGenerationSettled": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-source-policy-generation-settled"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "policyIntentDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "blob": {
+          "$ref": "#/definitions/OwnedBlob"
+        },
+        "fileBarrier": {
+          "const": true
+        },
+        "parentBarrier": {
+          "const": true
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "policyIntentDigest",
+        "blob",
+        "fileBarrier",
+        "parentBarrier"
+      ],
+      "additionalProperties": false
+    },
+    "PolicySelectorIntent": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-source-policy-selector-intent"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "policyIntentDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "prior": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/OwnedBlob"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "priorGeneration": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/OwnedBlob"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "generation": {
+          "$ref": "#/definitions/OwnedBlob"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "policyIntentDigest",
+        "prior",
+        "priorGeneration",
+        "generation"
+      ],
+      "additionalProperties": false
+    },
+    "PolicySelectorSettled": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-source-policy-selector-settled"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "selectorIntentDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "selector": {
+          "$ref": "#/definitions/OwnedBlob"
+        },
+        "generation": {
+          "$ref": "#/definitions/OwnedBlob"
+        },
+        "parentBarrier": {
+          "const": true
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "selectorIntentDigest",
+        "selector",
+        "generation",
+        "parentBarrier"
+      ],
+      "additionalProperties": false
+    },
+    "InstallReceiptIntent": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-source-policy-receipt-intent"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "selectorSettledDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "planned": {
+          "$ref": "#/definitions/PlannedEvidence"
+        },
+        "body": {
+          "$ref": "#/definitions/InstallReceipt"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "selectorSettledDigest",
+        "planned",
+        "body"
+      ],
+      "additionalProperties": false
+    },
+    "InstallReceiptSettled": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-source-policy-receipt-settled"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "receiptIntentDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "blob": {
+          "$ref": "#/definitions/OwnedBlob"
+        },
+        "fileBarrier": {
+          "const": true
+        },
+        "parentBarrier": {
+          "const": true
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "scope",
+        "binding",
+        "receiptIntentDigest",
+        "blob",
+        "fileBarrier",
+        "parentBarrier"
+      ],
+      "additionalProperties": false
+    },
+    "Record": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/NativeIntent"
+        },
+        {
+          "$ref": "#/definitions/AttemptReserved"
+        },
+        {
+          "$ref": "#/definitions/StrictBound"
+        },
+        {
+          "$ref": "#/definitions/StageParentDurable"
+        },
+        {
+          "$ref": "#/definitions/EntryIntent"
+        },
+        {
+          "$ref": "#/definitions/PayloadClaimed"
+        },
+        {
+          "$ref": "#/definitions/AliasClaimed"
+        },
+        {
+          "$ref": "#/definitions/EntryParentDurable"
+        },
+        {
+          "$ref": "#/definitions/EffectIntent"
+        },
+        {
+          "$ref": "#/definitions/EffectDurable"
+        },
+        {
+          "$ref": "#/definitions/MetadataIntent"
+        },
+        {
+          "$ref": "#/definitions/MetadataDurable"
+        },
+        {
+          "$ref": "#/definitions/EvidenceIntent"
+        },
+        {
+          "$ref": "#/definitions/EvidenceClaimed"
+        },
+        {
+          "$ref": "#/definitions/EvidenceDurable"
+        },
+        {
+          "$ref": "#/definitions/EvidenceSealed"
+        },
+        {
+          "$ref": "#/definitions/Preservation"
+        },
+        {
+          "$ref": "#/definitions/PromotionIntent"
+        },
+        {
+          "$ref": "#/definitions/PromotionObserved"
+        },
+        {
+          "$ref": "#/definitions/PromotionParent"
+        },
+        {
+          "$ref": "#/definitions/ReceiptIntent"
+        },
+        {
+          "$ref": "#/definitions/ReceiptClaimed"
+        },
+        {
+          "$ref": "#/definitions/ReceiptSettled"
+        },
+        {
+          "$ref": "#/definitions/Admitted"
+        },
+        {
+          "$ref": "#/definitions/Retained"
+        },
+        {
+          "$ref": "#/definitions/PolicyInstallIntent"
+        },
+        {
+          "$ref": "#/definitions/PolicyGenerationSettled"
+        },
+        {
+          "$ref": "#/definitions/PolicySelectorIntent"
+        },
+        {
+          "$ref": "#/definitions/PolicySelectorSettled"
+        },
+        {
+          "$ref": "#/definitions/InstallReceiptIntent"
+        },
+        {
+          "$ref": "#/definitions/InstallReceiptSettled"
+        },
+        {
+          "$ref": "#/definitions/HostRegistrationIntent"
+        },
+        {
+          "$ref": "#/definitions/HostRegistrationSettled"
+        }
+      ]
+    },
+    "Event": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "previousEventByteSha256": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "record": {
+          "$ref": "#/definitions/Record"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "sequence",
+        "previousEventByteSha256",
+        "record"
+      ],
+      "additionalProperties": false
+    },
+    "Receipt": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": "native-source-receipt/1"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "source": {
+          "$ref": "#/definitions/SourceBinding"
+        },
+        "sourceBefore": {
+          "$ref": "#/definitions/SealedEvidence"
+        },
+        "sourceAfter": {
+          "$ref": "#/definitions/SealedEvidence"
+        },
+        "destination": {
+          "$ref": "#/definitions/SealedEvidence"
+        },
+        "differences": {
+          "$ref": "#/definitions/SealedEvidence"
+        },
+        "claims": {
+          "$ref": "#/definitions/SealedEvidence"
+        },
+        "plan": {
+          "$ref": "#/definitions/SealedEvidence"
+        },
+        "envelope": {
+          "$ref": "#/definitions/StrictClaim"
+        },
+        "payloadRootClaimId": {
+          "$ref": "#/definitions/Digest"
+        },
+        "policy": {
+          "const": "darwin-native-provenance-accounted/1"
+        },
+        "preservation": {
+          "enum": ["exact", "accounted-provenance-difference"]
+        },
+        "releaseDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "mechanismDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "promotionIntentDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "stagingBarrierDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "finalBarrierDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "originalProvenance": {
+          "const": "unknown"
+        },
+        "externalSource": {
+          "const": "historical-not-current"
+        },
+        "readiness": {
+          "const": "immutable-migration-source-only"
+        }
+      },
+      "required": [
+        "schema",
+        "scope",
+        "source",
+        "sourceBefore",
+        "sourceAfter",
+        "destination",
+        "differences",
+        "claims",
+        "plan",
+        "envelope",
+        "payloadRootClaimId",
+        "policy",
+        "preservation",
+        "releaseDigest",
+        "mechanismDigest",
+        "promotionIntentDigest",
+        "stagingBarrierDigest",
+        "finalBarrierDigest",
+        "originalProvenance",
+        "externalSource",
+        "readiness"
+      ],
+      "additionalProperties": false
+    },
+    "InstallReceipt": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": "native-source-policy-install-receipt/1"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "generation": {
+          "$ref": "#/definitions/OwnedBlob"
+        },
+        "selector": {
+          "$ref": "#/definitions/OwnedBlob"
+        },
+        "policyIntentDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "deploymentDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "coverage": {
+          "const": "registered-deployments-only"
+        },
+        "quiescence": {
+          "const": "cooperating-private-input-required"
+        },
+        "releaseDigest": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": [
+        "schema",
+        "scope",
+        "generation",
+        "selector",
+        "policyIntentDigest",
+        "deploymentDigest",
+        "coverage",
+        "quiescence",
+        "releaseDigest"
+      ],
+      "additionalProperties": false
+    },
+    "Success": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "admitted"
+        },
+        "candidateId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "receipt": {
+          "$ref": "#/definitions/OwnedBlob"
+        },
+        "replayed": {
+          "type": "boolean"
+        },
+        "output": {
+          "const": "checked-current"
+        },
+        "externalSource": {
+          "const": "not-revalidated"
+        },
+        "readiness": {
+          "const": "immutable-migration-source-only"
+        }
+      },
+      "required": [
+        "kind",
+        "candidateId",
+        "receipt",
+        "replayed",
+        "output",
+        "externalSource",
+        "readiness"
+      ],
+      "additionalProperties": false
+    },
+    "Refused": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "refused"
+        },
+        "code": {
+          "enum": [
+            "invalid-input",
+            "source-policy-unavailable",
+            "source-not-eligible",
+            "source-changed",
+            "source-not-quiescent",
+            "unsupported-representation",
+            "unsafe-containment",
+            "request-conflict",
+            "unowned-output",
+            "unsupported-release",
+            "capacity-exhausted"
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "minItems": 0,
+          "maxItems": 128
+        }
+      },
+      "required": ["kind", "code", "evidence"],
+      "additionalProperties": false
+    },
+    "PendingPublication": {
+      "type": "object",
+      "properties": {
+        "family": {
+          "const": "generated-publication"
+        },
+        "requestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": ["family", "requestId"],
+      "additionalProperties": false
+    },
+    "PendingNative": {
+      "type": "object",
+      "properties": {
+        "family": {
+          "enum": ["native-copy", "source-policy-installation"]
+        },
+        "scope": {
+          "$ref": "#/definitions/Scope"
+        }
+      },
+      "required": ["family", "scope"],
+      "additionalProperties": false
+    },
+    "Pending": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/PendingPublication"
+        },
+        {
+          "$ref": "#/definitions/PendingNative"
+        }
+      ]
+    },
+    "Recovery": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "recovery-required"
+        },
+        "code": {
+          "enum": [
+            "pending-work",
+            "uncertain-effect",
+            "retained-orphan",
+            "durability-unavailable",
+            "output-changed",
+            "attempts-exhausted"
+          ]
+        },
+        "pending": {
+          "$ref": "#/definitions/Pending"
+        },
+        "observations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "minItems": 0,
+          "maxItems": 128
+        }
+      },
+      "required": ["kind", "code", "pending", "observations"],
+      "additionalProperties": false
+    },
+    "Result": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/Success"
+        },
+        {
+          "$ref": "#/definitions/Refused"
+        },
+        {
+          "$ref": "#/definitions/Recovery"
+        }
+      ]
+    },
+    "Absent": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "absent"
+        },
+        "readiness": {
+          "const": "not-admitted"
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 0,
+          "maxItems": 0
+        }
+      },
+      "required": ["kind", "readiness", "effects"],
+      "additionalProperties": false
+    },
+    "PendingInspection": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "pending"
+        },
+        "scope": {
+          "$ref": "#/definitions/Scope"
+        },
+        "phase": {
+          "enum": [
+            "source-bound",
+            "stage-reserved",
+            "copying",
+            "metadata-pending",
+            "representation-verified",
+            "promotion-pending",
+            "receipt-pending",
+            "retained"
+          ]
+        },
+        "historicalSourceBinding": {
+          "$ref": "#/definitions/Digest"
+        },
+        "currentOutput": {
+          "enum": [
+            "owned-checked",
+            "unclaimed-residue",
+            "changed",
+            "unavailable"
+          ]
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 0,
+          "maxItems": 0
+        }
+      },
+      "required": [
+        "kind",
+        "scope",
+        "phase",
+        "historicalSourceBinding",
+        "currentOutput",
+        "effects"
+      ],
+      "additionalProperties": false
+    },
+    "SourceInspection": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "source-only"
+        },
+        "candidateId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "receipt": {
+          "$ref": "#/definitions/OwnedBlob"
+        },
+        "historicalSourceBinding": {
+          "$ref": "#/definitions/Digest"
+        },
+        "currentOutput": {
+          "const": "owned-checked"
+        },
+        "externalSource": {
+          "const": "not-revalidated"
+        },
+        "readiness": {
+          "const": "immutable-migration-source-only"
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 0,
+          "maxItems": 0
+        }
+      },
+      "required": [
+        "kind",
+        "candidateId",
+        "receipt",
+        "historicalSourceBinding",
+        "currentOutput",
+        "externalSource",
+        "readiness",
+        "effects"
+      ],
+      "additionalProperties": false
+    },
+    "BrokenInspection": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "refused"
+        },
+        "code": {
+          "enum": ["output-changed", "unsupported-release", "corrupt-catalog"]
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 0,
+          "maxItems": 0
+        }
+      },
+      "required": ["kind", "code", "effects"],
+      "additionalProperties": false
+    },
+    "InspectResult": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/Absent"
+        },
+        {
+          "$ref": "#/definitions/PendingInspection"
+        },
+        {
+          "$ref": "#/definitions/SourceInspection"
+        },
+        {
+          "$ref": "#/definitions/BrokenInspection"
+        }
+      ]
+    },
+    "MetadataValue": {
+      "type": "object",
+      "properties": {
+        "byteLength": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "sha256": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": ["byteLength", "sha256"],
+      "additionalProperties": false
+    },
+    "Attribute": {
+      "type": "object",
+      "properties": {
+        "rawNameBase64": {
+          "$ref": "#/definitions/RawBytes"
+        },
+        "value": {
+          "$ref": "#/definitions/MetadataValue"
+        }
+      },
+      "required": ["rawNameBase64", "value"],
+      "additionalProperties": false
+    },
+    "ManifestEntry": {
+      "type": "object",
+      "properties": {
+        "ordinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 999999
+        },
+        "parentOrdinal": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "maximum": 999999
+        },
+        "rawNameBase64": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/RawName"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "object": {
+          "$ref": "#/definitions/Identity"
+        },
+        "linkCount": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "data": {
+          "$ref": "#/definitions/MetadataValue"
+        },
+        "rawLinkTargetBase64": {
+          "$ref": "#/definitions/RawBytes"
+        },
+        "uid": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "gid": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "mode": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 511
+        },
+        "flags": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "mtimeNs": {
+          "$ref": "#/definitions/SignedNanoseconds"
+        },
+        "ctimeNs": {
+          "$ref": "#/definitions/SignedNanoseconds"
+        },
+        "atimeNs": {
+          "$ref": "#/definitions/SignedNanoseconds"
+        },
+        "aclEncoding": {
+          "const": "darwin-acl-copy-ext/1"
+        },
+        "acl": {
+          "$ref": "#/definitions/MetadataValue"
+        },
+        "attributes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Attribute"
+          },
+          "minItems": 0,
+          "maxItems": 65536
+        }
+      },
+      "required": [
+        "ordinal",
+        "parentOrdinal",
+        "rawNameBase64",
+        "object",
+        "linkCount",
+        "data",
+        "rawLinkTargetBase64",
+        "uid",
+        "gid",
+        "mode",
+        "flags",
+        "mtimeNs",
+        "ctimeNs",
+        "atimeNs",
+        "aclEncoding",
+        "acl",
+        "attributes"
+      ],
+      "additionalProperties": false
+    },
+    "AttributeAbsent": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "absent"
+        }
+      },
+      "required": ["kind"],
+      "additionalProperties": false
+    },
+    "AttributePresent": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "present"
+        },
+        "byteLength": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "sha256": {
+          "$ref": "#/definitions/Digest"
+        },
+        "entryOrdinal": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "attributeOrdinal": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "manifestDigest": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": [
+        "kind",
+        "byteLength",
+        "sha256",
+        "entryOrdinal",
+        "attributeOrdinal",
+        "manifestDigest"
+      ],
+      "additionalProperties": false
+    },
+    "AttributeState": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/AttributeAbsent"
+        },
+        {
+          "$ref": "#/definitions/AttributePresent"
+        }
+      ]
+    },
+    "SetterObservation": {
+      "type": "object",
+      "properties": {
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65543
+        },
+        "operation": {
+          "enum": [
+            "metadata-copy",
+            "raw-xattr-set",
+            "raw-xattr-remove",
+            "chown",
+            "chmod",
+            "futimens",
+            "birthtime",
+            "flags",
+            "object-sync"
+          ]
+        },
+        "returnCode": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "nativeErrno": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "observedIdentity": {
+          "$ref": "#/definitions/Identity"
+        },
+        "readbackDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "mechanismDigest": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": [
+        "step",
+        "operation",
+        "returnCode",
+        "nativeErrno",
+        "observedIdentity",
+        "readbackDigest",
+        "mechanismDigest"
+      ],
+      "additionalProperties": false
+    },
+    "ProvenanceDifference": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": "native-provenance-difference/1"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "rawPathComponents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RawName"
+          },
+          "minItems": 0,
+          "maxItems": 256
+        },
+        "rawAttributeNameBase64": {
+          "const": "Y29tLmFwcGxlLnByb3ZlbmFuY2U="
+        },
+        "source": {
+          "$ref": "#/definitions/AttributeState"
+        },
+        "destination": {
+          "$ref": "#/definitions/AttributeState"
+        },
+        "setterObservations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SetterObservation"
+          },
+          "minItems": 1,
+          "maxItems": 8
+        },
+        "mechanismDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "policy": {
+          "const": "darwin-native-provenance-accounted/1"
+        },
+        "result": {
+          "const": "accounted-provenance-difference"
+        }
+      },
+      "required": [
+        "schema",
+        "scope",
+        "rawPathComponents",
+        "rawAttributeNameBase64",
+        "source",
+        "destination",
+        "setterObservations",
+        "mechanismDigest",
+        "policy",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "RelationSummary": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": "native-relation/1"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "sourceManifestDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "destinationManifestDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "result": {
+          "enum": ["exact", "accounted-provenance-difference"]
+        },
+        "provenanceDifferenceCount": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "identityIntersectionCount": {
+          "const": 0
+        },
+        "physicalPartitionsEqual": {
+          "const": true
+        },
+        "entryCount": {
+          "$ref": "#/definitions/Decimal"
+        }
+      },
+      "required": [
+        "schema",
+        "scope",
+        "sourceManifestDigest",
+        "destinationManifestDigest",
+        "result",
+        "provenanceDifferenceCount",
+        "identityIntersectionCount",
+        "physicalPartitionsEqual",
+        "entryCount"
+      ],
+      "additionalProperties": false
+    },
+    "PlanPredecessor": {
+      "type": "object",
+      "properties": {
+        "operationId": {
+          "$ref": "#/definitions/Digest"
+        },
+        "recordKind": {
+          "enum": [
+            "native-copy-intent",
+            "native-stage-reserved",
+            "native-strict-claim-bound",
+            "native-stage-parent-durable",
+            "payload-entry-intent",
+            "payload-object-claimed",
+            "payload-alias-claimed",
+            "payload-entry-parent-durable",
+            "payload-effect-intent",
+            "payload-effect-durable",
+            "payload-metadata-intent",
+            "payload-metadata-durable",
+            "native-evidence-intent",
+            "native-evidence-claimed",
+            "native-evidence-durable",
+            "native-evidence-sealed",
+            "native-preservation-durable",
+            "native-promotion-intent",
+            "native-promotion-observed",
+            "native-promotion-parent-durable",
+            "native-receipt-intent",
+            "native-receipt-claimed",
+            "native-receipt-settled",
+            "native-source-admitted",
+            "native-attempt-retained",
+            "native-source-policy-install-intent",
+            "native-source-policy-generation-settled",
+            "native-source-policy-selector-intent",
+            "native-source-policy-selector-settled",
+            "native-source-policy-receipt-intent",
+            "native-source-policy-receipt-settled"
+          ]
+        }
+      },
+      "required": ["operationId", "recordKind"],
+      "additionalProperties": false
+    },
+    "PlanOperation": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": "native-plan-operation/1"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "binding": {
+          "$ref": "#/definitions/Binding"
+        },
+        "permittedRecords": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "native-copy-intent",
+              "native-stage-reserved",
+              "native-strict-claim-bound",
+              "native-stage-parent-durable",
+              "payload-entry-intent",
+              "payload-object-claimed",
+              "payload-alias-claimed",
+              "payload-entry-parent-durable",
+              "payload-effect-intent",
+              "payload-effect-durable",
+              "payload-metadata-intent",
+              "payload-metadata-durable",
+              "native-evidence-intent",
+              "native-evidence-claimed",
+              "native-evidence-durable",
+              "native-evidence-sealed",
+              "native-preservation-durable",
+              "native-promotion-intent",
+              "native-promotion-observed",
+              "native-promotion-parent-durable",
+              "native-receipt-intent",
+              "native-receipt-claimed",
+              "native-receipt-settled",
+              "native-source-admitted",
+              "native-attempt-retained",
+              "native-source-policy-install-intent",
+              "native-source-policy-generation-settled",
+              "native-source-policy-selector-intent",
+              "native-source-policy-selector-settled",
+              "native-source-policy-receipt-intent",
+              "native-source-policy-receipt-settled"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 8
+        },
+        "predecessors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PlanPredecessor"
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "sourceEntryOrdinal": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Decimal"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "inputDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "maximumResultBytes": {
+          "$ref": "#/definitions/Decimal"
+        }
+      },
+      "required": [
+        "schema",
+        "scope",
+        "binding",
+        "permittedRecords",
+        "predecessors",
+        "sourceEntryOrdinal",
+        "inputDigest",
+        "maximumResultBytes"
+      ],
+      "additionalProperties": false
+    },
+    "ClaimsFrame": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": "native-claim-observation/1"
+        },
+        "scope": {
+          "$ref": "#/definitions/AttemptScope"
+        },
+        "claim": {
+          "$ref": "#/definitions/PayloadClaim"
+        },
+        "entryId": {
+          "$ref": "#/definitions/Digest"
+        },
+        "location": {
+          "$ref": "#/definitions/Location"
+        },
+        "epoch": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "setterObservation": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/SetterObservation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schema",
+        "scope",
+        "claim",
+        "entryId",
+        "location",
+        "epoch",
+        "setterObservation"
+      ],
+      "additionalProperties": false
+    },
+    "EndFrame": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": "native-frame-seal/1"
+        },
+        "frameCount": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "entryCount": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "metadataBytes": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "precedingSha256": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": [
+        "schema",
+        "frameCount",
+        "entryCount",
+        "metadataBytes",
+        "precedingSha256"
+      ],
+      "additionalProperties": false
+    },
+    "HostRegistrationInput": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "configurations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RawLocator"
+          },
+          "minItems": 1,
+          "maxItems": 64
+        },
+        "repositories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RawLocator"
+          },
+          "minItems": 1,
+          "maxItems": 64
+        },
+        "expectedPriorRegistration": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "requestId",
+        "configurations",
+        "repositories",
+        "expectedPriorRegistration"
+      ],
+      "additionalProperties": false
+    },
+    "HostRegistration": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": "academic-os-host-deployment/1"
+        },
+        "hostAccountDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "configurations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RawLocator"
+          },
+          "minItems": 1,
+          "maxItems": 64
+        },
+        "repositories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RawLocator"
+          },
+          "minItems": 1,
+          "maxItems": 64
+        },
+        "configurationSetDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "exclusionSetDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "coverage": {
+          "const": "registered-deployments-only"
+        },
+        "configurationBindings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RegisteredConfigurationBinding"
+          },
+          "minItems": 1,
+          "maxItems": 64
+        },
+        "negativeRoots": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RegisteredNegativeRoot"
+          },
+          "minItems": 1,
+          "maxItems": 128
+        },
+        "cloudChildrenDigest": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": [
+        "schema",
+        "hostAccountDigest",
+        "configurations",
+        "repositories",
+        "configurationSetDigest",
+        "exclusionSetDigest",
+        "coverage",
+        "configurationBindings",
+        "negativeRoots",
+        "cloudChildrenDigest"
+      ],
+      "additionalProperties": false
+    },
+    "HostRegistrationIntent": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-host-deployment-intent"
+        },
+        "request": {
+          "$ref": "#/definitions/HostRegistrationInput"
+        },
+        "registration": {
+          "$ref": "#/definitions/HostRegistration"
+        },
+        "expectedPriorRegistration": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/OwnedBlob"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "inputBindingDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "reservation": {
+          "$ref": "#/definitions/Reservation"
+        },
+        "releaseDigest": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "request",
+        "registration",
+        "expectedPriorRegistration",
+        "inputBindingDigest",
+        "reservation",
+        "releaseDigest"
+      ],
+      "additionalProperties": false
+    },
+    "HostRegistrationSettled": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "kind": {
+          "const": "native-host-deployment-settled"
+        },
+        "intentDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "registration": {
+          "$ref": "#/definitions/OwnedBlob"
+        },
+        "fileBarrier": {
+          "const": true
+        },
+        "parentBarrier": {
+          "const": true
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "kind",
+        "intentDigest",
+        "registration",
+        "fileBarrier",
+        "parentBarrier"
+      ],
+      "additionalProperties": false
+    },
+    "RegisteredConfigurationBinding": {
+      "type": "object",
+      "properties": {
+        "locatorBase64": {
+          "$ref": "#/definitions/RawLocator"
+        },
+        "object": {
+          "$ref": "#/definitions/Identity"
+        },
+        "ancestryDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "byteLength": {
+          "$ref": "#/definitions/Decimal"
+        },
+        "sha256": {
+          "$ref": "#/definitions/Digest"
+        }
+      },
+      "required": [
+        "locatorBase64",
+        "object",
+        "ancestryDigest",
+        "byteLength",
+        "sha256"
+      ],
+      "additionalProperties": false
+    },
+    "RegisteredNegativeRoot": {
+      "type": "object",
+      "properties": {
+        "locatorBase64": {
+          "$ref": "#/definitions/RawLocator"
+        },
+        "resolvedLocatorBase64": {
+          "type": "string",
+          "maxLength": 21848
+        },
+        "signatureDigest": {
+          "$ref": "#/definitions/Digest"
+        },
+        "absent": {
+          "type": "boolean"
+        },
+        "ancestry": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Identity"
+          },
+          "minItems": 1,
+          "maxItems": 256
+        }
+      },
+      "required": [
+        "locatorBase64",
+        "resolvedLocatorBase64",
+        "signatureDigest",
+        "absent",
+        "ancestry"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "anyOf": [
+    {
+      "$ref": "#/definitions/Record"
+    },
+    {
+      "$ref": "#/definitions/Event"
+    },
+    {
+      "$ref": "#/definitions/Receipt"
+    },
+    {
+      "$ref": "#/definitions/InstallReceipt"
+    },
+    {
+      "$ref": "#/definitions/Policy"
+    },
+    {
+      "$ref": "#/definitions/CreateInput"
+    },
+    {
+      "$ref": "#/definitions/RetryInput"
+    },
+    {
+      "$ref": "#/definitions/InspectInput"
+    },
+    {
+      "$ref": "#/definitions/HostInstallInput"
+    },
+    {
+      "$ref": "#/definitions/Result"
+    },
+    {
+      "$ref": "#/definitions/InspectResult"
+    },
+    {
+      "$ref": "#/definitions/ChunkIndex"
+    },
+    {
+      "$ref": "#/definitions/ChunkPage"
+    },
+    {
+      "$ref": "#/definitions/ManifestEntry"
+    },
+    {
+      "$ref": "#/definitions/ProvenanceDifference"
+    },
+    {
+      "$ref": "#/definitions/RelationSummary"
+    },
+    {
+      "$ref": "#/definitions/PlanOperation"
+    },
+    {
+      "$ref": "#/definitions/ClaimsFrame"
+    },
+    {
+      "$ref": "#/definitions/EndFrame"
+    },
+    {
+      "$ref": "#/definitions/PolicySelector"
+    },
+    {
+      "$ref": "#/definitions/HostRegistrationInput"
+    },
+    {
+      "$ref": "#/definitions/HostRegistration"
+    }
+  ]
+}

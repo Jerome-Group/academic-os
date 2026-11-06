@@ -25,6 +25,10 @@ const methods = [
   "replaceHeadGuarded",
   "expireAndDrain",
   "close",
+  "readDeploymentFile",
+  "observePolicySlots",
+  "describeExclusionRoots",
+  "replaceSelectorGuarded",
 ] satisfies readonly (keyof PublicationNative)[];
 
 export function isPublicationNative(

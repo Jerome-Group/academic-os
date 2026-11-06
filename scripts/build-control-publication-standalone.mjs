@@ -41,31 +41,35 @@ if (process.platform === "darwin") {
 }
 await mkdir(join(output, "native"), { recursive: true, mode: 0o700 });
 await writeFile(join(output, "native/package.json"), '{"type":"module"}\n');
-await build({
-  entryPoints: ["src/controls-publication/standalone.ts"],
-  outfile: join(output, "publication.mjs"),
-  bundle: true,
-  platform: "node",
-  format: "esm",
-  target: "node24",
-  sourcemap: false,
-  legalComments: "inline",
-  banner: {
-    js: 'import { createRequire as publicationBundleCreateRequire } from "node:module"; const require = publicationBundleCreateRequire(import.meta.url);',
-  },
-  plugins: [
-    {
-      name: "publication-native-loader",
-      setup(plugin) {
-        plugin.onResolve({ filter: /\/native\/index\.js$/ }, (args) =>
-          args.importer.includes("controls-publication")
-            ? { path: "./native/index.js", external: true }
-            : undefined,
-        );
-      },
+for (const [entryPoint, filename] of [
+  ["src/controls-publication/standalone.ts", "publication.mjs"],
+  ["src/controls-publication/host-deployment.ts", "host-deployment.mjs"],
+])
+  await build({
+    entryPoints: [entryPoint],
+    outfile: join(output, filename),
+    bundle: true,
+    platform: "node",
+    format: "esm",
+    target: "node24",
+    sourcemap: false,
+    legalComments: "inline",
+    banner: {
+      js: 'import { createRequire as publicationBundleCreateRequire } from "node:module"; const require = publicationBundleCreateRequire(import.meta.url);',
     },
-  ],
-});
+    plugins: [
+      {
+        name: "publication-native-loader",
+        setup(plugin) {
+          plugin.onResolve({ filter: /\/native\/index\.js$/ }, (args) =>
+            args.importer.includes("controls-publication")
+              ? { path: "./native/index.js", external: true }
+              : undefined,
+          );
+        },
+      },
+    ],
+  });
 for (const name of [
   "index.js",
   ...(process.platform === "darwin" ? ["publication-native.node"] : []),
@@ -79,3 +83,4 @@ await copyFile(
   join(output, "release.json"),
 );
 await chmod(join(output, "publication.mjs"), 0o755);
+await chmod(join(output, "host-deployment.mjs"), 0o755);

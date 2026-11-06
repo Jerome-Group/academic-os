@@ -558,18 +558,18 @@ export function requirePendingOrder(
   const history = store.mixedRecords();
   const settled = new Set(
     history.flatMap((record) => {
-      if (record.kind === "settled") return [record.requestId];
+      if (record.kind === "settled") return [`generated:${record.requestId}`];
       if (record.kind === "generated-candidate-admitted")
         return history.flatMap((reservation) =>
           reservation.kind === "candidate-reserved" &&
           digest(reservation.binding) === record.createBindingDigest
-            ? [reservation.binding.requestId]
+            ? [`generated:${reservation.binding.requestId}`]
             : [],
         );
       if (record.kind === "native-host-deployment-settled")
-        return [record.intentDigest];
+        return [`host-deployment:${record.intentDigest}`];
       if (record.kind === "native-source-policy-receipt-settled")
-        return [record.scope.intentDigest];
+        return [`native-policy:${record.scope.intentDigest}`];
       return [];
     }),
   );
@@ -578,7 +578,7 @@ export function requirePendingOrder(
       record.kind === "candidate-reserved" ||
       record.kind === "publication-plan"
     )
-      return settled.has(record.binding.requestId)
+      return settled.has(`generated:${record.binding.requestId}`)
         ? []
         : [
             {
@@ -589,7 +589,7 @@ export function requirePendingOrder(
             },
           ];
     if (record.kind === "native-host-deployment-intent")
-      return settled.has(digest(record))
+      return settled.has(`host-deployment:${digest(record)}`)
         ? []
         : [
             {
@@ -599,7 +599,7 @@ export function requirePendingOrder(
             },
           ];
     if (record.kind === "native-source-policy-install-intent")
-      return settled.has(record.scope.intentDigest)
+      return settled.has(`native-policy:${record.scope.intentDigest}`)
         ? []
         : [
             {

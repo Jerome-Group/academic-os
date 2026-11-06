@@ -128,7 +128,7 @@ export function validateMixedHistory(store: PublicationStore): void {
     physicalClaims.set(physicalKey, blob.claim.claimId);
   };
   for (const record of store.mixedRecords()) {
-    const recordDigest = digest(record);
+    const recordDigest = store.recordDigest(record);
     const requestId =
       record.kind === "native-host-deployment-intent"
         ? record.request.requestId

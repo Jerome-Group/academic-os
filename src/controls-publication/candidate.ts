@@ -8,6 +8,7 @@ import type {
 } from "./generated/publication-contract-1.js";
 import type { DirectoryHandle } from "./native-contract.js";
 import { requireInputBytes } from "./limits.js";
+import { reserveCandidateCompletion } from "./generated-completion.js";
 import { nativeValue, type PublicationStore, sameObject } from "./store.js";
 
 export type Candidate = {
@@ -126,15 +127,16 @@ export function createCandidate(
   }
   const candidates = catalogDirectory(store, "candidates");
   const staging = catalogDirectory(store, "staging");
+  const reservation: CandidateReservation = existing ?? {
+    schemaVersion: 1,
+    kind: "candidate-reserved",
+    candidateId,
+    binding,
+    aggregate,
+    target: store.location(candidates, candidateId),
+  };
+  reserveCandidateCompletion(store, reservation, !existing);
   if (!existing) {
-    const reservation: CandidateReservation = {
-      schemaVersion: 1,
-      kind: "candidate-reserved",
-      candidateId,
-      binding,
-      aggregate,
-      target: store.location(candidates, candidateId),
-    };
     store.preflightRecord(reservation);
     store.append(reservation);
   }

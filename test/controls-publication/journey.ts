@@ -821,12 +821,12 @@ const response = await dispatch(JSON.parse(readFileSync(0,"utf8"))); process.std
     );
     const afterIntentRefusal = await events();
     assert.ok(
-      afterIntentRefusal.some(
+      !afterIntentRefusal.some(
         (event) =>
           event.record.kind === "publication-plan" &&
           event.record.binding.requestId === "oversize-intent",
       ),
-      "Exact complete plan fits before the larger exact intent refuses",
+      "Complete suffix preflight refuses an oversized future intent before retaining a new plan",
     );
     assert.ok(
       !afterIntentRefusal.some(

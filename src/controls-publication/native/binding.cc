@@ -106,6 +106,19 @@ napi_value metadata(napi_env env, const Observation& value) {
 napi_value observation(napi_env env, const Observation& value) {
   auto result = object(env); put(env, result, "object", identity(env, value.object)); put(env, result, "metadata", metadata(env, value)); return result;
 }
+napi_value pathValue(napi_env env, const PathSnapshot& value) {
+  auto result = object(env);
+  put(env, result, "locatorBase64", text(env, base64(value.path.data(), value.path.size())));
+  put(env, result, "signature", text(env, value.signature));
+  napi_value components; check(napi_create_array_with_length(env, value.observations.size(), &components));
+  for (size_t i = 0; i < value.observations.size(); ++i) {
+    auto component = observation(env, value.observations[i]);
+    put(env, component, "rawNameBase64", text(env, base64(value.names[i].data(), value.names[i].size())));
+    check(napi_set_element(env, components, i, component));
+  }
+  put(env, result, "components", components);
+  return result;
+}
 napi_value anchorValue(napi_env env) {
   auto value = resolveAnchor();
   auto result = object(env), host = object(env);
@@ -124,7 +137,7 @@ napi_value anchorValue(napi_env env) {
   put(env, result, "ancestry", claims);
   return wrap(env, value, anchorTag, result);
 }
-const char* operations[] = {"resolveAccountAnchor", "component", "componentBytes", "observeAt", "observe", "openDirectoryNoFollow", "openRegularNoFollow", "requireLocation", "observeExclusionRoots", "requirePrivateLocalNonoverlap", "beginIntervalUnderHeldGate", "createDirectoryExclusive", "createRegularExclusive", "readBounded", "writeExact", "appendExact", "syncFile", "syncDirectory", "promoteExclusive", "replaceHeadGuarded", "expireAndDrain", "close", "readLedger"};
+const char* operations[] = {"resolveAccountAnchor", "component", "componentBytes", "observeAt", "observe", "openDirectoryNoFollow", "openRegularNoFollow", "requireLocation", "observeExclusionRoots", "requirePrivateLocalNonoverlap", "beginIntervalUnderHeldGate", "createDirectoryExclusive", "createRegularExclusive", "readBounded", "writeExact", "appendExact", "syncFile", "syncDirectory", "promoteExclusive", "replaceHeadGuarded", "expireAndDrain", "close", "readLedger", "readDeploymentFile", "observePolicySlots", "describeExclusionRoots", "replaceSelectorGuarded"};
 napi_value invoke(napi_env env, size_t operation, size_t argc, napi_value* args) {
   auto input = argc ? args[0] : undefined(env);
   switch (operation) {
@@ -183,15 +196,19 @@ napi_value invoke(napi_env env, size_t operation, size_t argc, napi_value* args)
     case 16: sync(interval(env, input), regular(env, get(env, input, "file"))); return undefined(env);
     case 17: sync(interval(env, input), directory(env, get(env, input, "directory"))); return undefined(env);
     case 18: promote(interval(env, input), directory(env, get(env, input, "sourceParent")), name(env, get(env, input, "sourceName")), directory(env, get(env, input, "destinationParent")), name(env, get(env, input, "destinationName")), identity(env, get(env, input, "expectedObject")), true); return undefined(env);
-    case 19: {
+    case 19: case 26: {
       auto owner = interval(env, input); auto parent = directory(env, get(env, input, "parent"));
       auto temporaryName = name(env, get(env, input, "temporaryName")), headName = name(env, get(env, input, "headName"));
       auto temporaryObject = identity(env, get(env, input, "temporaryObject"));
       auto expected = get(env, input, "expectedHead"); auto kind = string(env, get(env, expected, "kind"));
       if (kind == "present") {
         auto oldObject = identity(env, get(env, expected, "object"));
-        replaceHead(owner, parent, temporaryName, temporaryObject, headName, &oldObject, bytes(env, get(env, expected, "bytes")));
-      } else if (kind == "absent") replaceHead(owner, parent, temporaryName, temporaryObject, headName, nullptr, {});
+        if (operation == 26) replaceSelector(owner, parent, temporaryName, temporaryObject, headName, &oldObject, bytes(env, get(env, expected, "bytes")), name(env, get(env, input, "historyName")));
+        else replaceHead(owner, parent, temporaryName, temporaryObject, headName, &oldObject, bytes(env, get(env, expected, "bytes")));
+      } else if (kind == "absent") {
+        if (operation == 26) replaceSelector(owner, parent, temporaryName, temporaryObject, headName, nullptr, {}, name(env, get(env, input, "historyName")));
+        else replaceHead(owner, parent, temporaryName, temporaryObject, headName, nullptr, {});
+      }
       else fail("unsafe-ancestry");
       return undefined(env);
     }
@@ -225,6 +242,42 @@ napi_value invoke(napi_env env, size_t operation, size_t argc, napi_value* args)
       put(env, result, "bytes", byteArray(env, data));
       return result;
     }
+    case 23: {
+      auto raw = bytes(env, get(env, input, "locator"));
+      auto value = readDeploymentFile(anchor(env, get(env, input, "anchor")), std::string(raw.begin(), raw.end()));
+      auto result = object(env);
+      put(env, result, "bytes", byteArray(env, value.bytes)); put(env, result, "path", pathValue(env, value.path));
+      return result;
+    }
+    case 24: {
+      auto slots = get(env, input, "slots"); uint32_t length;
+      check(napi_get_array_length(env, slots, &length)); if (length > 64) fail("unsafe-ancestry");
+      std::vector<std::pair<std::string, std::string>> paths;
+      for (uint32_t i = 0; i < length; ++i) {
+        napi_value slot; check(napi_get_element(env, slots, i, &slot));
+        auto enclosure = bytes(env, get(env, slot, "enclosure")), source = bytes(env, get(env, slot, "snapshot"));
+        paths.emplace_back(std::string(enclosure.begin(), enclosure.end()), std::string(source.begin(), source.end()));
+      }
+      auto values = observePolicySlots(anchor(env, get(env, input, "anchor")), paths);
+      napi_value result; check(napi_create_array_with_length(env, values.size(), &result));
+      for (size_t i = 0; i < values.size(); ++i) {
+        auto slot = object(env); put(env, slot, "enclosure", pathValue(env, values[i].first)); put(env, slot, "snapshot", pathValue(env, values[i].second)); check(napi_set_element(env, result, i, slot));
+      }
+      return result;
+    }
+    case 25: {
+      auto value = anchor(env, input); guard(value->directory); recheckExclusions(value);
+      auto result = object(env); napi_value roots; check(napi_create_array_with_length(env, value->exclusions->paths.size(), &roots));
+      for (size_t i = 0; i < value->exclusions->paths.size(); ++i) {
+        const auto& path = value->exclusions->paths[i]; auto root = object(env);
+        put(env, root, "locatorBase64", text(env, base64(path.path.data(), path.path.size()))); put(env, root, "resolvedLocatorBase64", text(env, base64(path.resolved.data(), path.resolved.size()))); put(env, root, "signature", text(env, path.signature));
+        napi_value absent; check(napi_get_boolean(env, path.absent, &absent)); put(env, root, "absent", absent);
+        napi_value chain; check(napi_create_array_with_length(env, path.ancestry.size(), &chain));
+        for (size_t j = 0; j < path.ancestry.size(); ++j) check(napi_set_element(env, chain, j, identity(env, path.ancestry[j])));
+        put(env, root, "ancestry", chain); check(napi_set_element(env, roots, i, root));
+      }
+      put(env, result, "roots", roots); put(env, result, "cloudChildren", text(env, value->exclusions->cloudChildren)); return result;
+    }
     default: fail("io");
   }
 }
@@ -233,7 +286,7 @@ napi_value dispatch(napi_env env, napi_callback_info info) {
   napi_get_cb_info(env, info, &argc, args, nullptr, &data);
   size_t operation = reinterpret_cast<uintptr_t>(data);
   try {
-    const size_t arities[] = {0,1,1,2,1,2,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+    const size_t arities[] = {0,1,1,2,1,2,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
     if (argc != arities[operation]) fail("unsafe-ancestry");
     napi_value value = invoke(env, operation, argc, args);
     if (operation == 2) return value;

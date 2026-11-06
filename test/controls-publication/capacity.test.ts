@@ -176,8 +176,8 @@ it("includes LF in exact event admission and checks terminal offset and sequence
       rawNameBase64: "eA==",
     },
   };
-  // Capacity preflight needs scalar replay state only, before any native operation.
   const store = Object.create(PublicationStore.prototype) as PublicationStore;
+  Reflect.set(store, "retainedRecords", []);
   Reflect.set(store, "native", { maximumFileOffset: Number.MAX_SAFE_INTEGER });
   Reflect.set(store, "ledgerLength", 0);
   Reflect.set(store, "nextSequence", 0);

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { runMigrationInventoryCommand } from "./commands/migration-inventory-command.js";
 import { runCapabilitiesCommand } from "./capabilities/command.js";
 import { runAuditCommand } from "./commands/audit-command.js";
 import { runCalendarPromoteCommand } from "./commands/calendar-promote-command.js";
@@ -12,7 +13,6 @@ import { runCurationRederiveCommand } from "./commands/curation-rederive-command
 import { runImportsPreflightCommand } from "./commands/imports-preflight-command.js";
 import { runImportsStatusCommand } from "./commands/imports-status-command.js";
 import { runLearningMaterialsCommand } from "./commands/learning-materials-command.js";
-import { runMigrationInventoryCommand } from "./commands/migration-inventory-command.js";
 import { runModuleInspectCommand } from "./commands/module-inspect-command.js";
 import { runNamingPlanCommand } from "./commands/naming-plan-command.js";
 import { runOfferingReadinessCommand } from "./commands/offering-readiness-command.js";

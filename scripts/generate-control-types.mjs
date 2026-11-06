@@ -218,9 +218,7 @@ for (const { owner, schemas } of groups) {
         schema.$id === verification.$id ||
           schema.$id === "urn:academic-os:module-data:2"
           ? localProjection(schema)
-          : owner === "naming"
-            ? schema
-            : structuredClone(schema),
+          : typeInput(owner, schema),
         schema.$id === verification.$id
           ? "ModuleVerificationProjection"
           : schema.title,
@@ -325,6 +323,22 @@ function localProjection(schema) {
       definitions,
     };
   return { $schema: schema.$schema, ...body, definitions };
+}
+
+function typeInput(owner, schema) {
+  const input = owner === "naming" ? schema : structuredClone(schema);
+  if (schema.$id === "urn:academic-os:native-source-contract:1") {
+    input.definitions.HostFailure.oneOf = ["Refused", "RecoveryRequired"].map(
+      (name) => {
+        const projected = `HostPublication${name}`;
+        input.definitions[projected] = structuredClone(
+          publication.definitions[name],
+        );
+        return { $ref: `#/definitions/${projected}` };
+      },
+    );
+  }
+  return input;
 }
 
 async function emit(owner, name, source) {

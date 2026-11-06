@@ -44,6 +44,23 @@ export type NativeObservation = {
   readonly object: ObjectIdentity;
   readonly metadata: MetadataObservation;
 };
+export type HostPathObservation = {
+  readonly locatorBase64: string;
+  readonly signature: string;
+  readonly components: readonly (NativeObservation & {
+    readonly rawNameBase64: string;
+  })[];
+};
+export type ExclusionSet = {
+  readonly roots: readonly {
+    readonly locatorBase64: string;
+    readonly resolvedLocatorBase64: string;
+    readonly signature: string;
+    readonly absent: boolean;
+    readonly ancestry: readonly ObjectIdentity[];
+  }[];
+  readonly cloudChildren: string;
+};
 export type EntryObservation =
   | { readonly kind: "absent" }
   | { readonly kind: "present"; readonly observation: NativeObservation };
@@ -172,4 +189,22 @@ export interface PublicationNative {
   }): NativeResult<undefined>;
   expireAndDrain(interval: MutationInterval): NativeResult<undefined>;
   close(handle: DirectoryHandle | RegularHandle): NativeResult<undefined>;
+  readDeploymentFile(input: {
+    anchor: ValidatedAccountAnchor;
+    locator: Uint8Array;
+  }): NativeResult<{ bytes: Uint8Array; path: HostPathObservation }>;
+  observePolicySlots(input: {
+    anchor: ValidatedAccountAnchor;
+    slots: readonly { enclosure: Uint8Array; snapshot: Uint8Array }[];
+  }): NativeResult<
+    readonly { enclosure: HostPathObservation; snapshot: HostPathObservation }[]
+  >;
+  describeExclusionRoots(
+    anchor: ValidatedAccountAnchor,
+  ): NativeResult<ExclusionSet>;
+  replaceSelectorGuarded(
+    input: Parameters<PublicationNative["replaceHeadGuarded"]>[0] & {
+      historyName: RawName;
+    },
+  ): NativeResult<undefined>;
 }

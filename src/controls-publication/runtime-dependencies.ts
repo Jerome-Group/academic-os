@@ -76,17 +76,20 @@ export async function installedRuntimeDependencyFiles(
       directory = dirname(directory);
     }
   };
-  const walk = async (directory: string): Promise<void> => {
+  const walk = async (
+    directory: string,
+    packageRoot: string,
+  ): Promise<void> => {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       if (entry.name === "node_modules") {
-        if (!entry.isDirectory())
+        if (!entry.isDirectory() || directory !== packageRoot)
           throw new Error(
-            "Nested runtime dependency container must be an ordinary directory.",
+            "Runtime dependencies may be nested only at their package root.",
           );
         continue;
       }
       const path = join(directory, entry.name);
-      if (entry.isDirectory()) await walk(path);
+      if (entry.isDirectory()) await walk(path, packageRoot);
       else if (entry.isFile()) files.push(relative(root, path));
       else
         throw new Error(
@@ -98,7 +101,7 @@ export async function installedRuntimeDependencyFiles(
     if (packages.has(directory)) return;
     packages.add(directory);
     const value = await manifest(directory);
-    if (!direct) await walk(directory);
+    if (!direct) await walk(directory, directory);
     const optional = new Set(dependencies(value.optionalDependencies));
     const peerMetadata = isRecord(value.peerDependenciesMeta)
       ? value.peerDependenciesMeta

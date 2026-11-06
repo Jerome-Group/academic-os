@@ -1,6 +1,6 @@
 import { isAbsolute, join, normalize } from "node:path";
 import { parseConfig } from "../config/parse-config.js";
-import { canonicalBase64, digest, sha256 } from "./codec.js";
+import { canonicalBase64, digest, encodePublication, sha256 } from "./codec.js";
 import { refuse } from "./failure.js";
 import type { HostRegistrationInput } from "./generated/native-source-contract-1.js";
 import type {
@@ -154,6 +154,11 @@ export function observeHostDeployment(input: {
     refuse(
       "invalid-controls",
       "Observed deployment registration exceeds its closed shape or bounds.",
+    );
+  if (encodePublication(registration).byteLength > 1048576)
+    refuse(
+      "invalid-controls",
+      "Host deployment registration exceeds 1 MiB before installation effects.",
     );
   return {
     registration,

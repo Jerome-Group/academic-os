@@ -22,7 +22,10 @@ import type {
   PublicationNative,
   ValidatedAccountAnchor,
 } from "./native-contract.js";
-import { operationBinding } from "./native-policy-history.js";
+import {
+  operationBinding,
+  requireNativeBridge,
+} from "./native-policy-history.js";
 import {
   appendOnce,
   deploymentSelectorName,
@@ -33,6 +36,7 @@ import {
   policySelectorName,
   readOwned,
   replaceSelector,
+  requireImmutableEligible,
   reserveSuffix,
   selectorBytes,
   strictDirectory,
@@ -169,15 +173,44 @@ function originalSelectorBytes(
   const current = nativeValue(
     store.native.observeAt(store.namespace, store.name(name)),
   );
-  return readOwned(
-    store,
-    store.namespace,
+  if (
     current.kind === "present" &&
-      sameObject(current.observation.object, blob.claim.object)
-      ? name
-      : historyName(name, blob),
-    blob,
+    sameObject(current.observation.object, blob.claim.object)
+  )
+    return readOwned(store, store.namespace, name, blob);
+  const archivedName = historyName(name, blob);
+  const archived = nativeValue(
+    store.native.observeAt(store.namespace, store.name(archivedName)),
   );
+  if (archived.kind === "present")
+    return readOwned(store, store.namespace, archivedName, blob);
+  const transfer = store
+    .records()
+    .find(
+      (record) =>
+        record.kind === "promotion-intent" &&
+        sameObject(record.source.object, blob.claim.object) &&
+        record.destination.rawNameBase64 ===
+          Buffer.from(archivedName).toString("base64"),
+    );
+  if (transfer?.kind === "promotion-intent") {
+    const attempt = store
+      .mixedRecords()
+      .find(
+        (record) =>
+          record.kind === "native-stage-reserved" &&
+          `a${record.scope.attemptId}` === transfer.attemptId &&
+          `n${record.scope.intentDigest}` === transfer.requestId,
+      );
+    if (attempt?.kind === "native-stage-reserved")
+      return readOwned(
+        store,
+        store.namespace,
+        `selector-${attempt.scope.attemptId}`,
+        blob,
+      );
+  }
+  return readOwned(store, store.namespace, archivedName, blob);
 }
 
 export async function registerHostDeployment(
@@ -199,9 +232,12 @@ export async function registerHostDeployment(
   let initialBinding: string | undefined;
   let observed: ReturnType<typeof observeHostDeployment> | undefined;
   let retainedIntent: HostRegistrationIntent | undefined;
+  let preparedIntent: HostRegistrationIntent | undefined;
+  let deploymentRelease: string | undefined;
   const prepare = (
     native: PublicationNative,
     anchor: ValidatedAccountAnchor,
+    releaseDigest: string,
   ): ExclusionObservation => {
     const fresh = observeHostDeployment({ native, anchor, request });
     if (initialBinding && initialBinding !== fresh.inputBindingDigest)
@@ -211,6 +247,7 @@ export async function registerHostDeployment(
       );
     initialBinding = fresh.inputBindingDigest;
     observed = fresh;
+    deploymentRelease = releaseDigest;
     return fresh.exclusions;
   };
   return withPublicationOwner({
@@ -220,6 +257,37 @@ export async function registerHostDeployment(
     requestId: request.requestId,
     context: { exclusionPaths: [] },
     prepare,
+    completed(store) {
+      const intent = store
+        .mixedRecords()
+        .find(
+          (record) =>
+            record.kind === "native-host-deployment-intent" &&
+            record.request.requestId === request.requestId,
+        );
+      if (intent?.kind !== "native-host-deployment-intent") return undefined;
+      if (digest(intent.request) !== digest(request))
+        refuse("request-conflict", "Host registration request was rebound.");
+      const completed = store
+        .mixedRecords()
+        .find(
+          (record) =>
+            record.kind === "native-host-deployment-settled" &&
+            record.intentDigest === digest(intent),
+        );
+      if (completed?.kind !== "native-host-deployment-settled")
+        return undefined;
+      originalSelectorBytes(
+        store,
+        deploymentSelectorName,
+        completed.registration,
+      );
+      return {
+        kind: "host-deployment-installed" as const,
+        registrationDigest: completed.registration.sha256,
+        registration: completed.registration,
+      };
+    },
     validateBeforeSync(store) {
       const existing = store
         .mixedRecords()
@@ -240,6 +308,8 @@ export async function registerHostDeployment(
           "Host registration request or observed deployment inputs changed.",
         );
       if (!retainedIntent) {
+        if (!observed || !deploymentRelease)
+          throw new Error("Prepared registration observations are absent.");
         const current = store
           .mixedRecords()
           .findLast(
@@ -267,6 +337,32 @@ export async function registerHostDeployment(
             "unowned-output",
             "Host registration expected absence or ownership differs.",
           );
+        const prior =
+          current?.kind === "native-host-deployment-settled"
+            ? current.registration
+            : null;
+        const template: HostRegistrationIntent = {
+          schemaVersion: 2,
+          kind: "native-host-deployment-intent",
+          request,
+          registration: observed.registration,
+          expectedPriorRegistration: prior,
+          inputBindingDigest: observed.inputBindingDigest,
+          reservation: emptyReservation,
+          releaseDigest: deploymentRelease,
+        };
+        preparedIntent = {
+          ...template,
+          reservation: reserveNativePlan(template),
+        };
+        requireNativeBridge(store, digest(preparedIntent));
+        const bytes = encodePublication(observed.registration);
+        requireImmutableEligible(
+          store,
+          "host-deployments",
+          `${sha256(bytes)}.json`,
+          bytes,
+        );
       }
     },
     run(store, releaseDigest) {
@@ -337,7 +433,10 @@ export async function registerHostDeployment(
           reservation: emptyReservation,
           releaseDigest,
         };
-        intent = { ...template, reservation: reserveNativePlan(template) };
+        intent = preparedIntent ?? {
+          ...template,
+          reservation: reserveNativePlan(template),
+        };
         reserveSuffix(store, intent.reservation, intent);
         store.append(intent);
       }
@@ -386,6 +485,72 @@ export async function registerHostDeployment(
   });
 }
 
+function readCompletedInstallation(
+  store: PublicationStore,
+  intent: PolicyInstallIntent,
+): InstallReceipt | undefined {
+  const completed = store
+    .mixedRecords()
+    .find(
+      (record) =>
+        record.kind === "native-source-policy-receipt-settled" &&
+        record.scope.intentDigest === intent.scope.intentDigest,
+    );
+  if (completed?.kind === "native-source-policy-receipt-settled") {
+    const body = store
+      .mixedRecords()
+      .find(
+        (record) =>
+          record.kind === "native-source-policy-receipt-intent" &&
+          digest(record) === completed.receiptIntentDigest,
+      );
+    if (body?.kind !== "native-source-policy-receipt-intent")
+      recover(
+        "journal-recovery-required",
+        "Historical installation receipt has no intent.",
+      );
+    const receipts = store.openDirectory(
+      store.namespace,
+      "native-policy-receipts",
+      store.directoryClaim(store.namespace, "native-policy-receipts"),
+    );
+    readOwned(store, receipts, `${digest(intent)}.json`, completed.blob);
+    originalSelectorBytes(store, policySelectorName, body.body.selector);
+    const generations = store.openDirectory(
+      store.namespace,
+      "native-source-policy",
+      store.directoryClaim(store.namespace, "native-source-policy"),
+    );
+    readOwned(
+      store,
+      generations,
+      `${intent.planned.sha256}.json`,
+      body.body.generation,
+    );
+    return body.body;
+  }
+  return undefined;
+}
+
+function retainedPolicyRequest(intent: PolicyInstallIntent): HostInstallInput {
+  const request = {
+    requestId: intent.scope.requestId,
+    deploymentRegistrationDigest: intent.policy.deploymentRegistrationDigest,
+    expectedPriorGeneration: intent.expectedPriorGeneration,
+    slots: intent.policy.slots.map((slot) => ({
+      sourceKey: slot.sourceKey,
+      enclosureLocatorBase64: slot.enclosure.locatorBase64,
+      snapshotLocatorBase64: slot.snapshot.locatorBase64,
+    })),
+  };
+  if (!validateHostInstallInput(request))
+    recover(
+      "journal-recovery-required",
+      "Retained policy input differs from its closed schema.",
+    );
+  return request;
+}
+
 export async function installNativeSourcePolicy(input: {
   deployment: TrustedHostDeployment;
   request: HostInstallInput;
@@ -419,6 +584,7 @@ export async function installNativeSourcePolicy(input: {
       evidence: ["Policy source keys must be unique."],
     };
   let policy: Policy | undefined;
+  let preparedPolicyIntent: PolicyInstallIntent | undefined;
   let initialBinding: string | undefined;
   const prepare = (
     native: PublicationNative,
@@ -519,6 +685,20 @@ export async function installNativeSourcePolicy(input: {
     requestId: request.requestId,
     context: { exclusionPaths: [] },
     prepare,
+    completed(store) {
+      const intent = store
+        .mixedRecords()
+        .find(
+          (record) =>
+            record.kind === "native-source-policy-install-intent" &&
+            record.scope.requestId === request.requestId,
+        );
+      if (intent?.kind !== "native-source-policy-install-intent")
+        return undefined;
+      if (digest(retainedPolicyRequest(intent)) !== digest(request))
+        refuse("request-conflict", "Policy request changed its frozen input.");
+      return readCompletedInstallation(store, intent);
+    },
     validateBeforeSync(store) {
       const installed = installedRegistration(store);
       if (digest(installed.blob) !== digest(authority.blob))
@@ -534,12 +714,42 @@ export async function installNativeSourcePolicy(input: {
             record.scope.requestId === request.requestId,
         );
       if (!prior) {
+        if (!policy)
+          throw new Error("Prepared policy observations are absent.");
         const selected = selectedPolicy(store);
         if (
           (selected?.generation.sha256 ?? null) !==
           request.expectedPriorGeneration
         )
           refuse("stale-head", "Expected prior policy generation differs.");
+        const bytes = encodePublication(policy),
+          plan = planned(bytes, "policy", "native-policy/1");
+        const scope = {
+          requestId: request.requestId,
+          candidateId: `policy:${plan.sha256}`,
+          intentDigest: digest({ request, policy }),
+        };
+        const template: PolicyInstallIntent = {
+          schemaVersion: 2,
+          kind: "native-source-policy-install-intent",
+          scope,
+          policy,
+          planned: plan,
+          expectedPriorGeneration: request.expectedPriorGeneration,
+          reservation: emptyReservation,
+          releaseDigest: policy.releaseDigest,
+        };
+        preparedPolicyIntent = {
+          ...template,
+          reservation: reserveNativePlan(template),
+        };
+        requireNativeBridge(store, scope.intentDigest);
+        requireImmutableEligible(
+          store,
+          "native-source-policy",
+          `${plan.sha256}.json`,
+          bytes,
+        );
       }
     },
     run(store, releaseDigest) {
@@ -563,46 +773,8 @@ export async function installNativeSourcePolicy(input: {
             "request-conflict",
             "Policy retry changed its frozen policy, expected prior generation or release.",
           );
-        const completed = store
-          .mixedRecords()
-          .find(
-            (record) =>
-              record.kind === "native-source-policy-receipt-settled" &&
-              record.scope.intentDigest === intent.scope.intentDigest,
-          );
-        if (completed?.kind === "native-source-policy-receipt-settled") {
-          const body = store
-            .mixedRecords()
-            .find(
-              (record) =>
-                record.kind === "native-source-policy-receipt-intent" &&
-                digest(record) === completed.receiptIntentDigest,
-            );
-          if (body?.kind !== "native-source-policy-receipt-intent")
-            recover(
-              "journal-recovery-required",
-              "Historical installation receipt has no intent.",
-            );
-          const receipts = store.openDirectory(
-            store.namespace,
-            "native-policy-receipts",
-            store.directoryClaim(store.namespace, "native-policy-receipts"),
-          );
-          readOwned(store, receipts, `${digest(intent)}.json`, completed.blob);
-          originalSelectorBytes(store, policySelectorName, body.body.selector);
-          const generations = store.openDirectory(
-            store.namespace,
-            "native-source-policy",
-            store.directoryClaim(store.namespace, "native-source-policy"),
-          );
-          readOwned(
-            store,
-            generations,
-            `${intent.planned.sha256}.json`,
-            body.body.generation,
-          );
-          return body.body;
-        }
+        const completed = readCompletedInstallation(store, intent);
+        if (completed) return completed;
       } else {
         const bytes = encodePublication(policy),
           plan = planned(bytes, "policy", "native-policy/1");
@@ -621,7 +793,10 @@ export async function installNativeSourcePolicy(input: {
           reservation: emptyReservation,
           releaseDigest,
         };
-        intent = { ...template, reservation: reserveNativePlan(template) };
+        intent = preparedPolicyIntent ?? {
+          ...template,
+          reservation: reserveNativePlan(template),
+        };
         reserveSuffix(store, intent.reservation, intent);
         store.append(intent);
       }
@@ -841,8 +1016,20 @@ export async function retryNativeSourcePolicy(input: {
   deployment: TrustedHostDeployment;
   requestId: string;
 }): Promise<InstallReceipt | Failure> {
+  if (
+    typeof input.deployment !== "object" ||
+    input.deployment === null ||
+    !deployments.has(input.deployment)
+  )
+    return {
+      kind: "refused",
+      code: "invalid-controls",
+      evidence: ["Trusted installed host deployment is required."],
+    };
   const retained = await withPublicationOwner({
     mutate: false,
+    requestId: input.requestId,
+    requestKind: "native-source-policy-install-intent",
     context: { exclusionPaths: [] },
     run(store) {
       const intent = store
@@ -854,6 +1041,8 @@ export async function retryNativeSourcePolicy(input: {
         );
       if (intent?.kind !== "native-source-policy-install-intent")
         refuse("unknown-candidate", "Policy install request is absent.");
+      const receipt = readCompletedInstallation(store, intent);
+      if (receipt) return { kind: "completed-policy-input" as const, receipt };
       return {
         kind: "retained-policy-input" as const,
         request: {
@@ -870,6 +1059,7 @@ export async function retryNativeSourcePolicy(input: {
       };
     },
   });
+  if (retained.kind === "completed-policy-input") return retained.receipt;
   if (retained.kind !== "retained-policy-input") return retained;
   if (!validateHostInstallInput(retained.request))
     return {

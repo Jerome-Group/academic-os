@@ -30,6 +30,7 @@ import type {
   RegularHandle,
   ValidatedAccountAnchor,
 } from "./native-contract.js";
+import { requireRecordAdmission } from "./native-policy-history.js";
 import {
   type MixedEvent,
   type MixedRecord,
@@ -193,6 +194,7 @@ export class PublicationStore {
       );
   }
   preflightRecord(record: MixedRecord): Uint8Array {
+    requireRecordAdmission(this, record);
     this.requireAppendCapacity(0);
     const sequence = this.nextSequence;
     if (sequence === null)
@@ -878,7 +880,7 @@ export function openStore(
   store: PublicationStore,
   create: boolean,
   afterLoad?: (store: PublicationStore) => void,
-  beforeSync?: (store: PublicationStore) => void,
+  beforeSync?: (store: PublicationStore) => undefined | boolean,
 ): void {
   const native = store.native;
   const anchor = store.anchor.directory;
@@ -977,7 +979,7 @@ export function openStore(
     store.syncDirectory(anchor);
   }
   store.guard();
-  beforeSync?.(store);
+  if (beforeSync?.(store) === false) return;
   if (store.interval) {
     nativeEffect(
       native.syncFile({ interval: store.mutating(), file: store.ledger }),

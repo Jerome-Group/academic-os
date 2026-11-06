@@ -15,7 +15,9 @@ import type {
   ValidatedAccountAnchor,
 } from "./native-contract.js";
 import {
+  type RequestKind,
   requirePendingOrder,
+  requireRequestOwnership,
   validateMixedHistory,
 } from "./native-policy-history.js";
 import { publicationRelease, runtimeDirectory } from "./release.js";
@@ -57,6 +59,8 @@ export async function withPublicationOwner<T>(input: {
   bootstrap?: true;
   requestId?: string;
   family?: "host-deployment" | "native-policy";
+  requestKind?: RequestKind;
+  completed?: (store: PublicationStore, releaseDigest: string) => T | undefined;
   prepare?: (
     native: PublicationNative,
     anchor: ValidatedAccountAnchor,
@@ -109,17 +113,35 @@ export async function withPublicationOwner<T>(input: {
           interval,
         );
         entered = true;
+        let completed: { value: T } | undefined;
         try {
           try {
             openStore(
               store,
               input.bootstrap === true,
               (loaded) => {
-                if (input.mutate) requirePendingOrder(loaded, input);
-                else validateMixedHistory(loaded);
+                validateMixedHistory(loaded);
               },
-              input.validateBeforeSync,
+              (loaded) => {
+                const kind =
+                  input.requestKind ??
+                  (input.family === "host-deployment"
+                    ? "native-host-deployment-intent"
+                    : input.family === "native-policy"
+                      ? "native-source-policy-install-intent"
+                      : undefined);
+                if (kind && input.requestId)
+                  requireRequestOwnership(loaded, input.requestId, kind);
+                const value = input.completed?.(loaded, releaseDigest);
+                if (value !== undefined) {
+                  completed = { value };
+                  return false;
+                }
+                if (input.mutate) requirePendingOrder(loaded, input);
+                input.validateBeforeSync?.(loaded);
+              },
             );
+            if (completed) return completed.value;
             return input.run(store, releaseDigest);
           } finally {
             store.close();

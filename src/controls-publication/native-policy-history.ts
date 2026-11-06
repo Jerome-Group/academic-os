@@ -1,5 +1,5 @@
 import { digest, encodePublication } from "./codec.js";
-import { recover } from "./failure.js";
+import { recover, refuse } from "./failure.js";
 import type {
   AttemptScope,
   Binding,
@@ -9,6 +9,108 @@ import type {
 } from "./generated/native-source-contract-1.js";
 import type { MixedRecord } from "./schema.js";
 import { type PublicationStore, sameObject } from "./store.js";
+
+export type RequestKind =
+  | "candidate-reserved"
+  | "publication-plan"
+  | "native-host-deployment-intent"
+  | "native-source-policy-install-intent";
+export function requestIdentity(
+  record: MixedRecord,
+): { requestId: string; kind: RequestKind } | undefined {
+  switch (record.kind) {
+    case "candidate-reserved":
+    case "publication-plan":
+      return { requestId: record.binding.requestId, kind: record.kind };
+    case "native-host-deployment-intent":
+      return { requestId: record.request.requestId, kind: record.kind };
+    case "native-source-policy-install-intent":
+      return { requestId: record.scope.requestId, kind: record.kind };
+    default:
+      return undefined;
+  }
+}
+export function requireRequestOwnership(
+  store: Pick<PublicationStore, "mixedRecords">,
+  requestId: string,
+  kind: RequestKind,
+): void {
+  const records = store.mixedRecords();
+  const prior = records
+    .map(requestIdentity)
+    .find((row) => row?.requestId === requestId);
+  if (prior) {
+    if (prior.kind !== kind)
+      refuse(
+        "request-conflict",
+        "Request identity belongs to another generated or native operation.",
+      );
+    return;
+  }
+  const bridge = records.some((record) =>
+    record.kind === "native-host-deployment-intent"
+      ? requestId === `n${digest(record)}`
+      : record.kind === "native-source-policy-install-intent"
+        ? requestId === `n${record.scope.intentDigest}`
+        : false,
+  );
+  if (
+    bridge ||
+    records.some(
+      (record) => "requestId" in record && record.requestId === requestId,
+    )
+  )
+    refuse(
+      "request-conflict",
+      "Request identity belongs to retained internal work.",
+    );
+  if (
+    kind.startsWith("native-") &&
+    records.filter(
+      (record) =>
+        record.kind === "native-host-deployment-intent" ||
+        record.kind === "native-source-policy-install-intent",
+    ).length >= 4096
+  )
+    refuse("invalid-controls", "Native request catalog exceeds 4096 requests.");
+}
+export function requireNativeBridge(
+  store: Pick<PublicationStore, "mixedRecords">,
+  intentDigest: string,
+): void {
+  const bridge = `n${intentDigest}`;
+  if (
+    store
+      .mixedRecords()
+      .some(
+        (record) =>
+          requestIdentity(record)?.requestId === bridge ||
+          ("requestId" in record && record.requestId === bridge),
+      )
+  )
+    refuse(
+      "request-conflict",
+      "Native bridge identity collides with retained request ownership.",
+    );
+}
+export function requireRecordAdmission(
+  store: Pick<PublicationStore, "mixedRecords">,
+  record: MixedRecord,
+): void {
+  const identity = requestIdentity(record);
+  if (!identity) return;
+  requireRequestOwnership(store, identity.requestId, identity.kind);
+  if (
+    store
+      .mixedRecords()
+      .some((row) => requestIdentity(row)?.requestId === identity.requestId)
+  )
+    refuse("request-conflict", "Request already has a durable intent.");
+  if (record.kind === "native-host-deployment-intent")
+    requireNativeBridge(store, digest(record));
+  if (record.kind === "native-source-policy-install-intent")
+    requireNativeBridge(store, record.scope.intentDigest);
+}
 
 function requireFact(value: unknown, message: string): asserts value {
   if (!value) recover("journal-recovery-required", message);

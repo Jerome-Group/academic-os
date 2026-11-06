@@ -200,6 +200,116 @@ export function strictDirectory(
   );
 }
 
+function priorImmutable(
+  store: PublicationStore,
+  parent: DirectoryHandle,
+  name: string,
+  bytes: Uint8Array,
+): PromotionIntent | undefined {
+  const target = store.location(parent, name);
+  const observed = nativeValue(
+    store.native.observeAt(parent, store.name(name)),
+  );
+  const promotions = store
+    .records()
+    .filter(
+      (record): record is PromotionIntent =>
+        record.kind === "promotion-intent" &&
+        sameLocation(record.destination, target),
+    );
+  if (observed.kind === "absent") {
+    if (
+      promotions.some((promotion) =>
+        store
+          .records()
+          .some(
+            (row) =>
+              row.kind === "promotion-observed" &&
+              row.attemptId === promotion.attemptId &&
+              sameObject(row.object, promotion.source.object) &&
+              sameLocation(row.to, target),
+          ),
+      )
+    )
+      refuse("root-replaced", "An owned immutable generation is missing.");
+    return undefined;
+  }
+  const promotion = promotions.find(
+    (row) =>
+      sameObject(row.source.object, observed.observation.object) &&
+      store
+        .records()
+        .some(
+          (event) =>
+            event.kind === "promotion-observed" &&
+            event.requestId === row.requestId &&
+            event.attemptId === row.attemptId &&
+            sameObject(event.object, row.source.object) &&
+            sameLocation(event.to, target),
+        ),
+  );
+  if (!promotion)
+    refuse(
+      "unowned-output",
+      "Unknown immutable generation cannot be adopted from equal bytes.",
+    );
+  const file = store
+    .records()
+    .find(
+      (row): row is FileClaim =>
+        row.kind === "file-claimed" &&
+        row.requestId === promotion.requestId &&
+        row.attemptId === promotion.attemptId &&
+        digest(row.file) === digest(promotion.source),
+    );
+  if (
+    !file ||
+    file.planned.byteLength !== bytes.byteLength ||
+    file.planned.byteSha256 !== sha256(bytes)
+  )
+    refuse(
+      "unowned-output",
+      "Immutable generation differs from its full original physical claim.",
+    );
+  const blob = ownedBlob(
+    store,
+    parent,
+    name,
+    { ...file.file, location: target },
+    bytes,
+    digest({ existingImmutable: target, sha256: sha256(bytes) }),
+  );
+  readOwned(store, parent, name, blob);
+  return promotion;
+}
+
+export function requireImmutableEligible(
+  store: PublicationStore,
+  parentName: (typeof directories)[number],
+  name: string,
+  bytes: Uint8Array,
+): void {
+  const claim = store.directoryClaim(store.namespace, parentName);
+  const observed = nativeValue(
+    store.native.observeAt(store.namespace, store.name(parentName)),
+  );
+  if (observed.kind === "absent") {
+    if (claim)
+      refuse(
+        "root-replaced",
+        "A claimed immutable-generation parent is missing.",
+      );
+    return;
+  }
+  if (!claim)
+    refuse(
+      "unowned-output",
+      "Unknown immutable-generation parent cannot be adopted.",
+    );
+  const parent = store.openDirectory(store.namespace, parentName, claim);
+  priorImmutable(store, parent, name, bytes);
+}
+
 export function persistImmutable(
   store: PublicationStore,
   scope: AttemptScope,
@@ -216,14 +326,15 @@ export function persistImmutable(
     attemptId: `a${scope.attemptId}`,
   };
   const finalLocation = store.location(parent, name);
-  const promotion = store
-    .records()
-    .find(
-      (record): record is PromotionIntent =>
-        record.kind === "promotion-intent" &&
-        record.requestId === bridge.requestId &&
-        sameLocation(record.destination, finalLocation),
-    );
+  const promotion =
+    store
+      .records()
+      .find(
+        (record): record is PromotionIntent =>
+          record.kind === "promotion-intent" &&
+          record.requestId === bridge.requestId &&
+          sameLocation(record.destination, finalLocation),
+      ) ?? priorImmutable(store, parent, name, bytes);
   let claim: PhysicalClaim;
   if (promotion) {
     const sourceName = Buffer.from(
@@ -238,7 +349,7 @@ export function persistImmutable(
           "Immutable native output belongs to a foreign physical object.",
         );
       claim = store.promote({
-        requestId: bridge.requestId,
+        requestId: promotion.requestId,
         attemptId: promotion.attemptId,
         sourceParent: staging,
         sourceName,

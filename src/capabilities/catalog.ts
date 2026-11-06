@@ -1018,7 +1018,7 @@ export function capabilityIndex(): object {
       result:
         name === "tasks_apply_plan"
           ? "MCP JSON text and isError; exact-plan result. Conflicts never silently replan."
-          : "MCP JSON text; direct operations by default, requiresPlan false; optional exact-plan support and date-only/notes capability.",
+          : "MCP content containing JSON text and isError; direct operations by default, requiresPlan false; optional exact-plan support and date-only/notes capability.",
     });
   for (const name of [
     "tasks_completion_capabilities",

@@ -90,3 +90,38 @@ This applicability update claims no fresh complete formal-suite pass or broader 
 The delivery integration also updates capability metadata and binds both changed executing sources.
 The 162 remaining publisher bindings and all 23 seed bindings remain unchanged.
 An ordinary complete run on the integrated source is required before delivery.
+
+## Shared scanner applicability
+
+The retained ordinary native-policy proof on `3f8e5429c010de152d32b0215f6a7e16caa7e7ea`
+discharges the preceding integration requirement. Its 164 source bindings, 21 model cases,
+16 mutant families and 115 interrupted schedules remain historical proof at that revision.
+`sharedScannerMaintenance` records its result digest and the subsequent scanner-only comparison.
+
+Scanner integration changes seven covered files and adds eight source/test bindings. The formatter
+delegates read-only filesystem observation to `scan-core.c` through the C header. The TypeScript
+loader checks the ordered three-source v2 binding before executing the helper. The supported v1
+route requires the pinned legacy formatter hash. Builders copy the new sources and label them as
+`scanner-source`; installed inventory and digest checks run before account resolution. The source
+map records the actual functions, blob identities and symbol occurrences.
+The source-map guard compares every declared symbol occurrence with the current file before TLC
+or runtime work. It also checks each mapped source hash. These are navigation checks, not semantic
+correspondence. Issue 488 retains the inherited M1 location drift that motivated this guard.
+
+No modeled owner, request, ledger, selector, receipt, planner or replay transition changes.
+The models, properties and bounds remain byte-identical. `RuntimeArtifactValidation` still represents
+the complete installed-input check; it does not prove the enumerator, digest implementation or scanner.
+The new source closure therefore needs fresh runtime sensitivity, not an invented scanner theorem.
+Public discovery checks the C++ callback consumer, bounded fragments, callback stop and descriptor
+recovery, source changes, native metadata and public inventory. The supplemental scanner-binding
+journey checks malformed ordered bindings and exact restoration through a physically copied CLI.
+Host and actual produced/extracted package tests check core/header change and absence refusals,
+unchanged production scanner bytes, restored installation and historical retry.
+The formal fixture copier and retained artifact hashes also include the core and header in both
+layouts. The package receipt driver compares those bytes after extraction. A selected early-receipt
+mutant and restored package control exercise these maintained drivers without replaying all schedules.
+
+Read-only scans may advance access times; optional inventory logs create private external files.
+Neither acquires publication ownership. Arbitrary hostile races, native memory safety, exhaustive
+callback behavior, device/dataless fixtures, acquisition and preservation remain outside this claim.
+The prior full schedules are source-applicable evidence, not a newly executed complete scanner run.

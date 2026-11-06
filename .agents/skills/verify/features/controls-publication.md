@@ -17,6 +17,12 @@ schema code, scanner, native addon and lockfile artifacts. A native checkpoint e
 before account resolution. Closed metadata and a complete installed artifact inventory reject
 omitted bindings. This assumes a trusted installed bootstrap held unchanged during execution;
 it supplies neither bootstrap authentication nor a universal filesystem-race guarantee.
+The scanner closure includes the executable, formatter, core source and header in both host and
+extracted layouts. Require core/header modification and absence refusals before the account checkpoint
+or ledger creation. Exact restoration must permit registration and policy installation.
+The actual produced tar package must retain all four scanner artifacts byte-for-byte. Its extracted
+installer repeats core/header refusals, then registers, installs, updates and returns the original
+receipt on historical retry. This standalone package exposes publication and deployment, not inventory.
 
 Host deployment uses the existing closed publisher owner failures because refusal or recovery
 can precede a native installation intent. Its result fixtures validate actual unavailable,

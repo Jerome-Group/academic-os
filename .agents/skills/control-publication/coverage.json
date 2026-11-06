@@ -1,7 +1,7 @@
 {
-  "syncRevision": "3d4ae3aef0dbee591cc06e8c39abaa1c14b7152d",
+  "syncRevision": "dbe0be191cd60275e40c44164c6edb40fa6a75f2",
   "outcome": "updated",
-  "reason": "Native host registration/policy maintenance preserves the original publisher obligations and adds source-bound admission, selector, receipt, finite-capacity and runtime-consistency checks. The complete candidate passed on exact reviewed product bytes. The ordinary clean committed check is required after this binding commit. Bounded models retain explicit source/runtime premises.",
+  "reason": "Shared scanner maintenance binds the actual formatter/core/header, loader and builder plus native fixtures. Seven inherited source changes affect installed input enumeration or runtime checks; modeled owner, ledger, selector, receipt and capacity transitions remain unchanged. Fresh scanner/installed-package observations supplement the retained complete native proof. No new complete 115-schedule proof is claimed.",
   "bounds": {
     "writers": 2,
     "candidates": 2,
@@ -15,12 +15,13 @@
   },
   "sourceHashes": {
     "package.json": "fbf27dccec82d5b470cfda9fc901a4e13d146453df0ddf59fb41f464ae050c94",
-    "scripts/build-control-publication-integrity.mjs": "5a840c87250158ccd2225b59eed787c0047ba578deba02cdffff9786bbf7a3e8",
+    "scripts/build-control-publication-integrity.mjs": "39a3731209e1388c733cd095caec23fba0c026a2786a69f484f55f91c7dbc870",
     "scripts/build-control-publication-native.mjs": "e028d73787892e395c5b20208ba05ecebb51369181d89ab54312cda6287cf6b9",
     "scripts/build-control-publication-release.mjs": "81ddc4190c1e660493452c57e248f124db789fea409374da15893e91f0c64cba",
-    "scripts/build-control-publication-standalone.mjs": "b46077f2141928a8692893a8b66dce5dbb2989cadf5c3ad5cfec9b72cc9b7ee3",
+    "scripts/build-control-publication-standalone.mjs": "b7a6cf13e19f049288bc57a43c6a0106107c4811c26b54f1f44d530c0073ef5d",
+    "scripts/build-native-inventory.mjs": "83396f1c85def0795bf1cc973926ec7c2ebea294111f2b6efc5a46b4cdddb8a5",
     "scripts/check-control-publication-imports.mjs": "f3978a446c50f0f2dd269bed5c55778fd3262917fc7dcfa70161b18851e68f0c",
-    "scripts/clean-build-output.mjs": "ea8ce85fb3c19fc3c20683e0a3160b92c3c579ecc2755c94232b779431a2312d",
+    "scripts/clean-build-output.mjs": "bdff6799692cfdc5ef94c546fd11a49cf621b1c44350cf2141ac77e979c0e147",
     "scripts/deploy-native-source-policy.mjs": "aa29937842477c86a2e97d124749c1f59285c32634eb586097df9030041ae8cf",
     "scripts/generate-control-types.mjs": "b9755176889cc65cf6b1b3871ef89874104dba94411f308b64726d9017e8d9f0",
     "src/capabilities/catalog.ts": "7cfda3c38758214bc81c80ccc198dda4279345ec55731dea1d3cfb7b27051678",
@@ -60,7 +61,7 @@
     "src/controls-publication/publication.ts": "865430761fb9af358b35c04f1eb2bfe9ef54730052c66aef8560334088cddc1a",
     "src/controls-publication/release.ts": "38d0e1be956b6c9a886bdf03dec3f7db5787132f2ea7d544b54dbc7b60af423e",
     "src/controls-publication/replay-allocation.ts": "100db772387c91e1206dab1e987d9b817cb842d1fcee225d389253fccca95cde",
-    "src/controls-publication/runtime-consistency.ts": "96f1db6560d47dc8b2ede78f4fffa6d66243af962d58ce0c7036fe18fa7c2adc",
+    "src/controls-publication/runtime-consistency.ts": "98322730484586230155cbc28a7e4657f3a30529244e35aefec5f8bd03959902",
     "src/controls-publication/runtime-dependencies.ts": "0cfcd4cd3af1e30d57a2bb92d3453c1767e4f9ebb150d6c4543178056474e22a",
     "src/controls-publication/schema.ts": "6d002a2c6ea2974d9827a7a8f18d8ec7f879c60d83757a7e06acdf2c6106136c",
     "src/controls-publication/schemas/native-source-contract-1.schema.json": "e00e6fedcf830dcc35926dfe934ba24bf5bd610e22af5d750c219822a8cca66e",
@@ -107,6 +108,11 @@
     "src/curation/execute-curation-rederivation.ts": "f6d1fce07fefcb5ceef839eb7163fc3984a364b9dcefc918cca1f3e668fbcdee",
     "src/curation/hash-source.ts": "f5e950223ba147e46847e4dfb55a812b248a031c7c815136e36259a617342a0c",
     "src/journal-mutation-owner.ts": "0e0123904932abca3bcb70c7a63503789c1b7fffa99f66e67e83c8ddeb885b1c",
+    "src/migration/native-inventory/index.ts": "123a8563683658d0023fed693bfb0d295eedb27eaabc1bf375e073e4df0f54c8",
+    "src/migration/native-inventory/native/helper-binding.d.ts": "a46bad62e1f3fdf38c7a4fbfefa7baa071b122ed8aa55c43f8205792b9cbafc5",
+    "src/migration/native-inventory/native/scan-core.c": "c42eae03b3f8144467b468f82283de65507b6b125c175ce45d55562808e1dca2",
+    "src/migration/native-inventory/native/scan-core.h": "e7862ad45905bedbee10dc4fda4cae0317a46037dd5a399e6511f3cdf06ad87f",
+    "src/migration/native-inventory/native/scan.c": "8c0e9c13d6e56d6e358fcdd9f1769bda14c6f4209618dea5131c60139a05157a",
     "src/module-activity/actions.ts": "de7653aadba22286a3bdad438a1d075ea7696b133c37886a9acbbd12113bcb9d",
     "src/module-activity/command.ts": "c6085bd1f35d26f5a0d30667bf844d83ee89636fd31374504903dab214f44045",
     "src/module-activity/generated/schemas.ts": "ffd8cbdafb064e223502c80e890114fac9158689005229d44241358d95add108",
@@ -161,16 +167,18 @@
     "test/controls-publication/native-policy-fixture.ts": "616a1efc2008bf20b9358e54fdec304af6eac17800a6cf3d3867b8eb00984fce",
     "test/controls-publication/native-policy.test.ts": "77a2add4b543d91e1f5977c604fdb25d14553cbd70c7751481df3d1d616e82fb",
     "test/controls-publication/native.test.ts": "421d9fac2d083f218213923852277c33d4db5b700d9d5ecd23c9a25cb6fb30d5",
-    "test/controls-publication/packaged-policy.test.ts": "4e16fd83206af7bee14c8c4a40e713c6407f02484781472e3a01f9957c6766e0",
+    "test/controls-publication/packaged-policy.test.ts": "495fc6363ae843521e82d1f96bf0344b31a07051bdb0b277455000c3ea777317",
     "test/controls-publication/policy-date-fixture.c": "ff6da04491f0810640a55a0ab746fbf8cd2e29d61806e924e82d49feb46f6009",
     "test/controls-publication/policy-roots.test.ts": "c852ce804fd22fafac181bdbc33b952cb4ceea7b3c2fdc8aa5f52e7a8a70cc57",
     "test/controls-publication/publication-journey.test.ts": "93dc67d360e5eec78d6a257406a4c6539aa96479b15dc47697ef4418a6eea780",
     "test/controls-publication/publication-schema.test.ts": "1183364670e185d9c57d1176d44ba45bb3ffba927cde079386ee653887c0ba3e",
     "test/controls-publication/publication.test.ts": "c84b74a18307e770d619c98408ed629fddb50ab4c17c9d6a2778e2fce97ff7a4",
     "test/controls-publication/replay-capacity.test.ts": "6d26f78d4ff446bc0af093b74ef407e05969b661e3adde3ea4e3e1ed62fcb015",
-    "test/controls-publication/runtime-consistency.test.ts": "30afe300705bb70df8a536c1063cc9e44d7c595c4a22478c01d1caad9f6dedd2",
-    "test/controls-publication/runtime-fixture.ts": "321e58b330553209827ac9f9000c692bf7c6d37dfc4cfe2c9207e111b833f064",
+    "test/controls-publication/runtime-consistency.test.ts": "1447451db7ba0bc6db5785310c52a2661d3a79f446b3a0b8704cde1a6ace130e",
+    "test/controls-publication/runtime-fixture.ts": "a90306f345a7925ff730a8e1e3c9b8c31ea870940ecdbb5efba6d1549b366ad4",
     "test/controls-publication/standalone-package.test.ts": "de34ddbb1297f37d344b20b8c28cacbbfe3228a3d45d7059dcc8b34adca01a20",
+    "test/migration/native-inventory-cli.test.ts": "c913e706c80db828657a021fa4d766b227b2d57c7430742653f16fad6376d51f",
+    "test/migration/native-scan-core-fixture.cc": "25762434d023f008eb2c8652c24df5403a14487d4bb826bdbe565b614faba3e7",
     "test/module-activity/fixtures.ts": "88d3af3dd024300bac3234a58fbfd62e30225b93adeaf009c4fe286d1f14e087",
     "test/module-activity/journey.test.ts": "8655dce48c2f1ca3019c3b59aedc49654880409eb1ee6933c029d5772b4044af",
     "test/module-activity/journey.ts": "ad3448cc8404d3677998884b8641423765fb8d324df5c36251b42aa2a6b3ca9b",
@@ -179,7 +187,7 @@
     "test/support/curation-ownership-preload.mjs": "35db12d4e3cf6b7cf40807ee4b2555d0aa244ee97e958d94f6a0edf2f8108498",
     "test/support/journal-process.ts": "a585f8eed7c534ae17b20144019d2caedd46faaea197b3c9cb7f4c9f1fa0ac76"
   },
-  "previousSyncRevision": "5c8a60dce503d7ace63f72285ebdaaf650ad6175",
+  "previousSyncRevision": "3d4ae3aef0dbee591cc06e8c39abaa1c14b7152d",
   "modelMaintenance": {
     "finding": "MF1",
     "classification": "model drift",
@@ -333,5 +341,179 @@
     "historicalProofPreserved": true,
     "integratedOrdinaryProofRequired": true,
     "seedApplicability": "23 exact covered source hashes unchanged."
+  },
+  "sharedScannerMaintenance": {
+    "productRevision": "dbe0be191cd60275e40c44164c6edb40fa6a75f2",
+    "approvedScannerRevision": "67d0d7a9280b58b764974015f9adfe020859ffb0",
+    "parentRevision": "3f8e5429c010de152d32b0215f6a7e16caa7e7ea",
+    "classification": "verification source/map drift; no model or property drift",
+    "priorBinding": {
+      "syncRevision": "3d4ae3aef0dbee591cc06e8c39abaa1c14b7152d",
+      "previousSyncRevision": "5c8a60dce503d7ace63f72285ebdaaf650ad6175",
+      "reason": "Native host registration/policy maintenance preserves the original publisher obligations and adds source-bound admission, selector, receipt, finite-capacity and runtime-consistency checks. The complete candidate passed on exact reviewed product bytes. The ordinary clean committed check is required after this binding commit. Bounded models retain explicit source/runtime premises.",
+      "outcome": "updated"
+    },
+    "changedCoveredSources": [
+      {
+        "path": "scripts/build-control-publication-integrity.mjs",
+        "before": "5a840c87250158ccd2225b59eed787c0047ba578deba02cdffff9786bbf7a3e8",
+        "after": "39a3731209e1388c733cd095caec23fba0c026a2786a69f484f55f91c7dbc870"
+      },
+      {
+        "path": "scripts/build-control-publication-standalone.mjs",
+        "before": "b46077f2141928a8692893a8b66dce5dbb2989cadf5c3ad5cfec9b72cc9b7ee3",
+        "after": "b7a6cf13e19f049288bc57a43c6a0106107c4811c26b54f1f44d530c0073ef5d"
+      },
+      {
+        "path": "scripts/clean-build-output.mjs",
+        "before": "ea8ce85fb3c19fc3c20683e0a3160b92c3c579ecc2755c94232b779431a2312d",
+        "after": "bdff6799692cfdc5ef94c546fd11a49cf621b1c44350cf2141ac77e979c0e147"
+      },
+      {
+        "path": "src/controls-publication/runtime-consistency.ts",
+        "before": "96f1db6560d47dc8b2ede78f4fffa6d66243af962d58ce0c7036fe18fa7c2adc",
+        "after": "98322730484586230155cbc28a7e4657f3a30529244e35aefec5f8bd03959902"
+      },
+      {
+        "path": "test/controls-publication/packaged-policy.test.ts",
+        "before": "4e16fd83206af7bee14c8c4a40e713c6407f02484781472e3a01f9957c6766e0",
+        "after": "495fc6363ae843521e82d1f96bf0344b31a07051bdb0b277455000c3ea777317"
+      },
+      {
+        "path": "test/controls-publication/runtime-consistency.test.ts",
+        "before": "30afe300705bb70df8a536c1063cc9e44d7c595c4a22478c01d1caad9f6dedd2",
+        "after": "1447451db7ba0bc6db5785310c52a2661d3a79f446b3a0b8704cde1a6ace130e"
+      },
+      {
+        "path": "test/controls-publication/runtime-fixture.ts",
+        "before": "321e58b330553209827ac9f9000c692bf7c6d37dfc4cfe2c9207e111b833f064",
+        "after": "a90306f345a7925ff730a8e1e3c9b8c31ea870940ecdbb5efba6d1549b366ad4"
+      }
+    ],
+    "addedSourceBindings": [
+      "scripts/build-native-inventory.mjs",
+      "src/migration/native-inventory/index.ts",
+      "src/migration/native-inventory/native/helper-binding.d.ts",
+      "src/migration/native-inventory/native/scan.c",
+      "src/migration/native-inventory/native/scan-core.c",
+      "src/migration/native-inventory/native/scan-core.h",
+      "test/migration/native-inventory-cli.test.ts",
+      "test/migration/native-scan-core-fixture.cc"
+    ],
+    "unchangedInheritedBindings": 157,
+    "sourceBindingCount": 172,
+    "modelPropertiesAndBoundsChanged": false,
+    "parentOrdinaryProof": {
+      "revision": "3f8e5429c010de152d32b0215f6a7e16caa7e7ea",
+      "evidenceName": "control-publication-bupiIU",
+      "resultsSha256": "0a6c05235dfdcefc6a5bf7a641d8cd57956217a6078946c40af49bc79dd79e29",
+      "outcome": "passed",
+      "sourceBindingCount": 164,
+      "modelConfigurations": 21,
+      "positive": 6,
+      "requiredCounterexamples": 15,
+      "actualMutantFamilies": 16,
+      "originalBoundaries": 115,
+      "publicTests": 33,
+      "physicalReadbacks": 5147
+    },
+    "sourceEffect": [
+      {
+        "paths": [
+          "scripts/build-control-publication-integrity.mjs",
+          "scripts/build-control-publication-standalone.mjs",
+          "scripts/clean-build-output.mjs",
+          "src/controls-publication/runtime-consistency.ts"
+        ],
+        "classification": "runtime source-binding drift",
+        "reason": "Core and header join the installed scanner-source set and package before runtime validation. Complete installed input validation still precedes account/owner entry."
+      },
+      {
+        "paths": [
+          "test/controls-publication/packaged-policy.test.ts",
+          "test/controls-publication/runtime-consistency.test.ts",
+          "test/controls-publication/runtime-fixture.ts"
+        ],
+        "classification": "runtime driver expansion; no modeled transition effect",
+        "reason": "Host/extracted source changes and absence refuse before account entry; actual produced artifacts retain exact scanner bytes and restored install/update/historical retry."
+      },
+      {
+        "paths": [
+          "scripts/build-native-inventory.mjs",
+          "src/migration/native-inventory/index.ts",
+          "src/migration/native-inventory/native/helper-binding.d.ts",
+          "src/migration/native-inventory/native/scan.c",
+          "src/migration/native-inventory/native/scan-core.c",
+          "src/migration/native-inventory/native/scan-core.h"
+        ],
+        "classification": "read-only observation remains runtime premise",
+        "reason": "Scan-local C core replaces formatter-local traversal, charges bounded enumeration and delivers borrowed callback views. Inventory grants no owner, acquisition or copy admission."
+      }
+    ],
+    "compatibility": {
+      "encoding": "academic-os-native-inventory-helper/2",
+      "orderedSourcePaths": ["scan.c", "scan-core.c", "scan-core.h"],
+      "legacySingleFileSourceSha256": "0927868fce1f26a78232eca216b3b9d27f56686e86b982c3ae440b5fe37d2b33",
+      "legacyStatus": "supported installed single-file helper route",
+      "removalBoundary": "An explicit compatibility change must account for installed v1 helpers; absence of v2 encoding alone cannot authorize a new formatter."
+    },
+    "runtimeCommands": [
+      "node dist/src/cli.js capabilities verify --workflow discovery --json --log <new-private-log>",
+      "node .agents/skills/control-publication/scanner-binding.mjs"
+    ],
+    "proofLimit": "Parent full native proof is retained at its original revision. Source applicability and fresh scanner/package runtime checks do not relabel it as a fresh complete integrated proof.",
+    "seedApplicability": "All 23 covered seed sources unchanged; no fresh seed theorem.",
+    "verificationChanges": [
+      {
+        "path": ".agents/skills/control-publication/fixture.mjs",
+        "reason": "Copy core/header to extracted fixture and retain hashes of all four scanner artifacts in both layouts."
+      },
+      {
+        "path": ".agents/skills/control-publication/native-package.mjs",
+        "reason": "Compare produced/extracted core/header bytes in receipt mutant and restored control."
+      },
+      {
+        "path": ".agents/skills/control-publication/run.mjs",
+        "reason": "Check source-map navigation before TLC/runtime and retain both new verification helper hashes; model/full-runtime dispatch unchanged."
+      },
+      {
+        "path": ".agents/skills/control-publication/scanner-binding.mjs",
+        "reason": "Six malformed ordered-binding refusals/restorations plus actual copied-adapter order-guard mutant and exact restoration."
+      },
+      {
+        "path": ".agents/skills/control-publication/source-map.mjs",
+        "reason": "Reject stale mapped hashes or literal symbol occurrences before TLC/runtime; source navigation only."
+      }
+    ],
+    "focusedRuntime": {
+      "outcome": "passed",
+      "tests": 28,
+      "passed": 27,
+      "skipped": 1,
+      "failureCount": 0,
+      "hostExtractedArtifactRefusals": 32,
+      "coreHeaderRefusals": 8,
+      "producedCoreHeaderRefusals": 4,
+      "orderedBindingRefusals": 6,
+      "orderedBindingRestorations": 6,
+      "copiedOrderGuardMutant": "Wrong complete observation with reordered binding; restored guard refuses; exact binding restoration succeeds."
+    },
+    "discovery": {
+      "outcome": "failed",
+      "tests": 255,
+      "passed": 253,
+      "skipped": 1,
+      "failed": 1,
+      "failure": "tasks_sync_capabilities describes no MCP result fields",
+      "source": "test/capabilities/capabilities.test.ts",
+      "classification": "Existing Tasks capability metadata failure outside scanner delta. Retained, unchanged and assigned to separate delivery."
+    },
+    "sourceMapGuard": {
+      "issue": 488,
+      "scope": "Every source-map reference with path, symbol and SHA; validate actual hash and literal line occurrences before TLC/runtime. Navigation only, not semantic correspondence.",
+      "negativeControlRevision": "3f8e5429c010de152d32b0215f6a7e16caa7e7ea",
+      "negativeControl": "Actual committed stale M1 record has current source SHA but outdated locations; isolated record and current map carrying it both refuse.",
+      "correctedReferenceCount": 90
+    }
   }
 }

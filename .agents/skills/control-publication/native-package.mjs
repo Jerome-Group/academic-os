@@ -169,6 +169,8 @@ export async function packagedReceipt(f) {
     "publication.mjs",
     "native/inventory-scan.native",
     "native/inventory-scan.c",
+    "native/inventory-scan-core.c",
+    "native/inventory-scan-core.h",
     "native/package.json",
   ]) {
     const original = await readFile(join(produced, name));

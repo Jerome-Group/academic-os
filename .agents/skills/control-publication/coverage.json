@@ -103,7 +103,7 @@
     "src/operations/run-operations-server.ts": "7f1ff5fe97f834625f21a633ce1cec998be4a3ec03528d46e78509dfe4b1f7be",
     "src/operations/serve-operations.ts": "484f41e2a85082eecd233b74bc3851a14b9dad83a3c27df29b535fa6fd581e78",
     "src/operations/tailnet-address.ts": "0fc09f96fb3a75a8affeb92f27280c3946d862935c8c6477d13c34b422a642fc",
-    "src/operations/task-plan-tools.ts": "3eb3cb5ce7a1edba040813e66eaca7bcb6a59e9120f293a1ae9a691ef8896de4",
+    "src/operations/task-plan-tools.ts": "d2500d8860c61ae5f7789e3b9e89ad642e1b8223336b8fbb5c826dbf94e6e872",
     "src/operations/task-tools.ts": "7f5573ce5daa7da8448c6c7f7a7634560138cd0c0e56fc657573cdcebae5125e",
     "src/operations/tool-arguments.ts": "d74473d2927c6c80e0e66eeecb4178c205a22699e9e999d260617fbc003f33b9",
     "src/operations/types.ts": "60b4684e2d0f9a0e9b205bff6083932b27aeee81321e17230b71e4535567707f",
@@ -157,7 +157,9 @@
     "reason": "Main24ccc28 adds an inventory import and dispatch branch to the covered CLI. Publisher protocol sources, properties and bounds remain unchanged. Exact source mapping and the complete candidate model, boundary, mutation and restored-control proof pass at the integrated product revision. The ordinary clean committed run remains the final gate.",
     "sourceMaintenance": {
       "classification": "no effect on modeled publisher behavior",
-      "coveredChanges": ["src/cli.ts"],
+      "coveredChanges": [
+        "src/cli.ts"
+      ],
       "inventoryScan": "Read-only payload and metadata observation can advance access times. Imported top-level code performs no application filesystem operation.",
       "optionalInventoryLog": "Exclusive creation of an unclaimed external file. It does not acquire publisher ownership or append publisher evidence.",
       "externalWriterLimit": "Arbitrary concurrent cross-command writes and hostile ancestor replacement remain excluded. No global CLI write-free property is claimed.",
@@ -189,5 +191,22 @@
     "moduleHistoryLimit": "The ownership model assumes admitted payloads and has no Module history variables. Separate source-bound public and pure checks supply that evidence.",
     "seedApplicability": "All 23 actual covered source hashes unchanged; applicability only, without another seed model run.",
     "historicalPublisherRecord": "earlierBaseMaintenance remains 85-source publisher history, not current 109-source workflow proof."
+  },
+  "taskDirectMaintenance": {
+    "productRevision": "2c65ee21c96b6cc3c8a2d274aaeab9925b3109c0",
+    "classification": "no effect on modeled control publication",
+    "coveredChanges": [
+      "src/operations/task-plan-tools.ts"
+    ],
+    "previousSha256": "3eb3cb5ce7a1edba040813e66eaca7bcb6a59e9120f293a1ae9a691ef8896de4",
+    "currentSha256": "d2500d8860c61ae5f7789e3b9e89ad642e1b8223336b8fbb5c826dbf94e6e872",
+    "unchangedSourceBindings": 108,
+    "sourceBindingCount": 109,
+    "modelPropertiesAndBoundsChanged": false,
+    "explicitPlanBranchChanged": false,
+    "directRoute": "Calls without plan_json delegate to existing Google Tasks provider and generated Task-register operations. They do not acquire control-publication ownership or mutate its ledger, claims, candidates, heads or receipts.",
+    "runtimeEvidence": "84 Operations tests, including Module/Research normal create-change-complete and explicit-plan validation; six real Google operations through HTTP with physical registers and exact owned-list cleanup.",
+    "proofLimit": "Applicability maintenance only. Historical syncRevision and prior proof provenance remain unchanged; no fresh complete formal-suite pass or expanded theorem is claimed.",
+    "seedApplicability": "All 23 seed-covered source hashes unchanged; no fresh seed theorem."
   }
 }

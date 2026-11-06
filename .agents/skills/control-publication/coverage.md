@@ -60,3 +60,11 @@ Preserve both ordinary-sidecar-close counterexamples, the independently observed
 The private handoff report names their original evidence paths and digests. They remain historical mechanism/prototype evidence.
 The ordinary runner checks the seed skill's 23 exact source hashes without repeating its unrelated heavy suites.
 That result is applicability only. Neither historical prototypes nor unchanged seed theorems establish publisher correctness.
+
+## Direct Google Tasks applicability
+
+Normal calls without `plan_json` delegate to existing Google Tasks provider and generated Task-register operations.
+They do not acquire control-publication ownership or alter its ledger, claims, candidates, heads or receipts.
+The explicit-plan branch and modeled properties and bounds remain unchanged.
+`taskDirectMaintenance` records the one changed source binding and preserves historical proof provenance.
+This applicability update claims no fresh complete formal-suite pass or broader ownership theorem.

@@ -128,7 +128,7 @@ export async function withMorningLock<T>(
   const directory = join(stateRoot, "routine");
   await mkdir(directory, { recursive: true, mode: 0o700 });
   const path = join(directory, "run.lock");
-  let lock;
+  let lock: Awaited<ReturnType<typeof open>>;
   try {
     lock = await open(path, "wx", 0o600);
   } catch (error) {
@@ -140,10 +140,10 @@ export async function withMorningLock<T>(
   }
   try {
     await lock.writeFile(
-      JSON.stringify({
+      `${JSON.stringify({
         pid: process.pid,
         startedAt: new Date().toISOString(),
-      }) + "\n",
+      })}\n`,
     );
     await lock.sync();
     return await work();

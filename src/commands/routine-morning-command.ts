@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises";
+import { lstat, mkdir, open, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -53,66 +53,107 @@ export async function runRoutineMorningCommand(
   const routine = resolveRoutineConfig(config);
   const modules = selection.included;
   const stateRoot = await resolveStateRoot(config);
-  const artifactStateRoot = options.retainArtifacts
-    ? await createRetainedRoutineRoot(stateRoot)
-    : stateRoot;
-  const date = offeringCalendarDay(new Date());
-  const run: MorningRunEvidence = {
-    artifactStateRoot,
-    retention: options.retainArtifacts ? "retained" : "ordinary",
-    scope: options.modulesOnly ? "modules-only" : "monitoring-cohort",
-    requestedModel: options.sessionSettings?.model ?? MORNING_SESSION_MODEL,
-    requestedReasoningEffort:
-      options.sessionSettings?.reasoningEffort ??
-      MORNING_SESSION_REASONING_EFFORT,
-    sandbox: "workspace-write",
-    modelAttestation: "unverified",
-  };
-  if (options.retainArtifacts)
-    await writeFile(
-      join(artifactStateRoot, "run.json"),
-      `${JSON.stringify({ schemaVersion: 1, date, modules, run }, null, 2)}\n`,
-      { flag: "wx", mode: 0o600 },
-    );
-  const report = await runMorningRoutine({
-    date,
-    cohort: config.activeSemester,
-    modules,
-    prelude: createCohortPrelude(config, { modulesOnly: options.modulesOnly }),
-    session: createCodexModuleSession({
-      config,
-      codexPath: routine.codexPath,
-      date,
+  await withMorningLock(stateRoot, async () => {
+    const artifactStateRoot = options.retainArtifacts
+      ? await createRetainedRoutineRoot(stateRoot)
+      : stateRoot;
+    const date = offeringCalendarDay(new Date());
+    const run: MorningRunEvidence = {
       artifactStateRoot,
-      ...(options.sessionSettings === undefined
+      retention: options.retainArtifacts ? "retained" : "ordinary",
+      scope: options.modulesOnly ? "modules-only" : "monitoring-cohort",
+      requestedModel: options.sessionSettings?.model ?? MORNING_SESSION_MODEL,
+      requestedReasoningEffort:
+        options.sessionSettings?.reasoningEffort ??
+        MORNING_SESSION_REASONING_EFFORT,
+      sandbox: "workspace-write",
+      modelAttestation: "unverified",
+    };
+    if (options.retainArtifacts)
+      await writeFile(
+        join(artifactStateRoot, "run.json"),
+        `${JSON.stringify({ schemaVersion: 1, date, modules, run }, null, 2)}\n`,
+        { flag: "wx", mode: 0o600 },
+      );
+    const report = await runMorningRoutine({
+      date,
+      cohort: config.activeSemester,
+      modules,
+      prelude: createCohortPrelude(config, {
+        modulesOnly: options.modulesOnly,
+      }),
+      session: createCodexModuleSession({
+        config,
+        codexPath: routine.codexPath,
+        date,
+        artifactStateRoot,
+        ...(options.sessionSettings === undefined
+          ? {}
+          : { sessionSettings: options.sessionSettings }),
+      }),
+      artifacts: createFileRoutineArtifactStore(artifactStateRoot, {
+        exclusiveReports: options.retainArtifacts,
+      }),
+      run,
+      issue: createGhMorningIssue(routine.ghPath),
+      weeklyStateRoot: stateRoot,
+      weeklyRepositoryHistory: createGhWeeklyRepositoryHistory(routine.ghPath),
+      ...(options.modulesOnly
         ? {}
-        : { sessionSettings: options.sessionSettings }),
-    }),
-    artifacts: createFileRoutineArtifactStore(artifactStateRoot, {
-      exclusiveReports: options.retainArtifacts,
-    }),
-    run,
-    issue: createGhMorningIssue(routine.ghPath),
-    weeklyStateRoot: stateRoot,
-    weeklyRepositoryHistory: createGhWeeklyRepositoryHistory(routine.ghPath),
-    ...(options.modulesOnly
-      ? {}
-      : {
-          repositoryRepair: () =>
-            runRepositoryRepair({
-              repositoryRoot: fileURLToPath(
-                new URL("../../../", import.meta.url),
-              ),
-              privateStateRoot: stateRoot,
-              codexPath: routine.codexPath,
-              ghPath: routine.ghPath,
-            }),
-        }),
+        : {
+            repositoryRepair: () =>
+              runRepositoryRepair({
+                repositoryRoot: fileURLToPath(
+                  new URL("../../../", import.meta.url),
+                ),
+                privateStateRoot: stateRoot,
+                codexPath: routine.codexPath,
+                ghPath: routine.ghPath,
+              }),
+          }),
+    });
+    process.stdout.write(
+      json
+        ? `${JSON.stringify(report, null, 2)}\n`
+        : `${renderHuman(report)}\n`,
+    );
+    if (report.outcome === "unreported") process.exitCode = 2;
   });
-  process.stdout.write(
-    json ? `${JSON.stringify(report, null, 2)}\n` : `${renderHuman(report)}\n`,
-  );
-  if (report.outcome === "unreported") process.exitCode = 2;
+}
+
+export async function withMorningLock<T>(
+  stateRoot: string,
+  work: () => Promise<T>,
+): Promise<T> {
+  const directory = join(stateRoot, "routine");
+  await mkdir(directory, { recursive: true, mode: 0o700 });
+  const path = join(directory, "run.lock");
+  let lock;
+  try {
+    lock = await open(path, "wx", 0o600);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "EEXIST")
+      throw new Error(
+        "Morning routine lock exists. A run may be active or interrupted; inspect routine/run.lock and its process before recovery.",
+      );
+    throw error;
+  }
+  try {
+    await lock.writeFile(
+      JSON.stringify({
+        pid: process.pid,
+        startedAt: new Date().toISOString(),
+      }) + "\n",
+    );
+    await lock.sync();
+    return await work();
+  } finally {
+    const held = await lock.stat();
+    const current = await lstat(path).catch(() => undefined);
+    await lock.close();
+    if (current?.dev === held.dev && current.ino === held.ino)
+      await unlink(path);
+  }
 }
 
 async function loadCohortConfig(configPath: string): Promise<AcademicConfig> {

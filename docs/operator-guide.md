@@ -774,14 +774,12 @@ importer health at a 24-hour maximum age, Shelf catch-up's clean appends and par
 cohort module's Task register pulled from its live list. Non-current importer evidence is visible
 independently of the model's report and defers withdrawal decisions. Then one headless Codex
 session per module, in sequence, each running that module's Maintenance route and existing seeded
-procedures in its own folder. A session that fails, breaks
-or exhausts its twenty-minute budget becomes a failure line and the next module starts. Manual
+procedures in its own folder. A session that fails or breaks becomes a failure line and the next module starts. Sessions have no elapsed-time limit; a log that stops accepting output or closing fails the session. A private routine/run.lock excludes overlapping runs. If interrupted, inspect the lock and any detached session process before removing the exact lock; never clear it while a writer remains. Manual
 same-day reruns preserve separate attempt artifacts. The routine never compiles LaTeX, never
 creates a task, and never writes to Google.
 
 When a valid first pass leaves only safely repairable deterministic findings, the controller can
-give it one fresh correction attempt before updating the weekly review. Both attempts share the original
-twenty-minute Module budget and preserve separate artifacts. Invalid journals, importer/preflight
+give it one fresh correction attempt before updating the weekly review. Both attempts preserve separate artifacts. Invalid journals, importer/preflight
 failures, unreadable results and Owner parks suppress this automatic retry. Earlier completed work
 is retained in the final report; only verified resolution removes the earlier audit failures.
 

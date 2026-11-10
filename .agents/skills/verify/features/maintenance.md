@@ -4,7 +4,7 @@ The CLI observes maintenance state, coordinates bounded repository repair and ma
 
 ## Sub-features
 
-- Morning maintenance preserves Module scope, bounded execution and journal evidence.
+- Morning maintenance preserves Module scope, excludes overlapping runs and keeps journal evidence without a session deadline.
 - Repository status distinguishes healthy, attention and unobserved results.
 - Repository repair respects protected delivery and retained evidence.
 - Curation migration and rederivation preserve decision history.

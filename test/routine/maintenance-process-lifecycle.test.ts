@@ -142,7 +142,9 @@ for (const runner of ["repository", "module"] as const) {
     assert.match(log, /diagnostic stdout/u);
     assert.match(log, /diagnostic stderr/u);
   });
-  for (const behavior of ["ignore-term", "descendant"] as const) {
+  for (const behavior of runner === "repository"
+    ? (["ignore-term", "descendant"] as const)
+    : (["descendant"] as const)) {
     test(`${runner} bounds ${behavior} and drains retained pipes`, async (t) => {
       const fixture = await maintenanceProcessFixture(t, { runner, behavior });
       assert.ok(fixture.ownedPids.length > 0);

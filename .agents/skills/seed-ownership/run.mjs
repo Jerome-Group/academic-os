@@ -8,7 +8,6 @@ import {
   readdir,
   readFile,
   realpath,
-  symlink,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -363,6 +362,7 @@ try {
     const scratch = join(evidence, "mutation-source");
     await mkdir(scratch);
     for (const name of [
+      "node_modules",
       "src",
       "test",
       "scripts",
@@ -373,11 +373,6 @@ try {
       "tsconfig.json",
     ])
       await cp(join(root, name), join(scratch, name), { recursive: true });
-    await symlink(
-      join(root, "node_modules"),
-      join(scratch, "node_modules"),
-      "dir",
-    );
     const target = join(scratch, "src/mounted/seed-ownership.ts");
     const original = await readFile(target, "utf8");
     const beginning = "export async function removeOwnedSeedStage(\n";

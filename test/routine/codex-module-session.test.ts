@@ -484,28 +484,26 @@ describe("the module maintenance session", () => {
     );
   });
 
-  it("runs one fresh correction attempt, shares the deadline, and retains earlier successful buckets", async () => {
+  it("runs one fresh correction attempt without a deadline and retains earlier successful buckets", async () => {
     const { config, moduleRoot, stateRoot } = await maintenanceFixture();
     let calls = 0;
     const time = [
       "2026-08-22T22:00:00.000Z",
-      "2026-08-22T22:01:00.000Z",
-      "2026-08-22T22:02:00.000Z",
-      "2026-08-22T22:03:00.000Z",
-      "2026-08-22T22:04:00.000Z",
-      "2026-08-22T22:05:00.000Z",
-      "2026-08-22T22:06:00.000Z",
-      "2026-08-22T22:07:00.000Z",
+      "2026-08-22T23:01:00.000Z",
+      "2026-08-22T23:02:00.000Z",
+      "2026-08-22T23:03:00.000Z",
+      "2026-08-22T23:04:00.000Z",
+      "2026-08-22T23:05:00.000Z",
+      "2026-08-22T23:06:00.000Z",
+      "2026-08-22T23:07:00.000Z",
     ];
-    const timeouts: number[] = [];
     const session = createCodexModuleSession({
       config,
       codexPath: "/synthetic/codex",
       date: "2026-08-23",
-      clock: () => new Date(time.shift() ?? "2026-08-22T22:19:00.000Z"),
-      runner: async ({ arguments: arguments_, timeoutMs }) => {
+      clock: () => new Date(time.shift() ?? "2026-08-22T23:19:00.000Z"),
+      runner: async ({ arguments: arguments_ }) => {
         calls += 1;
-        timeouts.push(timeoutMs);
         const resultPath = flagFrom(arguments_, "--output-last-message");
         const artifacts = dirname(resultPath);
         if (calls === 2) {
@@ -541,7 +539,6 @@ describe("the module maintenance session", () => {
     const result = await session.run({ semester: "Y2S1", module: "MH2100" });
 
     assert.equal(calls, 2);
-    assert.ok((timeouts[0] ?? 0) > (timeouts[1] ?? Number.MAX_SAFE_INTEGER));
     assert.deepEqual(
       result.noted.map(({ item }) => item),
       ["attempt-1", "attempt-2"],
@@ -630,20 +627,20 @@ describe("the module maintenance session", () => {
     );
   });
 
-  it("does not start correction after the original module deadline", async () => {
+  it("starts correction even after the former module deadline", async () => {
     const { config } = await maintenanceFixture();
     let calls = 0;
     const time = [
       "2026-08-22T22:00:00.000Z",
-      "2026-08-22T22:01:00.000Z",
-      "2026-08-22T22:21:00.000Z",
-      "2026-08-22T22:22:00.000Z",
+      "2026-08-22T23:01:00.000Z",
+      "2026-08-22T23:21:00.000Z",
+      "2026-08-22T23:22:00.000Z",
     ];
     const session = createCodexModuleSession({
       config,
       codexPath: "/synthetic/codex",
       date: "2026-08-23",
-      clock: () => new Date(time.shift() ?? "2026-08-22T22:22:00.000Z"),
+      clock: () => new Date(time.shift() ?? "2026-08-22T23:22:00.000Z"),
       runner: async ({ arguments: arguments_ }) => {
         calls += 1;
         await writeFile(
@@ -656,7 +653,7 @@ describe("the module maintenance session", () => {
 
     const result = await session.run({ semester: "Y2S1", module: "MH2100" });
 
-    assert.equal(calls, 1);
+    assert.equal(calls, 2);
     assert.ok(
       result.failures.some(({ code }) => code === "post-audit-residual"),
     );

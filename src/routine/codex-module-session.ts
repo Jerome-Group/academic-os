@@ -43,7 +43,6 @@ import {
 export const MORNING_SESSION_MODEL = "gpt-6-luna";
 export const MORNING_SESSION_REASONING_EFFORT = "max";
 export const MORNING_SESSION_SANDBOX = "workspace-write";
-const MORNING_SESSION_TIMEOUT_MS = 20 * 60 * 1000;
 const IMPORT_FRESHNESS_HOURS = 24;
 
 const SESSION_LOG_FILENAME = "session.log";
@@ -62,7 +61,6 @@ export interface CodexSessionRunnerInput {
   moduleRoot: string;
   logPath: string;
   arguments: string[];
-  timeoutMs: number;
 }
 
 export type CodexSessionRunner = (
@@ -121,7 +119,6 @@ export function createCodexModuleSession(input: {
         module: module.module,
       });
       await mkdir(moduleArtifacts, { recursive: true });
-      let deadline: number | undefined;
       const completed: AttemptResult[] = [];
       let correction: string | undefined;
       for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -131,17 +128,14 @@ export function createCodexModuleSession(input: {
             ...input,
             module,
             artifacts,
-            ...(deadline === undefined ? {} : { deadline }),
             ...(correction === undefined ? {} : { correction }),
           });
-          deadline ??= result.deadline;
           completed.push(result);
           if (!result.retryable || attempt === 1) break;
           correction = result.correction;
         } catch (error) {
           completed.push({
             artifacts,
-            deadline: deadline ?? Number.NEGATIVE_INFINITY,
             retryable: false,
             correction: "",
             outcome: failedModulePass(error, "session-failed"),
@@ -162,7 +156,6 @@ export function createCodexModuleSession(input: {
 
 interface AttemptResult {
   artifacts: string;
-  deadline: number;
   retryable: boolean;
   correction: string;
   outcome: ModulePassOutcome;
@@ -177,7 +170,6 @@ async function runSession(input: {
   sessionSettings?: MorningSessionSettings;
   runner?: CodexSessionRunner;
   clock?: () => Date;
-  deadline?: number;
   correction?: string;
 }): Promise<AttemptResult> {
   const configured = resolveConfiguredAuditTarget(
@@ -186,9 +178,6 @@ async function runSession(input: {
     input.module.module,
   );
   const observedAt = (input.clock ?? (() => new Date()))().toISOString();
-  const deadline =
-    input.deadline ??
-    new Date(observedAt).getTime() + MORNING_SESSION_TIMEOUT_MS;
   const contract = await loadModuleContract();
   const before = await inspectMountedModule(configured);
   const beforePlan = planModuleConformance({
@@ -279,10 +268,6 @@ async function runSession(input: {
           ? {}
           : { sessionSettings: input.sessionSettings }),
       }),
-      timeoutMs: Math.max(
-        1,
-        deadline - (input.clock ?? (() => new Date()))().getTime(),
-      ),
     });
   } catch (error) {
     runnerFailure = routineFailure(error, "session-runner-failed");
@@ -343,9 +328,7 @@ async function runSession(input: {
     ({ code }) =>
       code !== "post-audit-regression" && code !== "post-audit-residual",
   );
-  const remaining = deadline - (input.clock ?? (() => new Date()))().getTime();
   const retryable =
-    remaining > 0 &&
     exitCode === 0 &&
     parsed &&
     journal.valid &&
@@ -358,7 +341,6 @@ async function runSession(input: {
     );
   return {
     artifacts: input.artifacts,
-    deadline,
     retryable,
     correction: `The first pass left these safe deterministic findings. Correct only these findings, then repeat the complete Maintenance report: ${findingNames(retryFindings)}.`,
     outcome,
@@ -630,13 +612,9 @@ async function spawnCodex(input: CodexSessionRunnerInput): Promise<number> {
     executable: input.codexPath,
     args: input.arguments,
     ...sessionSpawnOptions(input),
-    timeoutMs: input.timeoutMs,
     log: input.logPath,
   });
-  if (signal !== null)
-    throw new Error(
-      `The session was stopped by ${signal} after ${input.timeoutMs} ms.`,
-    );
+  if (signal !== null) throw new Error(`The session was stopped by ${signal}.`);
   return code ?? 1;
 }
 

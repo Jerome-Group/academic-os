@@ -187,6 +187,8 @@ try {
     const ports = createRepositoryRepairPorts({repositoryRoot:${JSON.stringify(checkout)},privateStateRoot:${JSON.stringify(stateRoot)},codexPath:${JSON.stringify(executable)},ghPath:'/unavailable-fixture-gh'});
     result = await ports.checks({root:${JSON.stringify(checkout)},fixtureRoot:${JSON.stringify(fixtureRoot)},branch:'codex/fixture',base:'fixture'},${JSON.stringify(join(root, "checks"))});
   } else {
+    const originalTimeout = globalThis.setTimeout;
+    globalThis.setTimeout = (callback,delay,...args)=>originalTimeout(callback,delay === 30000 ? 250 : delay,...args);
     let clocks = 0;
     const session = createCodexModuleSession({config:${JSON.stringify({ driveMount: join(root, "Drive"), stateRoot, activeSemester: "Y2S1", semesters: { Y2S1: { root: "Modules/Y2S1", status: "active", modules: ["MH2100"] } } })},codexPath:${JSON.stringify(input.unavailable ? join(root, "missing") : executable)},date:'2026-08-23',sessionSettings:{model:'gpt-6.1-sol',reasoningEffort:'xhigh'},clock:()=>new Date(Date.parse('2026-08-22T22:00:00.000Z') + (clocks++ === 0 ? 0 : 1200000-${input.timeoutMs ?? 250}))});
     result = await session.run({semester:'Y2S1',module:'MH2100'});

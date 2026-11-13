@@ -87,6 +87,18 @@ export function codexSessionArguments(input: {
     settings.model,
     "--config",
     `model_reasoning_effort="${settings.reasoningEffort}"`,
+    "--config",
+    "features.context_management=false",
+    "--config",
+    `developer_instructions=${JSON.stringify(`${input.prompt}
+
+## Session recovery
+
+This unattended Maintenance assignment remains active after context compaction. Resume it without asking for a new task. The current working directory is the assigned Module root.
+Use local shell filesystem tools for Module inspection and writes, journal updates and recovery reads. Never use application-backend or context-window tools, including manual context resets, for this assignment. Allow normal automatic compaction to retain these instructions.
+Read the exact persisted work order at ${join(dirname(input.resultPath), MORNING_SESSION_WORK_ORDER_FILENAME)}, the report schema at ${input.schemaPath}, and the current journal at ${join(input.writeJournalDirectory, WRITE_JOURNAL_FILENAME)}. Reconcile completed intent/result pairs with current Module controls and registers before continuing; do not repeat completed writes. An unmatched intent requires fresh target inspection before deciding its outcome. Preserve all unattended limits and report every domain, including failures and parked decisions, in the schema-enforced final message saved by the harness to ${input.resultPath}.
+Use bounded inventories and targeted excerpts, with explicit output limits and pagination, for controls, registers and source evidence. Recover progress from the work order, journal and current Module files. Never read, search or replay session.log, active process output logs, Codex transcripts or chat history; they are not recovery inputs. The journal directory ${input.writeJournalDirectory} remains the only writable private artifact directory.
+`)}`,
     "--sandbox",
     MORNING_SESSION_SANDBOX,
     "--skip-git-repo-check",

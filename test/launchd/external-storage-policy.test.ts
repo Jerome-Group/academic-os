@@ -64,7 +64,7 @@ async function fixture(): Promise<{
   const outputPath = join(root, "child-result.json");
   await writeFile(
     childPath,
-    `import { writeFileSync } from 'node:fs'; writeFileSync(${JSON.stringify(outputPath)}, JSON.stringify({ args: process.argv.slice(2), env: Object.fromEntries(['TMPDIR','TMP','TEMP','XDG_CACHE_HOME','XDG_STATE_HOME','npm_config_cache','UV_CACHE_DIR','PIP_CACHE_DIR'].map(k => [k, process.env[k]])) }));`,
+    `import { writeFileSync } from 'node:fs'; writeFileSync(${JSON.stringify(outputPath)}, JSON.stringify({ args: process.argv.slice(2), env: Object.fromEntries(['TMPDIR','TMP','TEMP','SQLITE_TMPDIR','XDG_CACHE_HOME','XDG_STATE_HOME','npm_config_cache','UV_CACHE_DIR','PIP_CACHE_DIR'].map(k => [k, process.env[k]])) }));`,
   );
   return { policy, policyPath, childPath, outputPath };
 }
@@ -160,31 +160,42 @@ it("checks a disk image's physical backing path and UUID", async () => {
 
 it("passes external temp and cache paths to the child, and fails before spawn on guard rejection", async () => {
   const { policy, policyPath, childPath, outputPath } = await fixture();
-  const input = {
-    policyPath,
-    logPath: "/dev/null",
-    programArguments: [process.execPath, childPath, policy.configPath],
-  };
-  await assert.rejects(
-    runExternalStorageLaunchdJob(input, async () => {
-      throw new Error("missing volume");
-    }),
-    /missing volume/u,
+  const inheritedSqliteTemp = process.env.SQLITE_TMPDIR;
+  process.env.SQLITE_TMPDIR = join(
+    dirname(policyPath),
+    "inherited-sqlite-temp",
   );
-  await assert.rejects(readFile(outputPath), { code: "ENOENT" });
-  assert.equal(await runExternalStorageLaunchdJob(input, async () => {}), 0);
-  const result = JSON.parse(await readFile(outputPath, "utf8"));
-  assert.deepEqual(result.args, [policy.configPath]);
-  assert.deepEqual(result.env, {
-    TMPDIR: policy.tempRoot,
-    TMP: policy.tempRoot,
-    TEMP: policy.tempRoot,
-    XDG_CACHE_HOME: policy.cacheRoot,
-    XDG_STATE_HOME: policy.stateRoot,
-    npm_config_cache: join(policy.cacheRoot, "npm"),
-    UV_CACHE_DIR: join(policy.cacheRoot, "uv"),
-    PIP_CACHE_DIR: join(policy.cacheRoot, "pip"),
-  });
+  try {
+    const input = {
+      policyPath,
+      logPath: "/dev/null",
+      programArguments: [process.execPath, childPath, policy.configPath],
+    };
+    await assert.rejects(
+      runExternalStorageLaunchdJob(input, async () => {
+        throw new Error("missing volume");
+      }),
+      /missing volume/u,
+    );
+    await assert.rejects(readFile(outputPath), { code: "ENOENT" });
+    assert.equal(await runExternalStorageLaunchdJob(input, async () => {}), 0);
+    const result = JSON.parse(await readFile(outputPath, "utf8"));
+    assert.deepEqual(result.args, [policy.configPath]);
+    assert.deepEqual(result.env, {
+      TMPDIR: policy.tempRoot,
+      TMP: policy.tempRoot,
+      TEMP: policy.tempRoot,
+      SQLITE_TMPDIR: policy.tempRoot,
+      XDG_CACHE_HOME: policy.cacheRoot,
+      XDG_STATE_HOME: policy.stateRoot,
+      npm_config_cache: join(policy.cacheRoot, "npm"),
+      UV_CACHE_DIR: join(policy.cacheRoot, "uv"),
+      PIP_CACHE_DIR: join(policy.cacheRoot, "pip"),
+    });
+  } finally {
+    if (inheritedSqliteTemp === undefined) delete process.env.SQLITE_TMPDIR;
+    else process.env.SQLITE_TMPDIR = inheritedSqliteTemp;
+  }
 });
 
 it("puts the guard before a resident server and keeps launchd streams on /dev/null", {

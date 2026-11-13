@@ -8,7 +8,7 @@ Use this procedure when installing an Academic OS LaunchAgent whose operational 
 |---|---|---|
 | CLI state, mirrors, journals, morning reports and state-refresh status | `stateRoot` | Private application config |
 | Morning and state-refresh launcher receipts | `stateRoot/morning-launcher`, `stateRoot/state-refresh-launcher` | Same config |
-| Guarded child temporary files | `tempRoot` | Private storage policy; sets `TMPDIR`, `TMP`, `TEMP` |
+| Guarded child temporary files | `tempRoot` | Private storage policy; sets `TMPDIR`, `TMP`, `TEMP`, `SQLITE_TMPDIR` |
 | Guarded child caches | `cacheRoot` | Policy; sets `XDG_CACHE_HOME`, `npm_config_cache`, `UV_CACHE_DIR`, `PIP_CACHE_DIR` |
 | Guarded child state | `stateRoot` | Policy; sets `XDG_STATE_HOME` |
 | Guarded Operations server log | `logRoot/operations-server.log` | Policy; opened after storage validation |
@@ -53,8 +53,8 @@ List the physical volume too when it holds the config or other policy roots. The
 ## Migrate and verify
 
 1. Capture current service identities, configuration, state and evidence roots. Stop affected jobs before copying. Preserve original state, journals, locks, receipts and logs.
-2. Copy with metadata preserved to the designated volume. Compare a complete source and destination inventory, file content hashes, symlink targets and protected metadata before changing the config. Resolve interrupted copies before cutover; keep the source recovery copy.
-3. Update private `stateRoot` and policy paths together. Precreate the policy roots with owner-only permissions. Build from the chosen external checkout and preview each installer with `--config ... --storage-policy ... --dry-run`.
+2. Copy with metadata preserved to the designated volume. Compare a complete source and destination inventory, file content hashes, symlink targets and protected metadata before changing the config. Resolve interrupted copies before cutover; keep the source recovery copy. If an opaque OS attribute is normalized by the copy, retain a complete immutable archive of original raw metadata and every payload, then independently verify the archive, fresh source and exact live differences under an explicitly named archival-recovery gate. Keep physical metadata equality marked failed; do not infer private attribute restoration semantics.
+3. Update private `stateRoot` and policy paths together. Precreate the policy roots with owner-only permissions. Build from the chosen external checkout and preview each installer with `--config ... --storage-policy ... --dry-run`. For a stopped, unloaded old LaunchAgent, back up and verify the exact stale descriptor and its unloaded state before retiring that descriptor for reinstall; retain bootout errors and backup evidence. Keep the installer's guard checks intact.
 4. Install with the same paths, inspect the loaded plist and kickstart the exact service. Confirm the child's configured state, receipt or Operations log on the designated volume. Check service behavior through its public health/readback route.
 5. Test a missing mount and a wrong UUID in an isolated fixture or stopped service. Both must fail before child start or new state/temp/cache/log creation. Restore the correct mount and verify service recovery. Retain source evidence until the new copy and service have been read back.
 

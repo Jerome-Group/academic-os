@@ -53,6 +53,7 @@ export async function runExternalStorageLaunchdJob(
     TMPDIR: policy.tempRoot,
     TMP: policy.tempRoot,
     TEMP: policy.tempRoot,
+    SQLITE_TMPDIR: policy.tempRoot,
     XDG_CACHE_HOME: policy.cacheRoot,
     XDG_STATE_HOME: policy.stateRoot,
     npm_config_cache: join(policy.cacheRoot, "npm"),

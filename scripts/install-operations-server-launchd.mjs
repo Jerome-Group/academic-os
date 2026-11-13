@@ -21,7 +21,7 @@ const serverModulePath = fileURLToPath(
 );
 const logDirectory = join(homedir(), "Library", "Logs", "academic-os");
 const logPath = join(logDirectory, "operations-server.log");
-const usage = `Usage: node ${scriptPath} --config <absolute-path> [--dry-run]
+const usage = `Usage: node ${scriptPath} --config <absolute-path> [--storage-policy <absolute-path>] [--dry-run]
        node ${scriptPath} --remove`;
 
 try {
@@ -34,7 +34,7 @@ try {
 }
 
 async function main() {
-  const { removed, dryRun, plan } = await planOrRemoveLaunchdJob({
+  const { removed, dryRun, plan, policy } = await planOrRemoveLaunchdJob({
     surface: "Operations server",
     jobName: OPERATIONS_SERVER_LAUNCHD_JOB_NAME,
     usage,
@@ -52,14 +52,14 @@ async function main() {
     return;
   }
 
-  await mkdir(logDirectory, { recursive: true });
+  if (policy === undefined) await mkdir(logDirectory, { recursive: true });
   await installLaunchdJob(plan);
   process.stdout.write(
     `${[
       `Installed ${plan.label}.`,
       "Resident: launchd starts it at login and restarts it if it stops.",
       `Plist: ${plan.plistPath}`,
-      `Log: ${logPath}`,
+      `Log: ${policy === undefined ? logPath : join(policy.logRoot, "operations-server.log")}`,
       `Inspect: launchctl print ${plan.serviceTarget}`,
       `Restart: launchctl kickstart -k ${plan.serviceTarget}`,
       `Remove: node ${scriptPath} --remove`,

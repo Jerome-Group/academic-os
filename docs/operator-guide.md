@@ -1,5 +1,8 @@
 # Operator guide
 
+For LaunchAgents backed by designated external storage, follow the private policy, migration and
+verification procedure in [`agents/operational-storage.md`](agents/operational-storage.md).
+
 The CLI has `seed`, `audit`, `calendar setup`, pull-only `calendar refresh`, private `calendar
 propose`, explicitly authorised `calendar promote`, `tasks provision`, pull-only `tasks refresh`,
 in-session exact `tasks apply-plan`, additive `textbooks
@@ -294,8 +297,8 @@ a changed register is published, its verified original and a prepared journal la
 until the result is checked. An interrupted lock needs inspection of its private journal and target
 before exact-lock removal and retry. A stopped state-refresh runner likewise retains `run.lock`;
 check its recorded process before removing that exact lock. Launcher-level failure/recovery notices
-are deduplicated in `~/.local/state/academic-os/state-refresh-launcher`, so a broken configuration
-cannot produce a popup every half-hour. Recovery records contain private task data and never enter git.
+are deduplicated in `stateRoot/state-refresh-launcher` when the state root resolves. Recovery
+records contain private task data and never enter git.
 
 ## Calendar propose
 
@@ -590,8 +593,8 @@ node scripts/install-operations-server-launchd.mjs \
 
 `--dry-run` prints the plist it would install and installs nothing. The job is resident rather
 than scheduled: launchd starts it at login and restarts it whenever it stops, so a rebooted mini
-is reachable again without anyone starting it. It writes only
-`~/Library/LaunchAgents/com.jerome-group.academic-os.operations-server.plist`, and logs to
+is reachable again without anyone starting it. It writes its plist under `~/Library/LaunchAgents`.
+With `--storage-policy`, its log is under the policy's `logRoot`; otherwise it logs to
 `~/Library/Logs/academic-os/operations-server.log`.
 
 The server binds the mini's tailnet addresses and only those, on port `8765`, and serves MCP over

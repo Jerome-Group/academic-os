@@ -5,10 +5,10 @@ with an applicable rule here is wrong, and a rule that is not here is not a rule
 outside a module folder is governed too, and it is the only one: the shared Textbook shelf at
 `Modules/Textbooks`, which every module cuts its chapters from.
 
-**Contract version: 7.** Increase it when a normative requirement, applicability rule or allowed
+**Contract version: 8.** Increase it when a normative requirement, applicability rule or allowed
 structure changes. Editorial clarification and repaired citations do not change it. Definition and
-Curation-register schema versions advance independently, which is how the register reached version 3
-while this contract reached 7.
+Curation-register schema versions advance independently; the register remains at version 3 under
+this contract.
 
 Rules have stable IDs. **Deterministic** rules are decided without judgment; **judgment** rules
 must expose their evidence for an agent or person to resolve. The folders live outside this
@@ -100,7 +100,10 @@ MODULE_CODE/
 
 **MF-ROOT-002 (deterministic).** Loose academic contents at module root are errors. An unknown root
 directory requires a decision; it is neither an automatic contract failure nor a contract
-proposal.
+proposal. An ordinary module-root `.agents/` directory is optional tool-owned metadata for local
+skills. It is not seeded. A file, symlink or other kind at that path fails; other hidden root
+directories remain unknown and require classification. This allowance does not apply to nested
+`.scratch`, a module-root `build/`, or arbitrary hidden directories.
 
 **MF-ROOT-003 (deterministic).** What the mount writes into a folder by itself is not module content,
 and a walk that judges what it finds omits it — an inventory this contract is audited against, and
@@ -172,11 +175,11 @@ schema and contract versions, module identity, offering, applicable context-deri
 declared importer roots and their evidence. It contains module-relative paths only: no absolute
 Drive paths, credentials, deadlines, prose workflows, inventories or learner progress.
 
-The schema version 2 shape for contract version 7 is:
+The schema version 2 shape for contract version 8 is:
 
 ```yaml
 schema_version: 2
-contract_version: 7
+contract_version: 8
 module: { code: MH2100, title: Calculus III }
 offering: { academic_year: 2026-2027, semester: 1, status: active }
 structure:

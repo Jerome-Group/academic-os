@@ -10296,7 +10296,7 @@ function isModuleRelative(path) {
 
 // src/conformance/validate-definition.ts
 var definitionPath = writtenControlPaths.definition;
-var supportedContractVersion = 7;
+var supportedContractVersion = 8;
 function validateDefinition(source, expectedCode, expectedSemester, expectedContractVersion = supportedContractVersion) {
   if (source === void 0) {
     return {

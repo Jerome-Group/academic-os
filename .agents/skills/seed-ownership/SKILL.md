@@ -30,9 +30,9 @@ Read the printed `results.json` and each failed child log.
 Require outcome `passed`, four positive models, seven broken-model counterexamples, and both residual counterexamples.
 Also require both positive curation configurations and all four curation counterexamples.
 Require four protocol prerequisites, 34 filesystem schedules, 33 journal protocol tests, and the repair provider probe.
-Require nine curation CLI schedules, including actual register and journal readback and zero surviving child PIDs.
+Require ten curation CLI schedules, including actual register and journal readback and zero surviving child PIDs.
 Require both cleanup mutation failures and restored passes, six owner mutation CLI failures and restored passes, and both repair mutation failures and restored passes.
-Require bypass and early release each to lose a confirmed curation decision after both CLIs report success, then require both restored nine-schedule passes.
+Require bypass and early release each to lose a confirmed curation decision after both CLIs report success, then require both restored ten-schedule passes.
 `model-only` is a partial result. A successful process exit alone does not complete this skill.
 The runner retains source patches, exact heads, manifests, fixture journals, and TLC traces in a fresh OS temporary directory.
 It uses synthetic Module and Research-project folders only.

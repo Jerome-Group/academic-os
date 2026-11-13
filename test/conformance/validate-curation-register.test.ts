@@ -42,6 +42,59 @@ const rederived = line({
 });
 
 describe("validateCurationRegister", () => {
+  it("interprets null optional fields as absence in mixed historical events", () => {
+    const absent = {
+      destination: null,
+      derived: null,
+      checksum: null,
+      supersedes: null,
+    };
+    for (const schema_version of [1, 2, 3]) {
+      for (const decision of ["source-only", "requires-decision"]) {
+        assert.equal(
+          validateCurationRegister(
+            line({ schema_version, decision, ...absent }),
+          ).status,
+          "pass",
+        );
+      }
+    }
+    assert.equal(validateCurationRegister(withdrawn(absent)).status, "pass");
+    assert.equal(
+      validateCurationRegister(
+        line({ ...absent, decision: "rederived", derived: ["CONTEXT.md"] }),
+      ).status,
+      "pass",
+    );
+    assert.equal(
+      validateCurationRegister(
+        line({
+          ...absent,
+          decision: "curated",
+          destination: "10 Learning Materials/slides.pdf",
+        }),
+      ).status,
+      "pass",
+    );
+  });
+
+  it("keeps required values and real forbidden claims strict beside null optionals", () => {
+    for (const invalid of [
+      { decision: "curated", destination: null },
+      { decision: "rederived", derived: null },
+      { timestamp: null, destination: null },
+      { source_id: "", destination: null },
+      { destination: "10 Learning Materials/slides.pdf", derived: null },
+      { destination: false },
+      { destination: "" },
+      { decision: "rederived", derived: ["../outside.md"], destination: null },
+      { checksum: 42, destination: null },
+      { supersedes: [], destination: null },
+    ]) {
+      assert.equal(validateCurationRegister(line(invalid)).status, "fail");
+    }
+  });
+
   it("accepts version 1 history beside a well-formed rederived line [MF-CURATION-001]", () => {
     const mixed = validateCurationRegister(`${version1Curated}${rederived}`);
 

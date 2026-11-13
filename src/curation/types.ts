@@ -1,8 +1,8 @@
 import type { IncompleteCurationOutcome } from "./incomplete-curation-outcome.js";
 import type { RecordedChecksum } from "./recorded-checksum.js";
 
-// One curation-decision event, read but never re-derived: a superseding line is this object with
-// its identity fields replaced, so a field this pass does not understand still crosses unchanged.
+// A curation event's read view interprets known absent optional fields. Stored history and unknown
+// fields stay unchanged; a superseding line carries unknown fields across with its new identity.
 export type CurationRegisterEvent = Record<string, unknown>;
 
 // Contract v4 identifies an item by its unnumbered source path and the sha-256 of its bytes. A

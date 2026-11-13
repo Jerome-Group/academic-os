@@ -154,6 +154,39 @@ async function journals(stateRoot: string) {
   );
 }
 
+test("curation migration preserves nullable history and emits a canonical append", async (t) => {
+  const f = await fixture(t, "nullable-history");
+  const target = f.targets.get("AA9999");
+  assert.ok(target);
+  const lines = f.prefix.trimEnd().split("\n");
+  const first = JSON.parse(lines[0] ?? "");
+  lines[0] = JSON.stringify({
+    ...first,
+    destination: null,
+    derived: null,
+    supersedes: null,
+    owner_extension: null,
+  });
+  const prefix = `${lines.join("\n")}\n`;
+  await writeFile(target, prefix);
+  const moduleRoot = dirname(dirname(target));
+  const input = join(moduleRoot, "NTULearn/04 Handout.pdf");
+  const beforeSource = await readFile(input);
+
+  const completed = await invocation(t, f, "nullable", "migrate").done;
+  assert.equal(completed.code, 0, completed.stderr);
+  assert.equal(JSON.parse(completed.stdout).appended, 1);
+  const actual = await readFile(target, "utf8");
+  assert.ok(actual.startsWith(prefix));
+  const appended = JSON.parse(actual.slice(prefix.length).trim());
+  assert.equal(appended.decision, "source-only");
+  assert.equal(Object.hasOwn(appended, "destination"), false);
+  assert.equal(Object.hasOwn(appended, "derived"), false);
+  assert.equal(appended.supersedes, "legacy-id");
+  assert.equal(appended.owner_extension, null);
+  assert.deepEqual(await readFile(input), beforeSource);
+});
+
 test("two curation processes retain every append they report successful", async (t) => {
   const f = await fixture(t, "concurrent-prefix");
   const target = f.targets.get("AA9999") ?? "";

@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  type ObservedModuleRegister,
   planCurationIdentityMigration,
   readCurationRegisterEvents,
   standingCurationItems,
   unnumberedSourcePath,
   walkedCurationItems,
-  type ObservedModuleRegister,
 } from "../../src/curation/index.js";
 
 const now = "2026-08-24T06:00:00.000Z";
@@ -76,6 +76,41 @@ function mirror(
 
 const unchangedMirror = mirror({
   [itemKey]: { sha256: unchangedSha256, md5: unchangedMd5 },
+});
+
+describe("the curation event read boundary", () => {
+  it("preserves raw history and unknown nulls while interpreting absent optionals", () => {
+    const source = legacyLine({
+      decision: "source-only",
+      destination: null,
+      derived: null,
+      checksum: null,
+      supersedes: null,
+      owner_extension: null,
+    });
+    const original = JSON.parse(source);
+    const events = readCurationRegisterEvents(source);
+    assert.deepEqual(events, [
+      {
+        schema_version: original.schema_version,
+        source_id: original.source_id,
+        integration: original.integration,
+        role: original.role,
+        source_path: original.source_path,
+        decision: original.decision,
+        evidence: original.evidence,
+        timestamp: original.timestamp,
+        owner_extension: null,
+      },
+    ]);
+    assert.equal(JSON.parse(source).destination, null);
+    assert.equal(JSON.parse(source).checksum, null);
+    assert.equal(
+      readCurationRegisterEvents(legacyLine({ destination: null }))[0]
+        ?.destination,
+      null,
+    );
+  });
 });
 
 function observed(input: {

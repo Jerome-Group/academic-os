@@ -1,3 +1,4 @@
+import { normalizeCurationEventOptionals } from "../curation/normalize-curation-event-optionals.js";
 import { controlFinding, failedControl } from "./control-finding.js";
 import { writtenControlPaths } from "./control-paths.js";
 import type { Finding } from "./types.js";
@@ -65,8 +66,9 @@ export function validateCurationRegister(source: string | undefined): Finding {
     : failedControl("MF-CURATION-001", registerPath, problems);
 }
 
-function validateEvent(value: unknown, line: number): string[] {
-  if (!isRecord(value)) return [`Line ${line} is not a JSON object.`];
+function validateEvent(input: unknown, line: number): string[] {
+  if (!isRecord(input)) return [`Line ${line} is not a JSON object.`];
+  const value = normalizeCurationEventOptionals(input);
   const problems: string[] = [];
   const requiredStrings = [
     "source_id",

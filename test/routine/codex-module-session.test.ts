@@ -298,6 +298,19 @@ describe("the module maintenance session", () => {
         );
         assert.ok(typeof instructions === "string");
         assert.ok(instructions.startsWith(prompt));
+        assert.match(
+          instructions,
+          /Register JSONL uses the local event schema/u,
+        );
+        assert.match(instructions, /omit unused optional keys/u);
+        assert.match(
+          instructions,
+          /null optional fields as absence in stored history/u,
+        );
+        assert.match(
+          instructions,
+          /nullable placeholders belong only to that report/u,
+        );
         assert.match(instructions, /verify the generated provenance schema/u);
         assert.match(instructions, /importer-authored `source-only` branch/u);
         assert.match(instructions, /classify that source independently/u);

@@ -284,6 +284,58 @@ describe("the module maintenance session", () => {
         assert.match(prompt, /<maintenance-work-order>/u);
         assert.match(prompt, /"learningSources"/u);
         assert.match(prompt, /"documentation-lifecycle"/u);
+        const durableConfig = arguments_.find((argument) =>
+          argument.startsWith("developer_instructions="),
+        );
+        assert.ok(durableConfig);
+        const instructions: unknown = JSON.parse(
+          durableConfig.slice("developer_instructions=".length),
+        );
+        assert.ok(typeof instructions === "string");
+        assert.ok(instructions.startsWith(prompt));
+        for (const path of [
+          join(artifacts, MORNING_SESSION_WORK_ORDER_FILENAME),
+          join(artifacts, "result-schema.json"),
+          workOrder.writeJournalPath,
+          workOrder.writeJournalDirectory,
+          resultPath,
+        ])
+          assert.ok(instructions.includes(path), path);
+        assert.match(instructions, /after context compaction/u);
+        assert.match(instructions, /do not repeat completed writes/u);
+        assert.match(
+          instructions,
+          /bounded inventories and targeted excerpts/u,
+        );
+        assert.match(
+          instructions,
+          /Never read, search or replay session\.log/u,
+        );
+        assert.match(instructions, /Codex transcripts or chat history/u);
+        assert.match(instructions, /Never write inside an importer root/u);
+        assert.match(instructions, /write to external Tasks or Calendar/u);
+        assert.equal(
+          arguments_[arguments_.indexOf("--sandbox") + 1],
+          "workspace-write",
+        );
+        assert.equal(
+          arguments_[arguments_.indexOf("--add-dir") + 1],
+          workOrder.writeJournalDirectory,
+        );
+        assert.equal(
+          arguments_[arguments_.indexOf("--output-schema") + 1],
+          join(artifacts, "result-schema.json"),
+        );
+        assert.equal(
+          arguments_[arguments_.indexOf("--model") + 1],
+          MORNING_SESSION_MODEL,
+        );
+        assert.ok(
+          arguments_.includes(
+            `model_reasoning_effort="${MORNING_SESSION_REASONING_EFFORT}"`,
+          ),
+        );
+        assert.ok(!instructions.includes(join(artifacts, "session.log")));
 
         await mkdir(join(moduleRoot, "30 Assessments", "10 Quizzes"));
         await writeSuccessfulJournal(

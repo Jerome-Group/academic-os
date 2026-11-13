@@ -22,7 +22,7 @@ const runnerModulePath = fileURLToPath(
     import.meta.url,
   ),
 );
-const usage = `Usage: node ${scriptPath} --config <absolute-path> [--dry-run]
+const usage = `Usage: node ${scriptPath} --config <absolute-path> [--storage-policy <absolute-path>] [--dry-run]
        node ${scriptPath} --remove`;
 
 try {

@@ -26,7 +26,9 @@ export function recoverableRegisterFile(input: {
 } {
   const path = join(input.targetRoot, input.registerPath);
   const backupRoot = join(
-    input.stateRoot ?? join(homedir(), ".local/state/academic-os"),
+    input.stateRoot ??
+      process.env.XDG_STATE_HOME ??
+      join(homedir(), ".local/state/academic-os"),
     "task-register-backups",
   );
   const read = async (): Promise<string | undefined> => {

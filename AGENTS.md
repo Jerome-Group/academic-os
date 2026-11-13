@@ -146,6 +146,12 @@ repository with no build has not earned that.
 delete anything in Drive, read `docs/agents/safe-drive-testing.md`. It owns test isolation,
 exact-ID cleanup, interrupted-run reconciliation and the recovery boundary for real modules.
 
+### External operational storage
+
+When installing a LaunchAgent on a designated external volume or moving private state, use
+[`docs/agents/operational-storage.md`](docs/agents/operational-storage.md). Verify the mounted
+volume identity and any disk-image backing before service startup.
+
 ## Repository notes
 
 **The contract is an interface, not a description.** `ntulearn` writes into the folders

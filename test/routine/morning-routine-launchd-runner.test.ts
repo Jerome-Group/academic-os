@@ -197,7 +197,7 @@ process.exitCode = install.status === 0 ? script.status ?? 1 : install.status ??
       await readFile(
         join(
           fixture.root,
-          ".local/state/academic-os/morning-launcher",
+          "morning-launcher",
           `${sha256(fixture.configPath)}.json`,
         ),
         "utf8",
@@ -270,7 +270,7 @@ async function runnerFixture(exitCode: number): Promise<{
     cliPath,
     `import { writeFile } from "node:fs/promises";\nawait writeFile(${JSON.stringify(argumentsPath)}, JSON.stringify(process.argv.slice(2)));\nprocess.exitCode = ${exitCode};\n`,
   );
-  await writeFile(configPath, "private configuration");
+  await writeFile(configPath, JSON.stringify({ stateRoot: root }));
   const notificationPath = join(root, "notify.mjs");
   await writeFile(
     notificationPath,

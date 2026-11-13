@@ -1,7 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { mkdir, readFile } from "node:fs/promises";
-import { homedir } from "node:os";
-import { delimiter, dirname, join } from "node:path";
+import { delimiter, dirname, isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { sha256 } from "../checksum.js";
@@ -12,7 +11,7 @@ export async function runMorningRoutineLaunchdJob(input: {
   nodePath: string;
   cliPath: string;
   configPath: string;
-  evidenceRoot?: string;
+  evidenceRoot: string;
   notificationPath?: string;
 }): Promise<number> {
   const morningEnvironment: NodeJS.ProcessEnv = {
@@ -28,9 +27,7 @@ export async function runMorningRoutineLaunchdJob(input: {
   );
   const exitCode =
     morning.error === undefined && morning.status !== null ? morning.status : 1;
-  const directory =
-    input.evidenceRoot ??
-    join(homedir(), ".local/state/academic-os/morning-launcher");
+  const directory = input.evidenceRoot;
   const statusPath = join(directory, `${sha256(input.configPath)}.json`);
   const notify = (message: string) =>
     spawnSync(
@@ -96,10 +93,28 @@ async function runFromCommandLine(): Promise<void> {
     process.exitCode = 64;
     return;
   }
+  let stateRoot: unknown;
+  try {
+    stateRoot = JSON.parse(await readFile(configPath, "utf8")).stateRoot;
+  } catch {
+    process.stderr.write(
+      "Morning routine cannot read configured private state root.\n",
+    );
+    process.exitCode = 1;
+    return;
+  }
+  if (typeof stateRoot !== "string" || !isAbsolute(stateRoot)) {
+    process.stderr.write(
+      "Morning routine requires an absolute private state root.\n",
+    );
+    process.exitCode = 1;
+    return;
+  }
   process.exitCode = await runMorningRoutineLaunchdJob({
     nodePath: process.execPath,
     cliPath,
     configPath,
+    evidenceRoot: join(stateRoot, "morning-launcher"),
     ...(notificationPath === undefined ? {} : { notificationPath }),
   });
 }

@@ -1,6 +1,5 @@
 import { spawnSync } from "node:child_process";
 import { mkdir, open, unlink } from "node:fs/promises";
-import { homedir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -18,8 +17,9 @@ async function runFromCommandLine(): Promise<void> {
     process.exitCode = 64;
     return;
   }
+  let stateRoot: string | undefined;
   try {
-    const stateRoot = await resolveStateRoot(await loadLocalConfig(configPath));
+    stateRoot = await resolveStateRoot(await loadLocalConfig(configPath));
     process.exitCode = await runStateRefreshLaunchdJob({
       nodePath: process.execPath,
       cliPath,
@@ -28,22 +28,31 @@ async function runFromCommandLine(): Promise<void> {
       stateRoot,
     });
     if (process.exitCode !== 75)
-      await notifyRunnerTransition(configPath, notificationPath, false);
+      await notifyRunnerTransition(
+        stateRoot,
+        configPath,
+        notificationPath,
+        false,
+      );
   } catch {
-    await notifyRunnerTransition(configPath, notificationPath, true);
+    if (stateRoot !== undefined)
+      await notifyRunnerTransition(
+        stateRoot,
+        configPath,
+        notificationPath,
+        true,
+      );
     process.exitCode = 1;
   }
 }
 
 async function notifyRunnerTransition(
+  stateRoot: string,
   configPath: string,
   notificationPath: string,
   failed: boolean,
 ): Promise<void> {
-  const directory = join(
-    homedir(),
-    ".local/state/academic-os/state-refresh-launcher",
-  );
+  const directory = join(stateRoot, "state-refresh-launcher");
   const marker = join(directory, `${sha256(configPath)}.failed`);
   try {
     if (failed) {

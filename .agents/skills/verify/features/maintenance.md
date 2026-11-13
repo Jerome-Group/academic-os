@@ -28,6 +28,9 @@ node dist/src/cli.js capabilities verify --workflow maintenance --json --log "$a
 Require a passed outcome. CLI journeys assert maintenance options, read-only status, curation migration and catch-up behavior.
 The curation CLI journey fills the seeded register example's placeholders and counts its item under the declared integration key.
 Domain journeys exercise bounded repository checks, recovery decisions, curation rederivation and weekly publication.
+The Module runner fixture captures per-session developer instructions and checks the exact work order, schema,
+journal and result paths, bounded recovery reads, transcript exclusion and unattended limits alongside sandbox,
+model and effort settings. This proves invocation transport, not native model recovery after compaction.
 Repository-repair subprocess fixtures preserve Owner issue text, bind publication to the controller's incident fingerprint,
 and require exact conclusion-comment and issue-state readback. They exercise refused writes, changed ownership,
 pagination, retries and durable unresolved outcomes through a fake GitHub transport and an isolated Git remote.

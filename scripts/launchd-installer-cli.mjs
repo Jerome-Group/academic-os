@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -106,6 +107,23 @@ export async function planOrRemoveLaunchdJob(input) {
   }
   const configPath = resolve(arguments_.configPath);
   const description = await input.describeJob(configPath);
+  if (arguments_.storagePolicyPath === undefined) {
+    const target = launchdJobTarget({
+      name: description.name,
+      homeDirectory,
+      uid,
+    });
+    let existing;
+    try {
+      existing = await readFile(target.plistPath, "utf8");
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+    if (existing?.includes("external-storage-launchd-runner.js"))
+      throw new Error(
+        "Existing LaunchAgent uses external storage; reinstall with --storage-policy or remove it explicitly first.",
+      );
+  }
   let policy;
   let plannedDescription = description;
   if (arguments_.storagePolicyPath !== undefined) {

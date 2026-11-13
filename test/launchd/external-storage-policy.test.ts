@@ -233,6 +233,41 @@ it("puts the guard before a resident server and keeps launchd streams on /dev/nu
   );
 });
 
+it("refuses an unguarded reinstall over a guarded LaunchAgent", {
+  skip: process.platform !== "darwin",
+}, async () => {
+  const { policy, policyPath } = await fixture();
+  const home = dirname(policyPath);
+  const plist = join(
+    home,
+    "Library",
+    "LaunchAgents",
+    "com.jerome-group.academic-os.operations-server.plist",
+  );
+  await mkdir(dirname(plist), { recursive: true });
+  await writeFile(
+    plist,
+    "<string>/external-storage-launchd-runner.js</string>\n",
+  );
+  const installer = fileURLToPath(
+    new URL(
+      "../../../scripts/install-operations-server-launchd.mjs",
+      import.meta.url,
+    ),
+  );
+  const result = spawnSync(
+    process.execPath,
+    [installer, "--config", policy.configPath, "--dry-run"],
+    { encoding: "utf8", env: { ...process.env, HOME: home } },
+  );
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /reinstall with --storage-policy/u);
+  assert.equal(
+    await readFile(plist, "utf8"),
+    "<string>/external-storage-launchd-runner.js</string>\n",
+  );
+});
+
 it("refuses a symlinked Operations log after storage validation", async () => {
   const { policy, policyPath, childPath, outputPath } = await fixture();
   const outside = join(dirname(policyPath), "outside-log");

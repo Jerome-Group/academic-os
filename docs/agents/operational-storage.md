@@ -1,6 +1,6 @@
 # External operational storage
 
-Use this procedure when installing an Academic OS LaunchAgent whose operational state must stay on a designated external volume. The policy is a private JSON file outside git. Each installer accepts `--storage-policy <absolute-path>`; without it, existing host behavior applies. A guarded job refuses to start its child when the required mount, UUID, or disk-image backing is unavailable.
+Use this procedure when installing an Academic OS LaunchAgent whose operational state must stay on a designated external volume. The policy is a private JSON file outside git. Each installer accepts `--storage-policy <absolute-path>`; without it, existing host behavior applies. Once installed with a policy, every reinstall must supply one; the installer refuses an unguarded replacement. A guarded job refuses to start its child when the required mount, UUID, or disk-image backing is unavailable.
 
 ## Inventory and boundary
 

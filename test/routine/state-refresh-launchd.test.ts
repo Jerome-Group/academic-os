@@ -14,8 +14,8 @@ import { afterEach, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { planLaunchdJob } from "../../src/launchd/index.js";
-import { describeStateRefreshLaunchdJob } from "../../src/routine/state-refresh-launchd.js";
 import { runStateRefreshLaunchdJob } from "../../src/routine/run-state-refresh.js";
+import { describeStateRefreshLaunchdJob } from "../../src/routine/state-refresh-launchd.js";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -197,7 +197,7 @@ describe("periodic private state refresh", () => {
     const result = spawnSync(
       process.execPath,
       [installer, "--config", input.configPath, "--dry-run"],
-      { encoding: "utf8" },
+      { encoding: "utf8", env: { ...process.env, HOME: input.root } },
     );
     assert.equal(result.status, 0, result.stderr);
     const report = JSON.parse(result.stdout);

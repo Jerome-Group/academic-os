@@ -27,6 +27,7 @@ export async function maintenanceProcessFixture(
       | "paused-stall"
       | "finish-stall";
     timeoutMs?: number;
+    startupDelayMs?: number;
     unavailable?: boolean;
   },
 ) {
@@ -139,6 +140,7 @@ if (behavior === 'ignore-term' || behavior === 'descendant') {
     `import fs from 'node:fs';
 import {syncBuiltinESMExports} from 'node:module';
 import {writeFile} from 'node:fs/promises';
+import {delayLogWrites} from ${JSON.stringify(new URL("./delayed-log-writes.js", import.meta.url).href)};
 const original = fs.createWriteStream;
 const fault = ${JSON.stringify(input.logFault ?? "")};
 let maxBuffered = 0, backpressureEvents = 0;
@@ -166,17 +168,15 @@ fs.createWriteStream = (path, options) => {
       stream.once('close', () => clearInterval(pending));
     };
   }
-  if (fault === 'slow') {
-    const writeChunk = stream._write.bind(stream), writeChunks = stream._writev.bind(stream);
-    stream._write = (chunk,encoding,callback) => setTimeout(() => writeChunk(chunk,encoding,callback),Math.ceil(chunk.length/65536)*4);
-    stream._writev = (chunks,callback) => setTimeout(() => writeChunks(chunks,callback),Math.ceil(chunks.reduce((sum,entry)=>sum+entry.chunk.length,0)/65536)*4);
-  }
+  if (fault === 'slow') delayLogWrites(stream);
   return stream;
 };
 syncBuiltinESMExports();
 const {runRepositoryProcess} = await import(${JSON.stringify(repositoryApi)});
 const {createCodexModuleSession} = await import(${JSON.stringify(moduleApi)});
 const {createRepositoryRepairPorts} = await import(${JSON.stringify(new URL("../../src/routine/repository-repair-adapters.js", import.meta.url).href)});
+await new Promise(resolve => setTimeout(resolve, ${input.startupDelayMs ?? 0}));
+process.send?.({kind:"fixture-ready"});
 const started = performance.now();
 let result;
 try {
@@ -200,11 +200,12 @@ process.exit(0);
   );
   const child = spawn(process.execPath, [runner], {
     detached: true,
-    stdio: ["ignore", "pipe", "pipe"],
+    stdio: ["ignore", "pipe", "pipe", "ipc"],
   });
   let stdout = "",
     stderr = "",
     watchdogFired = false;
+  assert.ok(child.stdout && child.stderr);
   child.stdout.on("data", (chunk: Buffer) => {
     stdout += chunk.toString();
   });
@@ -231,10 +232,27 @@ process.exit(0);
       } catch {}
     }
   };
-  const watchdog = setTimeout(() => {
+  let ready = false;
+  let watchdog = setTimeout(() => {
     watchdogFired = true;
     void kill();
-  }, 2000);
+  }, 5000);
+  child.on("message", (message) => {
+    if (
+      ready ||
+      typeof message !== "object" ||
+      message === null ||
+      !("kind" in message) ||
+      message.kind !== "fixture-ready"
+    )
+      return;
+    ready = true;
+    clearTimeout(watchdog);
+    watchdog = setTimeout(() => {
+      watchdogFired = true;
+      void kill();
+    }, 2000);
+  });
   t.after(async () => {
     clearTimeout(watchdog);
     await kill();
@@ -288,6 +306,7 @@ process.exit(0);
     input,
     exit,
     watchdogFired,
+    ready,
     ownedPids,
     aliveAtReturn,
     report,

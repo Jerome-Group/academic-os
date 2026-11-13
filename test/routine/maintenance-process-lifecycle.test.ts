@@ -11,6 +11,17 @@ test("repository check envelope permits the declared full-check budget", async (
   assert.equal(fixture.report.result.passed, true);
 });
 
+test("fixture startup does not consume the maintenance lifecycle watchdog", async (t) => {
+  const fixture = await maintenanceProcessFixture(t, {
+    runner: "repository",
+    behavior: "success",
+    startupDelayMs: 2100,
+  });
+  assert.equal(fixture.ready, true);
+  assert.equal(fixture.report.result.code, 0);
+  assert.ok(fixture.report.elapsedMs < 1000);
+});
+
 for (const runner of ["repository", "module"] as const) {
   test(`${runner} bounds slow log queues and retains both output streams`, async (t) => {
     const fixture = await maintenanceProcessFixture(t, {

@@ -287,7 +287,21 @@ Version 1 uses `schema_version`, `source_id`, `integration`, `role`, `source_pat
 `source_path` is relative to that importer root. Integration `user` or a name ending `-manual`
 explicitly marks a manual origin and may retain the absolute path where the Owner supplied it; that
 path is an observed locator, not an importer root or portable pointer. Destinations and derived paths remain
-module-relative. The timestamp is ISO-compatible, and a curated event requires a destination.
+module-relative. Historical integration `owner-download` is also an accepted spelling for an Owner-supplied
+manual origin; new lines use `user` or a `-manual` name. The timestamp is an ISO 8601 instant;
+the exact historical UTC spelling `YYYY-MM-DD HH:mm:ssZ` is read as the same instant with `T` in
+memory. Other free-form and invalid dates fail. A curated event requires a destination.
+
+An exceptional historical line with the `timestamp` key absent remains visible only when a later
+fully valid version 3 event reconciles it. That event sets `reconciliation` to
+`original-decision-time-unrecorded` and `supersedes` to `raw-sha256:<hex>`, where the hex is the
+SHA-256 of the earlier line's exact UTF-8 bytes excluding its LF or CRLF terminator. The reference
+must identify one earlier line, and only one reconciliation may identify it. The earlier line must
+pass every other rule; its timestamp may be absent, never null, empty or malformed. The new event
+keeps every original field and value, including unknown fields, except `schema_version`, `evidence`,
+`timestamp`, `supersedes` and `reconciliation`. Its timestamp is the reconciliation append instant;
+the original decision instant remains unknown. It records no new classification, copy or derived
+artifact. A missing-time line without that exact later event is invalid. Existing bytes stay intact.
 
 Version 2 adds the fourth decision `rederived`: the item's content reached the module through
 derived artifacts rather than through a copy, and the line names them in `derived` — a non-empty

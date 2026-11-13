@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 
-import { md5Bytes, sha256Bytes } from "../../src/checksum.js";
+import { md5Bytes, sha256, sha256Bytes } from "../../src/checksum.js";
 import { writtenControlPaths } from "../../src/conformance/control-paths.js";
 import {
   readCurationRegisterEvents,
@@ -130,6 +130,72 @@ function registerOf(fixture: CohortFixture, module: string): Promise<string> {
 }
 
 describe("academic-os curation migrate", () => {
+  it("previews an exact historical reconciliation without another copy or register write", async () => {
+    const fixture = await cohortFixture({ sourceBytes: placedBytes });
+    const moduleRoot = fixture.moduleRoots.get("CC0006");
+    assert.ok(moduleRoot);
+    const historical = legacyLine({
+      schema_version: 3,
+      source_id: unnumberedPath,
+      checksum: sha256Bytes(Buffer.from(placedBytes)),
+      timestamp: undefined,
+      owner_extension: { reviewed: true },
+    });
+    const blocked = `${historical}\n`;
+    await writeInto(moduleRoot, registerPath, blocked);
+    const before = await runCli(
+      "curation",
+      "migrate",
+      "--config",
+      fixture.configPath,
+      "--json",
+    );
+    assert.equal(before.exitCode, 2, JSON.stringify(before));
+    const blockedReport = JSON.parse(before.stdout);
+    assert.match(
+      JSON.stringify(
+        blockedReport.modules.find(
+          ({ module }: { module: string }) => module === "CC0006",
+        )?.blockers,
+      ),
+      /requires non-empty timestamp/u,
+    );
+    assert.equal(await registerOf(fixture, "CC0006"), blocked);
+
+    const correction = JSON.stringify({
+      ...JSON.parse(historical),
+      evidence:
+        "Original decision instant unrecorded; source and existing copy rechecked; no new copy.",
+      timestamp: "2026-11-13T12:00:00Z",
+      supersedes: `raw-sha256:${sha256(historical)}`,
+      reconciliation: "original-decision-time-unrecorded",
+    });
+    const reconciled = `${blocked}${correction}\n`;
+    await writeInto(moduleRoot, registerPath, reconciled);
+    const copyPath = "10 Learning Materials/handout.pdf";
+    await writeInto(moduleRoot, copyPath, placedBytes);
+    const after = await runCli(
+      "curation",
+      "migrate",
+      "--config",
+      fixture.configPath,
+      "--json",
+    );
+    assert.equal(after.exitCode, 0, JSON.stringify(after));
+    const report = JSON.parse(after.stdout);
+    const module = report.modules.find(
+      ({ module }: { module: string }) => module === "CC0006",
+    );
+    assert.equal(module?.counts["contract-v4"], 1);
+    assert.equal(module?.migrations.length, 0);
+    assert.equal(await registerOf(fixture, "CC0006"), reconciled);
+    assert.equal(
+      await readFile(join(moduleRoot, copyPath), "utf8"),
+      placedBytes,
+    );
+    assert.deepEqual(await readdir(fixture.stateRoot), []);
+  });
+
   it("counts the seeded register example under its declared integration key", async () => {
     const fixture = await cohortFixture({ sourceBytes: placedBytes });
     const moduleRoot = fixture.moduleRoots.get("CC0006");

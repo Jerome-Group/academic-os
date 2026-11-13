@@ -29,6 +29,12 @@ Require a passed outcome. CLI journeys assert maintenance options, read-only sta
 The curation CLI journey fills the seeded register example's placeholders and counts its item under the declared integration key.
 Mixed-history curation checks interpret null optional fields as absence while retaining required
 placement/artifact values, rejecting real forbidden claims and preserving unknown fields and raw history.
+The legacy-register regression uses a synthetic missing-time line and exact raw-line hash-linked
+version 3 append. It requires validation and compiled preview to agree on the standing decision,
+preserves the original prefix, and rejects altered fields, duplicate references and unlinked gaps.
+It also checks the historical manual alias and exact UTC space spelling without accepting arbitrary
+absolute importer paths or malformed dates. This fixture does not establish the unknown historical
+decision instants or authorize a live register append.
 Domain journeys exercise bounded repository checks, recovery decisions, curation rederivation and weekly publication.
 The Module runner fixture captures per-session developer instructions and checks the exact work order, schema,
 journal and result paths, bounded recovery reads, transcript exclusion and unattended limits alongside sandbox,

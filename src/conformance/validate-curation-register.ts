@@ -1,4 +1,6 @@
 import { normalizeCurationEventOptionals } from "../curation/normalize-curation-event-optionals.js";
+import { isDeepStrictEqual } from "node:util";
+import { sha256 } from "../checksum.js";
 import { controlFinding, failedControl } from "./control-finding.js";
 import { writtenControlPaths } from "./control-paths.js";
 import type { Finding } from "./types.js";
@@ -38,10 +40,13 @@ export function validateCurationRegister(source: string | undefined): Finding {
   const problems: string[] = [];
   const lines = source.split(/\r?\n/);
   if (lines.at(-1) === "") lines.pop();
+  const parsed: Array<Record<string, unknown> | undefined> = [];
+  const hashes = new Map<string, number[]>();
   for (const [index, line] of lines.entries()) {
     const lineNumber = index + 1;
     if (line.trim() === "") {
       problems.push(`Line ${lineNumber} is blank.`);
+      parsed.push(undefined);
       continue;
     }
     let value: unknown;
@@ -51,17 +56,94 @@ export function validateCurationRegister(source: string | undefined): Finding {
       problems.push(
         `Line ${lineNumber} is not JSON: ${error instanceof Error ? error.message : String(error)}.`,
       );
+      parsed.push(undefined);
       continue;
     }
+    parsed.push(isRecord(value) ? value : undefined);
+    const hash = sha256(line);
+    hashes.set(hash, [...(hashes.get(hash) ?? []), index]);
     problems.push(...validateEvent(value, lineNumber));
+  }
+  const reconciled = new Set<number>();
+  for (const [index, event] of parsed.entries()) {
+    if (!event) continue;
+    const reference = event.supersedes;
+    const marked = event.reconciliation === "original-decision-time-unrecorded";
+    const rawReference =
+      typeof reference === "string" && reference.startsWith("raw-sha256:");
+    if (!marked && !rawReference && event.reconciliation === undefined)
+      continue;
+    if (
+      !marked ||
+      typeof reference !== "string" ||
+      !/^raw-sha256:[0-9a-f]{64}$/u.test(reference)
+    ) {
+      problems.push(
+        `Line ${index + 1} has invalid historical reconciliation metadata.`,
+      );
+      continue;
+    }
+    const targets = hashes.get(reference.slice("raw-sha256:".length)) ?? [];
+    const targetIndex = targets[0];
+    const target = targetIndex === undefined ? undefined : parsed[targetIndex];
+    if (
+      targets.length !== 1 ||
+      targetIndex === undefined ||
+      targetIndex >= index ||
+      !target
+    ) {
+      problems.push(
+        `Line ${index + 1} historical reconciliation must name one earlier raw line.`,
+      );
+      continue;
+    }
+    if (reconciled.has(targetIndex)) {
+      problems.push(
+        `Line ${index + 1} duplicates reconciliation of line ${targetIndex + 1}.`,
+      );
+      continue;
+    }
+    if (
+      Object.hasOwn(target, "timestamp") ||
+      target.reconciliation !== undefined ||
+      validateEvent(target, targetIndex + 1).length > 0
+    ) {
+      problems.push(
+        `Line ${index + 1} target line ${targetIndex + 1} is not valid history with only timestamp absent.`,
+      );
+      continue;
+    }
+    if (
+      event.schema_version !== 3 ||
+      !nonEmptyString(event.timestamp) ||
+      validateEvent(event, index + 1).length > 0 ||
+      !sameHistoricalDecision(target, event)
+    ) {
+      problems.push(
+        `Line ${index + 1} changes the historical decision or is not a valid current event.`,
+      );
+      continue;
+    }
+    reconciled.add(targetIndex);
+  }
+  for (const [index, event] of parsed.entries()) {
+    if (event && !Object.hasOwn(event, "timestamp") && reconciled.has(index))
+      continue;
+    if (event && !nonEmptyString(event.timestamp)) {
+      problems.push(`Line ${index + 1} requires non-empty timestamp.`);
+    }
   }
   return problems.length === 0
     ? controlFinding(
         "MF-CURATION-001",
         registerPath,
         "pass",
-        `Curation Register contains ${lines.length} structurally valid event${lines.length === 1 ? "" : "s"}.`,
-        "Every non-empty line is one supported curation-decision event.",
+        reconciled.size === 0
+          ? `Curation Register contains ${lines.length} structurally valid event${lines.length === 1 ? "" : "s"}.`
+          : `Curation Register contains ${lines.length} accepted events; ${reconciled.size} historical decision instant${reconciled.size === 1 ? "" : "s"} unrecorded and reconciled.`,
+        reconciled.size === 0
+          ? "Every non-empty line is one supported curation-decision event."
+          : "The reconciled events retain unknown original decision times; later timestamps describe the reconciliation append.",
       )
     : failedControl("MF-CURATION-001", registerPath, problems);
 }
@@ -76,7 +158,6 @@ function validateEvent(input: unknown, line: number): string[] {
     "role",
     "source_path",
     "evidence",
-    "timestamp",
   ];
   const declared = readDecisions(value.schema_version);
   if (declared === undefined) {
@@ -98,7 +179,7 @@ function validateEvent(input: unknown, line: number): string[] {
     !isManualOrigin(value.integration)
   ) {
     problems.push(
-      `Line ${line} importer source_path must be integration-relative; absolute observed locators are allowed only for manual integration user or a name ending -manual.`,
+      `Line ${line} importer source_path must be integration-relative; absolute observed locators are allowed only for manual integration user, owner-download or a name ending -manual.`,
     );
   }
   if (value.checksum !== undefined && !nonEmptyString(value.checksum)) {
@@ -110,13 +191,7 @@ function validateEvent(input: unknown, line: number): string[] {
     );
   }
   problems.push(...outcomeProblems(value, line));
-  if (
-    nonEmptyString(value.timestamp) &&
-    (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/u.test(
-      value.timestamp,
-    ) ||
-      Number.isNaN(Date.parse(value.timestamp)))
-  ) {
+  if (nonEmptyString(value.timestamp) && !validTimestamp(value.timestamp)) {
     problems.push(`Line ${line} timestamp is not an ISO 8601 instant.`);
   }
   if (value.supersedes !== undefined && !nonEmptyString(value.supersedes)) {
@@ -128,7 +203,68 @@ function validateEvent(input: unknown, line: number): string[] {
 function isManualOrigin(integration: unknown): boolean {
   return (
     nonEmptyString(integration) &&
-    (integration === "user" || integration.endsWith("-manual"))
+    (integration === "user" ||
+      integration === "owner-download" ||
+      integration.endsWith("-manual"))
+  );
+}
+
+function sameHistoricalDecision(
+  old: Record<string, unknown>,
+  current: Record<string, unknown>,
+): boolean {
+  const excluded = new Set([
+    "schema_version",
+    "evidence",
+    "timestamp",
+    "supersedes",
+    "reconciliation",
+  ]);
+  const fields = new Set([...Object.keys(old), ...Object.keys(current)]);
+  for (const field of fields) {
+    if (excluded.has(field)) continue;
+    if (!isDeepStrictEqual(old[field], current[field])) return false;
+  }
+  return true;
+}
+
+function validTimestamp(value: string): boolean {
+  const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}Z$/u.test(value)
+    ? value.replace(" ", "T")
+    : value;
+  const match =
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(Z|[+-]\d{2}:\d{2})$/u.exec(
+      normalized,
+    );
+  if (!match) return false;
+  const [, year, month, day, hour, minute, second, zone] = match;
+  if (
+    year === undefined ||
+    month === undefined ||
+    day === undefined ||
+    hour === undefined ||
+    minute === undefined ||
+    second === undefined ||
+    zone === undefined
+  )
+    return false;
+  const offsetHour = zone === "Z" ? 0 : Number(zone.slice(1, 3));
+  const offsetMinute = zone === "Z" ? 0 : Number(zone.slice(4, 6));
+  if (offsetHour > 23 || offsetMinute > 59) return false;
+  const instant = Date.parse(normalized);
+  if (Number.isNaN(instant)) return false;
+  const offset =
+    zone === "Z"
+      ? 0
+      : (zone.startsWith("+") ? 1 : -1) * (offsetHour * 60 + offsetMinute);
+  const local = new Date(instant + offset * 60_000);
+  return (
+    local.getUTCFullYear() === Number(year) &&
+    local.getUTCMonth() + 1 === Number(month) &&
+    local.getUTCDate() === Number(day) &&
+    local.getUTCHours() === Number(hour) &&
+    local.getUTCMinutes() === Number(minute) &&
+    local.getUTCSeconds() === Number(second)
   );
 }
 

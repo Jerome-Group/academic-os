@@ -234,7 +234,7 @@ process.exitCode = install.status === 0 ? script.status ?? 1 : install.status ??
     const result = await runProcess(
       process.execPath,
       [installerPath, "--config", fixture.configPath, "--dry-run"],
-      { ...process.env, TZ: "Asia/Singapore" },
+      { ...process.env, HOME: fixture.root, TZ: "Asia/Singapore" },
     );
 
     assert.equal(result.exitCode, 0, JSON.stringify(result));

@@ -281,6 +281,11 @@ describe("the module maintenance session", () => {
           originalSourceMap,
         );
         const prompt = arguments_.at(-1) ?? "";
+        const contextConfig = arguments_.indexOf(
+          "features.context_management=false",
+        );
+        assert.ok(contextConfig > 0);
+        assert.equal(arguments_[contextConfig - 1], "--config");
         assert.match(prompt, /<maintenance-work-order>/u);
         assert.match(prompt, /"learningSources"/u);
         assert.match(prompt, /"documentation-lifecycle"/u);
@@ -302,6 +307,11 @@ describe("the module maintenance session", () => {
         ])
           assert.ok(instructions.includes(path), path);
         assert.match(instructions, /after context compaction/u);
+        assert.match(instructions, /local shell filesystem tools/u);
+        assert.match(
+          instructions,
+          /Never use application-backend or context-window tools/u,
+        );
         assert.match(instructions, /do not repeat completed writes/u);
         assert.match(
           instructions,

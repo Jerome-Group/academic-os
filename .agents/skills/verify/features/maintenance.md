@@ -30,7 +30,10 @@ The curation CLI journey fills the seeded register example's placeholders and co
 Domain journeys exercise bounded repository checks, recovery decisions, curation rederivation and weekly publication.
 The Module runner fixture captures per-session developer instructions and checks the exact work order, schema,
 journal and result paths, bounded recovery reads, transcript exclusion and unattended limits alongside sandbox,
-model and effort settings. This proves invocation transport, not native model recovery after compaction.
+model and effort settings. It requires the per-invocation experimental context-management disable and
+local shell filesystem guidance for Module and journal operations. Unattended sessions override inherited
+experimental context management and direct recovery through local files while retaining normal automatic compaction.
+This proves invocation transport, not native model recovery after compaction or real curation completion.
 Repository-repair subprocess fixtures preserve Owner issue text, bind publication to the controller's incident fingerprint,
 and require exact conclusion-comment and issue-state readback. They exercise refused writes, changed ownership,
 pagination, retries and durable unresolved outcomes through a fake GitHub transport and an isolated Git remote.

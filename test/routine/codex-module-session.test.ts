@@ -298,6 +298,15 @@ describe("the module maintenance session", () => {
         );
         assert.ok(typeof instructions === "string");
         assert.ok(instructions.startsWith(prompt));
+        assert.match(instructions, /verify the generated provenance schema/u);
+        assert.match(instructions, /importer-authored `source-only` branch/u);
+        assert.match(instructions, /classify that source independently/u);
+        assert.match(instructions, /appending a superseding decision/u);
+        assert.match(
+          instructions,
+          /already `source-only` record takes no new line/u,
+        );
+        assert.match(instructions, /Park unverified records/u);
         for (const path of [
           join(artifacts, MORNING_SESSION_WORK_ORDER_FILENAME),
           join(artifacts, "result-schema.json"),

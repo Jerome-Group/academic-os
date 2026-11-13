@@ -34,6 +34,9 @@ model and effort settings. It requires the per-invocation experimental context-m
 local shell filesystem guidance for Module and journal operations. Unattended sessions override inherited
 experimental context management and direct recovery through local files while retaining normal automatic compaction.
 This proves invocation transport, not native model recovery after compaction or real curation completion.
+The captured instructions also distinguish verified generated provenance from referenced source material,
+apply the pinned importer-authored classification branch, preserve append-only/no-op rules and park validation gaps.
+These assertions prove instruction delivery; model classification quality needs a separate isolated native probe.
 Repository-repair subprocess fixtures preserve Owner issue text, bind publication to the controller's incident fingerprint,
 and require exact conclusion-comment and issue-state readback. They exercise refused writes, changed ownership,
 pagination, retries and durable unresolved outcomes through a fake GitHub transport and an isolated Git remote.

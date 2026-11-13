@@ -34,6 +34,7 @@ for (const runner of ["repository", "module"] as const) {
       fixture.report.maxBuffered <= 196608,
       `queued ${fixture.report.maxBuffered} bytes behind a slow log`,
     );
+    assert.equal(fixture.logReleased, true);
     assert.ok(fixture.report.backpressureEvents > 0);
     const log = await readFile(
       runner === "repository"
@@ -61,7 +62,7 @@ for (const runner of ["repository", "module"] as const) {
         behavior: logFault === "finish-stall" ? "success" : "volume",
         logFault,
       });
-      assert.ok(fixture.report.elapsedMs < 1000);
+      assert.ok((fixture.report.processElapsedMs ?? Infinity) < 1000);
       assert.ok(fixture.report.streams.every((stream) => stream.closed));
       if (logFault !== "finish-stall") {
         assert.ok(fixture.report.backpressureEvents > 0);
@@ -211,5 +212,24 @@ for (const runner of ["repository", "module"] as const) {
           ({ code, message }) => code === "ENOENT" && message.includes("spawn"),
         ),
       );
+  });
+}
+
+for (const logFault of ["paused-stall", "finish-stall"] as const) {
+  test(`module ${logFault} deadline excludes preflight work`, async (t) => {
+    const fixture = await maintenanceProcessFixture(t, {
+      runner: "module",
+      behavior: logFault === "finish-stall" ? "success" : "volume",
+      logFault,
+      preflightDelayMs: 1100,
+    });
+    assert.ok(fixture.report.elapsedMs >= 1100);
+    assert.ok((fixture.report.processElapsedMs ?? Infinity) < 1000);
+    assert.ok(fixture.report.streams.every((stream) => stream.closed));
+    assert.ok(
+      fixture.report.result.failures?.some(
+        ({ code }) => code === "session-runner-failed",
+      ),
+    );
   });
 }

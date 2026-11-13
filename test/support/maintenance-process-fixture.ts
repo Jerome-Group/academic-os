@@ -28,6 +28,7 @@ export async function maintenanceProcessFixture(
       | "finish-stall";
     timeoutMs?: number;
     startupDelayMs?: number;
+    preflightDelayMs?: number;
     unavailable?: boolean;
   },
 ) {
@@ -140,21 +141,27 @@ if (behavior === 'ignore-term' || behavior === 'descendant') {
     `import fs from 'node:fs';
 import {syncBuiltinESMExports} from 'node:module';
 import {writeFile} from 'node:fs/promises';
-import {delayLogWrites} from ${JSON.stringify(new URL("./delayed-log-writes.js", import.meta.url).href)};
+import {holdLogWrites} from ${JSON.stringify(new URL("./held-log-writes.js", import.meta.url).href)};
 const original = fs.createWriteStream;
 const fault = ${JSON.stringify(input.logFault ?? "")};
 let maxBuffered = 0, backpressureEvents = 0;
+let processStarted, releaseLog;
 const streams = [];
 fs.createWriteStream = (path, options) => {
   if (!String(path).endsWith('session.log') && !String(path).endsWith('repository.log')) return original(path,options);
   if (fault === 'open' && String(path).endsWith('session.log')) return original(${JSON.stringify(badLog)},{...options,flags:'w'});
+  processStarted = performance.now();
+  process.send?.({kind:"fixture-ready"});
   const stream = original(path,options);
   streams.push(stream);
   const write = stream.write.bind(stream);
   stream.write = (...args) => {
     const ready = write(...args);
     maxBuffered = Math.max(maxBuffered,stream.writableLength);
-    if (!ready) backpressureEvents++;
+    if (!ready) {
+      backpressureEvents++;
+      if (fault === "slow") process.send?.({kind:"log-backpressure"});
+    }
     return ready;
   };
   if (fault === 'write' || fault === 'finish' || fault === 'paused-write') {
@@ -168,15 +175,15 @@ fs.createWriteStream = (path, options) => {
       stream.once('close', () => clearInterval(pending));
     };
   }
-  if (fault === 'slow') delayLogWrites(stream);
+  if (fault === 'slow') releaseLog = holdLogWrites(stream);
   return stream;
 };
+process.on("message",message=>{if(message?.kind==="release-log")releaseLog?.();});
 syncBuiltinESMExports();
 const {runRepositoryProcess} = await import(${JSON.stringify(repositoryApi)});
 const {createCodexModuleSession} = await import(${JSON.stringify(moduleApi)});
 const {createRepositoryRepairPorts} = await import(${JSON.stringify(new URL("../../src/routine/repository-repair-adapters.js", import.meta.url).href)});
 await new Promise(resolve => setTimeout(resolve, ${input.startupDelayMs ?? 0}));
-process.send?.({kind:"fixture-ready"});
 const started = performance.now();
 let result;
 try {
@@ -190,11 +197,11 @@ try {
     const originalTimeout = globalThis.setTimeout;
     globalThis.setTimeout = (callback,delay,...args)=>originalTimeout(callback,delay === 30000 ? 250 : delay,...args);
     let clocks = 0;
-    const session = createCodexModuleSession({config:${JSON.stringify({ driveMount: join(root, "Drive"), stateRoot, activeSemester: "Y2S1", semesters: { Y2S1: { root: "Modules/Y2S1", status: "active", modules: ["MH2100"] } } })},codexPath:${JSON.stringify(input.unavailable ? join(root, "missing") : executable)},date:'2026-08-23',sessionSettings:{model:'gpt-6.1-sol',reasoningEffort:'xhigh'},clock:()=>new Date(Date.parse('2026-08-22T22:00:00.000Z') + (clocks++ === 0 ? 0 : 1200000-${input.timeoutMs ?? 250}))});
+    const session = createCodexModuleSession({config:${JSON.stringify({ driveMount: join(root, "Drive"), stateRoot, activeSemester: "Y2S1", semesters: { Y2S1: { root: "Modules/Y2S1", status: "active", modules: ["MH2100"] } } })},codexPath:${JSON.stringify(input.unavailable ? join(root, "missing") : executable)},date:'2026-08-23',sessionSettings:{model:'gpt-6.1-sol',reasoningEffort:'xhigh'},clock:()=>{ if (clocks === 0) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,${input.preflightDelayMs ?? 0}); return new Date(Date.parse('2026-08-22T22:00:00.000Z') + (clocks++ === 0 ? 0 : 1200000-${input.timeoutMs ?? 250})); }});
     result = await session.run({semester:'Y2S1',module:'MH2100'});
   }
 } catch(error) {result = {error:{message:error.message,code:error.code}};}
-await writeFile(${JSON.stringify(join(root, "result.json"))},JSON.stringify({elapsedMs:performance.now()-started,result,maxBuffered,backpressureEvents,streams:streams.map(stream=>({closed:stream.closed,destroyed:stream.destroyed,writableFinished:stream.writableFinished,length:stream.writableLength})),activeTimeouts:process.getActiveResourcesInfo().filter(name=>name==='Timeout').length}));
+await writeFile(${JSON.stringify(join(root, "result.json"))},JSON.stringify({elapsedMs:performance.now()-started,processElapsedMs:processStarted === undefined ? undefined : performance.now()-processStarted,result,maxBuffered,backpressureEvents,streams:streams.map(stream=>({closed:stream.closed,destroyed:stream.destroyed,writableFinished:stream.writableFinished,length:stream.writableLength})),activeTimeouts:process.getActiveResourcesInfo().filter(name=>name==='Timeout').length}));
 process.exit(0);
 `,
   );
@@ -237,7 +244,18 @@ process.exit(0);
     watchdogFired = true;
     void kill();
   }, 5000);
+  let logReleased = false;
   child.on("message", (message) => {
+    if (
+      !logReleased &&
+      typeof message === "object" &&
+      message !== null &&
+      "kind" in message &&
+      message.kind === "log-backpressure"
+    ) {
+      logReleased = true;
+      child.send({ kind: "release-log" });
+    }
     if (
       ready ||
       typeof message !== "object" ||
@@ -278,6 +296,7 @@ process.exit(0);
   let report:
     | {
         elapsedMs: number;
+        processElapsedMs?: number;
         result: {
           error?: { code?: string; message: string };
           code?: number;
@@ -307,6 +326,7 @@ process.exit(0);
     exit,
     watchdogFired,
     ready,
+    logReleased,
     ownedPids,
     aliveAtReturn,
     report,

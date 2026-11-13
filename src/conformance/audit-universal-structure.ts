@@ -52,6 +52,7 @@ export function auditUniversalStructure(
         !expectedRootPaths.has(entry.path) &&
         !declaredContextualRoots.has(entry.path) &&
         entry.path !== "build" &&
+        !(entry.path === ".agents" && entry.kind === "directory") &&
         !(entry.kind === "directory" && entry.path.startsWith("NTULearn_")),
     )
     .sort((left, right) => left.path.localeCompare(right.path));
@@ -75,6 +76,18 @@ function unexpectedRootFinding({
   path,
   kind,
 }: Inventory["entries"][number]): Finding | undefined {
+  if (path === ".agents") {
+    return {
+      ruleId: "MF-ROOT-002",
+      enforcement: enforcementForRule("MF-ROOT-002"),
+      status: "fail",
+      severity: "error",
+      path,
+      evidence: `Optional module-root .agents must be a directory; inventory found ${kind}.`,
+      explanation: "Tool-owned local skills require an ordinary directory.",
+      applicability: "Optional tool metadata applies at module root only.",
+    };
+  }
   if (kind === "directory") {
     return {
       ruleId: "MF-ROOT-002",

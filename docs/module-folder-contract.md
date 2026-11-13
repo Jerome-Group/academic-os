@@ -5,10 +5,10 @@ with an applicable rule here is wrong, and a rule that is not here is not a rule
 outside a module folder is governed too, and it is the only one: the shared Textbook shelf at
 `Modules/Textbooks`, which every module cuts its chapters from.
 
-**Contract version: 7.** Increase it when a normative requirement, applicability rule or allowed
+**Contract version: 8.** Increase it when a normative requirement, applicability rule or allowed
 structure changes. Editorial clarification and repaired citations do not change it. Definition and
-Curation-register schema versions advance independently, which is how the register reached version 3
-while this contract reached 7.
+Curation-register schema versions advance independently; the register remains at version 3 under
+this contract.
 
 Rules have stable IDs. **Deterministic** rules are decided without judgment; **judgment** rules
 must expose their evidence for an agent or person to resolve. The folders live outside this
@@ -100,7 +100,10 @@ MODULE_CODE/
 
 **MF-ROOT-002 (deterministic).** Loose academic contents at module root are errors. An unknown root
 directory requires a decision; it is neither an automatic contract failure nor a contract
-proposal.
+proposal. An ordinary module-root `.agents/` directory is optional tool-owned metadata for local
+skills. It is not seeded. A file, symlink or other kind at that path fails; other hidden root
+directories remain unknown and require classification. This allowance does not apply to nested
+`.scratch`, a module-root `build/`, or arbitrary hidden directories.
 
 **MF-ROOT-003 (deterministic).** What the mount writes into a folder by itself is not module content,
 and a walk that judges what it finds omits it — an inventory this contract is audited against, and
@@ -172,11 +175,11 @@ schema and contract versions, module identity, offering, applicable context-deri
 declared importer roots and their evidence. It contains module-relative paths only: no absolute
 Drive paths, credentials, deadlines, prose workflows, inventories or learner progress.
 
-The schema version 2 shape for contract version 7 is:
+The schema version 2 shape for contract version 8 is:
 
 ```yaml
 schema_version: 2
-contract_version: 7
+contract_version: 8
 module: { code: MH2100, title: Calculus III }
 offering: { academic_year: 2026-2027, semester: 1, status: active }
 structure:
@@ -287,7 +290,24 @@ Version 1 uses `schema_version`, `source_id`, `integration`, `role`, `source_pat
 `source_path` is relative to that importer root. Integration `user` or a name ending `-manual`
 explicitly marks a manual origin and may retain the absolute path where the Owner supplied it; that
 path is an observed locator, not an importer root or portable pointer. Destinations and derived paths remain
-module-relative. The timestamp is ISO-compatible, and a curated event requires a destination.
+module-relative. Historical integration `owner-download` is also an accepted spelling for an Owner-supplied
+manual origin; new lines use `user` or a `-manual` name. The timestamp is an ISO 8601 instant;
+the exact historical UTC spelling `YYYY-MM-DD HH:mm:ssZ` is read as the same instant with `T` in
+memory. Other free-form and invalid dates fail. A curated event requires a destination.
+
+An exceptional historical line with the `timestamp` key absent remains visible only when a later
+fully valid version 3 event reconciles it. That event sets `reconciliation` to
+`original-decision-time-unrecorded` and `supersedes` to `raw-sha256:<hex>`, where the hex is the
+SHA-256 of the earlier line's exact UTF-8 bytes excluding its LF or CRLF terminator. The reference
+must identify one earlier line, and only one reconciliation may identify it. The earlier line must
+pass every other rule; its timestamp may be absent, never null, empty or malformed. The new event
+keeps every original field and value, including unknown fields, except `schema_version`, `evidence`,
+`timestamp`, `supersedes` and `reconciliation`. Its timestamp is the reconciliation append instant;
+the original decision instant remains unknown. It records no new classification, copy or derived
+artifact. Each numeric JSON token in both lines must retain its exact spelling after number parsing
+and serialization; a token that would round or normalize blocks reconciliation, including nested
+unknown fields. This conservative check applies only to reconciliation. A missing-time line without
+that exact later event is invalid. Existing bytes stay intact.
 
 Version 2 adds the fourth decision `rederived`: the item's content reached the module through
 derived artifacts rather than through a copy, and the line names them in `derived` — a non-empty

@@ -124,8 +124,9 @@ MODULE_CODE_Assignment_01_Draft_02.docx
 MODULE_CODE_Quiz_02_2026-09-14_Graded.pdf
 ```
 
-Exempt from all of it: everything inside an importer root, `.scratch/`, a `build/`, `docs/` and
-`70 Learning/`, plus the three root control files. Importer names stay the importer's, and the
+Exempt from all of it: everything inside an importer root, `.scratch/`, an optional module-root
+`.agents/` for tool-owned local skills, a `build/`, `docs/` and `70 Learning/`, plus the three
+root control files. Importer names stay the importer's, and the
 Teaching workspace names by its own procedure.
 
 Directories use the exact spelling and case written above — in the tree, and in what the Definition

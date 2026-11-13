@@ -153,7 +153,7 @@ test("rejects stale approval, path-only identity, unavailable capability, and co
 
   const wrongContract = repairPlanDraft();
   wrongContract.contractVersion = 999;
-  assert.throws(() => createRepairPlan(wrongContract), /must be 7/u);
+  assert.throws(() => createRepairPlan(wrongContract), /must be 8/u);
 });
 
 test("requires file-level curation before retiring an empty scratch tree", () => {

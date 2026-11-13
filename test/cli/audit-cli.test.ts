@@ -120,6 +120,31 @@ async function conformantModule(): Promise<{
 }
 
 describe("academic-os audit", () => {
+  it("accepts a local skills directory but classifies other hidden roots", async () => {
+    const { configPath, moduleRoot } = await conformantModule();
+    await mkdir(join(moduleRoot, ".agents/skills/verify"), { recursive: true });
+    await writeFile(
+      join(moduleRoot, ".agents/skills/verify/SKILL.md"),
+      "# Local verification\n",
+    );
+    const accepted = await runCli("audit", "--config", configPath, "--json");
+    assert.equal(accepted.exitCode, 0, JSON.stringify(accepted));
+    assert.equal(
+      (JSON.parse(accepted.stdout) as JsonReport).outcome,
+      "conformant",
+    );
+
+    await mkdir(join(moduleRoot, ".other-hidden"));
+    const unknown = await runCli("audit", "--config", configPath, "--json");
+    assert.equal(unknown.exitCode, 3, JSON.stringify(unknown));
+    assert.equal(
+      (JSON.parse(unknown.stdout) as JsonReport).findings.find(
+        ({ path }) => path === ".other-hidden",
+      )?.status,
+      "requires-decision",
+    );
+  });
+
   it("requires a decision for importer landmark descendants in direct Profile cells", async () => {
     const { configPath, moduleRoot } = await conformantModule();
     const controls = validModuleControls();
@@ -414,7 +439,7 @@ describe("academic-os audit", () => {
     assert.deepEqual(firstReport.observation, {
       schemaVersion: 1,
       ruleSetVersion: 1,
-      contractVersion: 7,
+      contractVersion: 8,
       reportProvenance: {
         producer: "@jerome-group/academic-os",
         producerVersion: "0.1.0",
@@ -499,8 +524,8 @@ describe("academic-os audit", () => {
     await writeFile(
       definitionPath,
       (validModuleControls().definition ?? "").replace(
-        "contract_version: 7",
         "contract_version: 8",
+        "contract_version: 7",
       ),
     );
     const changedContract = await runCli(
@@ -512,8 +537,8 @@ describe("academic-os audit", () => {
     const changedReport = JSON.parse(changedContract.stdout) as JsonReport;
     assert.equal(changedReport.comparison.basis, "contract-version-changed");
     assert.deepEqual(changedReport.comparison.contractChange, {
-      from: 7,
-      to: 8,
+      from: 8,
+      to: 7,
     });
     assert.deepEqual(changedReport.comparison.new, []);
     assert.deepEqual(changedReport.comparison.resolved, []);

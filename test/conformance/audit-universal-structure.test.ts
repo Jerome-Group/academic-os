@@ -21,6 +21,57 @@ function conformantInventory(): Inventory {
 }
 
 describe("auditUniversalStructure", () => {
+  it("accepts optional ordinary module-root tool metadata without requiring its contents", () => {
+    const inventory = conformantInventory();
+    inventory.entries.push(
+      {
+        path: ".agents",
+        kind: "directory",
+        modifiedAt: "2026-08-11T00:00:00.000Z",
+      },
+      {
+        path: ".agents/skills",
+        kind: "directory",
+        modifiedAt: "2026-08-11T00:00:00.000Z",
+      },
+    );
+    const result = auditUniversalStructure(inventory);
+    assert.equal(result.outcome, "conformant");
+    assert.equal(
+      result.findings.some(({ path }) => path === ".agents"),
+      false,
+    );
+  });
+
+  it("rejects a wrong-kind tooling root and keeps unknown hidden roots open for decision", () => {
+    for (const kind of ["file", "symlink", "other"] as const) {
+      const inventory = conformantInventory();
+      inventory.entries.push({
+        path: ".agents",
+        kind,
+        modifiedAt: "2026-08-11T00:00:00.000Z",
+      });
+      const result = auditUniversalStructure(inventory);
+      assert.equal(result.outcome, "deviation");
+      assert.equal(
+        result.findings.find(({ path }) => path === ".agents")?.status,
+        "fail",
+      );
+    }
+    const inventory = conformantInventory();
+    inventory.entries.push({
+      path: ".unknown",
+      kind: "directory",
+      modifiedAt: "2026-08-11T00:00:00.000Z",
+    });
+    const result = auditUniversalStructure(inventory);
+    assert.equal(result.outcome, "requires-decision");
+    assert.equal(
+      result.findings.find(({ path }) => path === ".unknown")?.status,
+      "requires-decision",
+    );
+  });
+
   it("reports the universal structure as conformant [MF-UNIVERSAL-001]", () => {
     const result = auditUniversalStructure(conformantInventory());
 

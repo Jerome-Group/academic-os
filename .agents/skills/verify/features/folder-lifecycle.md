@@ -29,6 +29,10 @@ node dist/src/cli.js capabilities verify --workflow recovery --json --log "$aos_
 ```
 
 Require a passed outcome. The existing CLI journeys check preview leaves the destination absent, apply publishes a conformant Module and audit reads it back.
+Contract v8 accepts an optional ordinary module-root `.agents/` directory for local tooling, while
+file or symlink replacements fail and unrelated hidden directories still require classification.
+The Definition regression reports a v7 folder as needing transition to requested v8; fixture
+checks do not perform the Owner-approved transition of an active Module.
 Research-project journeys check profile-derived folders, meeting-free seeding and complete manifest-v2 Meeting intake.
 They compare exact note, schedule and binary payload bytes after publication and replay, then audit the result through the compiled CLI.
 Meeting-note journeys accept LF and CRLF front matter and preserve the approved note bytes through preview, publication, replay and audit.

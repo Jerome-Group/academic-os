@@ -429,7 +429,7 @@ it("discovers synthetic MH2100 midterm with ordered provenance and detects chang
     await writeFile(
       join(admin, "10 Module Definition.yaml"),
       (controls.definition ?? "").replace(
-        "contract_version: 7",
+        "contract_version: 8",
         "contract_version: 6",
       ),
     );

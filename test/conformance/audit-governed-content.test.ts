@@ -63,6 +63,22 @@ function audit(target: Inventory, definition = vanillaDefinition) {
 }
 
 describe("auditModule governed content", () => {
+  it("keeps module-local skill metadata discoverable without classifying it as coursework", () => {
+    const target = inventory();
+    add(target, ".agents");
+    add(target, ".agents/skills");
+    add(target, ".agents/skills/verify");
+    add(target, ".agents/skills/verify/SKILL.md", "file");
+    const result = audit(target);
+    assert.equal(result.outcome, "conformant");
+    assert.equal(
+      result.findings.some(
+        ({ path, status }) => path === ".agents" && status !== "pass",
+      ),
+      false,
+    );
+  });
+
   it("returns Definition findings when YAML alias resolution fails", () => {
     const result = audit(inventory(), "module: *missing\n");
     assert.ok(
@@ -76,7 +92,7 @@ describe("auditModule governed content", () => {
   it("returns findings for circular control values", () => {
     const result = audit(
       inventory(),
-      "schema_version: 2\ncontract_version: 7\nevidence: &e {self: *e}\n",
+      "schema_version: 2\ncontract_version: 8\nevidence: &e {self: *e}\n",
     );
     assert.ok(
       result.findings.some(

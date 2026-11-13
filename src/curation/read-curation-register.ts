@@ -1,3 +1,5 @@
+import { isRecord } from "../conformance/value-shape.js";
+import { normalizeCurationEventOptionals } from "./normalize-curation-event-optionals.js";
 import { readRecordedChecksum } from "./recorded-checksum.js";
 import type {
   CurationIdentity,
@@ -15,10 +17,10 @@ export function readCurationRegisterEvents(
   if (lines.at(-1) === "") lines.pop();
   return lines.map((line, index) => {
     const event: unknown = JSON.parse(line);
-    if (typeof event !== "object" || event === null || Array.isArray(event)) {
+    if (!isRecord(event)) {
       throw new TypeError(`Line ${index + 1} is not a JSON object.`);
     }
-    return event as CurationRegisterEvent;
+    return normalizeCurationEventOptionals(event);
   });
 }
 

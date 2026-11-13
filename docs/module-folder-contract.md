@@ -300,6 +300,11 @@ rule rather than an exception to it. A `withdrawn` line therefore names no `dest
 `derived`, no `checksum` — its source is not there to hash — and no `supersedes`, so the line that
 placed the copy remains the register's record of where the item went.
 
+Readers interpret literal `null` in unused optional `destination`, `derived`, `checksum` and
+`supersedes` fields as absence. A curated destination and a rederived artifact list remain required
+and cannot be null; non-null fields still obey their decision-specific rules. Writers omit unused
+optional fields. This compatible read interpretation leaves stored event bytes unchanged.
+
 Every version is valid in one file. A version 1 or version 2 line stays history exactly as it
 stands, so nothing migrates one and a register mixing versions is conformant.
 

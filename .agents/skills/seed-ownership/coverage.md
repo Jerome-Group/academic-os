@@ -71,6 +71,20 @@ then pass after restoration. Existing lifecycle checks continue to reject altere
 These are parser behavior checks, not additional formal properties.
 Models, promises and bounds remain unchanged. Only the exact source binding advances.
 
+## Nullable curation history maintenance
+
+Inspection through `1e9ec8b475e9c46ea9f6e6075728b5c8e55486dc` includes the `31b9ce8` squash and `93a0147` optional-field fix.
+All 23 covered files were diffed from `857b6c4`; only the curation ownership CLI test differs.
+Its added nullable-history regression preserves the existing register prefix, checks a canonical append and confirms unchanged source bytes.
+The positive suite now has ten tests. This is harness drift; the ownership models, properties and bounds remain unchanged.
+The parser's broader correctness remains outside the formal claim.
+
+The ordinary command first refused the changed test hash; the old probe then refused ten actual passing tests because it required nine.
+The maintained candidate passed all 19 model outcomes, four prerequisites, 34 filesystem schedules, 33 journal tests, the repair probe and ten curation tests.
+Both cleanup mutants lost the protected sentinel; owner and repair mutants admitted the prohibited real effects, and both curation mutants lost a confirmed append.
+All restored controls passed, exact source hashes agreed and no owned process survived.
+The coverage record copies only that complete candidate's captured hashes.
+
 ## Bounds and assumptions
 
 The positive configurations enumerate one target, one active stage pathname, two claim generations, two nested directory components, two approved files, and one foreign descendant slot.

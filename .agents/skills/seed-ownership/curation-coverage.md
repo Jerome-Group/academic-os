@@ -73,7 +73,7 @@ All operation orders inside these bounds are explored without fairness or livene
 The curation model adds no interruption, retry, I/O exception, pathname fault, missing-artifact branch, or uncooperative writer.
 It does not reduce any existing seed or journal-owner bound.
 The existing owner model retains its process-death, restart and pending-storage checks.
-The nine real curation CLI schedules separately exercise stopped owners, observed death, published interruption, stale observation, aliases and unavailable ownership.
+The ten real curation CLI schedules separately exercise stopped owners, observed death, published interruption, stale observation, aliases and unavailable ownership.
 Those schedules supply implementation evidence, not exhaustive interruption proof for this curation model.
 
 Stable canonical namespaces, materialized ordinary files, one host, one canonical private root, unchanged source and artifact inputs, and reliable local SQLite exclusion are premises.
@@ -93,7 +93,7 @@ Both CLIs must exit zero and report `appended=1`, both private journals must con
 The runner checks both final-read digests, rereads the actual register and journals, and requires every recorded child PID to be absent.
 Curation fixtures retain raw JSON and JSONL files in `owner-curation-*` evidence directories under the local run's private root.
 An exception, source hash mismatch or compilation error does not satisfy this control.
-After restoring the helper and rebuilding, all nine CLI schedules must pass for each mutation.
+After restoring the helper and rebuilding, all ten CLI schedules must pass for each mutation.
 The fresh ordinary run follows only after candidate gates pass, the exact source hashes are recorded and verification is committed.
 
 ## Reporting maintenance

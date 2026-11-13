@@ -65,7 +65,7 @@ async function positive() {
     false,
     { AOS_JOURNAL_EVIDENCE_ROOT: destination },
   );
-  for (const line of ["# tests 9", "# pass 9", "# fail 0", "# skipped 0"])
+  for (const line of ["# tests 10", "# pass 10", "# fail 0", "# skipped 0"])
     assert.ok(run.output.includes(`${line}\n`), `${name} requires ${line}`);
   const fixture = await curationPrefixFixture(destination);
   const readback = await readCurationPrefixReadback(productRoot, fixture);
@@ -85,7 +85,7 @@ async function positive() {
   const processes = await requireStoppedCurationProcesses(destination);
   return {
     outcome: "passed",
-    tests: 9,
+    tests: 10,
     fixtures: destination,
     processes,
     log: join(evidence, `${name}.log`),

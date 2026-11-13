@@ -1,8 +1,8 @@
 {
-  "syncRevision": "857b6c49217541afd226cfcd99bbff598b08d354",
-  "lastInspectedRevision": "857b6c49217541afd226cfcd99bbff598b08d354",
+  "syncRevision": "1e9ec8b475e9c46ea9f6e6075728b5c8e55486dc",
+  "lastInspectedRevision": "1e9ec8b475e9c46ea9f6e6075728b5c8e55486dc",
   "outcome": "updated",
-  "reason": "Meeting intake commits b9fca19, bda3c54 and 857b6c4 validate saved policy and plan variants, then recompute the stored plan digest before continuation. All 23 covered files were inspected; only the seed journal parser changes a hash. Ownership transitions, properties and bounds remain unchanged. The full candidate passed all model, runtime, mutation and restored controls. Parser completeness remains outside the formal claim.",
+  "reason": "All 23 covered files were inspected from 857b6c4 through 1e9ec8b, including the 31b9ce8 squash and 93a0147 optional-field fix. Only the curation CLI test changes: a nullable-history regression raises its positive suite from nine to ten tests. The probe now requires exactly ten passing tests; models, ownership promises and bounds remain unchanged. The full candidate passed all model, runtime, mutation and restored controls. Parser completeness remains outside the formal claim.",
   "files": [
     "src/mounted/seed-mounted-module.ts",
     "src/mounted/seed-mounted-research-project.ts",
@@ -49,13 +49,13 @@
     "src/curation/hash-source.ts": "f5e950223ba147e46847e4dfb55a812b248a031c7c815136e36259a617342a0c",
     "src/mounted/replace-mounted-file.ts": "3f0fdd2741ab12f7bb806a6d38a9807c582e151fb1bf1d81d4eb425c0257d718",
     "src/mounted/run-journal.ts": "d11252219311b22d8c65ed69493335f3e330efe74c73b46268c6c6f3fd21765f",
-    "test/cli/curation-register-ownership-cli.test.ts": "cf8a88a8c6f9c278ed130068f33762d304d2bffaf77363045b413e1797f012c2",
+    "test/cli/curation-register-ownership-cli.test.ts": "fb7334d3888f5a5987c4bf38f2b6ed69e6babdfc8d2c8dec00bac0efbf6b54f3",
     "test/support/curation-ownership-preload.mjs": "35db12d4e3cf6b7cf40807ee4b2555d0aa244ee97e958d94f6a0edf2f8108498",
     "test/support/journal-process.ts": "a585f8eed7c534ae17b20144019d2caedd46faaea197b3c9cb7f4c9f1fa0ac76"
   },
   "checks": {
     "seedFilesystem": "in sync",
     "journalMutationOwner": "in sync",
-    "curationRegister": "in sync"
+    "curationRegister": "updated"
   }
 }

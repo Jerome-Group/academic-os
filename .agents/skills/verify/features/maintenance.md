@@ -32,6 +32,8 @@ placement/artifact values, rejecting real forbidden claims and preserving unknow
 The legacy-register regression uses a synthetic missing-time line and exact raw-line hash-linked
 version 3 append. It requires validation and compiled preview to agree on the standing decision,
 preserves the original prefix, and rejects altered fields, duplicate references and unlinked gaps.
+It rejects large integers and fractional JSON tokens that ordinary parsing would round, while
+accepting nested numeric values that round-trip without a change.
 It also checks the historical manual alias and exact UTC space spelling without accepting arbitrary
 absolute importer paths or malformed dates. This fixture does not establish the unknown historical
 decision instants or authorize a live register append.

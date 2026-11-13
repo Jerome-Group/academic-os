@@ -304,7 +304,10 @@ pass every other rule; its timestamp may be absent, never null, empty or malform
 keeps every original field and value, including unknown fields, except `schema_version`, `evidence`,
 `timestamp`, `supersedes` and `reconciliation`. Its timestamp is the reconciliation append instant;
 the original decision instant remains unknown. It records no new classification, copy or derived
-artifact. A missing-time line without that exact later event is invalid. Existing bytes stay intact.
+artifact. Each numeric JSON token in both lines must retain its exact spelling after number parsing
+and serialization; a token that would round or normalize blocks reconciliation, including nested
+unknown fields. This conservative check applies only to reconciliation. A missing-time line without
+that exact later event is invalid. Existing bytes stay intact.
 
 Version 2 adds the fourth decision `rederived`: the item's content reached the module through
 derived artifacts rather than through a copy, and the line names them in `derived` — a non-empty

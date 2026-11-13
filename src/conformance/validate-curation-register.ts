@@ -113,6 +113,19 @@ export function validateCurationRegister(source: string | undefined): Finding {
       );
       continue;
     }
+    const targetRaw = lines[targetIndex];
+    const currentRaw = lines[index];
+    if (
+      targetRaw === undefined ||
+      currentRaw === undefined ||
+      !roundTripsJsonNumbers(targetRaw) ||
+      !roundTripsJsonNumbers(currentRaw)
+    ) {
+      problems.push(
+        `Line ${index + 1} historical reconciliation cannot preserve a numeric JSON token exactly.`,
+      );
+      continue;
+    }
     if (
       event.schema_version !== 3 ||
       !nonEmptyString(event.timestamp) ||
@@ -224,6 +237,34 @@ function sameHistoricalDecision(
   for (const field of fields) {
     if (excluded.has(field)) continue;
     if (!isDeepStrictEqual(old[field], current[field])) return false;
+  }
+  return true;
+}
+
+// JSON.parse rounds some decimal tokens before the field comparison. A reconciliation must
+// reject those lines rather than claim that the original unknown values were retained.
+function roundTripsJsonNumbers(raw: string): boolean {
+  const number = /-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?/y;
+  let insideString = false;
+  let escaped = false;
+  for (let offset = 0; offset < raw.length; offset++) {
+    const char = raw.charAt(offset);
+    if (insideString) {
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === '"') insideString = false;
+      continue;
+    }
+    if (char === '"') {
+      insideString = true;
+      continue;
+    }
+    if (char !== "-" && (char < "0" || char > "9")) continue;
+    number.lastIndex = offset;
+    const token = number.exec(raw)?.[0];
+    if (token === undefined || JSON.stringify(Number(token)) !== token)
+      return false;
+    offset = number.lastIndex - 1;
   }
   return true;
 }

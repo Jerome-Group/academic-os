@@ -44,6 +44,22 @@ function ordinary(overrides: Record<string, unknown> = {}): string {
   });
 }
 
+function numericPair(oldToken: string, currentToken: string): [string, string] {
+  const extra = {
+    nested: [{ value: 0, label: 'digits "9007199254740993" stay text' }],
+  };
+  const historical = JSON.stringify({ ...old, extra }).replace(
+    '"value":0',
+    `"value":${oldToken}`,
+  );
+  const correction = JSON.stringify({
+    ...current,
+    extra,
+    supersedes: `raw-sha256:${sha256(historical)}`,
+  }).replace('"value":0', `"value":${currentToken}`);
+  return [historical, correction];
+}
+
 describe("legacy Curation Register reconciliation", () => {
   it("accepts only the later exact raw-line correction and reads it as standing", () => {
     const source = register(oldRaw, JSON.stringify(current));
@@ -139,6 +155,35 @@ describe("legacy Curation Register reconciliation", () => {
     ];
     for (const lines of cases)
       assert.equal(finding(...lines).status, "fail", lines.join("\n"));
+  });
+
+  it("refuses numeric tokens that JSON parsing would round during reconciliation", () => {
+    const rounded: Array<readonly [string, string]> = [
+      ["9007199254740993", "9007199254740992"],
+      ["1.0000000000000001", "1"],
+      ["0.10000000000000001", "0.1"],
+      ["1e400", "1e400"],
+      ["1e0", "1"],
+      ["1", "1.0000000000000001"],
+    ];
+    for (const [oldToken, currentToken] of rounded) {
+      const pair = numericPair(oldToken, currentToken);
+      const result = finding(...pair);
+      assert.equal(result.status, "fail", pair.join("\n"));
+      assert.match(
+        result.evidence,
+        /cannot preserve a numeric JSON token exactly/u,
+      );
+    }
+    for (const token of ["9007199254740992", "0.1", "1"]) {
+      assert.equal(finding(...numericPair(token, token)).status, "pass");
+    }
+    const ordinaryHistory = JSON.stringify({
+      ...old,
+      timestamp: "2026-10-22T22:45:49Z",
+      extra: { value: 0 },
+    }).replace('"value":0', '"value":1e0');
+    assert.equal(finding(ordinaryHistory).status, "pass");
   });
 
   it("accepts the narrow historical manual alias and UTC spelling", () => {

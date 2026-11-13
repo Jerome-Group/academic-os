@@ -233,7 +233,10 @@ Append one version 3 event with the same decision, placement and every unknown f
 `supersedes:"raw-sha256:<hex>"`. Hash the earlier line's exact UTF-8 bytes without its LF or CRLF
 terminator; require a unique earlier match and no prior reconciliation. Evidence says the original
 decision instant was unrecorded and identifies the fresh source/copy proof. The append records no
-new decision or copy. A null, empty or malformed old timestamp is not this case.
+new decision or copy. Check that each numeric JSON token in both lines survives number parsing and
+serialization with the same spelling, including nested unknown fields. If one does not, preserve
+the original and park the reconciliation for separate evidence. A null, empty or malformed old
+timestamp is not this case.
 
 The register is append-only history, and a superseded line stays where it is. Reading the file top
 to bottom is how this module's precedent is reconstructed.

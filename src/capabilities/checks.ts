@@ -191,7 +191,7 @@ const workflowTests = {
   },
   teaching: {
     areas: ["learning-materials", "skills", "cheatsheet", "conformance"],
-    cli: /^learning-materials-cli\.test\.js$/u,
+    cli: /^learning-(materials|exercise)-cli\.test\.js$/u,
   },
   maintenance: {
     areas: ["routine", "observation", "textbooks", "curation"],

@@ -594,6 +594,7 @@ it("audits past and future modules only through an explicit target", async () =>
 it("audits historical migrations read-only and distinguishes contract relationships", async () => {
   const { configPath, driveMount } = await cohortFixture();
   const moduleRoot = await writeConformantModule(driveMount, "Y1S2", "MH1100");
+  await declareContractVersion(moduleRoot, 9);
   const arguments_ = [
     "audit",
     "--config",

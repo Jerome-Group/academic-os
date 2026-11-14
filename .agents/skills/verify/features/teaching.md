@@ -5,6 +5,7 @@ Agents locate declared learning materials and use the shipped cheatsheet runtime
 ## Sub-features
 
 - Learning-material status reports Source Map availability and declared gaps.
+- Native exercise selection resolves a module-level Source Map block with explicit multi-unit scope, tutorial pattern and materialized source hashes, without recording coverage or completion.
 - Installed router instructions preserve Module and Research-project ownership boundaries.
 - The `learn` router also accepts an explicit absolute personal teaching-folder path with existing materialized controls.
 - Cheatsheet preparation qualifies source manifests and coverage.
@@ -12,7 +13,7 @@ Agents locate declared learning materials and use the shipped cheatsheet runtime
 
 ## How to get to it (user POV)
 
-Use `learning materials` or the captured index's cheatsheet operations.
+Use `learning materials`, `learning exercise --root <module-root> --target <block> --json`, or the captured index's cheatsheet operations.
 The `learn`, `cheatsheet` and `research-project` routers remain user-invoked. Verification does not start a teaching session.
 
 ## Driving it with the compiled CLI
@@ -28,6 +29,8 @@ Require both the synthetic workflow and cheatsheet journey to pass.
 Learning-material tests and preparation API/shipped-helper fixtures assert Source Map order, including numeric keys.
 Portable-build fixtures reject host-local inputs and caller search-path dependencies and ignore user latexmk configuration; recorded inputs remain bound to the release and trusted TeX distribution.
 CLI journeys assert gap reporting, human/JSON output, read-only behavior, sibling retention and symlink refusal.
+Source Map assertions preserve accepted legacy paths. The exercise CLI journey selects a cross-unit review block and refuses unknown units, unavailable, linked or empty sources. Its output names `units`, never an invented single governing `unit`.
+Native selection needs no generated candidate or configuration file; generated `module activity` keeps its separate control-evidence boundary.
 The subprocess journey invokes the shipped cheatsheet runtime through preparation, audit, fitting, verification and review packaging.
 It checks stale sources, interrupted authoring, staged regeneration, explicit reference presentation, frozen mathematics preservation and package retries.
 Run the helper doctor through the same executable discovery as verify/package-review.

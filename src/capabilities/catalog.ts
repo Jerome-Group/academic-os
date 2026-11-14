@@ -89,6 +89,11 @@ export const cliCapabilities: Capability[] = [
     invocation:
       "node dist/src/cli.js learning exercise --root <module-root> --target <block> --json",
     implementation: "src/commands/learning-exercise-command.ts",
+    prerequisites: [
+      "Node >=24",
+      buildPrerequisite,
+      "ordinary Module root with a readable native Source Map and materialized exercise sources",
+    ],
     reads: ["Source Map", "exact exercise sources"],
     result:
       "Exact tutorial-pattern exercise target, declared multi-unit scope and source checksums; no coverage or task writes.",

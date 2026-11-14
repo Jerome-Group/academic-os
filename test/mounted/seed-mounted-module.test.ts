@@ -145,7 +145,7 @@ describe("seedMountedModule", () => {
         journal[0]?.stagingRoot ?? "",
         /\.academic-os-stage-MH2100-[0-9a-f-]+$/u,
       );
-      assert.equal(journal[0]?.preconditions?.contractVersion, 9);
+      assert.equal(journal[0]?.preconditions?.contractVersion, 8);
       assert.equal(journal.at(-1)?.outcome, "completed");
     });
   }

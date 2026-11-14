@@ -18,7 +18,7 @@ Read the route's procedure before acting in its area.
 - **Curation** — new NTULearn material into its canonical home:
   `docs/10 Curation Procedure.md`, recording in
   `00 Module Admin/20 Curation Register.jsonl`.
-- **Teaching** — lectures, revision and past papers in `70 Learning/`:
+- **Teaching** — lectures, exercise sets, revision and past papers in `70 Learning/`:
   `docs/20 Teaching Procedure.md`, with activity targets in
   `00 Module Admin/40 Source Map.yaml` and optional module conduct in
   `70 Learning/preferences.local.md`.

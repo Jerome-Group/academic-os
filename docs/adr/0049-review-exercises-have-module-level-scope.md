@@ -10,7 +10,8 @@ existing tutorial workspace and templates. New exercise records carry `units`; s
 remain unchanged. Partial question work records its exact locator and never completes a whole set.
 
 Contract 9 adds this optional representation. Contract 8 native modules remain readable and
-conformant without a forced rewrite. The generated module-data/1 publisher remains its separate,
+conformant without a forced rewrite; their approved repair plans keep their original version and
+digests while using the same compatible contract policy. The generated module-data/1 publisher remains its separate,
 frozen contract-8 interface; it does not gain native exercise execution by inference.
 
 `learning exercise` selects an exact native block and checks its scope and materialized source

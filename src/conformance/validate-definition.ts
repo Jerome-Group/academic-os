@@ -17,6 +17,15 @@ import type { Finding } from "./types.js";
 
 const definitionPath = writtenControlPaths.definition;
 export const supportedContractVersion = 9 as const;
+export function isCompatibleContractVersion(
+  version: unknown,
+  requestedVersion: number = supportedContractVersion,
+): boolean {
+  return (
+    version === requestedVersion || (requestedVersion === 9 && version === 8)
+  );
+}
+
 export type { ValidatedDefinition } from "./definition-shape.js";
 export type { DeclaredImporterSource } from "./definition-shape.js";
 
@@ -206,8 +215,10 @@ function validateVersions(
     );
   }
   if (
-    value.contract_version !== expectedContractVersion &&
-    !(expectedContractVersion === 9 && value.contract_version === 8)
+    !isCompatibleContractVersion(
+      value.contract_version,
+      expectedContractVersion,
+    )
   ) {
     problems.push(
       typeof value.contract_version === "number" &&

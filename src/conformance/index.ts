@@ -64,6 +64,7 @@ export {
   readDefinitionImporterRoots,
   readDefinitionImporterSources,
   supportedContractVersion,
+  isCompatibleContractVersion,
 } from "./validate-definition.js";
 export {
   readResearchProjectProfile,

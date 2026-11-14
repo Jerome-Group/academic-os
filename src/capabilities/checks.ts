@@ -4,6 +4,7 @@ import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 
 export const CHECK_PROFILE_TIMEOUT_MS = 900_000;
+export const FULL_CHECK_PROFILE_TIMEOUT_MS = 3 * CHECK_PROFILE_TIMEOUT_MS;
 
 export const checkProfiles = {
   fast: [
@@ -127,6 +128,10 @@ export async function runChecks(
 ): Promise<ProcessEvidence[]> {
   const results: ProcessEvidence[] = [];
   const started = performance.now();
+  const profileTimeoutMs =
+    profile === "full"
+      ? FULL_CHECK_PROFILE_TIMEOUT_MS
+      : CHECK_PROFILE_TIMEOUT_MS;
   for (const script of checkProfiles[profile])
     results.push(
       await observeProcess({
@@ -136,7 +141,7 @@ export async function runChecks(
         cwd: root,
         timeoutMs: Math.max(
           1,
-          CHECK_PROFILE_TIMEOUT_MS - (performance.now() - started),
+          profileTimeoutMs - (performance.now() - started),
         ),
       }),
     );
@@ -149,7 +154,7 @@ export async function runChecks(
         cwd: root,
         timeoutMs: Math.max(
           1,
-          CHECK_PROFILE_TIMEOUT_MS - (performance.now() - started),
+          profileTimeoutMs - (performance.now() - started),
         ),
       }),
     );

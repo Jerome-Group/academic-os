@@ -1,8 +1,8 @@
-import { createReadStream } from "node:fs";
 import { createHash } from "node:crypto";
 import { lstat, realpath } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { readSourceMap } from "../conformance/source-map.js";
+import { hashMaterializedSource } from "../mounted/hash-materialized-source.js";
 import { ensureMaterialized } from "../mounted/ensure-materialized.js";
 import { readSafeFile } from "../mounted/read-safe-file.js";
 import { OperationalError } from "../operational-error.js";
@@ -45,50 +45,10 @@ export async function runLearningExerciseCommand(
     );
   const sources = [];
   for (const entry of set.sources) {
-    let path = root;
-    const components = entry.file.split("/");
-    for (const [index, component] of components.entries()) {
-      path = join(path, component);
-      const stat = await lstat(path);
-      if (
-        stat.isSymbolicLink() ||
-        (index === components.length - 1
-          ? !stat.isFile()
-          : !stat.isDirectory()) ||
-        (await realpath(path)) !== path
-      )
-        throw new OperationalError(
-          "invalid-target",
-          `Source is not an ordinary contained file: ${entry.file}.`,
-        );
-    }
-    await ensureMaterialized(path);
-    const before = await lstat(path);
-    if (before.size === 0)
-      throw new OperationalError(
-        "invalid-target",
-        `Source has no materialized bytes: ${entry.file}.`,
-      );
-    const hash = createHash("sha256");
-    let bytes = 0;
-    for await (const chunk of createReadStream(path, { flags: "r" })) {
-      hash.update(chunk);
-      bytes += chunk.length;
-    }
-    const after = await lstat(path);
-    if (
-      before.ino !== after.ino ||
-      before.size !== bytes ||
-      before.size !== after.size ||
-      before.mtimeMs !== after.mtimeMs ||
-      after.isSymbolicLink() ||
-      (await realpath(path)) !== path
-    )
-      throw new OperationalError(
-        "invalid-target",
-        `Source changed during selection: ${entry.file}.`,
-      );
-    sources.push({ ...entry, byteLength: bytes, sha256: hash.digest("hex") });
+    sources.push({
+      ...entry,
+      ...(await hashMaterializedSource(root, entry.file)),
+    });
   }
   if ((await readSafeFile(root, mapPath, "Source Map")) !== source)
     throw new OperationalError(

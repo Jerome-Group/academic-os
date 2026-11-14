@@ -30,11 +30,10 @@ class UnverifiedPush extends OperationalError {
   }
 }
 
-// A verified push, and the register row only a create leaves behind: the task ID Google returned
-// and the provenance Google never sees are the two things the pull that follows cannot recover.
+// The verified task ID and any local register change Google cannot return during refresh.
 interface PushedTask {
   taskId: string;
-  createdRegister?: TaskRegister;
+  registerToPersist?: TaskRegister;
 }
 
 const researchOnlyProvenanceKeys = ["claim", "meeting", "deliverable"] as const;
@@ -94,9 +93,9 @@ export async function applyTaskTargetOperation(input: {
     };
   }
   // The live list has changed by here, so nothing below may report the operation as parked.
-  if (pushed.createdRegister !== undefined) {
+  if (pushed.registerToPersist !== undefined) {
     try {
-      await input.target.registerStore.write(pushed.createdRegister);
+      await input.target.registerStore.write(pushed.registerToPersist);
     } catch (error) {
       return {
         ...reportHead(input),
@@ -114,11 +113,40 @@ export async function applyTaskTargetOperation(input: {
       };
     }
   }
+  const register = await refreshTaskTarget(input.target, input.reader);
+  if (
+    input.operation.name === "change" &&
+    input.operation.provenance !== undefined
+  ) {
+    try {
+      const current = await input.target.registerStore.read();
+      const provenance = current?.tasks.find(
+        (row) => row.taskId === pushed.taskId,
+      )?.provenance;
+      if (
+        register.freshness !== "fresh" ||
+        !Object.entries(input.operation.provenance).every(
+          ([key, value]) => Reflect.get(provenance ?? {}, key) === value,
+        )
+      )
+        throw new Error(
+          "Corrected provenance did not read back in a fresh register.",
+        );
+    } catch (error) {
+      return {
+        ...reportHead(input),
+        outcome: "unverified",
+        taskId: pushed.taskId,
+        register,
+        failure: taskFailure(error, "Provenance readback failed."),
+      };
+    }
+  }
   return {
     ...reportHead(input),
     outcome: "applied",
     taskId: pushed.taskId,
-    register: await refreshTaskTarget(input.target, input.reader),
+    register,
   };
 }
 
@@ -164,7 +192,7 @@ async function pushToLiveList(
     await verifyLiveFields(writer, listId, id, fields);
     return {
       taskId: id,
-      createdRegister: registerWithCreatedRow(register, id, operation),
+      registerToPersist: registerWithCreatedRow(register, id, operation),
     };
   }
   const taskId = registeredTaskId(
@@ -190,7 +218,7 @@ async function pushToLiveList(
   if (operation.name === "change" && operation.provenance !== undefined) {
     return {
       taskId,
-      createdRegister: {
+      registerToPersist: {
         ...register,
         tasks: register.tasks.map((row) =>
           row.taskId === taskId

@@ -194,3 +194,23 @@ it("reports provenance persistence failure as unverified and preserves the selec
   assert.equal(patchCalls, 0);
   assert.ok(result.failure);
 });
+
+it("does not acknowledge corrected provenance that the register did not retain", async () => {
+  const result = await applyTaskTargetOperation({
+    target,
+    operation: {
+      name: "change",
+      taskId: "known-task",
+      provenance: { source: "new-source" },
+    },
+    writer: {
+      ...writer,
+      readTask: async () => ({ id: "known-task", title: "Existing" }),
+    },
+    reader: {
+      listTasks: async () => [{ id: "known-task", title: "Existing" }],
+    },
+  });
+  assert.equal(result.outcome, "unverified");
+  assert.equal(result.taskId, "known-task");
+});

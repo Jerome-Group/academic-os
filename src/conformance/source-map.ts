@@ -230,10 +230,23 @@ function exerciseSetProblems(value: unknown, units: string[]): string[] {
           `${name} units must be unique existing Lecture-unit keys.`,
         );
     }
+    if (Array.isArray(entry.sources)) {
+      for (const source of entry.sources) {
+        if (
+          isRecord(source) &&
+          typeof source.file === "string" &&
+          !isCanonicalModuleRelative(source.file)
+        )
+          problems.push(
+            `${name} sources require canonical module-relative paths.`,
+          );
+      }
+    }
     if (typeof entry.block === "string") {
       if (
         [".", "..", "records"].includes(entry.block) ||
-        /[\\/\x00-\x1f]/u.test(entry.block)
+        /[\\/]/u.test(entry.block) ||
+        [...entry.block].some((character) => character.charCodeAt(0) < 32)
       )
         problems.push(`${name} block must be a safe workspace folder name.`);
       if (names.has(entry.block))
@@ -283,11 +296,13 @@ function nonEmptyStringList(value: unknown): boolean {
 }
 
 function isModuleRelative(path: string): boolean {
+  return !path.startsWith("/") && !path.split("/").includes("..");
+}
+
+function isCanonicalModuleRelative(path: string): boolean {
   return (
-    !path.startsWith("/") &&
+    isModuleRelative(path) &&
     !path.includes("\\") &&
-    !path
-      .split("/")
-      .some((part) => part === ".." || part === "." || part === "")
+    !path.split("/").some((part) => part === "." || part === "")
   );
 }

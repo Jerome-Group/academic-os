@@ -185,3 +185,18 @@ it("validates module exercise scope and preserves legacy maps", () => {
   assert.equal(legacy.kind, "valid");
   if (legacy.kind === "valid") assert.deepEqual(legacy.exerciseSets, []);
 });
+
+it("preserves accepted legacy dot-prefixed paths while exercise sources require canonical paths", () => {
+  assert.equal(
+    readSourceMap(
+      "units: {One: {topics: [], lectures: [./notes.pdf], textbook: [], tutorials: []}}",
+    ).kind,
+    "valid",
+  );
+  assert.equal(
+    readSourceMap(
+      "units: {One: {topics: [], lectures: [], textbook: [], tutorials: []}}\nexercise_sets: [{block: Review, units: [One], exercises: All, sources: [{file: ./notes.pdf, locator: All, role: questions}]}]",
+    ).kind,
+    "invalid",
+  );
+});

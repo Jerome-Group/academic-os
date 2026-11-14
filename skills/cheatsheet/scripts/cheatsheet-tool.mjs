@@ -10161,7 +10161,8 @@ function readSourceMap(source) {
         problems: ["Source Map requires a units mapping, empty at seed."]
       };
     const problems = [
-      ...undeclaredFields2(value, ["units"], "Source Map"),
+      ...undeclaredFields2(value, ["units", "exercise_sets"], "Source Map"),
+      ...exerciseSetProblems(value.exercise_sets, Object.keys(value.units)),
       ...Object.entries(value.units).flatMap(
         ([key, unit]) => unitProblems(key, unit)
       )
@@ -10171,15 +10172,21 @@ function readSourceMap(source) {
       unit,
       source: source2
     }));
-    return { value: units2 };
+    return {
+      value: {
+        units: units2,
+        exerciseSets: value.exercise_sets ?? []
+      }
+    };
   });
   if ("problems" in parsed) {
     return invalid(parsed.problems);
   }
-  const units = parsed.value;
+  const { units, exerciseSets } = parsed.value;
   return {
     kind: "valid",
     units,
+    exerciseSets,
     finding: controlFinding(
       "MF-LEARNING-002",
       sourceMapPath,
@@ -10236,7 +10243,7 @@ function teachingWeekProblems(value, unitName) {
   }
   return [];
 }
-function tutorialProblems(entry, name) {
+function tutorialProblems(entry, name, extraFields = []) {
   if (nonEmptyString(entry)) {
     return isModuleRelative(entry) ? [] : [`${name} ${JSON.stringify(entry)} is not module-relative.`];
   }
@@ -10244,7 +10251,7 @@ function tutorialProblems(entry, name) {
     return [`${name} is neither a path nor a tutorial block.`];
   const problems = undeclaredFields2(
     entry,
-    ["block", "exercises", "sources"],
+    ["block", "exercises", "sources", ...extraFields],
     name
   );
   if (!nonEmptyString(entry.block))
@@ -10262,6 +10269,41 @@ function tutorialProblems(entry, name) {
     }
   }
   return problems;
+}
+function exerciseSetProblems(value, units) {
+  if (value === void 0) return [];
+  if (!Array.isArray(value)) return ["exercise_sets must be a sequence."];
+  const names = /* @__PURE__ */ new Set();
+  return value.flatMap((entry, index) => {
+    const name = `Exercise set ${index + 1}`;
+    const problems = tutorialProblems(entry, name, ["units"]);
+    if (!isRecord(entry)) return [...problems, `${name} must be a mapping.`];
+    if (!nonEmptyStringList(entry.units))
+      problems.push(`${name} requires non-empty units.`);
+    else {
+      const scope = entry.units;
+      if (new Set(scope).size !== scope.length || scope.some((unit) => !units.includes(unit)))
+        problems.push(
+          `${name} units must be unique existing Lecture-unit keys.`
+        );
+    }
+    if (Array.isArray(entry.sources)) {
+      for (const source of entry.sources) {
+        if (isRecord(source) && typeof source.file === "string" && !isCanonicalModuleRelative(source.file))
+          problems.push(
+            `${name} sources require canonical module-relative paths.`
+          );
+      }
+    }
+    if (typeof entry.block === "string") {
+      if ([".", "..", "records"].includes(entry.block) || /[\\/]/u.test(entry.block) || [...entry.block].some((character) => character.charCodeAt(0) < 32))
+        problems.push(`${name} block must be a safe workspace folder name.`);
+      if (names.has(entry.block))
+        problems.push(`${name} block must be unique.`);
+      names.add(entry.block);
+    }
+    return problems;
+  });
 }
 function tutorialSourceProblems(source, name) {
   if (!isRecord(source)) return [`${name} is not a mapping.`];
@@ -10293,10 +10335,13 @@ function nonEmptyStringList(value) {
 function isModuleRelative(path) {
   return !path.startsWith("/") && !path.split("/").includes("..");
 }
+function isCanonicalModuleRelative(path) {
+  return isModuleRelative(path) && !path.includes("\\") && !path.split("/").some((part) => part === "." || part === "");
+}
 
 // src/conformance/validate-definition.ts
 var definitionPath = writtenControlPaths.definition;
-var supportedContractVersion = 8;
+var supportedContractVersion = 9;
 function validateDefinition(source, expectedCode, expectedSemester, expectedContractVersion = supportedContractVersion) {
   if (source === void 0) {
     return {
@@ -10409,7 +10454,7 @@ function validateVersions(value, expectedContractVersion) {
       `Unsupported schema_version ${renderValue(value.schema_version)}; supported version is 2.`
     );
   }
-  if (value.contract_version !== expectedContractVersion) {
+  if (value.contract_version !== expectedContractVersion && !(expectedContractVersion === 9 && value.contract_version === 8)) {
     problems.push(
       typeof value.contract_version === "number" && value.contract_version < expectedContractVersion ? `contract_version ${value.contract_version} requires upgrade to requested version ${expectedContractVersion}.` : `Unsupported contract_version ${renderValue(value.contract_version)}; requested version is ${expectedContractVersion}.`
     );

@@ -58,6 +58,7 @@ export interface LegacyLearningRecord {
   readonly target: ObservedClaim;
   readonly status: ObservedClaim;
   readonly unit: ObservedClaim;
+  readonly units: ObservedClaim;
   readonly topics: ObservedClaim;
   readonly supersedes: readonly (string | number)[];
   readonly supersedesRepresentation: "absent" | "scalar" | "list" | "invalid";
@@ -89,6 +90,7 @@ export type ControlRead =
         | {
             readonly kind: "read";
             readonly units: readonly SourceMapUnitEntry[];
+            readonly exerciseSets: readonly import("../conformance/source-map.js").SourceMapExerciseSet[];
           };
       readonly records: readonly LegacyLearningRecord[];
       readonly diagnostics: readonly ControlDiagnostic[];

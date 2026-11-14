@@ -12,6 +12,7 @@ import { runCurationMigrateCommand } from "./commands/curation-migrate-command.j
 import { runCurationRederiveCommand } from "./commands/curation-rederive-command.js";
 import { runImportsPreflightCommand } from "./commands/imports-preflight-command.js";
 import { runImportsStatusCommand } from "./commands/imports-status-command.js";
+import { runLearningExerciseCommand } from "./commands/learning-exercise-command.js";
 import { runLearningMaterialsCommand } from "./commands/learning-materials-command.js";
 import { runModuleInspectCommand } from "./commands/module-inspect-command.js";
 import { runNamingPlanCommand } from "./commands/naming-plan-command.js";
@@ -131,6 +132,8 @@ try {
     await runImportsPreflightCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "imports" && arguments_[1] === "status") {
     await runImportsStatusCommand(arguments_.slice(1), json);
+  } else if (arguments_[0] === "learning" && arguments_[1] === "exercise") {
+    await runLearningExerciseCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "learning" && arguments_[1] === "materials") {
     await runLearningMaterialsCommand(arguments_.slice(1), json);
   } else if (arguments_[0] === "offering" && arguments_[1] === "readiness") {

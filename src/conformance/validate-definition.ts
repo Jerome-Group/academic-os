@@ -16,7 +16,7 @@ import { isRecord, nonEmptyString } from "./value-shape.js";
 import type { Finding } from "./types.js";
 
 const definitionPath = writtenControlPaths.definition;
-export const supportedContractVersion = 8 as const;
+export const supportedContractVersion = 9 as const;
 export type { ValidatedDefinition } from "./definition-shape.js";
 export type { DeclaredImporterSource } from "./definition-shape.js";
 
@@ -205,7 +205,10 @@ function validateVersions(
       `Unsupported schema_version ${renderValue(value.schema_version)}; supported version is 2.`,
     );
   }
-  if (value.contract_version !== expectedContractVersion) {
+  if (
+    value.contract_version !== expectedContractVersion &&
+    !(expectedContractVersion === 9 && value.contract_version === 8)
+  ) {
     problems.push(
       typeof value.contract_version === "number" &&
         value.contract_version < expectedContractVersion

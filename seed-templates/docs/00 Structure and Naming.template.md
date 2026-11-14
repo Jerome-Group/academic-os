@@ -143,7 +143,8 @@ Work this list in order and stop at the first line that answers.
 3. **The tree names its home.** Lecture material to `10 Learning Materials/10 Lecture Materials/`,
    a chapter cut from the shelf to `20 Textbook Chapters/`, the Owner's own writing to
    `30 Personal Notes/`, an issued tutorial sheet to `20 Tutorials/`, a graded-work artifact to its
-   assessment category, project or lab material to that workspace's five children, reference
+   assessment category, finals review questions and hints to `30 Assessments/40 Finals/` with
+   their review identity, project or lab material to that workspace's five children, reference
    material to its declared category or to `00 Unclassified/`.
 4. **A register line already placed something like it.** That precedent decides, and the new line
    cites it.

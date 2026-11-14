@@ -105,6 +105,7 @@ export function readLegacyModuleControls(
         target: claim(value, "target"),
         status: claim(value, "status"),
         unit: claim(value, "unit"),
+        units: claim(value, "units"),
         topics: claim(value, "topics"),
         ...representation,
       });
@@ -167,7 +168,11 @@ export function readLegacyModuleControls(
         ? { kind: "absent" }
         : sourceMap.kind === "invalid"
           ? { kind: "invalid" }
-          : { kind: "read", units: sourceMap.units },
+          : {
+              kind: "read",
+              units: sourceMap.units,
+              exerciseSets: sourceMap.exerciseSets,
+            },
     coverage: "legacy-observation-only",
   };
 }

@@ -115,24 +115,29 @@ export function createTaskTools(port: TaskToolPort): OperationTool[] {
       name: "tasks_change",
       title: "Change a task",
       description:
-        "Change a task's title, do-date or notes on a module's live task list, then refresh its Task register.",
+        "Change a task's title, do-date, notes or local provenance on a module's live task list, then refresh its Task register.",
       fields: [
         ...moduleFields,
         taskField,
         { name: "title", description: "The new task title." },
         doDateField,
         notesField,
+        ...moduleProvenanceKeys.map((name) => ({
+          name,
+          description: `Update local ${name} provenance; omitted keys are preserved.`,
+        })),
       ],
       call: async (values) => {
         const change = {
           ...optional(values, "title"),
           ...optionalDoDate(values),
           ...optional(values, "notes"),
+          ...moduleProvenance(values),
         };
         if (Object.keys(change).length === 0) {
           throw new OperationalError(
             "invalid-arguments",
-            "tasks_change takes at least one of title, do_date or notes.",
+            "tasks_change takes at least one of title, do_date, notes or provenance.",
           );
         }
         return await operate(port, values, {
@@ -245,24 +250,29 @@ function createResearchProjectTaskTools(
       name: "research_tasks_change",
       title: "Change a research-project task",
       description:
-        "Change a task's title, do-date or notes on a research project's live task list, then refresh its Task register.",
+        "Change a task's title, do-date, notes or local provenance on a research project's live task list, then refresh its Task register.",
       fields: [
         ...researchProjectFields,
         taskField,
         { name: "title", description: "The new task title." },
         doDateField,
         notesField,
+        ...researchProvenanceKeys.map((name) => ({
+          name,
+          description: `Update local ${name} provenance; omitted keys are preserved.`,
+        })),
       ],
       call: async (values) => {
         const change = {
           ...optional(values, "title"),
           ...optionalDoDate(values),
           ...optional(values, "notes"),
+          ...researchProvenance(values),
         };
         if (Object.keys(change).length === 0) {
           throw new OperationalError(
             "invalid-arguments",
-            "research_tasks_change takes at least one of title, do_date or notes.",
+            "research_tasks_change takes at least one of title, do_date, notes or provenance.",
           );
         }
         return await operateResearchProject(port, values, {

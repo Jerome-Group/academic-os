@@ -100,7 +100,11 @@ export async function applyTaskTargetOperation(input: {
     } catch (error) {
       return {
         ...reportHead(input),
-        outcome: "applied",
+        outcome:
+          input.operation.name === "change" &&
+          input.operation.provenance !== undefined
+            ? "unverified"
+            : "applied",
         taskId: pushed.taskId,
         register: null,
         failure: taskFailure(
@@ -124,7 +128,7 @@ function assertSupportedTargetProvenance(
 ): void {
   if (
     target.identity.kind === "research-project" ||
-    operation.name !== "create" ||
+    (operation.name !== "create" && operation.name !== "change") ||
     operation.provenance === undefined
   ) {
     return;
@@ -177,10 +181,28 @@ async function pushToLiveList(
     operation.name === "complete"
       ? { status: "completed" as const }
       : writtenFields(operation);
-  await sendMutation(taskId, () =>
-    writer.patchTask({ listId, taskId, patch: fields }),
-  );
+  if (Object.keys(fields).length > 0) {
+    await sendMutation(taskId, () =>
+      writer.patchTask({ listId, taskId, patch: fields }),
+    );
+  }
   await verifyLiveFields(writer, listId, taskId, fields);
+  if (operation.name === "change" && operation.provenance !== undefined) {
+    return {
+      taskId,
+      createdRegister: {
+        ...register,
+        tasks: register.tasks.map((row) =>
+          row.taskId === taskId
+            ? {
+                ...row,
+                provenance: { ...row.provenance, ...operation.provenance },
+              }
+            : row,
+        ),
+      },
+    };
+  }
   return { taskId };
 }
 

@@ -34,6 +34,10 @@ export interface SourceMapTutorialBlock {
   }[];
 }
 
+export interface SourceMapExerciseSet extends SourceMapTutorialBlock {
+  readonly units: readonly string[];
+}
+
 export interface SourceMapUnit {
   readonly topics: readonly string[];
   readonly lectures: readonly string[];
@@ -56,6 +60,7 @@ export type SourceMapRead =
   | {
       readonly kind: "valid";
       readonly units: readonly SourceMapUnitEntry[];
+      readonly exerciseSets: readonly SourceMapExerciseSet[];
       readonly finding: Finding;
     };
 
@@ -73,7 +78,8 @@ export function readSourceMap(source: string | undefined): SourceMapRead {
         problems: ["Source Map requires a units mapping, empty at seed."],
       };
     const problems = [
-      ...undeclaredFields(value, ["units"], "Source Map"),
+      ...undeclaredFields(value, ["units", "exercise_sets"], "Source Map"),
+      ...exerciseSetProblems(value.exercise_sets, Object.keys(value.units)),
       ...Object.entries(value.units).flatMap(([key, unit]) =>
         unitProblems(key, unit),
       ),
@@ -83,15 +89,22 @@ export function readSourceMap(source: string | undefined): SourceMapRead {
       unit,
       source,
     })) as readonly SourceMapUnitEntry[];
-    return { value: units };
+    return {
+      value: {
+        units,
+        exerciseSets: (value.exercise_sets ??
+          []) as readonly SourceMapExerciseSet[],
+      },
+    };
   });
   if ("problems" in parsed) {
     return invalid(parsed.problems);
   }
-  const units = parsed.value;
+  const { units, exerciseSets } = parsed.value;
   return {
     kind: "valid",
     units,
+    exerciseSets,
     finding: controlFinding(
       "MF-LEARNING-002",
       sourceMapPath,
@@ -163,7 +176,11 @@ function teachingWeekProblems(value: unknown, unitName: string): string[] {
   return [];
 }
 
-function tutorialProblems(entry: unknown, name: string): string[] {
+function tutorialProblems(
+  entry: unknown,
+  name: string,
+  extraFields: string[] = [],
+): string[] {
   if (nonEmptyString(entry)) {
     return isModuleRelative(entry)
       ? []
@@ -173,7 +190,7 @@ function tutorialProblems(entry: unknown, name: string): string[] {
     return [`${name} is neither a path nor a tutorial block.`];
   const problems = undeclaredFields(
     entry,
-    ["block", "exercises", "sources"],
+    ["block", "exercises", "sources", ...extraFields],
     name,
   );
   if (!nonEmptyString(entry.block))
@@ -191,6 +208,40 @@ function tutorialProblems(entry: unknown, name: string): string[] {
     }
   }
   return problems;
+}
+
+function exerciseSetProblems(value: unknown, units: string[]): string[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) return ["exercise_sets must be a sequence."];
+  const names = new Set<string>();
+  return value.flatMap((entry, index) => {
+    const name = `Exercise set ${index + 1}`;
+    const problems = tutorialProblems(entry, name, ["units"]);
+    if (!isRecord(entry)) return [...problems, `${name} must be a mapping.`];
+    if (!nonEmptyStringList(entry.units))
+      problems.push(`${name} requires non-empty units.`);
+    else {
+      const scope = entry.units as string[];
+      if (
+        new Set(scope).size !== scope.length ||
+        scope.some((unit) => !units.includes(unit))
+      )
+        problems.push(
+          `${name} units must be unique existing Lecture-unit keys.`,
+        );
+    }
+    if (typeof entry.block === "string") {
+      if (
+        [".", "..", "records"].includes(entry.block) ||
+        /[\\/\x00-\x1f]/u.test(entry.block)
+      )
+        problems.push(`${name} block must be a safe workspace folder name.`);
+      if (names.has(entry.block))
+        problems.push(`${name} block must be unique.`);
+      names.add(entry.block);
+    }
+    return problems;
+  });
 }
 
 function tutorialSourceProblems(source: unknown, name: string): string[] {
@@ -232,5 +283,11 @@ function nonEmptyStringList(value: unknown): boolean {
 }
 
 function isModuleRelative(path: string): boolean {
-  return !path.startsWith("/") && !path.split("/").includes("..");
+  return (
+    !path.startsWith("/") &&
+    !path.includes("\\") &&
+    !path
+      .split("/")
+      .some((part) => part === ".." || part === "." || part === "")
+  );
 }

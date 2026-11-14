@@ -10342,6 +10342,9 @@ function isCanonicalModuleRelative(path) {
 // src/conformance/validate-definition.ts
 var definitionPath = writtenControlPaths.definition;
 var supportedContractVersion = 9;
+function isCompatibleContractVersion(version, requestedVersion = supportedContractVersion) {
+  return version === requestedVersion || requestedVersion === 9 && version === 8;
+}
 function validateDefinition(source, expectedCode, expectedSemester, expectedContractVersion = supportedContractVersion) {
   if (source === void 0) {
     return {
@@ -10454,7 +10457,10 @@ function validateVersions(value, expectedContractVersion) {
       `Unsupported schema_version ${renderValue(value.schema_version)}; supported version is 2.`
     );
   }
-  if (value.contract_version !== expectedContractVersion && !(expectedContractVersion === 9 && value.contract_version === 8)) {
+  if (!isCompatibleContractVersion(
+    value.contract_version,
+    expectedContractVersion
+  )) {
     problems.push(
       typeof value.contract_version === "number" && value.contract_version < expectedContractVersion ? `contract_version ${value.contract_version} requires upgrade to requested version ${expectedContractVersion}.` : `Unsupported contract_version ${renderValue(value.contract_version)}; requested version is ${expectedContractVersion}.`
     );

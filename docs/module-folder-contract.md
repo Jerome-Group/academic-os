@@ -5,7 +5,7 @@ with an applicable rule here is wrong, and a rule that is not here is not a rule
 outside a module folder is governed too, and it is the only one: the shared Textbook shelf at
 `Modules/Textbooks`, which every module cuts its chapters from.
 
-**Contract version: 8.** Increase it when a normative requirement, applicability rule or allowed
+**Contract version: 9.** Increase it when a normative requirement, applicability rule or allowed
 structure changes. Editorial clarification and repaired citations do not change it. Definition and
 Curation-register schema versions advance independently; the register remains at version 3 under
 this contract.
@@ -175,11 +175,11 @@ schema and contract versions, module identity, offering, applicable context-deri
 declared importer roots and their evidence. It contains module-relative paths only: no absolute
 Drive paths, credentials, deadlines, prose workflows, inventories or learner progress.
 
-The schema version 2 shape for contract version 8 is:
+The schema version 2 shape for contract version 9 is:
 
 ```yaml
 schema_version: 2
-contract_version: 8
+contract_version: 9
 module: { code: MH2100, title: Calculus III }
 offering: { academic_year: 2026-2027, semester: 1, status: active }
 structure:
@@ -393,7 +393,9 @@ contract reads none of it.
 
 **MF-LEARNING-002 (deterministic).** `00 Module Admin/40 Source Map.yaml` is the workspace's spine,
 and it sits in Module Admin because it is machine-read module state rather than workspace content.
-The root has only `units`. That mapping is keyed exactly as the module numbers its Lecture-units — a week or a lecture
+The root requires `units` and optionally carries `exercise_sets`. Version 8 remains compatible;
+existing units and records require no rewrite. The generated module-data/1 contract stays pinned
+to version 8; this extension is read through the native Source Map workflow. That mapping is keyed exactly as the module numbers its Lecture-units — a week or a lecture
 in the module's own words, never a subdivision this system invented — and every unit carries
 `topics`, `lectures`, `textbook` and `tutorials`, each of them a sequence, written out even when
 empty — a unit with no textbook chapter says `textbook: []`, so a missing key is a malformed unit
@@ -403,6 +405,15 @@ path or a typed block with a non-empty `block`, non-empty `exercises` locator, a
 A source has a module-relative `file`, a `locator`, a free module role, and optional non-empty
 `missing` descriptions. These closed fields keep source roles and missing-solution evidence without
 turning mathematical vocabulary into an enum.
+
+Module-level `exercise_sets` is an ordered sequence of typed blocks with the same `block`,
+`exercises` and `sources` fields as tutorials, plus non-empty `units`: unique existing Lecture-unit
+keys describing the set's actual scope. Blocks are unique within this sequence. They represent
+review and other exercise sets without inventing a governing handout or official tutorial number.
+Finals preparation questions and hints belong flat in `30 Assessments/40 Finals/`, retaining
+`Review_Part_NN` identity rather than `Final` or `Tutorial_NN`. Working artifacts use the tutorial
+pattern in `70 Learning/20 Tutorials/<block>/`. Their new records carry `units` instead of `unit`;
+legacy single-unit records remain valid. Selection and migration alone create no coverage.
 
 A unit may additionally carry `teaching_weeks`, as unique positive integers, and module-relative
 path sequences named `supplementary_materials`, `past_papers`, `practice_tests`, or
@@ -431,7 +442,7 @@ units:
 ```
 
 Seeding writes an empty `units`, which grows as the module's material lands. A folder in
-`10 Lectures` is named for a key here. Every Learning record names its governing `unit` and its
+`10 Lectures` is named for a key here. Every unit-level Learning record names its governing `unit` and its
 activity `target`; tutorial and past-paper targets remain distinct even when they share a unit.
 
 ## Cheatsheet artifacts

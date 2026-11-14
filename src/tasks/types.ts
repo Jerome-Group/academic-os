@@ -119,6 +119,7 @@ export type TaskOperation =
   | {
       name: "change";
       taskId: string;
+      provenance?: TaskRegisterProvenance;
       title?: string;
       doDate?: string;
       notes?: string;

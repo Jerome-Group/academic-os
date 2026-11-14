@@ -164,3 +164,39 @@ it("returns no ordered domain value for collisions or an invalid first payload",
     assert.ok(!("units" in read));
   }
 });
+
+it("validates module exercise scope and preserves legacy maps", () => {
+  const map = `units:\n  One: {topics: [], lectures: [], textbook: [], tutorials: []}\n  Two: {topics: [], lectures: [], textbook: [], tutorials: []}\nexercise_sets:\n  - block: Review Part I\n    exercises: Questions 1-10\n    units: [One, Two]\n    sources: [{file: 30 Assessments/40 Finals/Review.pdf, locator: Questions 1-10, role: questions}]\n`;
+  const read = readSourceMap(map);
+  assert.equal(read.kind, "valid");
+  if (read.kind === "valid")
+    assert.deepEqual(read.exerciseSets[0]?.units, ["One", "Two"]);
+  for (const invalid of [
+    map.replace("[One, Two]", "[One, One]"),
+    map.replace("[One, Two]", "[Other]"),
+    map.replace("Review Part I", "../escape"),
+    map.replace("Review Part I", "records"),
+    map.replace("exercise_sets:", "unknown:"),
+    map.replace("    units: [One, Two]\n", ""),
+    map.replace("30 Assessments/40 Finals/Review.pdf", "../outside.pdf"),
+  ])
+    assert.equal(readSourceMap(invalid).kind, "invalid", invalid);
+  const legacy = readSourceMap("units: {}");
+  assert.equal(legacy.kind, "valid");
+  if (legacy.kind === "valid") assert.deepEqual(legacy.exerciseSets, []);
+});
+
+it("preserves accepted legacy dot-prefixed paths while exercise sources require canonical paths", () => {
+  assert.equal(
+    readSourceMap(
+      "units: {One: {topics: [], lectures: [./notes.pdf], textbook: [], tutorials: []}}",
+    ).kind,
+    "valid",
+  );
+  assert.equal(
+    readSourceMap(
+      "units: {One: {topics: [], lectures: [], textbook: [], tutorials: []}}\nexercise_sets: [{block: Review, units: [One], exercises: All, sources: [{file: ./notes.pdf, locator: All, role: questions}]}]",
+    ).kind,
+    "invalid",
+  );
+});

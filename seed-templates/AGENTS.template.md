@@ -18,7 +18,7 @@ Read the route's procedure before acting in its area.
 - **Curation** — new NTULearn material into its canonical home:
   `docs/10 Curation Procedure.md`, recording in
   `00 Module Admin/20 Curation Register.jsonl`.
-- **Teaching** — lectures, revision and past papers in `70 Learning/`:
+- **Teaching** — lectures, exercise sets, revision and past papers in `70 Learning/`:
   `docs/20 Teaching Procedure.md`, with activity targets in
   `00 Module Admin/40 Source Map.yaml` and optional module conduct in
   `70 Learning/preferences.local.md`.
@@ -46,7 +46,8 @@ cloud policy or completion attestation is required.
 1. Call `tasks_read_register` with `semester` and `module`. Select existing work by its returned
    `taskId`; the live Google list is authoritative.
 2. Call `tasks_create`, `tasks_change` or `tasks_complete` with normal arguments.
-   Supply the title, `do_date`, notes and provenance the Owner requested. Complete an exact task
+   Supply the title, `do_date`, notes and provenance the Owner requested. `tasks_change` merges supplied
+   provenance keys (`assessment`, `source`, `milestone`), preserving omitted keys and task identity. Complete an exact task
    when the Owner requests it or the agreed work is explicitly complete.
 3. Require `isError: false`, `outcome: applied` and a returned `taskId`; changes and completion
    must retain the selected ID. Confirm the refreshed register is fresh. If Google accepted the

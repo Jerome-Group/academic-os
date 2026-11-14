@@ -13,7 +13,8 @@ export type MaterialCategory =
   | "supplementary_materials"
   | "past_papers"
   | "practice_tests"
-  | "historical_reference";
+  | "historical_reference"
+  | "exercise_sets";
 
 export interface MaterialReferenceAssessment {
   category: MaterialCategory;
@@ -78,6 +79,11 @@ export interface LearningMaterialsAssessment {
   outcome: "available" | "gaps" | "invalid" | "incomplete";
   inventoryCompleteness: "complete" | "partial";
   units: LearningMaterialsUnit[];
+  exerciseSets: {
+    block: string;
+    units: readonly string[];
+    sources: MaterialReferenceAssessment[];
+  }[];
   missingFiles: string[];
   nonFiles: string[];
   unavailableFiles: string[];

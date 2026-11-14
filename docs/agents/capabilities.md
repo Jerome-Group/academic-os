@@ -67,3 +67,8 @@ For daily repository repair or weekly review recovery, read
 [`weekly-maintenance.md`](weekly-maintenance.md). The same morning launcher runs repository checks,
 dispatches bounded repair only for new eligible failures, and updates one weekly issue. Use the
 mapped check-only and read-only status entrypoints before investigating a checkpoint.
+
+Native cross-unit exercise selection uses `learning exercise --root <module-root> --target <block>
+--json`. It validates the Source Map, exact unit references, ordinary materialized source files
+and SHA-256 bytes, and returns the tutorial pattern without writing coverage. Its CLI regression
+is `test/cli/learning-exercise-cli.test.ts`; generated `module activity` remains a distinct surface.

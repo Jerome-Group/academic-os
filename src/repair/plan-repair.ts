@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { supportedContractVersion } from "../conformance/index.js";
+import { isCompatibleContractVersion } from "../conformance/index.js";
 
 import { repairInventoryPaths } from "./repair-inventory-paths.js";
 import { RepairPlanError } from "./repair-plan-error.js";
@@ -215,9 +215,9 @@ function validateDraft(draft: RepairPlanDraft): void {
   if (draft.schemaVersion !== 1) {
     throw new RepairPlanError("Unsupported repair plan schema version.");
   }
-  if (draft.contractVersion !== supportedContractVersion) {
+  if (!isCompatibleContractVersion(draft.contractVersion)) {
     throw new RepairPlanError(
-      `Repair contract version must be ${supportedContractVersion}.`,
+      `Unsupported repair contract version ${draft.contractVersion}.`,
     );
   }
   if (!isUuid(draft.changeSetId)) {

@@ -13,11 +13,16 @@ for this module. `docs/00 Structure and Naming.md` governs anything that leaves 
 | Area              | Target                                                  | Pattern  |
 | ----------------- | ------------------------------------------------------- | -------- |
 | `10 Lectures/`    | Source-map unit key                                     | lecture  |
-| `20 Tutorials/`   | tutorial path, or a structured tutorial block's `block` | tutorial |
+| `20 Tutorials/`   | tutorial path, tutorial block, or module `exercise_sets` block | tutorial |
 | `30 Revision/`    | exact Source-map topic                                  | lecture  |
 | `40 Past Papers/` | exact paper or paper folder                             | tutorial |
 
-A target is the item worked. Its `unit` is the Source-map key that governs it. Several tutorials or
+A target is the item worked. A unit-level target's `unit` is the Source-map key that governs it.
+A module-level exercise set carries its declared `units` scope; never assign the whole set to one
+handout. It uses the tutorial pattern and its own named folder in `20 Tutorials/`, retaining its
+review identity even when its issued sources live in Finals. Select it with
+`academic-os learning exercise --root <module-root> --target <block> --json`; this reads sources
+and returns checksums and scope without writing records or completing work. Several tutorials or
 papers may share one unit and remain separate targets. Each area keeps `records/` beside its target
 folders.
 
@@ -38,7 +43,7 @@ Legacy records without `target` are evidence, not automatic completion. Resolve 
 their sources and folder only when that evidence identifies one target exactly; ask when it does
 not. A record for one tutorial or paper never covers another under the same unit.
 
-State the resolved area, target, governing unit, and sources before work begins.
+State the resolved area, target, governing unit or declared units scope, and sources before work begins.
 
 ### 2. Declare the write set
 
@@ -65,7 +70,7 @@ follow the demonstrated doubt. The Owner's current instruction remains authorita
 ### 4. Produce only the activity's artifacts
 
 A lecture target produces walkthroughs, usually about three for a unit unless the source's own
-structure justifies another split. A tutorial or past paper preserves the attempt and produces a
+structure justifies another split. A tutorial, exercise set or past paper preserves the attempt and produces a
 full solution writeup and concepts consolidation. Revision produces topic notes or a reference
 sheet as the actual work requires. Keep each `.tex` beside its PDF in the target folder.
 
@@ -113,6 +118,9 @@ supersedes: NNNN
 ```
 
 Omit `sources` only when the whole declared target was used, and omit `supersedes` for a new record.
+For a module-level exercise set, replace `unit` with `units: [<exact declared keys>]`; `target` is
+the exact block. Record a question subset in `sources[].locator` and the body; completing a subset
+does not complete the whole set. Existing single-unit records stay unchanged.
 The body says what was covered, produced, demonstrated, unresolved, and worth revisiting.
 
 `kind: session` records coverage. `kind: understanding` requires the body to name what the Owner

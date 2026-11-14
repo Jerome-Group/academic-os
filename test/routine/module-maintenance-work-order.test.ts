@@ -61,6 +61,7 @@ const learningSources = {
       status: "gaps",
     },
   ],
+  exerciseSets: [],
   missingFiles: ["NTULearn/week-1.pdf"],
   nonFiles: [],
   unavailableFiles: [],

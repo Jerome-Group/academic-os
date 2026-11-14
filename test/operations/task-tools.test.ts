@@ -230,7 +230,7 @@ describe("the served task tools", () => {
   it("refuses a change that names nothing to change", async () => {
     await assert.rejects(
       call(setupFixture(), "tasks_change", { task_id: "mirrored" }),
-      /at least one of title, do_date or notes/u,
+      /at least one of title, do_date, notes or provenance/u,
     );
   });
 
@@ -301,4 +301,26 @@ describe("the served task tools", () => {
       /not mapped to semester/u,
     );
   });
+});
+
+it("changes local provenance on the same task without patching unrelated Google fields", async () => {
+  const fixture = setupFixture();
+  const before = fixture.list.tasks();
+  const result = await call(fixture, "tasks_change", {
+    task_id: "mirrored",
+    source: "30 Assessments/40 Finals/Review_Questions.pdf",
+  });
+  assert.equal(result.failed, false);
+  assert.equal((result.report as TaskOperationReport).taskId, "mirrored");
+  assert.deepEqual(fixture.list.tasks(), before);
+  const refreshed = await call(fixture, "tasks_read_register", {});
+  const row = (refreshed.report as TaskRegisterReadReport).tasks.find(
+    (task) => task.taskId === "mirrored",
+  );
+  assert.deepEqual(row?.provenance, {
+    assessment: "Midterm",
+    source: "30 Assessments/40 Finals/Review_Questions.pdf",
+  });
+  assert.equal(row?.doDate, "2026-08-21");
+  assert.equal(row?.status, "open");
 });

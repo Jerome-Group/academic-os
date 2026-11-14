@@ -162,3 +162,55 @@ it("parks definitive rejections and validation failures before writes", async ()
   }
   assert.equal(writes, 1);
 });
+
+it("reports provenance persistence failure as unverified and preserves the selected task ID", async () => {
+  let patchCalls = 0;
+  const result = await applyTaskTargetOperation({
+    target: {
+      ...target,
+      registerStore: {
+        ...target.registerStore,
+        write: async () => {
+          throw new Error("Concurrent register change");
+        },
+      },
+    },
+    operation: {
+      name: "change",
+      taskId: "known-task",
+      provenance: { source: "new-source" },
+    },
+    writer: {
+      ...writer,
+      patchTask: async () => {
+        patchCalls += 1;
+      },
+      readTask: async () => ({ id: "known-task", title: "Existing" }),
+    },
+    reader: { listTasks: async () => [] },
+  });
+  assert.equal(result.outcome, "unverified");
+  assert.equal(result.taskId, "known-task");
+  assert.equal(patchCalls, 0);
+  assert.ok(result.failure);
+});
+
+it("does not acknowledge corrected provenance that the register did not retain", async () => {
+  const result = await applyTaskTargetOperation({
+    target,
+    operation: {
+      name: "change",
+      taskId: "known-task",
+      provenance: { source: "new-source" },
+    },
+    writer: {
+      ...writer,
+      readTask: async () => ({ id: "known-task", title: "Existing" }),
+    },
+    reader: {
+      listTasks: async () => [{ id: "known-task", title: "Existing" }],
+    },
+  });
+  assert.equal(result.outcome, "unverified");
+  assert.equal(result.taskId, "known-task");
+});

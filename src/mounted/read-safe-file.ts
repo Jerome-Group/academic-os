@@ -10,6 +10,19 @@ export async function readSafeFile(
   components: readonly string[],
   label: string,
 ): Promise<string> {
+  const current = await resolveSafeFile(root, components, label);
+  try {
+    return await readNoFollow(current);
+  } catch {
+    throw new OperationalError("invalid-target", `${label} cannot be read.`);
+  }
+}
+
+export async function resolveSafeFile(
+  root: string,
+  components: readonly string[],
+  label: string,
+): Promise<string> {
   let current = root;
   for (const [index, component] of components.entries()) {
     current = join(current, component);
@@ -43,11 +56,7 @@ export async function readSafeFile(
       );
     }
   }
-  try {
-    return await readNoFollow(current);
-  } catch {
-    throw new OperationalError("invalid-target", `${label} cannot be read.`);
-  }
+  return current;
 }
 
 export async function readNoFollow(

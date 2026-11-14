@@ -486,7 +486,7 @@ describe("auditModuleControls", () => {
     );
   });
 
-  it("requires a version-7 module to transition to version 8", () => {
+  it("requires a version-7 module to transition to version 9", () => {
     const controls = validModuleControls();
     controls.definition =
       controls.definition?.replace(
@@ -507,7 +507,7 @@ describe("auditModuleControls", () => {
     assert.match(
       result.findings.find(({ ruleId }) => ruleId === "MF-DEFINITION-001")
         ?.evidence ?? "",
-      /contract_version 7 requires upgrade to requested version 8/u,
+      /contract_version 7 requires upgrade to requested version 9/u,
     );
   });
 
@@ -516,7 +516,7 @@ describe("auditModuleControls", () => {
     controls.definition =
       controls.definition
         ?.replace("schema_version: 2", "schema_version: 3")
-        .replace("contract_version: 8", "contract_version: 9") ?? "";
+        .replace("contract_version: 8", "contract_version: 10") ?? "";
 
     const result = auditModuleControls(
       {
@@ -536,7 +536,7 @@ describe("auditModuleControls", () => {
     );
     assert.match(
       versionFinding?.evidence ?? "",
-      /Unsupported contract_version 9/u,
+      /Unsupported contract_version 10/u,
     );
     assert.equal(
       result.findings.filter(({ ruleId }) => ruleId === "MF-DEFINITION-001")
@@ -782,4 +782,24 @@ describe("auditModuleControls", () => {
       /1 structurally valid event/u,
     );
   });
+});
+
+it("keeps contract-8 native controls compatible with the optional contract-9 extension", () => {
+  for (const version of [8, 9]) {
+    const controls = validModuleControls();
+    controls.definition =
+      controls.definition?.replace(
+        "contract_version: 8",
+        `contract_version: ${version}`,
+      ) ?? "";
+    const result = auditModuleControls(
+      { moduleCode: "MH2100", semester: "Y2S1", controls },
+      testModuleContract,
+    );
+    assert.equal(
+      result.findings.find(({ ruleId }) => ruleId === "MF-DEFINITION-001")
+        ?.status,
+      "pass",
+    );
+  }
 });

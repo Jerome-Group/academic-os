@@ -454,7 +454,7 @@ it("queues a lagging cohort module for transition and touches nothing [MF-TRANSI
     module.findings.find(
       ({ ruleId }: { ruleId: string }) => ruleId === "MF-DEFINITION-001",
     )?.evidence ?? "",
-    /contract_version 3 requires upgrade to requested version 8/u,
+    /contract_version 3 requires upgrade to requested version 9/u,
   );
   recordBehaviorEvidence("MF-TRANSITION-001", () => {
     assert.equal(
@@ -594,6 +594,7 @@ it("audits past and future modules only through an explicit target", async () =>
 it("audits historical migrations read-only and distinguishes contract relationships", async () => {
   const { configPath, driveMount } = await cohortFixture();
   const moduleRoot = await writeConformantModule(driveMount, "Y1S2", "MH1100");
+  await declareContractVersion(moduleRoot, 9);
   const arguments_ = [
     "audit",
     "--config",

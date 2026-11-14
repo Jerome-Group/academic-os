@@ -153,7 +153,10 @@ test("rejects stale approval, path-only identity, unavailable capability, and co
 
   const wrongContract = repairPlanDraft();
   wrongContract.contractVersion = 999;
-  assert.throws(() => createRepairPlan(wrongContract), /must be 8/u);
+  assert.throws(
+    () => createRepairPlan(wrongContract),
+    /Unsupported repair contract version 999/u,
+  );
 });
 
 test("requires file-level curation before retiring an empty scratch tree", () => {
@@ -385,4 +388,15 @@ test("binds local-only Finder retirement to filesystem identity and checksum", (
   );
   assert.equal(event?.source_path, ".DS_Store");
   assert.equal(event?.checksum, `sha256:${"a".repeat(64)}`);
+});
+
+test("keeps approved contract-8 plans valid alongside optional contract-9 support", () => {
+  for (const contractVersion of [8, 9]) {
+    const draft = repairPlanDraft();
+    draft.contractVersion = contractVersion;
+    draft.approval.approvedPlanDigest = repairApprovalDigest(draft);
+    const plan = createRepairPlan(draft);
+    assert.equal(plan.contractVersion, contractVersion);
+    assert.doesNotThrow(() => verifyRepairPlan(plan));
+  }
 });

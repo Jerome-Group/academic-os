@@ -28,7 +28,17 @@ export function assessLearningMaterials(
   const units = read.units.map(({ unit, source }) =>
     assessUnit(unit, source, entries, completeness),
   );
-  const references = units.flatMap(unitReferences);
+  const exerciseSets = read.exerciseSets.map((set) => ({
+    block: set.block,
+    units: set.units,
+    sources: set.sources.map((source) =>
+      assessReference("exercise_sets", source.file, entries, completeness),
+    ),
+  }));
+  const references = [
+    ...units.flatMap(unitReferences),
+    ...exerciseSets.flatMap((set) => set.sources),
+  ];
   const declaredTutorialGaps = units.flatMap(declaredGaps);
   const missingFiles = uniquePaths(references, "missing");
   const nonFiles = uniquePaths(references, "not-file");
@@ -53,6 +63,7 @@ export function assessLearningMaterials(
     outcome,
     inventoryCompleteness: completeness,
     units,
+    exerciseSets,
     missingFiles,
     nonFiles,
     unavailableFiles,
@@ -247,6 +258,7 @@ function emptyAssessment(
     outcome,
     inventoryCompleteness,
     units: [],
+    exerciseSets: [],
     missingFiles: [],
     nonFiles: [],
     unavailableFiles: [],

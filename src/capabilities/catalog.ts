@@ -78,6 +78,26 @@ function cli(
 }
 
 export const cliCapabilities: Capability[] = [
+  {
+    ...cli(
+      "learning exercise",
+      [],
+      ["native Source Map with module-level exercise_sets"],
+      null,
+      ["test/cli/learning-exercise-cli.test.ts"],
+    ),
+    invocation:
+      "node dist/src/cli.js learning exercise --root <module-root> --target <block> --json",
+    implementation: "src/commands/learning-exercise-command.ts",
+    prerequisites: [
+      "Node >=24",
+      buildPrerequisite,
+      "ordinary Module root with a readable native Source Map and materialized exercise sources",
+    ],
+    reads: ["Source Map", "exact exercise sources"],
+    result:
+      "Exact tutorial-pattern exercise target, declared multi-unit scope and source checksums; no coverage or task writes.",
+  },
   ...moduleActivityActions.map(
     (action): Capability => ({
       id: action.cli.join(" "),

@@ -69,7 +69,7 @@ it("plans findings, operations, and observations through one pure seam", () => {
 it("uses contract version and applicability as authoritative inputs", () => {
   const contract: ModuleContract = {
     ...testModuleContract,
-    version: 9,
+    version: 10,
     ruleIds: testModuleContract.ruleIds.filter(
       (ruleId) => ruleId !== "MF-UNIVERSAL-001",
     ),
@@ -105,7 +105,7 @@ it("uses contract version and applicability as authoritative inputs", () => {
       ({ ruleId, status, evidence }) =>
         ruleId === "MF-DEFINITION-001" &&
         status === "fail" &&
-        evidence.includes("requested version 9"),
+        evidence.includes("requested version 10"),
     ),
     true,
   );

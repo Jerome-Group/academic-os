@@ -8,13 +8,14 @@ description: Verify Academic OS CLI, Operations and authored workflows through t
 ## Launch
 
 Run from the repository root with Node 24 or later in a dedicated verification shell.
+Follow the host storage instructions before creating any build or temporary paths.
 macOS builds also require Xcode Command Line Tools with `/usr/bin/xcrun clang` available.
 The built native inventory adapter runs without a compiler. Other platforms build the portable application and report native inventory unsupported.
 
 ```sh
 npm ci --ignore-scripts
 npm run build
-aos_proof="$(mktemp -d /tmp/academic-os-proof.XXXXXX)"
+aos_proof="$(mktemp -d "${TMPDIR:-/tmp}/academic-os-proof.XXXXXX")"
 chmod 700 "$aos_proof"
 mkdir -m 700 "$aos_proof/fixtures"
 export TMPDIR="$aos_proof/fixtures" TMP="$aos_proof/fixtures" TEMP="$aos_proof/fixtures"

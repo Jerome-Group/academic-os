@@ -18,7 +18,8 @@ when the map is incomplete. Check offering, issued dates, scope and permitted ma
 current assessment evidence. A local hash proves bytes, not upstream freshness. Historical material
 can supply practice and solutions; it cannot establish current assessment scope or permission.
 
-Establish pages, native body-size preference and floor, columns, furniture and deadline. Around
+Establish page count, color permission, native body-size preference and floor, columns and
+furniture. Confirm the deadline. Around
 4 pt is a configurable dense-sheet starting preference, never a universal assessment permission.
 The Owner or assessment may require larger type. Show the proposed source selection with locators,
 authority, hashes, gaps and exclusions; reuse an explicit selection already supplied. Resolve an
@@ -29,6 +30,20 @@ exercises, tutorial/test questions, historical questions with solutions, and eve
 lettered subpart. Distinguish example `Eg.` from exercise `Ex.` even when numbers coincide. Give
 each item a stable ID, source locator and type; record omitted optional items with reasons. A
 Source Map entry, label count or keyword match is not an enumeration of its contents.
+
+Read `70 Learning/REVISIT.md` and relevant lecture, tutorial, revision and past-paper session
+records. Open the underlying attempts or feedback when cited. Record each recurring or costly
+failure with the record locator, observed error, assessment relevance and the sheet item it earns.
+Distinguish an observed error, a prompted reconstruction and an unaided success. Use this evidence
+to rank discretionary space after required coverage. When records are sparse, record the gap and
+prioritize issued assessment guidance.
+
+For each selected method or worked item, compare its notation, hypotheses, conventions and
+decisive steps with the corresponding official solution or marking scheme when available. Cite the
+specific source and item. With no official answer, check against issued theory, derive the step
+independently, and record the missing authority. Historical solutions and personal attempts have
+their own provenance. Treat personal records as evidence of study needs and keep their private
+references out of the sheet and exported review package.
 
 Completion: current assessment and constraints have evidence; every selected source item and
 subpart is enumerated; gaps and authority conflicts are resolved or named as concrete blockers.
@@ -91,7 +106,8 @@ be materialized in the authoritative fragments before exact concatenation, or th
 must become the self-contained authority. Generated copies and historical inputs carry provenance,
 not a second editable authority. After every authority edit, rebuild the PDF and hash the release pair again.
 
-Record artifact identity, scope, release/support paths, paper, color, pages, columns, preferred/floor
+Record artifact identity, scope, release/support paths, paper, color (`color` or `monochrome`),
+pages, columns, preferred/floor
 body size, sources and SHA-256, coverage path, release TeX/PDF hashes and review status. `passed`
 names the exact reviewed PDF SHA-256. Every subsequent edit returns the release to `unreviewed`.
 Requested model credits are furniture; actual reviewer provenance is observed history.
@@ -141,6 +157,12 @@ Keep surrounding exposition regular weight. Short run-in proof stages remain bre
 `KeepBlock` reserves opening lines rather than boxing an entire argument. Nested semantic wrappers
 must not create empty paragraphs. Avoid long minipages or boxes that force a large unused tail.
 
+Use the semantic emphasis table in the skill's `references/layout-interface.md`. Choose cues by
+the role of the content. Underline statement, proof and solution labels through their wrappers.
+Use bold for short decisive cues and box only results worth retrieving as a single unit. Existing
+drafts can contain bare run-in labels or local redefinitions. Inspect those against the table before
+using the draft as a style reference.
+
 Provide slim, distinct top/bottom navigation bands configured for this sheet, a compact page/section
 map and page numbers. A map describes real labels; any claimed page/column range must match the
 current build. Every split identifies the exact continued item and direction, including resumed
@@ -183,6 +205,19 @@ TeX/PDF SHA-256 and build ID; resolve paths from the current report, never a rem
 Verify embedded fonts, native body floor, page constraint, no missing glyphs/overfull boxes/scaling,
 and semantic/raster correspondence between the rebuilt and released PDFs.
 
+Run a second pass from the PDF, with the authoring source closed for the first scan. Inspect every
+page at A4 actual size (100% print scaling). For a color release, inspect both color and grayscale. For a
+monochrome release, confirm the PDF itself has no chromatic emphasis. Locate the named
+statements, proof/solution starts, boxed formulas and warning cues. Follow the navigation to two
+equivalent items and compare their cues even when the surrounding topics differ. Against the
+coverage list and TeX, reconcile the intended roles with the visible cues per column. Record
+missing or inconsistent cues by label and page/column. In particular, inspect underlines on
+`Pf.` and `Sol.` and on named statement labels. For an audit, report the missing cues. For an
+authorized revision, correct wrapper usage or definitions at the authoring authority, rebuild,
+and repeat the pass on the current bytes. Record print/device or display conditions and any
+remaining legibility gap. Revisit the learning priorities and official method checks before
+freezing. A draft that compiles can still fail this pass.
+
 Freeze the PDF SHA-256 before review. Reviewers independent of authoring assess these distinct gates:
 
 1. **Source completeness:** independently read every selected source and reconcile every item and
@@ -194,7 +229,8 @@ Freeze the PDF SHA-256 before review. Reviewers independent of authoring assess 
 4. **Selected proof checks:** independently rederive difficult or fragile arguments and calculations;
    record which items were checked and the remaining scope. Sampled checks do not establish all items.
 5. **Layout:** inspect every full page and enlarged images of every column at the frozen PDF hash.
-   Check all-ink bounds, clipping, collisions, navigation/body clearances, voids and every continuation.
+   Check emphasis in color and grayscale, all-ink bounds, clipping, collisions, navigation/body
+   clearances, voids and every continuation.
 6. **Portability:** inspect the fresh isolated build, recorded inputs and release correspondence.
 
 Retain each verdict with its scope, reviewer provenance and exact PDF hash. A mechanical pass cannot

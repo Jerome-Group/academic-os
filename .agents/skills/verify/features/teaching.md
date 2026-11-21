@@ -19,7 +19,7 @@ The `learn`, `cheatsheet` and `research-project` routers remain user-invoked. Ve
 
 ## Driving it with the compiled CLI
 
-Preconditions: the parent skill's build and fresh doctor succeeded. TeX, `kpsewhich` and Poppler executables are installed.
+Preconditions: the parent skill's build and fresh doctor succeeded. TeX, `kpsewhich` and Poppler executables, including `pdftocairo`, are installed.
 
 ```sh
 npm run cheatsheet-runtime:check > "$aos_proof/teaching-runtime-check.txt" 2>&1
@@ -42,6 +42,10 @@ from a fresh module-relative evidence directory. Every inspected artifact must n
 TeX/PDF hash; inspect a targeted mutation's actual semantic failure, restore, then require a pass.
 The semantic-interface fixture compiles nested breakable blocks, typed example/exercise references,
 run-in proof stages, configurable navigation and native body sizes without blank paragraphs.
+The shared emphasis fixture reads text and vector graphics from compiled color and monochrome PDFs.
+It checks bold/ink assignments, statement/proof/solution underlines, equivalent solution labels and
+boxed results at native 4 pt. For second-pass procedure changes and mutation replay, use
+[Cheatsheet review](../../cheatsheet-review/SKILL.md).
 A package CLI fixture checks exact 16 MiB binary source bytes and provenance.
 Publication function tests check partial evidence and preservation of concurrent bytes.
 

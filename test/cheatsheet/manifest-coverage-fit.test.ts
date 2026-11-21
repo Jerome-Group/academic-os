@@ -51,17 +51,52 @@ describe("cheatsheet manifest and coverage", () => {
     });
   });
 
-  it("rejects stale review truth and source paths outside the module", () => {
+  it("records the assessment's color or monochrome print constraint", () => {
+    assert.equal(
+      parseCheatsheetManifest(manifest).constraints.color,
+      "monochrome",
+    );
+    assert.equal(
+      parseCheatsheetManifest(
+        manifest.replace("color: monochrome", "color: color"),
+      ).constraints.color,
+      "color",
+    );
     assert.throws(
       () =>
         parseCheatsheetManifest(
-          manifest.replace(
-            `reviewed_pdf_sha256: ${digest}`,
-            `reviewed_pdf_sha256: ${"b".repeat(64)}`,
-          ),
+          manifest.replace("color: monochrome", "color: unknown"),
         ),
-      /exact released PDF digest/u,
+      /constraints.color must be color or monochrome/u,
     );
+  });
+
+  it("accepts only the current PDF review across two distinct release revisions", () => {
+    const revisions = [digest, "b".repeat(64)];
+    for (const pdf of revisions) {
+      for (const review of revisions) {
+        const candidate = manifest
+          .replace(`  pdf_sha256: ${digest}`, `  pdf_sha256: ${pdf}`)
+          .replace(
+            `reviewed_pdf_sha256: ${digest}`,
+            `reviewed_pdf_sha256: ${review}`,
+          );
+        if (pdf === review) {
+          assert.deepEqual(parseCheatsheetManifest(candidate).release.review, {
+            status: "passed",
+            reviewedPdfSha256: pdf,
+          });
+        } else {
+          assert.throws(
+            () => parseCheatsheetManifest(candidate),
+            /exact released PDF digest/u,
+          );
+        }
+      }
+    }
+  });
+
+  it("rejects source paths outside the module", () => {
     assert.throws(
       () =>
         parseCheatsheetManifest(

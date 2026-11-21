@@ -47,6 +47,17 @@ it("assigns every CLI suite once and includes every catalogued test", async () =
       );
 });
 
+it("exercises the printed cheatsheet interface in the teaching workflow", async () => {
+  const selected = await workflowTestFiles(process.cwd(), "teaching");
+  for (const file of [
+    "cheatsheet/semantic-emphasis",
+    "seed-templates/cheatsheet-navigation",
+    "seed-templates/cheatsheet-semantic-rendering",
+  ]) {
+    assert.ok(selected.includes(resolve(`dist/test/${file}.test.js`)), file);
+  }
+});
+
 it("reports a failing selected CLI journey and a clean retry through the public command", async () => {
   const fixture = await mkdtemp(join(tmpdir(), "academic-workflow-proof-"));
   const installation = join(fixture, "installation");

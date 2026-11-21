@@ -8059,8 +8059,12 @@ function authoringAt(value) {
 }
 function constraintsAt(value) {
   const constraints = objectAt(value, "constraints");
-  if (constraints.paper !== "A4" || constraints.color !== "monochrome") {
-    throw new Error("constraints require A4 paper and monochrome output.");
+  if (constraints.paper !== "A4") {
+    throw new Error("constraints.paper must be A4.");
+  }
+  const { color } = constraints;
+  if (color !== "color" && color !== "monochrome") {
+    throw new Error("constraints.color must be color or monochrome.");
   }
   const pages = objectAt(constraints.pages, "constraints.pages");
   const exact = pages.exact;
@@ -8127,7 +8131,7 @@ function constraintsAt(value) {
   return {
     paper: "A4",
     pages: exact === void 0 ? { maximum: pageLimit2 } : { exact: pageLimit2 },
-    color: "monochrome",
+    color,
     columns: columns2,
     bodyPt: { preferred, floor },
     ...layout === void 0 ? {} : { layout }

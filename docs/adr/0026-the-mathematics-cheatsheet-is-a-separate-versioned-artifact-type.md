@@ -13,12 +13,16 @@ proofs, alternatives, warnings, tables, cases, derivations and diagrams. Adding 
 reference sheet would make two different artifacts share one ambiguous interface. A separate type
 lets an author select the needed semantics directly and keeps ordinary teaching artifacts stable.
 
-The cheatsheet preamble fixes its own compact monochrome A4 system. Body-like roles use 4 pt type
+The original cheatsheet preamble used a compact monochrome A4 system. Body-like roles use 4 pt type
 with 3.78 pt leading; mathematics uses native 4/3/2.4 pt fonts with a scalable Latin Modern
 extension shape. The specimen uses four columns, 0.6 mm gutters, nominal 1.8 mm side margins, a
 4 mm body top margin, a 5.47 mm reserved body bottom margin and a 1.6 mm footer baseline.
 Independent 600 dpi raster measurement found minimum all-ink clearance of about 1.31 mm. That
 measurement is evidence about the specimen, not a printer guarantee.
+
+The shared [layout interface](../../skills/cheatsheet/references/layout-interface.md) now assigns
+color to semantic roles while keeping text weight, lines and boxes. The assessment's print
+constraints determine whether the release uses color or monochrome.
 
 The local logo source transcribes the OpenAI black monoblossom vector path from the official 2025
 logo archive linked by OpenAI's Design Guidelines. Keeping the vector in TeX makes the seeded set

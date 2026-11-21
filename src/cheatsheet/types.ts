@@ -45,7 +45,7 @@ export type CheatsheetAuthoringAuthority =
 export interface CheatsheetConstraints {
   paper: "A4";
   pages: CheatsheetPageConstraint;
-  color: "monochrome";
+  color: "monochrome" | "color";
   columns: number;
   bodyPt: { preferred: number; floor: number };
   layout?: {

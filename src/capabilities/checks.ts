@@ -190,7 +190,13 @@ const workflowTests = {
     cli: /^(calendar-.+|tasks-.+|research-tasks)-cli\.test\.js$/u,
   },
   teaching: {
-    areas: ["learning-materials", "skills", "cheatsheet", "conformance"],
+    areas: [
+      "learning-materials",
+      "skills",
+      "cheatsheet",
+      "conformance",
+      "seed-templates",
+    ],
     cli: /^learning-(materials|exercise)-cli\.test\.js$/u,
   },
   maintenance: {

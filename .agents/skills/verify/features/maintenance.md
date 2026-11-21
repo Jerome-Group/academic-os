@@ -65,7 +65,8 @@ It checks the selected Node executable, custom command output, an unrelated inhe
 
 Repository-repair CLI coverage currently proves argument refusals. Its domain tests do not prove a real model repair or protected GitHub merge.
 GitHub issue bodies have no atomic compare-and-swap: an unseen edit can still race the final prewrite read.
-Curation rederive and textbooks sweep have domain coverage without compiled CLI journeys.
+Compiled curation journeys exercise rederive and register ownership. Compiled Shelf migration
+journeys exercise textbooks sweep. These fixtures cover synthetic sources and state.
 Shelf mutation requires a compiler and native exclusive/exchange support; preview/no-op need no compiler. Unsupported mutation refuses before book effects.
 Same-host canonical private state and stable namespaces remain premises. Captures are recovery evidence, not active catalogs; preserve them.
 Local fixtures do not establish configured-mount interruption, Drive sync or power-loss recovery.

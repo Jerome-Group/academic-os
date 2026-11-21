@@ -103,8 +103,12 @@ function authoringAt(value: unknown): CheatsheetAuthoringAuthority {
 
 function constraintsAt(value: unknown): CheatsheetConstraints {
   const constraints = objectAt(value, "constraints");
-  if (constraints.paper !== "A4" || constraints.color !== "monochrome") {
-    throw new Error("constraints require A4 paper and monochrome output.");
+  if (constraints.paper !== "A4") {
+    throw new Error("constraints.paper must be A4.");
+  }
+  const { color } = constraints;
+  if (color !== "color" && color !== "monochrome") {
+    throw new Error("constraints.color must be color or monochrome.");
   }
   const pages = objectAt(constraints.pages, "constraints.pages");
   const exact = pages.exact;
@@ -184,7 +188,7 @@ function constraintsAt(value: unknown): CheatsheetConstraints {
   return {
     paper: "A4",
     pages: exact === undefined ? { maximum: pageLimit } : { exact: pageLimit },
-    color: "monochrome",
+    color,
     columns,
     bodyPt: { preferred, floor },
     ...(layout === undefined ? {} : { layout }),

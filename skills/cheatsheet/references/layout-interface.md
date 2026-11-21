@@ -20,16 +20,41 @@ Navigation uses `SheetHeaderBaseline` (depth from top), `SheetFooterBaseline` (h
 chosen bands and measure all-ink clearance in the rendered result; the template cannot infer the
 space occupied by arbitrary supplied text. Use distinct concise maps, not two copies of one band.
 
+## Print hierarchy
+
+| Role | Color | Cue that survives grayscale |
+|---|---|---|
+| Navigation and question markers | Navy `#233D57` | Section bar, bold ruled heading or boxed question badge |
+| Statements and conditions | Teal `#005B57` | Bold underlined statement label or bold decisive hypothesis |
+| Results | Teal `#005B57` | Bold short result or boxed standalone key formula |
+| Reasoning | Plum `#5A316D` | Bold underlined `Pf.`/`Sol.` or bold method pivot |
+| Pitfalls | Rust `#853B23` | Bold explicit caution, correction or counterexample label |
+
+Keep ordinary prose and working black. Use the same wrapper for the same role across a sheet,
+including on a continuation. Select roles before applying macros. Bold a short condition or method
+only when it changes which move is valid. Use `KeyFormula` in math mode for a short formula the
+Owner needs to retrieve quickly. A line that wraps, a derivation or a repeated formula belongs in
+the running text. A rule under a topic heading is different from the underline under a run-in label.
+Record the chosen print constraint in the manifest. When an assessment requires monochrome, pass `monochrome` to `xcolor` before loading the preamble.
+The box, underline, weight and visible role labels still carry the hierarchy.
+
 | Macro | Arguments / purpose |
 |---|---|
 | `Topic[id]{title}` | Stable topic target and heading |
-| `Statement{kind}{display}{body}` | Named definition/result |
+| `Statement{kind}{display}{body}` | Named definition/result with an underlined label |
+| `FormalStatement{kind}{display}{source}{locator}{body}` | Underlined statement with source and optional locator |
 | `Example{display}{body}` | `Eg.` item |
 | `Exercise{display}{body}` | `Ex.` item |
 | `SourceItemRef{kind}{display}{stable id}` | Typed link to an item's explicit `label`; `Eg.` and `Ex.` stay distinct |
 | `Proof{body}` | `Pf.` with terminal square |
 | `ProofStep{stage}{body}` | Breakable run-in stage; place inside a proof |
 | `Hypothesis{condition}` | Selected bold text/math condition |
+| `Method{pivot}` | Short decisive reasoning step |
+| `Result{result}`, `Conclusion{result}` | Short result in bold |
+| `KeyFormula{formula}` | Boxed short formula. Call inside math mode |
+| `Worked{id}{title}{question}{reasoning}` | Question badge and underlined solution label |
+| `QuestionPart{part}{title}{source}{question}{reasoning}` | Subpart badge and underlined solution label |
+| `Caution{body}` | Explicit pitfall |
 | `Counterexample{display}{body}` | Explicit counterexample |
 | `Correction{body}` | Visible qualification/correction |
 | `KeepBlock{body}` | Reserve opening lines once, then allow ordinary column/page breaks; nesting is safe |

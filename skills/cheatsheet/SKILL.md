@@ -37,13 +37,11 @@ resolves assessment context and source choices. Run the complete requested outco
 Use this skill's bundled
 `scripts/cheatsheet-tool.mjs`; it needs Node 24, the selected module root and no repository checkout
 or Academic OS configuration. Run `scripts/cheatsheet-tool.mjs schema` before creating evidence;
-`references/manifest-example.yaml` is the synthetic manifest shape. For semantic macro signatures
-and per-sheet layout configuration, read `references/layout-interface.md` during authoring. The executable
-audits
-manifest/source/release correspondence, plans fitting from a measurement JSON file, verifies the
-portable release and builds a verified review package. Mechanical evidence and independent review
-remain separate gates
-owned by the pinned procedure. Ask only when the procedure exposes a material unresolved choice.
+`references/manifest-example.yaml` is the synthetic manifest shape. For create, revise or audit, read
+[the layout interface](references/layout-interface.md) for semantic emphasis and per-sheet layout.
+The executable audits manifest/source/release correspondence, plans fitting, verifies a portable
+build and builds a verified review package. The pinned procedure owns learning priorities and the
+second pass on the rendered PDF. Ask only when the procedure exposes a material unresolved choice.
 
 Completion: the procedure's completion criterion for the selected operation is satisfied and the
 handoff names the release pair and exact verification/review state.

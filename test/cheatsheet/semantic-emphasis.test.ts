@@ -11,6 +11,7 @@ const preamblePath =
   "seed-templates/70 Learning/templates/mathematics-cheatsheet-preamble.template.tex";
 const specimen = String.raw`
 \hypertarget{source:S}{}%
+\MajorBlock{M}{Major navigation}
 \Topic{Navigation}
 \Statement{Theorem}{Pivot}{Normal statement.}
 \FormalStatement{Lemma}{Bound}{S}{}{Normal lemma.}
@@ -34,9 +35,9 @@ async function render(monochrome: boolean) {
     await writeFile(
       join(cwd, "sheet.tex"),
       String.raw`\documentclass[a4paper]{article}
-${monochrome ? String.raw`\PassOptionsToPackage{monochrome}{xcolor}` : ""}
 \newcommand{\ChatGPTLogo}{}
 ${preamble}
+${monochrome ? String.raw`\selectcolormodel{gray}` : ""}
 \begin{document}
 \SheetBodyFont
 ${specimen}
@@ -121,6 +122,27 @@ for (const monochrome of [false, true]) {
       left: Number(left),
       baseline: Number(baseline),
     }));
+    const barInk = /<path fill-rule="nonzero" fill="rgb\(([^)]+)\)"/u.exec(
+      graphics,
+    )?.[1];
+    assert.ok(barInk, "major section prints a filled bar");
+    const channels = barInk
+      .split(", ")
+      .map((channel) => Number.parseFloat(channel));
+    assert.equal(channels.length, 3);
+    assert.ok(
+      channels.every((channel) => channel < 40),
+      "section bar remains dark",
+    );
+    assert.equal(new Set(channels).size, monochrome ? 1 : 3);
+    const title = runs.find(
+      ({ label }) => label === "<b>M Major navigation</b>",
+    );
+    assert.equal(
+      inks.get(title?.font ?? ""),
+      "ffffff",
+      "white section heading",
+    );
     const roles = [
       ["Navigation", "233d57", 1],
       ["Theorem Pivot.", "005b57", 1],
@@ -141,7 +163,9 @@ for (const monochrome of [false, true]) {
       assert.equal(matches.length, count, `${label} prints in bold`);
       for (const run of matches) {
         assert.ok(
-          closeColor(inks.get(run.font) ?? "", monochrome ? "000000" : color),
+          monochrome
+            ? /^([0-7][\da-f])\1\1$/u.test(inks.get(run.font) ?? "")
+            : closeColor(inks.get(run.font) ?? "", color),
           `${label} prints in its role's ink`,
         );
         if (["Theorem Pivot.", "Lemma Bound", "Pf.", "Sol."].includes(label)) {

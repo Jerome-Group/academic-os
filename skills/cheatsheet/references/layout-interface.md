@@ -35,8 +35,9 @@ including on a continuation. Select roles before applying macros. Bold a short c
 only when it changes which move is valid. Use `KeyFormula` in math mode for a short formula the
 Owner needs to retrieve quickly. A line that wraps, a derivation or a repeated formula belongs in
 the running text. A rule under a topic heading is different from the underline under a run-in label.
-Record the chosen print constraint in the manifest. When an assessment requires monochrome, pass `monochrome` to `xcolor` before loading the preamble.
-The box, underline, weight and visible role labels still carry the hierarchy.
+Record the chosen print constraint in the manifest. When an assessment requires monochrome,
+call `\selectcolormodel{gray}` after loading the preamble and before the document body. The gray
+model preserves the dark section bars and white headings, along with boxes, underlines and weight.
 
 | Macro | Arguments / purpose |
 |---|---|

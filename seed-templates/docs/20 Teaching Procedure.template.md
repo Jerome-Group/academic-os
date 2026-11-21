@@ -15,7 +15,7 @@ for this module. `docs/00 Structure and Naming.md` governs anything that leaves 
 | `10 Lectures/`    | Source-map unit key                                     | lecture  |
 | `20 Tutorials/`   | tutorial path, tutorial block, or module `exercise_sets` block | tutorial |
 | `30 Revision/`    | exact Source-map topic                                  | lecture  |
-| `40 Past Papers/` | exact paper or paper folder                             | tutorial |
+| `40 Past Papers/` | exact paper or paper folder                             | tutorial or Final Review |
 
 A target is the item worked. A unit-level target's `unit` is the Source-map key that governs it.
 A module-level exercise set carries its declared `units` scope; never assign the whole set to one
@@ -29,6 +29,50 @@ folders.
 The lecture pattern produces walkthroughs from the target's sources. Revision applies it to one
 topic, following tutorial and paper pointers without copying them. The tutorial pattern preserves
 the Owner's attempt and produces grading, a solution writeup, and a concepts consolidation.
+
+## Past finals
+
+A named final defaults to a full attempt under the tutorial pattern. An explicit review request
+or a task titled `<module> <year> Final Review` selects a 30-minute Final Review. Both use the
+same paper target. For a final named by title or year in a configured Module, call `tasks_final_study` with
+`action=inspect`, the configured semester and current module, and the paper request. For example,
+`review XX1234 21/22` requests review and `XX1234 21/22 Final` requests attempt. For an
+ambiguous paper, ask the Owner to select an exact question file and keep the requested mode.
+Historical codes resolve only when the curated questions identify them for this Module. Use the
+returned question file and paired solutions, or report an unavailable source. Exact papers and
+paper folders remain valid attempt targets. When the tool is unavailable, identify the exact
+questions and paired solutions from the curated Finals inventory before teaching, and leave
+Task closeout pending.
+
+Use the fresh register entry to select the exact task. Prefer an existing open task in the
+requested mode, including one the Owner renamed or recreated. Ask which task to use when
+several have an equal claim. If the task's title could mean several papers, get the Owner's
+exact question-file choice and use that path as the request, prefixed with `review` for a
+review. If the Owner accepts changing the mode of an open task for this
+paper, call `tasks_final_study` with `action=switch` and that `task_id`. If a separate task
+is needed and the Owner accepts creating it, use the Tasks protocol with the canonical title
+and question file as `assessment` provenance. Refresh after an uncertain create before retrying.
+
+For Final Review, use about 5 minutes to survey the paper, 20 to elicit an approach and compare
+it with available solutions question by question, and 5 to name gaps and agreed revisit items.
+Record the questions actually covered. Identify issued solutions by source and label any
+agent-produced explanation **Generated walkthrough**. A review needs no submitted script,
+mark, or graded feedback. Use the existing paper folder when it can be identified exactly.
+
+Record review coverage separately in the area's next numbered session record. Use the canonical
+paper title as `target` and `mode: final-review`. Include the exact question file in
+`sources` and cite the question and solution locators actually used. Include `task_id` when
+a task was selected. Set `status: complete` only when the Owner explicitly finishes the review.
+Keep this record on closeout retry so later task renames and refreshes
+retain the review evidence. Use a governing unit only when the Source Map establishes one.
+Preserve any previous attempt, feedback, and records. Record a later full attempt separately.
+
+When the Owner explicitly finishes the review, call `tasks_final_study` with
+`action=complete-review`, the review request and the selected `task_id`. Confirm the same
+ID reads completed and the canonical entry reports `reviewed`. A full attempt uses the
+ordinary Tasks protocol and its own attempt task. If retrying a review, keep the same paper
+and task ID. A completed attempt task and a completed review can both contribute coverage to
+one entry. Grading and understanding come from their own evidence.
 
 ## Session path
 
@@ -69,8 +113,9 @@ follow the demonstrated doubt. The Owner's current instruction remains authorita
 
 ### 4. Produce only the activity's artifacts
 
-A lecture target produces walkthroughs, usually about three for a unit unless the source's own
-structure justifies another split. A tutorial, exercise set or past paper preserves the attempt and produces a
+A Final Review follows the artifact instructions in **Past finals**. A lecture target produces
+walkthroughs, usually about three for a unit unless the source's own
+structure justifies another split. A tutorial, exercise set or full past-paper attempt preserves the attempt and produces a
 full solution writeup and concepts consolidation. Revision produces topic notes or a reference
 sheet as the actual work requires. Keep each `.tex` beside its PDF in the target folder.
 

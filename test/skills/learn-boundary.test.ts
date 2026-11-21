@@ -69,6 +69,31 @@ describe("the learn skill", () => {
     assert.match(skill, /70 Learning\/preferences\.local\.md/u);
   });
 
+  it("delegates final modes and exact review closeout to the pinned procedure", async () => {
+    const [skill, procedure] = await Promise.all([
+      readFile("skills/learn/SKILL.md", "utf8"),
+      readFile("seed-templates/docs/20 Teaching Procedure.template.md", "utf8"),
+    ]);
+    assert.match(
+      skill,
+      /follow the live procedure's \*\*Past finals\*\* route/u,
+    );
+    assert.match(
+      procedure,
+      /defaults to a full attempt under the tutorial pattern/u,
+    );
+    assert.match(procedure, /30-minute Final Review/u);
+    assert.match(procedure, /\*\*Generated walkthrough\*\*/u);
+    assert.match(
+      procedure,
+      /needs no submitted script,\s+mark, or graded feedback/u,
+    );
+    assert.match(
+      procedure,
+      /explicitly finishes the review[\s\S]+action=complete-review[\s\S]+selected `task_id`/u,
+    );
+  });
+
   // One decision, and each harness spells it in its own file, so a harness added without its
   // encoding is a skill that quietly starts firing on its own there.
   it("fires only when the Owner invokes it, in every harness it is installed into", async () => {

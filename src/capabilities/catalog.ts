@@ -1002,6 +1002,35 @@ export function capabilityIndex(): object {
           "MCP content containing JSON text and isError; transport errors remain distinct.",
       });
     }
+  actions.push({
+    id: "tasks_final_study",
+    surface: "mcp",
+    invocation: "MCP tools/call tasks_final_study",
+    prerequisites: [
+      "configured Operations server, exact Module and final paper",
+    ],
+    reads: [
+      "curated Finals inventory",
+      "past-paper Learning records",
+      "Google Tasks and Task register",
+    ],
+    writes: [
+      "mounted Task register and freshness evidence",
+      "exact Google task on accepted switch or review completion",
+    ],
+    riskFlags: [
+      "writes-state",
+      "external-write",
+      "requires-target-authorization",
+    ],
+    preview: "action=inspect pulls the live list without changing Google Tasks",
+    implementation: "src/operations/final-study-tool.ts",
+    tests: ["test/operations/final-study-tool.test.ts"],
+    status: "supported",
+    health: "not-observed",
+    result:
+      "Canonical final sources and one Task-register entry grouping attempt and review task IDs by questions path.",
+  });
   for (const name of ["tasks_apply_plan", "tasks_sync_capabilities"])
     actions.push({
       id: name,

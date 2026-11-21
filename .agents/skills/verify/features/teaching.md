@@ -8,6 +8,7 @@ Agents locate declared learning materials and use the shipped cheatsheet runtime
 - Native exercise selection resolves a module-level Source Map block with explicit multi-unit scope, tutorial pattern and materialized source hashes, without recording coverage or completion.
 - Installed router instructions preserve Module and Research-project ownership boundaries.
 - The `learn` router also accepts an explicit absolute personal teaching-folder path with existing materialized controls.
+- The pinned Teaching Procedure routes Final Review to a 30-minute source-led session and exact Task closeout. The Tasks and Operations journey verifies resolution and persistence.
 - Cheatsheet preparation qualifies source manifests and coverage.
 - Release verification and packaging preserve bytes and expose incomplete semantic review.
 

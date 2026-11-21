@@ -41,7 +41,8 @@ semester folder, inside `Modules/` on their Drive. Search both places macOS moun
 A machine can have both, pointing at one Drive, so compare the paths **resolved** rather than as
 written — one folder reached two ways is one folder.
 
-The code comes from the Owner's invocation; the folder comes from the search. The working
+The code comes from the Owner's invocation. When it starts with `review <module code>`, use
+that code to find the folder and retain the whole review request for step 3. The working
 directory is not part of this — `/learn` runs the same from anywhere, including from inside a
 different module.
 
@@ -66,6 +67,8 @@ They are the module's, not this skill's, and a remembered copy is a stale one:
 Resolve an activity target named in the invocation first. For continuation, follow **Session path →
 1. Resolve the activity and target** in the live Teaching Procedure. That step owns target order,
 record interpretation and ambiguity handling.
+
+For a named final or Final Review, follow the live procedure's **Past finals** route.
 
 State the resolved area, target, governing unit and sources before handing the session to the
 procedure. Completion: one target is resolved, or the procedure's material ambiguity is with the

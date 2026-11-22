@@ -195,15 +195,17 @@ Keep surrounding exposition regular weight. Short run-in proof stages remain bre
 must not create empty paragraphs. Avoid long minipages or boxes that force a large unused tail.
 
 Keep the sheet white with black running text. Apply the five color roles in
-`references/layout-interface.md` to selected material. Prefer short highlights for theorem
-and lemma labels, exercise titles or decisive moves, terms, and paper IDs.
+`references/layout-interface.md` to selected material. Prefer short highlights for statement
+labels, exercise titles or decisive moves, terms, and paper IDs. Highlight the complete
+numbered label as one unit, including its type and identifier, as in `Def. 2.28`.
 
 Put at least one visible color cue inside the body of every worked solution, proof sketch
 and substantive explanation. Highlight the term the Owner needs to find, the condition that
 permits the method, the decisive move, or the formula or result worth finding again. Use
 distinct role colors when different roles appear. Prefer a short opaque fill for a lookup
-phrase or decisive step. Keep surrounding sentences black. On revision, apply this pass to
-retained explanations as well as new material.
+phrase or decisive step. Use `KeyTerm` for bold highlighted terms and `KeyTerm*` to underline
+the few terms readers most need to find. Keep surrounding sentences black. Apply this pass
+to both retained and new explanations.
 
 Choose highlights from recurring mistakes, exam patterns and the Owner's learning gaps. Give
 a compact theorem or lemma one solid background when its conditions and conclusion are best
@@ -265,10 +267,11 @@ conventions by page and item.
 
 Inspect the release PDF in color at actual size. Confirm that the selected semantic highlights
 are visible on its own pages. Locate a colored cue in the body of each worked solution,
-proof sketch and explanation. Rebuild if a body needs a cue or its cue is hard to spot.
+proof sketch and explanation. Verify that highlighted terms are bold and priority underlines
+are visible. Rebuild if a body needs a cue or its cue is hard to spot.
 Render those same pages in grayscale for the legibility check.
-At actual size, locate the chosen theorems, lemmas, exercises, terms and past-paper
-identifiers. Check that each highlight matches its role, covers the intended words or math,
+At actual size, locate the chosen statements, exercises, terms and past-paper identifiers.
+Check that each highlight matches its role, covers the complete label or intended words or math,
 leaves nearby text readable, and leaves room for normal column flow. Inspect fills for dark stripes
 or seams where lines meet. Check the same items in
 grayscale using labels, weight, boxes and underlines. Record competing color, hard-to-find items

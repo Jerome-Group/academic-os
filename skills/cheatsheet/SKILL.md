@@ -37,7 +37,9 @@ resolves assessment context and source choices. Run the complete requested outco
 Create and revise in color. Apply the shared semantic palette to the released PDF and use
 grayscale to check legibility. Put a visible color cue inside each worked solution, proof
 sketch and substantive explanation. Use judgment to choose the key term, formula, condition
-or step that earns the cue.
+or step that earns the cue. Use the shared styles for contrast and weight. Key terms are bold.
+Underline the few that matter most for quick lookup. Highlight complete printed labels
+such as `Def. 2.28` as a unit.
 For a final, use the procedure's past-paper ranking and wording order before drafting or
 choosing highlights. Make routine priority decisions from the evidence you find.
 Use this skill's bundled

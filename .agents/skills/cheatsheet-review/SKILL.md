@@ -38,7 +38,8 @@ Require both invariants and deadlock checking to pass. Retain the report and sho
 Restore the scratch inputs and rerun. The model checks the procedure's ordering and the parser's
 digest rule within its bound. The parser cannot tell whether someone carried out a visual or
 mathematical review. The compiled 4 pt fixtures check selective ink, priority underlines, short and
-full highlights, body cues in a worked solution and proof, and text bounds in color and grayscale.
+full highlights, whole statement labels, bold and underlined key terms, body cues in a worked
+solution and proof, and text bounds in color and grayscale.
 On a final, compare the highlight ranking with the past-paper evidence and the printed working
 with its cited marking or teaching source. Check the rendered fills for stripes or seams.
 
@@ -49,6 +50,6 @@ after checking the new procedure, implementation and suites together.
 
 | Surface | Git blob |
 |---|---|
-| `seed-templates/docs/40 Cheatsheet Procedure.template.md`, sections 1 and 5 | `2c572899b8646ef79ddcbaaf0febe63a4f10e612` |
-| `seed-templates/70 Learning/templates/mathematics-cheatsheet-preamble.template.tex`, semantic macros | `779c3140dfb4236cb978075212e1d787ae7254ba` |
+| `seed-templates/docs/40 Cheatsheet Procedure.template.md`, sections 1 and 5 | `8db57d7ea19dcdd5197c8dd9d1bd32c16537f865` |
+| `seed-templates/70 Learning/templates/mathematics-cheatsheet-preamble.template.tex`, semantic macros | `6a5c60625728e0fa457a3158b16e088c8f9631d5` |
 | `src/cheatsheet/manifest.ts`, `parseCheatsheetManifest` | `04fba91da73cd42681f600fe6bc9f12f57ff499c` |

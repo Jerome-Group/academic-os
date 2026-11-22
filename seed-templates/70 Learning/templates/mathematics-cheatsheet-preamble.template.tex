@@ -37,6 +37,16 @@
 \definecolor{SheetStatement}{HTML}{0037B3}
 \definecolor{SheetReasoning}{HTML}{006343}
 \definecolor{SheetWarning}{HTML}{9C2500}
+\definecolor{SheetHighlighttheorem}{HTML}{DCEAFF}
+\definecolor{SheetHighlightlemma}{HTML}{ECDDFF}
+\definecolor{SheetHighlightexercise}{HTML}{CCF0DB}
+\definecolor{SheetHighlightterm}{HTML}{FFF0A8}
+\definecolor{SheetHighlightpaper}{HTML}{F8DAE6}
+\definecolor{SheetInklemma}{HTML}{4F246E}
+\definecolor{SheetInkexercise}{HTML}{004C35}
+\definecolor{SheetInkterm}{HTML}{594200}
+\definecolor{SheetInkpaper}{HTML}{741943}
+\colorlet{SheetInktheorem}{SheetStatement}
 \usepackage{tikz}
 \usetikzlibrary{svg.path,arrows.meta,positioning}
 \usepackage{eso-pic}
@@ -85,6 +95,8 @@
 \def\sheet@bottomnavigation{}
 \newif\ifsheet@furniture
 \newcount\sheet@keepdepth
+\newbox\sheet@highlightbox
+\newdimen\sheet@highlightdepth
 \define@key{sheet}{title}{\gdef\sheet@title{#1}}
 \define@key{sheet}{credit}{\gdef\sheet@credit{#1}}
 \define@key{sheet}{disclaimer}{\gdef\sheet@disclaimer{#1}}
@@ -115,9 +127,28 @@
   #1%
   \par\endgroup
 }
+\newcommand{\PassageHighlight}[2]{%
+  \par\begingroup
+  \setbox\sheet@highlightbox=\vtop{%
+    \hsize=\linewidth
+    \noindent\color{SheetInk#1}#2\par
+    \global\sheet@highlightdepth=\prevdepth
+  }%
+  \setlength{\fboxsep}{0pt}%
+  \noindent\colorbox{SheetHighlight#1}{\box\sheet@highlightbox}\par
+  % Preserve the leading from the last line of the passage to the next line.
+  \prevdepth=\sheet@highlightdepth
+  \endgroup
+}
 \makeatother
 
 \newcommand{\SourceRef}[1]{\hyperlink{source:#1}{[\textbf{#1}]}}
+\newcommand{\HighlightTag}[2]{%
+  \leavevmode\begingroup
+  \setlength{\fboxsep}{0pt}%
+  \colorbox{SheetHighlight#1}{\color{SheetInk#1}\textbf{#2}}%
+  \endgroup
+}
 \newcommand{\SourceItemRef}[3]{\hyperref[#3]{\textsf{\textbf{#1~#2}}}}
 \newcommand{\ConceptRef}[1]{\textbf{#1}}
 \newcommand{\SheetPageRef}[1]{p.\,\pageref*{#1}}
@@ -145,6 +176,9 @@
 \NewDocumentCommand{\Statement}{s m m +m}{%
   \KeepBlock{\IfBooleanT{#1}{\color{SheetStatement}}%
     \phantomsection\SheetRunIn[\IfBooleanTF{#1}{0.40pt}{0.24pt}]{\DisplayStatementKind{#2} #3.}\ #4}%
+}
+\newcommand{\HighlightedStatement}[4]{%
+  \PassageHighlight{#1}{\phantomsection\SheetRunIn[0.40pt]{\DisplayStatementKind{#2} #3.}\ #4}%
 }
 \NewDocumentCommand{\FormalStatement}{s m m m m +m}{%
   \par{\IfBooleanT{#1}{\color{SheetStatement}}%

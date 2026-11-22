@@ -12,13 +12,16 @@ A4 portrait; exactly two pages; four columns; color with a grayscale print mode.
 
 Navy navigation and ruled headings organize the page. On white paper, cobalt marks selected
 theorems and formulas, green marks key terms and method pivots, and rust marks pitfalls.
-Routine text is black. A heavier underline marks a selected theorem in grayscale.
+The specimen also shows pale blue and lilac behind selected statements, a mint exercise tag
+and a yellow lookup term. Routine text is black. A heavier underline marks a selected claim
+in grayscale.
 
 Primary API:
 
 - `\SheetSetup{title=...,credit=...,disclaimer=...,publisher=...,logo=...}`
 - `\MajorBlock{ID}{title}`, `\SourceBlock{ID}{title}`, `\Topic{title}`
 - `\Statement{kind}{number}{text}`, `\FormalStatement{kind}{number}{source-id}{title}{body}`, with starred forms for selected claims
+- `\HighlightedStatement{role}{kind}{number}{body}`, `\PassageHighlight{role}{body}`, `\HighlightTag{role}{text}`
 - `\Assumption{body}`, `\Proof{body}`, `\Example{number}{body}`
 - `\Question{number}{source-id}{setup}`
 - `\QuestionPart{part}{concept}{source-id}{question}{solution}`
@@ -35,9 +38,9 @@ Logo provenance: `chatgpt-logo.tex` transcribes the single path from `OpenAI-bla
 
 ## Verification
 
-- [Compiled color specimen](mathematics-cheatsheet.pdf) SHA-256 `73e35cbc1028defbf6e1a008574c9fc1ba48d7c54fa2eca65318533daf5a6350`.
+- [Compiled color specimen](mathematics-cheatsheet.pdf) SHA-256 `e3724cb7b6a38c7e20f8c71c45f681086937a4b263fcc75e55e46db663747ff7`.
 - The two A4 pages retain all eight columns and the measured body-column bottom positions.
-- The compiled print fixture checks that routine text stays black, selected statements keep their
-  ink through line breaks, and accents contrast at least 7:1 with white in both print modes.
+- The compiled print fixtures check selective ink, all five highlight roles, equal bounds for
+  equivalent highlighted and plain lines, and at least 7:1 ink-to-background contrast.
 - [Earlier visual review](visual-review.md) and [mathematical review](mathematics-review.md)
   document the previous specimen revision.

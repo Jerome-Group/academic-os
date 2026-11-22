@@ -32,7 +32,7 @@ Ordinary prose resumes.\par
 \[\KeyFormula{x=y}\]
 `;
 
-async function render(monochrome: boolean) {
+async function render(monochrome: boolean, body = specimen) {
   const preamble = await readFile(preamblePath, "utf8");
   const cwd = await mkdtemp(join(tmpdir(), "cheatsheet-emphasis-"));
   try {
@@ -44,7 +44,7 @@ ${preamble}
 ${monochrome ? String.raw`\selectcolormodel{gray}` : ""}
 \begin{document}
 \SheetBodyFont
-${specimen}
+${body}
 \end{document}
 `,
     );
@@ -112,26 +112,25 @@ function closeColor(actual: string, expected: string) {
   );
 }
 
+function renderedFills(graphics: string) {
+  return [
+    ...graphics.matchAll(/<path fill-rule="nonzero" fill="rgb\(([^)]+)\)"/gu),
+  ].map(([, rgb = ""]) =>
+    rgb
+      .split(", ")
+      .map((channel) =>
+        Math.round((Number.parseFloat(channel) * 255) / 100)
+          .toString(16)
+          .padStart(2, "0"),
+      )
+      .join(""),
+  );
+}
+
 for (const monochrome of [false, true]) {
   it(`prints semantic emphasis in ${monochrome ? "monochrome" : "color"} at native size`, async () => {
     const { text, graphics } = await render(monochrome);
-    const inks = new Map(
-      [
-        ...text.matchAll(/<fontspec id="(\d+)"[^>]* color="#([\da-f]{6})"/gu),
-      ].map(([, id, color]) => [id, color]),
-    );
-    const runs = [
-      ...text.matchAll(
-        /<text top="([\d.]+)" left="([\d.]+)" width="([\d.]+)" height="([\d.]+)" font="(\d+)">([^\n]+)<\/text>/gu,
-      ),
-    ].map(([, top, left, width, height, font, label]) => ({
-      top: Number(top),
-      left: Number(left),
-      width: Number(width),
-      bottom: Number(top) + Number(height),
-      font,
-      label: label ?? "",
-    }));
+    const runs = renderedText(text);
     const strokes = [
       ...graphics.matchAll(
         /<path fill="none" stroke-width="([\d.]+)"[^>]* d="M ([-\d.e]+) ([-\d.e]+) L ([-\d.e]+) ([-\d.e]+) " transform="matrix\([^,]+, [^,]+, [^,]+, [^,]+, ([-\d.e]+), ([-\d.e]+)\)"/gu,
@@ -143,18 +142,7 @@ for (const monochrome of [false, true]) {
       left: Number(left),
       baseline: Number(baseline),
     }));
-    const backgrounds = [
-      ...graphics.matchAll(/<path fill-rule="nonzero" fill="rgb\(([^)]+)\)"/gu),
-    ].map(([, rgb = ""]) =>
-      rgb
-        .split(", ")
-        .map((channel) =>
-          Math.round((Number.parseFloat(channel) * 255) / 100)
-            .toString(16)
-            .padStart(2, "0"),
-        )
-        .join(""),
-    );
+    const backgrounds = renderedFills(graphics);
     const [majorBackground = ""] = backgrounds;
     assert.equal(backgrounds.length, 1, "only the major section band uses a fill");
     for (const [heading, background, expected] of [
@@ -169,7 +157,7 @@ for (const monochrome of [false, true]) {
         `${heading} background matches the print mode`,
       );
       const title = runs.find(({ label }) => label === `<b>${heading}</b>`);
-      const ink = inks.get(title?.font ?? "") ?? "";
+      const ink = title?.ink ?? "";
       if (heading === "M Major navigation")
         assert.equal(ink, "ffffff", "white section heading");
       assert.ok(contrast(ink, background) >= 9, `${heading} band contrast`);
@@ -197,7 +185,7 @@ for (const monochrome of [false, true]) {
       const matches = runs.filter((run) => run.label === `<b>${label}</b>`);
       assert.equal(matches.length, count, `${label} prints in bold`);
       for (const run of matches) {
-        const ink = inks.get(run.font) ?? "";
+        const ink = run.ink;
         assert.ok(
           monochrome && color !== "000000"
             ? /^([1-7][\da-f])\1\1$/u.test(ink)
@@ -235,7 +223,7 @@ for (const monochrome of [false, true]) {
       "Selected formal statement.",
     ]) {
       const run = runs.find(({ label }) => label.includes(passage));
-      const ink = inks.get(run?.font ?? "") ?? "";
+      const ink = run?.ink ?? "";
       assert.ok(
         monochrome ? /^([1-7][\da-f])\1\1$/u.test(ink) : closeColor(ink, "0037b3"),
         `${passage} prints in its passage ink`,
@@ -264,7 +252,7 @@ for (const monochrome of [false, true]) {
       "Normal question.",
     ]) {
       const run = runs.find(({ label }) => label.includes(passage));
-      assert.equal(inks.get(run?.font ?? ""), "000000", passage);
+      assert.equal(run?.ink, "000000", passage);
     }
     const formulaBox = strokes.filter(
       ({ left, thickness }) => left > 250 && thickness > 0.3,
@@ -279,5 +267,99 @@ for (const monochrome of [false, true]) {
       2,
       "key formula has left and right rules",
     );
+  });
+}
+
+const sampleWithHighlights = String.raw`
+Above the claim.\par
+\HighlightedStatement{theorem}{Theorem}{Pivot}{First printed claim.\\ Second printed claim.}
+Below the claim.\par
+\HighlightedStatement{lemma}{Lemma}{Bridge}{Supporting claim.}
+\PassageHighlight{exercise}{\textbf{Ex. 7.}\ Find the decisive step.}
+\HighlightTag{term}{Jacobian}\quad Next to the term.\par
+\HighlightTag{paper}{Paper A, Q2}\quad Next to the paper.\par
+`;
+
+const sampleOnWhite = String.raw`
+Above the claim.\par
+\SheetRunIn[0.40pt]{Theorem Pivot.}\ First printed claim.\\ Second printed claim.\par
+Below the claim.\par
+\SheetRunIn[0.40pt]{Lemma Bridge.}\ Supporting claim.\par
+\textbf{Ex. 7.}\ Find the decisive step.\par
+\textbf{Jacobian}\quad Next to the term.\par
+\textbf{Paper A, Q2}\quad Next to the paper.\par
+`;
+
+function renderedText(xml: string) {
+  const colors = new Map(
+    [...xml.matchAll(/<fontspec id="(\d+)"[^>]* color="#([\da-f]{6})"/gu)]
+      .map(([, font, color]) => [font, color]),
+  );
+  return [...xml.matchAll(
+    /<text top="([\d.]+)" left="([\d.]+)" width="([\d.]+)" height="([\d.]+)" font="(\d+)">([^\n]+)<\/text>/gu,
+  )].map(([, top, left, width, height, font, label]) => ({
+    top: Number(top),
+    left: Number(left),
+    width: Number(width),
+    height: Number(height),
+    bottom: Number(top) + Number(height),
+    font,
+    ink: colors.get(font) ?? "",
+    label: label ?? "",
+  }));
+}
+
+for (const monochrome of [false, true]) {
+  it(`prints distinct priority fills at the same footprint in ${monochrome ? "grayscale" : "color"}`, async () => {
+    const [highlighted, plain] = await Promise.all([
+      render(monochrome, sampleWithHighlights),
+      render(monochrome, sampleOnWhite),
+    ]);
+    const fills = renderedFills(highlighted.graphics);
+    const roles = [
+      ["First printed claim.", "0037b3", "dceaff"],
+      ["Supporting claim.", "4f246e", "ecddff"],
+      ["Find the decisive step.", "004c35", "ccf0db"],
+      ["Jacobian", "594200", "fff0a8"],
+      ["Paper A, Q2", "741943", "f8dae6"],
+    ] as const;
+    assert.equal(fills.length, roles.length);
+    assert.deepEqual(renderedFills(plain.graphics), []);
+
+    const runs = renderedText(highlighted.text);
+    const plainRuns = renderedText(plain.text);
+    const isGray = /^([\da-f]{2})\1\1$/u;
+    for (const [i, [label, ink, fill]] of roles.entries()) {
+      const run = runs.find((entry) => entry.label.includes(label));
+      assert.ok(run, label);
+      const printedFill = fills[i] ?? "";
+      assert.ok(monochrome ? isGray.test(printedFill) : closeColor(printedFill, fill), label);
+      assert.ok(monochrome ? isGray.test(run.ink) : closeColor(run.ink, ink), label);
+      assert.ok(contrast(printedFill, "ffffff") > 1.05, `${label} fill shows on white`);
+      assert.ok(contrast(run.ink, printedFill) >= 7, `${label} contrasts with its fill`);
+    }
+    for (const label of [
+      "Above the claim.",
+      "First printed claim.",
+      "Second printed claim.",
+      "Below the claim.",
+      "Supporting claim.",
+      "Find the decisive step.",
+      "Jacobian",
+      "Next to the term.",
+      "Paper A, Q2",
+      "Next to the paper.",
+    ]) {
+      const run = runs.find((entry) => entry.label.includes(label));
+      const plainRun = plainRuns.find((entry) => entry.label.includes(label));
+      assert.ok(run && plainRun, label);
+      assert.deepEqual(
+        [run.top, run.left, run.width, run.height],
+        [plainRun.top, plainRun.left, plainRun.width, plainRun.height],
+        `${label} keeps its bounds`,
+      );
+    }
+    const printedClaim = runs.find((run) => run.label.includes("Second printed claim."));
+    assert.equal(printedClaim?.ink, runs.find((run) => run.label.includes("First printed claim."))?.ink);
   });
 }

@@ -207,6 +207,10 @@ phrase or decisive step. Use `KeyTerm` for bold highlighted terms and `KeyTerm*`
 the few terms readers most need to find. Keep surrounding sentences black. Apply this pass
 to both retained and new explanations.
 
+Use the shared `Worked`, `QuestionPart` and `Proof` wrappers for new worked items and proofs.
+Put each cue inside the reasoning argument. A colored `Sol.` or `Pf.` label, an exercise title,
+and a colored paper ID serve navigation. Every worked explanation still needs its own cue.
+
 Choose highlights from recurring mistakes, exam patterns and the Owner's learning gaps. Give
 a compact theorem or lemma one solid background when its conditions and conclusion are best
 read together. Highlight each lookup term at its most useful occurrence. Give any point on
@@ -255,6 +259,10 @@ off-page text, rather than a cropped or body-only extraction. Bind every observa
 TeX/PDF SHA-256 and build ID; resolve paths from the current report, never a remembered scratch run.
 Verify embedded fonts, native body floor, page constraint, no missing glyphs/overfull boxes/scaling,
 and semantic/raster correspondence between the rebuilt and released PDFs.
+For color releases, `verify` checks every page for visible color and tests shared wrappers for
+semantic cues inside explanations and obvious number-only tags. It checks within declared body
+margins when available. The rendered review below establishes whether the cues are in the
+right place and identify the right material.
 
 Run a second pass from the PDF, with the authoring source closed for the first scan. Inspect every
 page at A4 actual size (100% print scaling). Re-solve one fragile worked item per section using the
@@ -265,17 +273,18 @@ For a final, reconcile the highlighted items with the past-paper ranking and che
 answer form and decisive steps against the cited authority. Record missing reasoning and
 conventions by page and item.
 
-Inspect the release PDF in color at actual size. Confirm that the selected semantic highlights
-are visible on its own pages. Locate a colored cue in the body of each worked solution,
-proof sketch and explanation. Verify that highlighted terms are bold and priority underlines
-are visible. Rebuild if a body needs a cue or its cue is hard to spot.
-Render those same pages in grayscale for the legibility check.
-At actual size, locate the chosen statements, exercises, terms and past-paper identifiers.
-Check that each highlight matches its role, covers the complete label or intended words or math,
-leaves nearby text readable, and leaves room for normal column flow. Inspect fills for dark stripes
-or seams where lines meet. Check the same items in
-grayscale using labels, weight, boxes and underlines. Record competing color, hard-to-find items
-and missing cues by page. On revision, fix the authoring source and repeat on the rebuilt PDF.
+Review the exact release PDF at actual size in color and grayscale. Sweep every page column
+from top to bottom. Record the page and column, each worked item or explanation's printed locator,
+the body cue and its function, and any missing or split label. Follow continuations across
+columns and pages and check resumed reasoning. A column with no worked material still gets
+a label, contrast and spacing check.
+
+Check that numbered highlights cover the full typed label, key terms print bold, important
+underlines and proof or solution underlines are visible, and neighboring normal text remains
+legible. Check highlights for overlap, dark stripes and collisions. Read the same items in
+grayscale using labels, weight, boxes and underlines. Use the exact-hash layout verdict to
+retain the review. Fix every failed item in the authoring source, rebuild, and repeat the check
+on the changed pages and their continuations.
 
 Freeze the PDF SHA-256 before review. Reviewers independent of authoring assess these distinct gates:
 

@@ -10929,6 +10929,60 @@ import { basename, join as join5 } from "node:path";
 import { promisify as promisify2 } from "node:util";
 
 // src/cheatsheet/structure.ts
+var explanationArguments = { Proof: 1, Worked: 4, QuestionPart: 5 };
+var explanationCue = /\\(?:KeyTerm|Method|Hypothesis|Result|Conclusion|Pitfall|KeyFormula)(?![A-Za-z@])\*?\s*\{\s*[^}\s]/gu;
+function assertCheatsheetExplanationCues(source) {
+  const uncommented = source.replace(
+    /(^|[^\\])(?:\\\\)*%[^\n]*/gmu,
+    (comment) => comment.slice(0, comment.indexOf("%"))
+  );
+  const document = /\\begin\s*\{document\}/u.exec(uncommented);
+  if (!document) return;
+  const remaining = uncommented.slice(document.index + document[0].length);
+  const end = /\\end\s*\{document\}/u.exec(remaining);
+  const body = remaining.slice(0, end?.index);
+  function argumentsAt(start, count) {
+    const groups = [];
+    let end2 = start;
+    for (let index = 0; index < count; index++) {
+      const brace = texArgumentStart(body, end2);
+      if (body[brace] !== "{") return groups;
+      end2 = texGroupEnd(body, brace);
+      groups.push({ start: brace + 1, end: end2 - 1, text: body.slice(brace + 1, end2 - 1) });
+    }
+    return groups;
+  }
+  const highlights = [
+    ...body.matchAll(/\\(HighlightTag|PassageHighlight)(?![A-Za-z@])/gu)
+  ].flatMap((match) => {
+    if (texEscaped(body, match.index)) return [];
+    const [role, content] = argumentsAt(match.index + match[0].length, 2);
+    if (!role || !content || !content.text.trim()) return [];
+    const prior = body.slice(Math.max(0, match.index - 24), match.index);
+    const name = role.text.trim();
+    if (/^\s*\d+(?:\.\d+)*\.?\s*$/u.test(content.text) && (/^(?:theorem|lemma|exercise|paper)$/u.test(name) || /\b(?:Def|Thm|Lem|Prop|Ex|Eg)\.?\s*$/iu.test(prior))) {
+      throw new Error("A highlight contains only the number of a typed item. Tag the complete label, including its type.");
+    }
+    return name === "paper" || /^\s*(?:Pf|Sol|Proof|Solution)\.?\s*$/iu.test(content.text) ? [] : [{ ...content, passage: match[1] === "PassageHighlight" }];
+  });
+  for (const match of body.matchAll(/\\(Proof|Worked|QuestionPart)(?![A-Za-z@])/gu)) {
+    if (texEscaped(body, match.index)) continue;
+    const count = explanationArguments[match[1]];
+    const arguments_ = argumentsAt(match.index + match[0].length, count);
+    const explanation = arguments_[count - 1];
+    if (!explanation) continue;
+    const emphasized = highlights.some(
+      (highlight) => highlight.start >= explanation.start && highlight.end <= explanation.end || highlight.passage && highlight.start <= explanation.start && highlight.end >= explanation.end
+    );
+    const inline = [...explanation.text.matchAll(explanationCue)].some(
+      (cue) => !texEscaped(explanation.text, cue.index)
+    );
+    if (!emphasized && !inline) {
+      const identity = match[1] === "Proof" ? explanation.text.trim().replace(/\s+/gu, " ").slice(0, 60) : arguments_[0]?.text.trim().slice(0, 60);
+      throw new Error(`\\${match[1]} ${identity ?? ""} needs a semantic color cue inside the explanation body.`);
+    }
+  }
+}
 function assertCheatsheetParagraphStructure(source) {
   const definition = /\\(?:re)?newcommand\s*\{\\KeepBlock\}\s*\[1\]\s*\{\s*\\par\s*\\noindent\b/u;
   if (!definition.test(source)) return;
@@ -11210,8 +11264,42 @@ async function renderedDigests(root, pdf, prefix) {
     names.map(async (name) => sha256Bytes(await readFile8(join5(root, name))))
   );
 }
+async function assertRenderedColor(root, pdf, pageCount, layout) {
+  await command("pdftoppm", ["-r", "90", pdf, "color-proof"], root);
+  const names = (await readdir(root)).filter((name) => /^color-proof-\d+\.ppm$/u.test(name)).sort((a, b) => a.localeCompare(b, void 0, { numeric: true }));
+  if (names.length !== pageCount) throw new Error("Incomplete PDF color render.");
+  for (const [index, name] of names.entries()) {
+    const raster = await readFile8(join5(root, name));
+    const header = /^P6\n(\d+) (\d+)\n255\n/u.exec(raster.subarray(0, 64).toString("ascii"));
+    const width = Number(header?.[1]);
+    const height = Number(header?.[2]);
+    const start = header?.[0].length ?? 0;
+    if (!header || width < 1 || height < 1 || raster.length !== start + width * height * 3) {
+      throw new Error(`Invalid color render for PDF page ${index + 1}.`);
+    }
+    const top = Math.round((layout?.marginsMm.top ?? 0) * height / 297);
+    const bottom = height - Math.round((layout?.marginsMm.bottom ?? 0) * height / 297);
+    const left = Math.round((layout?.marginsMm.left ?? 0) * width / 210);
+    const right = width - Math.round((layout?.marginsMm.right ?? 0) * width / 210);
+    let hasColor = false;
+    for (let y = top; y < bottom && !hasColor; y++) {
+      for (let x = left; x < right; x++) {
+        const offset = start + (y * width + x) * 3;
+        const r = raster[offset];
+        const g = raster[offset + 1];
+        const b = raster[offset + 2];
+        if (Math.max(r, g, b) - Math.min(r, g, b) > 12) {
+          hasColor = true;
+          break;
+        }
+      }
+    }
+    if (!hasColor) throw new Error(`PDF page ${index + 1} has no visible color in its checked area.`);
+  }
+}
 async function verifyPortableCheatsheetRelease(input) {
   assertCheatsheetParagraphStructure(input.source);
+  if (input.constraints.color === "color") assertCheatsheetExplanationCues(input.source);
   if (/\\(?:resizebox|scalebox)\b/u.test(input.source)) {
     throw new Error("Release source uses hidden geometric scaling.");
   }
@@ -11357,6 +11445,9 @@ async function verifyPortableCheatsheetRelease(input) {
     if (!textMatches || !rendersMatch) {
       throw new Error("Released PDF does not match the isolated source build.");
     }
+    if (input.constraints.color === "color") {
+      await assertRenderedColor(renderRoot, referencePdf, pageCount, input.constraints.layout);
+    }
     const builtPdfBytes = await readFile8(builtPdf);
     const renderPaths = async (prefix) => (await readdir(renderRoot)).filter(
       (name) => name.startsWith(`${prefix}-`) && name.endsWith(".png")
@@ -11393,6 +11484,7 @@ async function verifyPortableCheatsheetRelease(input) {
         `${input.requiredLabels?.length ?? 0} declared included labels checked against compiled auxiliary evidence`,
         declaredBodyPointSize === void 0 ? `PDF dominant text size ${bodyPointSize}pt (measurement tolerance ${fontMeasurementTolerance}pt)` : `PDF dominant text size ${bodyPointSize}pt corroborates declared body size ${declaredBodyPointSize}pt`,
         "extracted text and 180 dpi renders match released PDF",
+        ...input.constraints.color === "color" ? [`visible color found on every page${input.constraints.layout ? " within declared body margins" : ""}`] : [],
         `rebuilt PDF bytes ${sha256Bytes(builtPdfBytes)}`
       ]
     };

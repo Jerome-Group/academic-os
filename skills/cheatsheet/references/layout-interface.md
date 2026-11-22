@@ -53,7 +53,8 @@ Put color inside each worked solution, proof sketch and substantive explanation.
 `\HighlightTag{exercise}{split at the change of bounds}` at the decisive move, or use
 `Hypothesis`, `Result` or `KeyFormula` for the condition or result the reader needs to spot.
 Use the appropriate roles side by side when they serve different decisions. Inspect those
-cues in the body at the final print size. Reserve `\KeyTerm*{...}` for a term that changes
+cues in the body at the final print size, including across continuations. Consider labels
+and body cues separately in the review. Reserve `\KeyTerm*{...}` for a term that changes
 method choice or is especially important to find quickly.
 
 Use `HighlightedStatement` or `PassageHighlight` when one short paragraph benefits from a full

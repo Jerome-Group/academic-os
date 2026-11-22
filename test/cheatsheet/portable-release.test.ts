@@ -8,6 +8,7 @@ import { pathToFileURL } from "node:url";
 import { it } from "node:test";
 
 import { verifyPortableCheatsheetRelease } from "../../src/cheatsheet/index.js";
+import { assertCheatsheetExplanationCues } from "../../src/cheatsheet/structure.js";
 import { recordBehaviorEvidence } from "../support/rule-evidence.js";
 
 const run = promisify(execFile);
@@ -36,6 +37,76 @@ const source = String.raw`\documentclass[a4paper]{article}
 \fontsize{10}{12}\selectfont Portable mathematical source: $a^2+b^2=c^2$.
 \end{document}
 `;
+
+it("requires a cue in each structured explanation and keeps a numbered tag whole", () => {
+  const body = String.raw`
+\begin{document}
+\TaggedStatement{term}{Def.}{2.28}{A definition.}
+\Worked{Q1}{\HighlightTag{exercise}{Title}}{Prompt.}{Start with \KeyTerm{the boundary}.}
+\Proof{Use \KeyTerm*{the image} to conclude.}
+\QuestionPart{a}{Method}{Paper}{Setup}{\HighlightTag{exercise}{Change variables.}}
+\end{document}
+`;
+  assert.doesNotThrow(() => assertCheatsheetExplanationCues(body));
+  for (const [cue, ordinary] of [
+    [String.raw`\KeyTerm{the boundary}`, "the boundary"],
+    [String.raw`\KeyTerm*{the image}`, "the image"],
+    [String.raw`\HighlightTag{exercise}{Change variables.}`, "Change variables."],
+  ] as const) {
+    assert.throws(
+      () => assertCheatsheetExplanationCues(body.replace(cue, `% ${cue}\n${ordinary}`)),
+      /needs a semantic color cue inside the explanation body/u,
+    );
+  }
+  assert.throws(
+    () => assertCheatsheetExplanationCues(
+      body.replace(String.raw`\TaggedStatement{term}{Def.}{2.28}`, String.raw`Def. \HighlightTag{term}{2.28}`),
+    ),
+    /including its type/u,
+  );
+  assert.throws(
+    () => assertCheatsheetExplanationCues(
+      body.replace(String.raw`\KeyTerm*{the image}`, String.raw`\HighlightTag{term}{Pf.}`),
+    ),
+    /needs a semantic color cue inside the explanation body/u,
+  );
+});
+
+it("checks rendered color on each page of a color release", {
+  skip: !latexAvailable,
+}, async () => {
+  const root = await mkdtemp(join(tmpdir(), "portable-rendered-color-"));
+  try {
+    const colorSource = source
+      .replace("\\pagestyle", "\\usepackage{xcolor}\n\\pagestyle")
+      .replace("Portable mathematical source:", "\\textcolor{blue}{Portable mathematical source:}");
+    const twoPages = colorSource.replace(
+      "\\end{document}",
+      "\\newpage\n\\fontsize{10}{12}\\selectfont Portable second page.\n\\end{document}",
+    );
+    for (const [tex, colorOnBoth] of [
+      [twoPages, false],
+      [twoPages.replace("Portable second page.", "\\textcolor{blue}{Portable second page.}"), true],
+    ] as const) {
+      await writeFile(join(root, "sheet.tex"), tex);
+      await run("latexmk", ["-norc", "-pdf", "-halt-on-error", "sheet.tex"], { cwd: root });
+      const action = verifyPortableCheatsheetRelease({
+        source: tex,
+        releasedPdf: await readFile(join(root, "sheet.pdf")),
+        filename: "sheet.tex",
+        constraints: { ...constraints, pages: { exact: 2 }, color: "color" },
+      });
+      if (colorOnBoth) {
+        const result = await action;
+        assert.ok(result.evidence.includes("visible color found on every page"));
+      } else {
+        await assert.rejects(action, /PDF page 2 has no visible color/u);
+      }
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 it("refuses an absolute host input even while that dependency remains available", {
   skip: !latexAvailable,

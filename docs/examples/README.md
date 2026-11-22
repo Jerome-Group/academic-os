@@ -38,7 +38,7 @@ Logo provenance: `chatgpt-logo.tex` transcribes the single path from `OpenAI-bla
 
 ## Verification
 
-- [Compiled color specimen](mathematics-cheatsheet.pdf) SHA-256 `e3724cb7b6a38c7e20f8c71c45f681086937a4b263fcc75e55e46db663747ff7`.
+- [Compiled color specimen](mathematics-cheatsheet.pdf) SHA-256 `898bfe073119ebc1de9b67886a743016499a1b9dbfb9c897795b6840772401a6`.
 - The two A4 pages retain all eight columns and the measured body-column bottom positions.
 - The compiled print fixtures check selective ink, all five highlight roles, equal bounds for
   equivalent highlighted and plain lines, and at least 7:1 ink-to-background contrast.

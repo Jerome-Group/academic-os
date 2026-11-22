@@ -359,6 +359,9 @@ for (const monochrome of [false, true]) {
         `${label} keeps its bounds`,
       );
     }
+    for (const label of ["Below the claim.", "Next to the term.", "Next to the paper."]) {
+      assert.equal(runs.find((run) => run.label.includes(label))?.ink, "000000", label);
+    }
     const printedClaim = runs.find((run) => run.label.includes("Second printed claim."));
     assert.equal(printedClaim?.ink, runs.find((run) => run.label.includes("First printed claim."))?.ink);
   });

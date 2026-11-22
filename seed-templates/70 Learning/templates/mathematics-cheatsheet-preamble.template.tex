@@ -131,7 +131,7 @@
   \par\begingroup
   \setbox\sheet@highlightbox=\vtop{%
     \hsize=\linewidth
-    \noindent\color{SheetInk#1}#2\par
+    \noindent{\color{SheetInk#1}#2\par}%
     \global\sheet@highlightdepth=\prevdepth
   }%
   \setlength{\fboxsep}{0pt}%

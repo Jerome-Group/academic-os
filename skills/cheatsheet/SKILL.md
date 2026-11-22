@@ -34,6 +34,8 @@ instructions are identified.
 Resolve `create`, `revise`, `audit`, `verify` or `package-review` from the intent. Preparation
 means create, or revise when one existing release matches the assessment; the pinned procedure
 resolves assessment context and source choices. Run the complete requested outcome through it.
+For a final, use the procedure's past-paper ranking and wording order before drafting or
+choosing highlights. Make routine priority decisions from the evidence you find.
 Use this skill's bundled
 `scripts/cheatsheet-tool.mjs`; it needs Node 24, the selected module root and no repository checkout
 or Academic OS configuration. Run `scripts/cheatsheet-tool.mjs schema` before creating evidence;

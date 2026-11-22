@@ -12,16 +12,16 @@ A4 portrait; exactly two pages; four columns; color with a grayscale print mode.
 
 Navy navigation and ruled headings organize the page. On white paper, cobalt marks selected
 theorems and formulas, green marks key terms and method pivots, and rust marks pitfalls.
-The specimen also shows pale blue and lilac behind selected statements, a mint exercise tag
-and a yellow lookup term. Routine text is black. A heavier underline marks a selected claim
-in grayscale.
+The specimen shows a short pale blue theorem label, a lilac fill behind a whole compact lemma,
+a mint exercise tag and a yellow lookup term. Routine text is black. A heavier underline marks
+a selected claim in grayscale.
 
 Primary API:
 
 - `\SheetSetup{title=...,credit=...,disclaimer=...,publisher=...,logo=...}`
 - `\MajorBlock{ID}{title}`, `\SourceBlock{ID}{title}`, `\Topic{title}`
 - `\Statement{kind}{number}{text}`, `\FormalStatement{kind}{number}{source-id}{title}{body}`, with starred forms for selected claims
-- `\HighlightedStatement{role}{kind}{number}{body}`, `\PassageHighlight{role}{body}`, `\HighlightTag{role}{text}`
+- `\TaggedStatement{role}{kind}{number}{body}`, `\HighlightedStatement{role}{kind}{number}{body}`, `\PassageHighlight{role}{body}`, `\HighlightTag{role}{text}`
 - `\Assumption{body}`, `\Proof{body}`, `\Example{number}{body}`
 - `\Question{number}{source-id}{setup}`
 - `\QuestionPart{part}{concept}{source-id}{question}{solution}`
@@ -38,9 +38,9 @@ Logo provenance: `chatgpt-logo.tex` transcribes the single path from `OpenAI-bla
 
 ## Verification
 
-- [Compiled color specimen](mathematics-cheatsheet.pdf) SHA-256 `898bfe073119ebc1de9b67886a743016499a1b9dbfb9c897795b6840772401a6`.
+- [Compiled color specimen](mathematics-cheatsheet.pdf) SHA-256 `f6379372823693bf5bf85874b5afb41b224267293601f4c712b14f812966331b`.
 - The two A4 pages retain all eight columns and the measured body-column bottom positions.
-- The compiled print fixtures check selective ink, all five highlight roles, equal bounds for
-  equivalent highlighted and plain lines, and at least 7:1 ink-to-background contrast.
+- The compiled print fixtures check all five highlight roles, one fill for nested highlights,
+  equal bounds for equivalent highlighted and plain lines, and at least 7:1 ink-to-background contrast.
 - [Earlier visual review](visual-review.md) and [mathematical review](mathematics-review.md)
   document the previous specimen revision.

@@ -94,6 +94,7 @@
 \def\sheet@topnavigation{}
 \def\sheet@bottomnavigation{}
 \newif\ifsheet@furniture
+\newif\ifsheet@highlighting
 \newcount\sheet@keepdepth
 \newbox\sheet@highlightbox
 \newdimen\sheet@highlightdepth
@@ -129,26 +130,36 @@
 }
 \newcommand{\PassageHighlight}[2]{%
   \par\begingroup
-  \setbox\sheet@highlightbox=\vtop{%
-    \hsize=\linewidth
-    \noindent{\color{SheetInk#1}#2\par}%
-    \global\sheet@highlightdepth=\prevdepth
-  }%
-  \setlength{\fboxsep}{0pt}%
-  \noindent\colorbox{SheetHighlight#1}{\box\sheet@highlightbox}\par
-  % Preserve the leading from the last line of the passage to the next line.
-  \prevdepth=\sheet@highlightdepth
+  \ifsheet@highlighting
+    \noindent#2\par
+  \else
+    \sheet@highlightingtrue
+    \setbox\sheet@highlightbox=\vtop{%
+      \hsize=\linewidth
+      \noindent{\color{SheetInk#1}#2\par}%
+      \global\sheet@highlightdepth=\prevdepth
+    }%
+    \setlength{\fboxsep}{0pt}%
+    \noindent\colorbox{SheetHighlight#1}{\box\sheet@highlightbox}\par
+    % Preserve the leading from the last line of the passage to the next line.
+    \prevdepth=\sheet@highlightdepth
+  \fi
+  \endgroup
+}
+\newcommand{\HighlightTag}[2]{%
+  \leavevmode\begingroup
+  \ifsheet@highlighting
+    \textbf{#2}%
+  \else
+    \sheet@highlightingtrue
+    \setlength{\fboxsep}{0pt}%
+    \colorbox{SheetHighlight#1}{\color{SheetInk#1}\textbf{#2}}%
+  \fi
   \endgroup
 }
 \makeatother
 
 \newcommand{\SourceRef}[1]{\hyperlink{source:#1}{[\textbf{#1}]}}
-\newcommand{\HighlightTag}[2]{%
-  \leavevmode\begingroup
-  \setlength{\fboxsep}{0pt}%
-  \colorbox{SheetHighlight#1}{\color{SheetInk#1}\textbf{#2}}%
-  \endgroup
-}
 \newcommand{\SourceItemRef}[3]{\hyperref[#3]{\textsf{\textbf{#1~#2}}}}
 \newcommand{\ConceptRef}[1]{\textbf{#1}}
 \newcommand{\SheetPageRef}[1]{p.\,\pageref*{#1}}
@@ -179,6 +190,9 @@
 }
 \newcommand{\HighlightedStatement}[4]{%
   \PassageHighlight{#1}{\phantomsection\SheetRunIn[0.40pt]{\DisplayStatementKind{#2} #3.}\ #4}%
+}
+\newcommand{\TaggedStatement}[4]{%
+  \KeepBlock{\phantomsection\HighlightTag{#1}{\SheetRunIn[0.40pt]{\DisplayStatementKind{#2} #3.}}\ #4}%
 }
 \NewDocumentCommand{\FormalStatement}{s m m m m +m}{%
   \par{\IfBooleanT{#1}{\color{SheetStatement}}%

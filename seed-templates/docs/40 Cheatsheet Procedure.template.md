@@ -43,6 +43,13 @@ Distinguish an observed error, a prompted reconstruction and an unaided success.
 to rank discretionary space after required coverage. When records are sparse, record the gap and
 prioritize issued assessment guidance.
 
+For `mode: final-review` records, follow the cited question/subpart and generated artifact
+locators. Use the recorded explanations, unresolved steps and candidate sheet items to identify
+what needs clearer treatment. Check the mathematics against the issued paper and available
+solutions before including it. Use the Teaching Procedure's **Worked-solution standard** when
+checking generated steps. A reviewed solution establishes discussion coverage. Credit unaided
+success only when the record shows it. Retain personal observations in private evidence.
+
 ### Choose what earns space on a final
 
 Read the relevant past finals that fit the current scope and format. For each distinct sitting,

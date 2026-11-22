@@ -44,6 +44,9 @@ paper folders remain valid attempt targets. When the tool is unavailable, identi
 questions and paired solutions from the curated Finals inventory before teaching, and leave
 Task closeout pending.
 
+For Final Review, follow preparation and discussion below in order. Use the shared steps where
+referenced.
+
 Use the fresh register entry to select the exact task. Prefer an existing open task in the
 requested mode, including one the Owner renamed or recreated. Ask which task to use when
 several have an equal claim. If the task's title could mean several papers, get the Owner's
@@ -53,19 +56,53 @@ paper, call `tasks_final_study` with `action=switch` and that `task_id`. If a se
 is needed and the Owner accepts creating it, use the Tasks protocol with the canonical title
 and question file as `assessment` provenance. Refresh after an uncertain create before retrying.
 
-For Final Review, use about 5 minutes to survey the paper, 20 to elicit an approach and compare
-it with available solutions question by question, and 5 to name gaps and agreed revisit items.
-Record the questions actually covered. Identify issued solutions by source and label any
-agent-produced explanation **Generated walkthrough**. A review needs no submitted script,
-mark, or graded feedback. Use the existing paper folder when it can be identified exactly.
+### Prepare and open the Final Review
 
-Record review coverage separately in the area's next numbered session record. Use the canonical
-paper title as `target` and `mode: final-review`. Include the exact question file in
-`sources` and cite the question and solution locators actually used. Include `task_id` when
-a task was selected. Set `status: complete` only when the Owner explicitly finishes the review.
-Keep this record on closeout retry so later task renames and refreshes
-retain the review evidence. Use a governing unit only when the Source Map establishes one.
-Preserve any previous attempt, feedback, and records. Record a later full attempt separately.
+The request to start authorizes preparation immediately. Declare the write set from step 2.
+Reuse the paper's exact folder in `70 Learning/40 Past Papers/` or create it using the
+question filename stem with `_Questions` removed. Settle any conflicting folder identity
+before writing. Keep the review pairs separate from previous attempts, feedback and writeups.
+
+Read the entire paper and every available issued solution or marking scheme. Apply the
+**Worked-solution standard** from step 3 to every question. Prepare both pairs from the
+Module's own templates. Use the names below as file stems and keep each `.tex` beside its
+`.pdf` in the paper folder.
+
+- **Final Review Solutions** uses `tutorial-solution-writeup.tex`. Work every question and
+  subpart in paper order. Label it **Generated walkthrough**, cite the issued solution where one
+  exists, and identify independent derivations, added steps and unresolved gaps.
+- **Final Review Concepts** uses `tutorial-concepts-consolidation.tex`. Map the paper to methods,
+  hypotheses, decision points and common traps, with exact question locators. Ground this first
+  version in the paper and its sources. Add observed difficulties only after discussion.
+
+Verify both pairs under step 5. Open the final questions PDF, available official solutions PDFs
+and generated Solutions and Concepts PDFs together in the current chat. In Codex, use
+`open_in_codex` with a file target for each PDF and check that each opened. Keep the tabs open.
+A queued open is pending until the tab is visible. Reading files internally or supplying links
+does not open them. Report any unavailable official solutions and proceed with the checked
+derivations. If a required artifact cannot be prepared or opened, report the blocker before
+starting question-by-question discussion.
+
+### Discuss and record the Final Review
+
+Start the approximately 30-minute discussion once preparation and opening are complete.
+Use the open paper and solutions to walk through the questions in order. Ask whether each
+reviewed solution's reasoning is clear and identify the exact step needing more explanation.
+Compare methods or expand compressed steps as needed. Check understanding with a focused
+question about the reasoning. A review needs no submitted script, mark, or graded feedback.
+If discussion reveals a gap in a generated artifact, update that pair and verify it again.
+
+Append a separate numbered session record under step 6. Use the canonical paper title as
+`target` and `mode: final-review`. In `sources`, include the exact question file and any issued
+solutions used, with their actual locators. Include the selected `task_id` when present.
+For discussed subparts, record
+the method or condition, what was clear, what needed explanation or remains unresolved, and
+the relevant generated artifact locator. Distinguish an observed error, a prompted explanation,
+and an unaided demonstration. Name any concrete result, condition, worked step or trap that
+would help the cheatsheet, with its source locator and reason. Preparation alone carries no
+review coverage. Use `status: complete` only when the Owner explicitly finishes the review.
+Keep the same record on closeout retry. Use a governing unit only when evidenced by the Source
+Map. Preserve previous attempts, grades and records, and record a later attempt separately.
 
 When the Owner explicitly finishes the review, call `tasks_final_study` with
 `action=complete-review`, the review request and the selected `task_id`. Confirm the same
@@ -110,6 +147,19 @@ not permission to claim an official answer.
 
 Teach under the shared preferences and any local overlay: explain, ask for something back, and
 follow the demonstrated doubt. The Owner's current instruction remains authoritative.
+
+#### Worked-solution standard
+
+Apply this standard to worked solutions throughout the Module. Find the relevant material across
+the Source Map, including multiple units when a question draws on them. Use the question's issued
+marking scheme or official solution, where available, to establish the instructor's expected
+working and answer form. When official guidance is absent or compressed, use the relevant
+lecture notes and instructor worked examples to establish the method and level of detail.
+
+Use the instructor's notation, hypotheses and proof conventions. Justify key inferences, check
+conditions before applying results, and supply any intermediate calculation the instructor would
+expect to see. Cite the exact source locators. Label reconstructed steps and surface unresolved
+differences in mathematical conventions or expected working.
 
 ### 4. Produce only the activity's artifacts
 

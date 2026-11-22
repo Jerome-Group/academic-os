@@ -34,10 +34,10 @@ the Owner's attempt and produces grading, a solution writeup, and a concepts con
 
 A named final defaults to a full attempt under the tutorial pattern. An explicit review request
 or a task titled `<module> <year> Final Review` selects a 30-minute Final Review. Both use the
-same paper target. For a final named by title or year in a configured Module, call `tasks_final_study` with
-`action=inspect`, the configured semester and current module, and the paper request. For example,
-`review XX1234 21/22` requests review and `XX1234 21/22 Final` requests attempt. For an
-ambiguous paper, ask the Owner to select an exact question file and keep the requested mode.
+same paper target. Call `tasks_final_study` with `action=inspect`, the configured semester and
+current Module, and the paper title or exact question-file path as `request`. Prefix that value
+with `review ` for review mode. For an ambiguous paper, ask the Owner to select an exact question
+file and keep the requested mode.
 Historical codes resolve only when the curated questions identify them for this Module. Use the
 returned question file and paired solutions, or report an unavailable source. Exact papers and
 paper folders remain valid attempt targets. When the tool is unavailable, identify the exact

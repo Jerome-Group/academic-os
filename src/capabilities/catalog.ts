@@ -1029,7 +1029,7 @@ export function capabilityIndex(): object {
     status: "supported",
     health: "not-observed",
     result:
-      "Canonical final sources and one Task-register entry grouping attempt and review task IDs by questions path.",
+      "MCP content containing JSON text and isError. Reports include the resolved paper and sources, the Task-register entry on readback, or a failure outcome.",
   });
   for (const name of ["tasks_apply_plan", "tasks_sync_capabilities"])
     actions.push({

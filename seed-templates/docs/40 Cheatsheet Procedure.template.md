@@ -166,10 +166,14 @@ Keep surrounding exposition regular weight. Short run-in proof stages remain bre
 `KeepBlock` reserves opening lines rather than boxing an entire argument. Nested semantic wrappers
 must not create empty paragraphs. Avoid long minipages or boxes that force a large unused tail.
 
-Follow the skill's `references/layout-interface.md` for the color hierarchy and print contrast.
-Use the existing heading line for navigation backgrounds and assign ink to whole passages,
-including formulas. Use the wrappers for their roles throughout the sheet. Keep wording and
-structure explicit so grayscale preserves the same route through the material.
+Keep white paper and black running text. Reserve blue ink for complete, short theorems and
+formulas the Owner must find fast. Give their hypotheses and conclusions the same ink. Use green
+for a short lookup term or the move that starts a solution. Use rust for the exact mistake or
+exception the Owner needs to see. Apply the rules in `references/layout-interface.md`.
+Select from the exam tasks and learning gaps covered by the sheet. Pick the few items in each
+column that earn immediate attention. Leave routine definitions, labels, proofs and working
+black. Keep the existing headings, underlines and boxes so the same items can be found in
+grayscale.
 
 Provide slim, distinct top/bottom navigation bands configured for this sheet, a compact page/section
 map and page numbers. A map describes real labels; any claimed page/column range must match the
@@ -221,12 +225,12 @@ the page and item that addresses it, then compare against the issued source or m
 Record missing reasoning and conventions by page and item.
 
 For a color release, inspect both color and grayscale. For a monochrome release, confirm neutral
-ink. Follow one statement and one worked passage through their printed lines, including any
-continuation. Confirm that comparable passages use consistent body ink and ordinary prose resumes
-its own ink. Check the statement, proof and solution labels and the remaining structural cues
-against the layout interface. Report discrepancies on audit. On revision, fix them in the
-authoring authority, rebuild, and repeat on the current bytes. Record inspection conditions and
-remaining gaps.
+ink. At actual size, scan each page for its chosen theorem or formula, one lookup term or first
+move, and any recurring trap. Check that the ink covers the whole chosen claim across line
+breaks and that the adjacent routine text stays black. Read the same page in grayscale and
+locate the same items by their labels, weight, boxes and underlines. Check the statement, proof
+and solution labels against the layout interface. Record competing color, hard-to-find items and
+missing cues by page. On revision, fix the authoring source, rebuild, and repeat on current bytes.
 
 Freeze the PDF SHA-256 before review. Reviewers independent of authoring assess these distinct gates:
 

@@ -13,17 +13,20 @@ const specimen = String.raw`
 \hypertarget{source:S}{}%
 \MajorBlock{M}{Major navigation}
 \Topic{Navigation}
-\Statement{Theorem}{Pivot}{Normal statement.}
-\FormalStatement{Lemma}{Bound}{S}{}{Normal lemma.}
+\Statement*{Theorem}{Pivot}{Selected hypotheses.\\ Selected conclusion.}
+\FormalStatement*{Lemma}{Bound}{S}{}{Selected formal statement.}
+\Statement{Definition}{Routine}{Normal statement.}
+\FormalStatement{Lemma}{Routine}{S}{}{Normal lemma.}
 \Proof{Normal proof.\par Proof continues in a second paragraph.}
 Ordinary prose resumes.\par
 \Worked{A1}{Worked sample}{Normal problem.}{Normal solution.}
 \QuestionPart{a}{Sample}{S}{Normal question.}{Normal response.}
 \Method{Choose domain.}\par
+\KeyTerm{Lookup term.}\par
 \Hypothesis{Nonempty domain.}\par
 \Result{Unique solution.}\par
 \Conclusion{Decisive result.}\par
-\Caution{Normal warning.}
+\Caution{\Pitfall{Sign trap.} Normal warning.}
 \Counterexample{B}{Normal counterexample.}
 \Correction{Normal correction.}
 \[\KeyFormula{x=y}\]
@@ -152,10 +155,11 @@ for (const monochrome of [false, true]) {
         )
         .join(""),
     );
-    const [majorBackground = "", topicBackground = ""] = backgrounds;
+    const [majorBackground = ""] = backgrounds;
+    assert.equal(backgrounds.length, 1, "only the major section band uses a fill");
     for (const [heading, background, expected] of [
       ["M Major navigation", majorBackground, "233d57"],
-      ["Navigation", topicBackground, "deedf3"],
+      ["Navigation", "ffffff", "ffffff"],
     ] as const) {
       assert.equal(background.length, 6, `${heading} prints on a color band`);
       assert.ok(
@@ -172,34 +176,42 @@ for (const monochrome of [false, true]) {
     }
     const roles = [
       ["Navigation", "233d57", 1],
-      ["Theorem Pivot.", "005b57", 1],
-      ["Lemma Bound", "005b57", 1],
-      ["Pf.", "5a316d", 1],
-      ["Sol.", "5a316d", 2],
-      ["Choose domain.", "5a316d", 1],
-      ["Nonempty domain.", "005b57", 1],
-      ["Unique solution.", "005b57", 1],
-      ["Decisive result.", "005b57", 1],
-      ["Caution.", "853b23", 1],
-      ["Counterexample B.", "853b23", 1],
-      ["Qualification/correction.", "853b23", 1],
+      ["Theorem Pivot.", "0037b3", 1],
+      ["Lemma Bound", "0037b3", 1],
+      ["Definition Routine.", "000000", 1],
+      ["Lemma Routine", "000000", 1],
+      ["Pf.", "000000", 1],
+      ["Sol.", "000000", 2],
+      ["Choose domain.", "006343", 1],
+      ["Lookup term.", "006343", 1],
+      ["Nonempty domain.", "0037b3", 1],
+      ["Unique solution.", "0037b3", 1],
+      ["Decisive result.", "0037b3", 1],
+      ["Sign trap.", "9c2500", 1],
+      ["Caution.", "000000", 1],
+      ["Counterexample B.", "000000", 1],
+      ["Qualification/correction.", "000000", 1],
     ] as const;
 
     for (const [label, color, count] of roles) {
       const matches = runs.filter((run) => run.label === `<b>${label}</b>`);
       assert.equal(matches.length, count, `${label} prints in bold`);
       for (const run of matches) {
+        const ink = inks.get(run.font) ?? "";
         assert.ok(
-          monochrome
-            ? /^([0-7][\da-f])\1\1$/u.test(inks.get(run.font) ?? "")
-            : closeColor(inks.get(run.font) ?? "", color),
+          monochrome && color !== "000000"
+            ? /^([1-7][\da-f])\1\1$/u.test(ink)
+            : closeColor(ink, color),
           `${label} prints in its role's ink`,
         );
-        if (["Theorem Pivot.", "Lemma Bound", "Pf.", "Sol."].includes(label)) {
+        assert.ok(contrast(ink, "ffffff") >= 7, `${label} contrasts with white`);
+        if (/^(Theorem |Lemma |Definition |Pf\.$|Sol\.$)/u.test(label)) {
+          const selected = label === "Theorem Pivot." || label === "Lemma Bound";
           assert.ok(
             strokes.some(
               (stroke) =>
                 stroke.thickness >= 0.2 &&
+                (stroke.thickness >= 0.35) === selected &&
                 stroke.height < 0.02 &&
                 stroke.width >= run.width * 0.45 &&
                 Math.abs(stroke.left - run.left) < 1 &&
@@ -217,25 +229,19 @@ for (const monochrome of [false, true]) {
       );
     }
 
-    for (const [passage, color] of [
-      ["Normal statement.", "184744"],
-      ["Normal lemma.", "184744"],
-      ["Normal proof.", "412d51"],
-      ["Proof continues in a second paragraph.", "412d51"],
-      ["Normal solution.", "412d51"],
-      ["Normal response.", "412d51"],
-      ["Normal warning.", "603125"],
-      ["Normal counterexample.", "603125"],
-      ["Normal correction.", "603125"],
-    ] as const) {
+    for (const passage of [
+      "Selected hypotheses.",
+      "Selected conclusion.",
+      "Selected formal statement.",
+    ]) {
       const run = runs.find(({ label }) => label.includes(passage));
       const ink = inks.get(run?.font ?? "") ?? "";
       assert.ok(
-        monochrome ? /^([1-7][\da-f])\1\1$/u.test(ink) : closeColor(ink, color),
+        monochrome ? /^([1-7][\da-f])\1\1$/u.test(ink) : closeColor(ink, "0037b3"),
         `${passage} prints in its passage ink`,
       );
       assert.ok(
-        contrast(ink, "ffffff") >= 9,
+        contrast(ink, "ffffff") >= 7,
         `${passage} contrasts with white`,
       );
       assert.ok(
@@ -244,6 +250,15 @@ for (const monochrome of [false, true]) {
       );
     }
     for (const passage of [
+      "Normal statement.",
+      "Normal lemma.",
+      "Normal proof.",
+      "Proof continues in a second paragraph.",
+      "Normal solution.",
+      "Normal response.",
+      "Normal warning.",
+      "Normal counterexample.",
+      "Normal correction.",
       "Ordinary prose resumes.",
       "Normal problem.",
       "Normal question.",

@@ -10,21 +10,20 @@ PATH=/Library/TeX/texbin:$PATH npm run templates:check
 
 A4 portrait; exactly two pages; four columns; color with a grayscale print mode. Geometry: 1.8 mm side margins, 4.0 mm body top margin, 5.47 mm reserved body bottom margin, 0.6 mm column gaps, and a 1.6 mm footer baseline. Header/footer remain 4 pt. Body uses Latin Modern 4 pt with 4.1 pt leading. `\DeclareMathSizes{4}{4}{3}{2.4}` sets native math. The scalable `lmex10` override fixes Latin Modern's default fixed 10 pt extension font. No `\resizebox`, `\scalebox`, font stretching, or operator substitution.
 
-Navy section bands and pale blue topic bands organize the page. Source locators use ruled
-rows. Whole statements, worked reasoning and cautions use dark teal, plum and rust inks on
-white paper. Labels, underlines and boxes keep the same roles in grayscale. The layout
-interface records the palette, contrast check and monochrome setup.
+Navy navigation and ruled headings organize the page. On white paper, cobalt marks selected
+theorems and formulas, green marks key terms and method pivots, and rust marks pitfalls.
+Routine text is black. A heavier underline marks a selected theorem in grayscale.
 
 Primary API:
 
 - `\SheetSetup{title=...,credit=...,disclaimer=...,publisher=...,logo=...}`
 - `\MajorBlock{ID}{title}`, `\SourceBlock{ID}{title}`, `\Topic{title}`
-- `\Statement{kind}{number}{text}`; `\FormalStatement{kind}{number}{source-id}{title}{body}`
+- `\Statement{kind}{number}{text}`, `\FormalStatement{kind}{number}{source-id}{title}{body}`, with starred forms for selected claims
 - `\Assumption{body}`, `\Proof{body}`, `\Example{number}{body}`
 - `\Question{number}{source-id}{setup}`
 - `\QuestionPart{part}{concept}{source-id}{question}{solution}`
 - `\Worked{source+part}{concept}{question}{solution}`
-- `\Method{text}`, `\Conclusion{text}`, `\Result{text}`
+- `\KeyTerm{term}`, `\Method{text}`, `\Conclusion{text}`, `\Result{text}`, `\Pitfall{phrase}`
 - `\Alternative{method}{body}`, `\Caution{body}`, `\Continuation{ID}`
 - `\SourceRef{ID}`, `\ConceptRef{label}`, `\Identity{name}{math}`, `\CompactTable{tabular}`
 
@@ -36,10 +35,9 @@ Logo provenance: `chatgpt-logo.tex` transcribes the single path from `OpenAI-bla
 
 ## Verification
 
-- [Compiled color specimen](mathematics-cheatsheet.pdf) SHA-256 `106891f90c0b255877484e1a94e648dfdf1cc2117dc638acafb6637ccb0f3ea6`.
-- The two-page, four-column A4 specimen retained the same extracted word count on each page and
-  all eight column starts. The largest change at a body-column bottom was 1.34 pt.
-- Inspected both pages in color and grayscale. The compiled print fixture checks 9:1 contrast for
-  body passages and navigation bands in both modes.
+- [Compiled color specimen](mathematics-cheatsheet.pdf) SHA-256 `73e35cbc1028defbf6e1a008574c9fc1ba48d7c54fa2eca65318533daf5a6350`.
+- The two A4 pages retain all eight columns and the measured body-column bottom positions.
+- The compiled print fixture checks that routine text stays black, selected statements keep their
+  ink through line breaks, and accents contrast at least 7:1 with white in both print modes.
 - [Earlier visual review](visual-review.md) and [mathematical review](mathematics-review.md)
   document the previous specimen revision.

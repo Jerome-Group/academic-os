@@ -29,7 +29,7 @@ Gram--Schmidt replaces an independent list $v_1,\ldots,v_k$ by $u_j=v_j-\sum_{i<
 \newcommand{\CorpusCalculus}{%
 \Topic{ODEs and vector calculus}
 A first-order linear equation $y'+p(x)y=q(x)$ has integrating factor $\mu=e^{\int p}$ and $(\mu y)'=\mu q$. A separable equation $y'=g(x)h(y)$ permits division by $h(y)$ only after recording equilibrium solutions where $h(y)=0$. For $y'=ay(1-y/K)$ with $0<y(0)<K$, separation gives $y(t)=K/(1+Ce^{-at})$.
-\Statement{Theorem}{8A}{If $F=(P,Q)$ is continuously differentiable on a simply connected planar domain and $P_y=Q_x$, then $F=\nabla\phi$ and line integrals depend only on endpoints.}
+\Statement*{Theorem}{8A}{If $F=(P,Q)$ is continuously differentiable on a simply connected planar domain and $P_y=Q_x$, then $F=\nabla\phi$ and line integrals depend only on endpoints.}
 To find $\phi$, integrate $P$ in $x$: $\phi(x,y)=\int P(x,y)\,dx+C(y)$, then compare $\phi_y$ with $Q$. On domains with holes, curl zero need not imply a global potential; $(-y/(x^2+y^2),x/(x^2+y^2))$ is the standard warning.
 For $C^1$ fields on suitable piecewise-smooth oriented domains or surfaces,
 \[
@@ -70,7 +70,7 @@ For a sequence $(a_n)$, the ordinary generating function $A(z)=\sum_{n\ge0}a_nz^
 \Example{8A}{If $F_0=0,F_1=1,F_n=F_{n-1}+F_{n-2}$, then $F(z)=z+zF(z)+z^2F(z)$, hence $F(z)=z/(1-z-z^2)$. Factoring yields Binet's formula after coefficient extraction. The formal-power-series derivation does not require analytic convergence.}
 Breadth-first search on an unweighted graph explores vertices by nondecreasing distance and gives shortest paths. Depth-first search exposes discovery/finish structure and cycles. On a finite graph with nonnegative weights, a vertex settled by Dijkstra has final distance; every finite tentative label is a discovered path length, while unreached labels are $\infty$.
 \Statement{Invariant}{18A}{At each Dijkstra step, every settled vertex has its true shortest-path distance, and every finite tentative label is the length of a discovered path.}
-\Caution{Negative edges invalidate the greedy finalization step. A negative cycle reachable from the source means no finite shortest path to vertices reachable beyond it.}
+\Caution{\Pitfall{Negative edges invalidate the greedy finalization step.} A negative cycle reachable from the source means no finite shortest path to vertices reachable beyond it.}
 \CompactTable{\begin{tabular}{@{}lll@{}}\toprule task&method&cost\\\midrule reachability&BFS/DFS&$O(V+E)$\\ unit shortest path&BFS&$O(V+E)$\\ nonnegative weights&Dijkstra + heap&$O((V+E)\log V)$\\ all pairs&Floyd--Warshall&$O(V^3)$\\ spanning tree&Kruskal/Prim&$O(E\log V)$\\\bottomrule\end{tabular}}}
 \newcommand{\CorpusAbstract}{%
 \Topic{Rings, fields, and modular arithmetic}
@@ -133,7 +133,7 @@ Network flow uses capacity constraints $0\le f(e)\le c(e)$ and conservation at i
 \newcommand{\CorpusFieldExtensions}{%
 \Topic{Polynomials and field extensions}
 For $F[x]$, division by a nonzero polynomial works because its leading coefficient is invertible. Thus the Euclidean algorithm computes gcds, irreducibles are prime, and for nonconstant $p$, $F[x]/(p)$ is a field iff $p$ is irreducible. Over an algebraically closed field, irreducibles are linear; over $\mathbb R$, they have degree one or two.
-\Statement{Theorem}{20B}{If $\alpha$ is algebraic over $F$ with minimal polynomial $m_\alpha$ of degree $d$, then $F(\alpha)\cong F[x]/(m_\alpha)$ and $1,\alpha,\ldots,\alpha^{d-1}$ is an $F$-basis.}
+\Statement*{Theorem}{20B}{If $\alpha$ is algebraic over $F$ with minimal polynomial $m_\alpha$ of degree $d$, then $F(\alpha)\cong F[x]/(m_\alpha)$ and $1,\alpha,\ldots,\alpha^{d-1}$ is an $F$-basis.}
 \Proof{Evaluation $F[x]\to F(\alpha)$ has kernel $(m_\alpha)$ and image $F[\alpha]$. Division by $m_\alpha$ reduces every expression to degree below $d$. Because the quotient is a field, $F[\alpha]=F(\alpha)$; independence follows from minimality.}
 \Example{9B}{Over $\mathbb Q$, $x^3-2$ is irreducible by the rational-root test, so $[\mathbb Q(\sqrt[3]2):\mathbb Q]=3$. Every element is uniquely $a+b\sqrt[3]2+c\sqrt[3]4$.}
 The tower law says $[K:F]=[K:E][E:F]$ for finite extensions $F\subseteq E\subseteq K$. Therefore intermediate degrees divide the total degree. This divisibility is necessary, not sufficient for existence of an intermediate field.
@@ -303,7 +303,7 @@ An extremal proof selects a smallest or largest counterexample. Verify that the 
 \MajorBlock{ALG-B}{Linear algebra: structure, coordinates, and operators}
 \Topic{Subspaces and bases}
 \Statement{Definition}{4}{A subset $W\subseteq V$ is a subspace when $0\in W$ and $au+bv\in W$ for all $u,v\in W$ and scalars $a,b$. Equivalently, $W$ is nonempty and closed under arbitrary linear combinations of two elements.}
-\FormalStatement{Theorem}{5}{ALG-B}{basis extension}{Every linearly independent list in a finite-dimensional vector space extends to a basis; every spanning list contains a basis. Consequently all bases have the same length, denoted $\dim V$.}
+\FormalStatement*{Theorem}{5}{ALG-B}{basis extension}{Every linearly independent list in a finite-dimensional vector space extends to a basis; every spanning list contains a basis. Consequently all bases have the same length, denoted $\dim V$.}
 \Proof{Add vectors from a fixed finite spanning list until the independent list spans. The exchange lemma bounds any independent list by the spanning-list length, so this terminates. Deleting redundant vectors from a spanning list gives a basis; exchange then shows all bases have equal length.}
 \columnbreak\ContinueBlock{ALG-B linear algebra}
 \begin{minipage}[t]{\linewidth}
@@ -519,7 +519,7 @@ x\le(a-1)/2,&a<-1.
 Intersect every branch with $x\ge-1$. At $a=-1$, the original inequality is equality for all $x\ge-1$.}
 \Topic{Symbols and final checks}
 \CompactTable{\begin{tabular}{@{}ll|ll@{}}\toprule symbol&meaning&symbol&meaning\\\midrule $\iff$&two directions&$\hookrightarrow$&injective\\ $\twoheadrightarrow$&surjective&$\sqcup$&disjoint union\\ $\langle x,y\rangle$&inner product&$\operatorname{span}S$&linear span\\ $O(g)$&bounded ratio&$o(g)$&ratio $\to0$\\\bottomrule\end{tabular}}
-Before using a formula: identify hypotheses, domains, boundary cases, and zero denominators. Before ending a proof: bind every introduced variable, state the quantified conclusion, and separate necessity from sufficiency. \columnbreak\Continuation{final checks}Before reporting a numerical result, retain exact form, check sign and scale, and test a simple special case. Cross-reference examples by \SourceRef{FND-A}, \SourceRef{CAL-C}, or concept label \ConceptRef{finite-net argument}; tags remain readable when PDF links are unavailable.
+Before using a formula: identify hypotheses, domains, boundary cases, and zero denominators. Before ending a proof: bind every introduced variable, state the quantified conclusion, and separate necessity from sufficiency. \columnbreak\Continuation{final checks}Before reporting a numerical result, retain exact form, check sign and scale, and test a simple special case. Cross-reference examples by \SourceRef{FND-A}, \SourceRef{CAL-C}, or concept label \KeyTerm{finite-net argument}; tags remain readable when PDF links are unavailable.
 \SourceBlock{OPTIONAL}{Optional later tools and new problem types}
 Illustrative extensions, separate from the assessed scope selected by an actual manifest.
 \CorpusAbstract

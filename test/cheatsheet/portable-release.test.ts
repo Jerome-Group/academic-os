@@ -72,6 +72,14 @@ it("requires a cue in each structured explanation and keeps a numbered tag whole
   );
 });
 
+it("ships a filled specimen that passes the explanation cue check", async () => {
+  const specimen = await readFile(new URL(
+    "../../../seed-templates/70%20Learning/templates/mathematics-cheatsheet.template.tex",
+    import.meta.url,
+  ), "utf8");
+  assert.doesNotThrow(() => assertCheatsheetExplanationCues(specimen));
+});
+
 it("checks rendered color on each page of a color release", {
   skip: !latexAvailable,
 }, async () => {

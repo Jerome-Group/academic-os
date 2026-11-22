@@ -9,6 +9,7 @@ Agents locate declared learning materials and use the shipped cheatsheet runtime
 - Installed router instructions preserve Module and Research-project ownership boundaries.
 - The `learn` router also accepts an explicit absolute personal teaching-folder path with existing materialized controls.
 - The pinned Teaching Procedure prepares and opens the complete Final Review artifacts before the 30-minute discussion. Its authored checks assert the ordering and the handoff from question-level Learning evidence to cheatsheet selection. The Tasks and Operations journey verifies resolution and exact closeout.
+- Worked-solution checks cover the assignment route and the shared standard for tutorial, assignment, past-paper and Final Review writeups. Compile the seeded solution template and compare a synthetic multi-part question in the PDF against its issued source. Inspect the complete working and added explanation separately.
 - Cheatsheet preparation qualifies source manifests and coverage.
 - Release verification and packaging preserve bytes and expose incomplete semantic review.
 

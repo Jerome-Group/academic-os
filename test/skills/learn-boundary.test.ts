@@ -94,6 +94,88 @@ describe("the learn skill", () => {
     );
   });
 
+  it("prepares and opens the complete Final Review before discussing any question", async () => {
+    const procedure = await readFile(
+      "seed-templates/docs/20 Teaching Procedure.template.md",
+      "utf8",
+    );
+    const prepare = procedure.indexOf("### Prepare and open the Final Review");
+    const discuss = procedure.indexOf(
+      "### Discuss and record the Final Review",
+    );
+    const closeout = procedure.indexOf("action=complete-review", discuss);
+    assert.ok(prepare >= 0 && discuss > prepare && closeout > discuss);
+    const preparation = procedure.slice(prepare, discuss);
+    const discussion = procedure.slice(discuss, closeout);
+    assert.match(
+      preparation,
+      /tutorial-solution-writeup\.tex.*every question and\s+subpart/su,
+    );
+    assert.match(preparation, /tutorial-concepts-consolidation\.tex/u);
+    assert.match(
+      preparation,
+      /Verify both pairs[\s\S]*Open the final questions PDF, available official solutions PDFs\s+and generated Solutions and Concepts PDFs together in the current chat/u,
+    );
+    assert.match(preparation, /open_in_codex[\s\S]*check that each opened/u);
+    assert.match(discussion, /once preparation and opening are complete/u);
+    assert.match(discussion, /exact step needing more explanation/u);
+    assert.match(discussion, /Preparation alone carries no\s+review coverage/u);
+  });
+
+  it("feeds question-level Final Review observations into cheatsheet selection", async () => {
+    const [teaching, cheatsheet] = await Promise.all([
+      readFile("seed-templates/docs/20 Teaching Procedure.template.md", "utf8"),
+      readFile(
+        "seed-templates/docs/40 Cheatsheet Procedure.template.md",
+        "utf8",
+      ),
+    ]);
+    assert.match(
+      teaching,
+      /For discussed subparts, record[\s\S]*generated artifact locator/u,
+    );
+    assert.match(
+      teaching,
+      /would help the cheatsheet, with its source locator and reason/u,
+    );
+    assert.match(
+      cheatsheet,
+      /mode: final-review[\s\S]*unresolved steps and candidate sheet items/u,
+    );
+    assert.match(cheatsheet, /Check the mathematics against the issued paper/u);
+    assert.match(
+      cheatsheet,
+      /unaided\s+success only when the record shows it/u,
+    );
+  });
+
+  it("applies the instructor's worked-solution standard to Final Review and other activities", async () => {
+    const procedure = await readFile(
+      "seed-templates/docs/20 Teaching Procedure.template.md",
+      "utf8",
+    );
+    assert.match(
+      procedure,
+      /Apply the\s+\*\*Worked-solution standard\*\* from step 3 to every question/u,
+    );
+    const standard = procedure.split("#### Worked-solution standard")[1];
+    assert.ok(standard);
+    assert.match(standard, /worked solutions throughout the Module/u);
+    assert.match(
+      standard,
+      /across\s+the Source Map, including multiple units/u,
+    );
+    assert.match(standard, /issued\s+marking scheme or official solution/u);
+    assert.match(
+      standard,
+      /When official guidance is absent or compressed, use the relevant\s+lecture notes and instructor worked examples/u,
+    );
+    assert.match(
+      standard,
+      /notation, hypotheses and proof conventions\. Justify key inferences/u,
+    );
+  });
+
   // One decision, and each harness spells it in its own file, so a harness added without its
   // encoding is a skill that quietly starts firing on its own there.
   it("fires only when the Owner invokes it, in every harness it is installed into", async () => {

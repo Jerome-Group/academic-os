@@ -12,7 +12,10 @@ import { basename, join } from "node:path";
 import { promisify } from "node:util";
 
 import { sha256Bytes } from "../checksum.js";
-import { assertCheatsheetParagraphStructure } from "./structure.js";
+import {
+  assertCheatsheetExplanationCues,
+  assertCheatsheetParagraphStructure,
+} from "./structure.js";
 import { retainCheatsheetBuild } from "./retained-build.js";
 import { compilePortableSource } from "./portable-build.js";
 import type {
@@ -137,6 +140,47 @@ async function renderedDigests(
   );
 }
 
+async function assertRenderedColor(
+  root: string,
+  pdf: string,
+  pageCount: number,
+  layout: CheatsheetConstraints["layout"],
+): Promise<void> {
+  await command("pdftoppm", ["-r", "90", pdf, "color-proof"], root);
+  const names = (await readdir(root))
+    .filter((name) => /^color-proof-\d+\.ppm$/u.test(name))
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  if (names.length !== pageCount) throw new Error("Incomplete PDF color render.");
+  for (const [index, name] of names.entries()) {
+    const raster = await readFile(join(root, name));
+    const header = /^P6\n(\d+) (\d+)\n255\n/u.exec(raster.subarray(0, 64).toString("ascii"));
+    const width = Number(header?.[1]);
+    const height = Number(header?.[2]);
+    const start = header?.[0].length ?? 0;
+    if (!header || width < 1 || height < 1 || raster.length !== start + width * height * 3) {
+      throw new Error(`Invalid color render for PDF page ${index + 1}.`);
+    }
+    const top = Math.round((layout?.marginsMm.top ?? 0) * height / 297);
+    const bottom = height - Math.round((layout?.marginsMm.bottom ?? 0) * height / 297);
+    const left = Math.round((layout?.marginsMm.left ?? 0) * width / 210);
+    const right = width - Math.round((layout?.marginsMm.right ?? 0) * width / 210);
+    let hasColor = false;
+    for (let y = top; y < bottom && !hasColor; y++) {
+      for (let x = left; x < right; x++) {
+        const offset = start + (y * width + x) * 3;
+        const r = raster[offset]!;
+        const g = raster[offset + 1]!;
+        const b = raster[offset + 2]!;
+        if (Math.max(r, g, b) - Math.min(r, g, b) > 12) {
+          hasColor = true;
+          break;
+        }
+      }
+    }
+    if (!hasColor) throw new Error(`PDF page ${index + 1} has no visible color in its checked area.`);
+  }
+}
+
 export async function verifyPortableCheatsheetRelease(input: {
   source: string;
   releasedPdf: Uint8Array;
@@ -146,6 +190,7 @@ export async function verifyPortableCheatsheetRelease(input: {
   evidenceDestination?: string;
 }): Promise<CheatsheetReleaseVerification> {
   assertCheatsheetParagraphStructure(input.source);
+  if (input.constraints.color === "color") assertCheatsheetExplanationCues(input.source);
   if (/\\(?:resizebox|scalebox)\b/u.test(input.source)) {
     throw new Error("Release source uses hidden geometric scaling.");
   }
@@ -314,6 +359,9 @@ export async function verifyPortableCheatsheetRelease(input: {
     if (!textMatches || !rendersMatch) {
       throw new Error("Released PDF does not match the isolated source build.");
     }
+    if (input.constraints.color === "color") {
+      await assertRenderedColor(renderRoot, referencePdf, pageCount, input.constraints.layout);
+    }
     const builtPdfBytes = await readFile(builtPdf);
     const renderPaths = async (prefix: string) =>
       (await readdir(renderRoot))
@@ -361,6 +409,9 @@ export async function verifyPortableCheatsheetRelease(input: {
           ? `PDF dominant text size ${bodyPointSize}pt (measurement tolerance ${fontMeasurementTolerance}pt)`
           : `PDF dominant text size ${bodyPointSize}pt corroborates declared body size ${declaredBodyPointSize}pt`,
         "extracted text and 180 dpi renders match released PDF",
+        ...(input.constraints.color === "color"
+          ? [`visible color found on every page${input.constraints.layout ? " within declared body margins" : ""}`]
+          : []),
         `rebuilt PDF bytes ${sha256Bytes(builtPdfBytes)}`,
       ],
     };

@@ -48,8 +48,10 @@ or Academic OS configuration. Run `scripts/cheatsheet-tool.mjs schema` before cr
 `references/manifest-example.yaml` is the synthetic manifest shape. For create, revise or audit, read
 [the layout interface](references/layout-interface.md) for semantic emphasis and per-sheet layout.
 The executable audits manifest/source/release correspondence, plans fitting, verifies a portable
-build and builds a verified review package. The pinned procedure owns learning priorities and the
-second pass on the rendered PDF. Ask only when the procedure exposes a material unresolved choice.
+build and builds a verified review package. For color releases, `verify` checks the shared explanation
+wrappers for body cues and obvious number-only highlights, then checks for visible color on
+every rendered page. Follow the pinned procedure's required rendered review of every column.
+Ask only when the procedure exposes a material unresolved choice.
 
 Completion: the procedure's completion criterion for the selected operation is satisfied and the
 handoff names the release pair and exact verification/review state.

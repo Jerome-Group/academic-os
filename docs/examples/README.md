@@ -38,8 +38,8 @@ Logo provenance: `chatgpt-logo.tex` transcribes the single path from `OpenAI-bla
 
 ## Verification
 
-- [Compiled color specimen](mathematics-cheatsheet.pdf) SHA-256 `f6379372823693bf5bf85874b5afb41b224267293601f4c712b14f812966331b`.
-- The two A4 pages retain all eight columns and the measured body-column bottom positions.
+- [Compiled color specimen](mathematics-cheatsheet.pdf) SHA-256 `d88642069119c02e66f6706629f430afa7dfe30b258d2ded0693f6c2851344d3`.
+- Reviewed both A4 pages and all eight columns in color and grayscale. The 46 structured explanations each contain a cue. The shared verifier checks literal wrapper calls in the document body.
 - The compiled print fixtures check all five highlight roles, one fill for nested highlights,
   equal bounds for equivalent highlighted and plain lines, and at least 7:1 ink-to-background contrast.
 - [Earlier visual review](visual-review.md) and [mathematical review](mathematics-review.md)

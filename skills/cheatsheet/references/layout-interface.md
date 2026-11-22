@@ -40,13 +40,16 @@ space occupied by arbitrary supplied text. Use distinct concise maps, not two co
 | `term` | Yellow `#FFF0A8` | Dark ochre `#594200` | One useful occurrence of a lookup term |
 | `paper` | Rose `#F8DAE6` | Berry `#741943` | The exact session or question identifier from a past paper |
 
-Use `HighlightedStatement` for a short theorem or lemma. `PassageHighlight` accepts one short
-paragraph of text and inline math. It keeps those lines together with their existing leading,
-so use `HighlightTag` for an identifier or short phrase when a longer item needs to wrap or
-cross a column. Tags take the dimensions of the same bold phrase, keeping the phrase together.
-Choose a few highlights from the Owner's mistakes and assessment patterns. Preserve the
-printed label and paper or exercise ID. On a past-paper exercise, the paper ID can carry rose
-and its separate exercise title can carry mint.
+Default to `TaggedStatement` for theorem and lemma labels and `HighlightTag` for short phrases
+or identifiers. Tags keep the dimensions of the same bold phrase. Choose the few priorities
+identified in the pinned procedure. Preserve the exact printed labels and identifiers.
+
+Use `HighlightedStatement` or `PassageHighlight` when one short paragraph benefits from a full
+background. Draw one flat, opaque fill behind it. Preserve its leading and inspect the fit near
+column breaks. Keep separate highlights disjoint. Inside another highlight, a tag keeps its bold
+text and uses the outer fill. The paper ID and a separate exercise title can carry different
+colors on the same line when each has its own space. Inspect the rendered fill for seams,
+stripes and edge collisions at print size.
 
 Use a starred statement for a short theorem that the Owner repeatedly needs to find or
 misapplies. Blue covers the label, hypotheses, conclusion and math even across wrapped lines.
@@ -70,6 +73,7 @@ model preserves the dark section bars and white headings, along with boxes, unde
 | `Statement{kind}{display}{body}` | Named definition/result with an underlined label |
 | `FormalStatement{kind}{display}{source}{locator}{body}` | Underlined statement with source and optional locator |
 | `Statement*`, `FormalStatement*` | Same arguments, with the complete selected claim in cobalt |
+| `TaggedStatement{role}{kind}{display}{body}` | Short background behind the underlined label. Body stays breakable |
 | `HighlightedStatement{role}{kind}{display}{body}` | Underlined theorem or lemma and short body on a role-colored background |
 | `PassageHighlight{role}{text}` | One short highlighted paragraph that stays together |
 | `HighlightTag{role}{text}` | Bold inline label or keyword with a role-colored background |

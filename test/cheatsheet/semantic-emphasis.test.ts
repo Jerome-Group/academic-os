@@ -272,22 +272,26 @@ for (const monochrome of [false, true]) {
 
 const sampleWithHighlights = String.raw`
 Above the claim.\par
-\HighlightedStatement{theorem}{Theorem}{Pivot}{First printed claim.\\ Second printed claim.}
+\HighlightedStatement{theorem}{Theorem}{Pivot}{First printed claim.\\ Second printed claim. \HighlightTag{term}{Inner term.}}
 Below the claim.\par
 \HighlightedStatement{lemma}{Lemma}{Bridge}{Supporting claim.}
 \PassageHighlight{exercise}{\textbf{Ex. 7.}\ Find the decisive step.}
 \HighlightTag{term}{Jacobian}\quad Next to the term.\par
 \HighlightTag{paper}{Paper A, Q2}\quad Next to the paper.\par
+\TaggedStatement{theorem}{Theorem}{Label}{Plain statement body.}
+\PassageHighlight{exercise}{Outer exercise.\PassageHighlight{lemma}{Inner paragraph.}}
 `;
 
 const sampleOnWhite = String.raw`
 Above the claim.\par
-\SheetRunIn[0.40pt]{Theorem Pivot.}\ First printed claim.\\ Second printed claim.\par
+\SheetRunIn[0.40pt]{Theorem Pivot.}\ First printed claim.\\ Second printed claim. \textbf{Inner term.}\par
 Below the claim.\par
 \SheetRunIn[0.40pt]{Lemma Bridge.}\ Supporting claim.\par
 \textbf{Ex. 7.}\ Find the decisive step.\par
 \textbf{Jacobian}\quad Next to the term.\par
 \textbf{Paper A, Q2}\quad Next to the paper.\par
+\KeepBlock{\SheetRunIn[0.40pt]{Theorem Label.}\ Plain statement body.}
+Outer exercise.\par Inner paragraph.\par
 `;
 
 function renderedText(xml: string) {
@@ -322,6 +326,8 @@ for (const monochrome of [false, true]) {
       ["Find the decisive step.", "004c35", "ccf0db"],
       ["Jacobian", "594200", "fff0a8"],
       ["Paper A, Q2", "741943", "f8dae6"],
+      ["Theorem Label.", "0037b3", "dceaff"],
+      ["Outer exercise.", "004c35", "ccf0db"],
     ] as const;
     assert.equal(fills.length, roles.length);
     assert.deepEqual(renderedFills(plain.graphics), []);
@@ -342,6 +348,7 @@ for (const monochrome of [false, true]) {
       "Above the claim.",
       "First printed claim.",
       "Second printed claim.",
+      "Inner term.",
       "Below the claim.",
       "Supporting claim.",
       "Find the decisive step.",
@@ -349,6 +356,10 @@ for (const monochrome of [false, true]) {
       "Next to the term.",
       "Paper A, Q2",
       "Next to the paper.",
+      "Theorem Label.",
+      "Plain statement body.",
+      "Outer exercise.",
+      "Inner paragraph.",
     ]) {
       const run = runs.find((entry) => entry.label.includes(label));
       const plainRun = plainRuns.find((entry) => entry.label.includes(label));
@@ -359,10 +370,15 @@ for (const monochrome of [false, true]) {
         `${label} keeps its bounds`,
       );
     }
-    for (const label of ["Below the claim.", "Next to the term.", "Next to the paper."]) {
+    for (const label of ["Below the claim.", "Next to the term.", "Next to the paper.", "Plain statement body."]) {
       assert.equal(runs.find((run) => run.label.includes(label))?.ink, "000000", label);
     }
     const printedClaim = runs.find((run) => run.label.includes("Second printed claim."));
     assert.equal(printedClaim?.ink, runs.find((run) => run.label.includes("First printed claim."))?.ink);
+    assert.equal(runs.find((run) => run.label.includes("Inner term."))?.ink, printedClaim?.ink);
+    assert.equal(
+      runs.find((run) => run.label.includes("Inner paragraph."))?.ink,
+      runs.find((run) => run.label.includes("Outer exercise."))?.ink,
+    );
   });
 }

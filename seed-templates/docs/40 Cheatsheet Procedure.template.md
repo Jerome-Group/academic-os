@@ -38,12 +38,35 @@ Distinguish an observed error, a prompted reconstruction and an unaided success.
 to rank discretionary space after required coverage. When records are sparse, record the gap and
 prioritize issued assessment guidance.
 
-For each selected method or worked item, compare its notation, hypotheses, conventions and
-decisive steps with the corresponding official solution or marking scheme when available. Cite the
-specific source and item. With no official answer, check against issued theory, derive the step
-independently, and record the missing authority. Historical solutions and personal attempts have
-their own provenance. Treat personal records as evidence of study needs and keep their private
-references out of the sheet and exported review package.
+### Choose what earns space on a final
+
+Read the relevant past finals that fit the current scope and format. For each distinct sitting,
+identify the question and subpart, the marks where printed, the required task, and the method,
+condition or answer form it tests. Group comparable tasks across sittings. Count repeated parts of
+one paper as one sitting for recurrence. Record excluded papers and gaps in the available years.
+
+Rank discretionary items by current relevance, recurrence across sittings, documented marks,
+reuse across question types and the Owner's mistakes. Use judgment to choose what helps under exam
+conditions. A rare proof step can earn more space than a frequent routine computation if the step
+is hard to reconstruct or prevents a costly error. Select a representative exercise that teaches
+the same decision, and keep the exact paper or exercise ID for retrieval. Record the decisive
+source locators and selection reason in the coverage note. Distinguish what the papers show from
+your judgment. Preserve required coverage. Make the ranking and highlighting choices autonomously.
+
+### Match the final's wording and working
+
+Use the nearest applicable official final marking scheme for mathematical wording, hypotheses,
+notation, required working, acceptable answer forms and rounding or proof conventions. Use an
+official final solution where it supplies the needed detail. Where final guidance is missing for
+that item, use the issued tutorial marking scheme or solution, then the issued lecture notes.
+Record the exact item and source used for each fallback. Use the current offering's convention
+when older sources conflict, and name any unresolved difference that changes an answer.
+Describe mark allocations or accepted alternatives only when the source explicitly gives them.
+Where the sources leave a step unstated, derive it, label the derivation, and record the gap.
+
+For non-final assessments, compare each selected method or worked item with its corresponding
+official solution or marking scheme. Treat personal records as evidence of study needs and keep
+their private references out of the sheet and exported review package.
 
 Completion: current assessment and constraints have evidence; every selected source item and
 subpart is enumerated; gaps and authority conflicts are resolved or named as concrete blockers.
@@ -166,17 +189,16 @@ Keep surrounding exposition regular weight. Short run-in proof stages remain bre
 `KeepBlock` reserves opening lines rather than boxing an entire argument. Nested semantic wrappers
 must not create empty paragraphs. Avoid long minipages or boxes that force a large unused tail.
 
-Keep the sheet white with black running text. Use pale blue behind a key theorem, lilac behind
-a key lemma, and mint behind a representative exercise's prompt or decisive step. Use a short
-yellow highlight on the key term itself and rose behind the identifier of a past paper the
-Owner needs to find fast. Use `references/layout-interface.md` for the ink pairs and wrappers.
+Keep the sheet white with black running text. Default to short highlights for key theorem and
+lemma labels, exercise titles or decisive moves, terms, and paper IDs. Use the five roles in
+`references/layout-interface.md`.
 
 Choose highlights from recurring mistakes, exam patterns and the Owner's learning gaps. Give
-a short theorem or lemma a complete highlight when its conditions and conclusion need to be
-read together. Use a label or short phrase for longer material. Highlight each lookup term at
-its most useful occurrence. Where categories meet, highlight distinct pieces or choose the
-primary role. Keep adjacent routine text on white. Use rust ink for pitfalls and retain the
-headings, underlines and boxes for grayscale.
+a compact theorem or lemma one solid background when its conditions and conclusion are best
+read together. Highlight each lookup term at its most useful occurrence. Give any point on
+the page one fill. Use a single opaque field behind a passage and disjoint fills for separate
+tags. Keep adjacent routine text on white. Use rust ink for pitfalls and retain the headings,
+underlines and boxes for grayscale.
 
 Provide slim, distinct top/bottom navigation bands configured for this sheet, a compact page/section
 map and page numbers. A map describes real labels; any claimed page/column range must match the
@@ -225,12 +247,15 @@ page at A4 actual size (100% print scaling). Re-solve one fragile worked item pe
 printed body alone. Check that the method choice, required conditions, decisive step and result
 are recoverable without supplying an omitted argument. Reconcile each selected learning gap with
 the page and item that addresses it, then compare against the issued source or marked solution.
-Record missing reasoning and conventions by page and item.
+For a final, reconcile the highlighted items with the past-paper ranking and check the printed
+answer form and decisive steps against the cited authority. Record missing reasoning and
+conventions by page and item.
 
 For a color release, inspect both color and grayscale. For a monochrome release, confirm neutral
 ink. At actual size, locate the chosen theorems, lemmas, exercises, terms and past-paper
 identifiers. Check that each highlight matches its role, covers the intended words or math,
-leaves nearby text readable, and leaves room for normal column flow. Check the same items in
+leaves nearby text readable, and leaves room for normal column flow. Inspect fills for dark stripes
+or seams where lines meet. Check the same items in
 grayscale using labels, weight, boxes and underlines. Record competing color, hard-to-find items
 and missing cues by page. On revision, fix the authoring source and repeat on the rebuilt PDF.
 

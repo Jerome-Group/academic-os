@@ -32,16 +32,32 @@ space occupied by arbitrary supplied text. Use distinct concise maps, not two co
 | Recurring pitfall | Rust `#9C2500` | Bold mistake or exception within the passage |
 | Routine statements, proofs, solutions and narrative | Black `#000000` | Existing labels and underlines |
 
+| Highlight role | Background | Ink | Use |
+|---|---|---|---|
+| `theorem` | Pale blue `#DCEAFF` | Cobalt `#0037B3` | Short theorem, with hypotheses and conclusion |
+| `lemma` | Lilac `#ECDDFF` | Plum `#4F246E` | Short supporting lemma reused in solutions |
+| `exercise` | Mint `#CCF0DB` | Dark green `#004C35` | Representative prompt, first move or exercise label |
+| `term` | Yellow `#FFF0A8` | Dark ochre `#594200` | One useful occurrence of a lookup term |
+| `paper` | Rose `#F8DAE6` | Berry `#741943` | The exact session or question identifier from a past paper |
+
+Use `HighlightedStatement` for a short theorem or lemma. `PassageHighlight` accepts one short
+paragraph of text and inline math. It keeps those lines together with their existing leading,
+so use `HighlightTag` for an identifier or short phrase when a longer item needs to wrap or
+cross a column. Tags take the dimensions of the same bold phrase, keeping the phrase together.
+Choose a few highlights from the Owner's mistakes and assessment patterns. Preserve the
+printed label and paper or exercise ID. On a past-paper exercise, the paper ID can carry rose
+and its separate exercise title can carry mint.
+
 Use a starred statement for a short theorem that the Owner repeatedly needs to find or
 misapplies. Blue covers the label, hypotheses, conclusion and math even across wrapped lines.
 For a longer theorem, use an ordinary statement with a short `KeyTerm`, `Hypothesis` or
 `Result` to mark the part needed under exam pressure. Mark a term at the occurrence that helps
 the reader find it. Keep repetitions black. Mark a method where it determines how to start or
 changes the next step. In a long proof or caution, color the decisive phrase and keep the
-explanation black. Leave white behind all body text.
+explanation black. Leave white behind ordinary text.
 
-At native 4 pt, check at least 7:1 contrast for each accent against white and for each heading
-against its background in both print modes. Make adjacent paragraphs readable in black so the
+At native 4 pt, check at least 7:1 contrast for accent text against its actual background
+in both print modes. Make adjacent paragraphs readable in black so the
 few colored items stand out at a glance. Use `KeyFormula` in math mode for a short formula the
 Owner needs to retrieve quickly. Keep derivations and repeated formulas in the running text.
 Record the chosen print constraint in the manifest. When an assessment requires monochrome,
@@ -54,6 +70,9 @@ model preserves the dark section bars and white headings, along with boxes, unde
 | `Statement{kind}{display}{body}` | Named definition/result with an underlined label |
 | `FormalStatement{kind}{display}{source}{locator}{body}` | Underlined statement with source and optional locator |
 | `Statement*`, `FormalStatement*` | Same arguments, with the complete selected claim in cobalt |
+| `HighlightedStatement{role}{kind}{display}{body}` | Underlined theorem or lemma and short body on a role-colored background |
+| `PassageHighlight{role}{text}` | One short highlighted paragraph that stays together |
+| `HighlightTag{role}{text}` | Bold inline label or keyword with a role-colored background |
 | `Example{display}{body}` | `Eg.` item |
 | `Exercise{display}{body}` | `Ex.` item |
 | `SourceItemRef{kind}{display}{stable id}` | Typed link to an item's explicit `label`; `Eg.` and `Ex.` stay distinct |

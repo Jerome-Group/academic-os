@@ -166,14 +166,17 @@ Keep surrounding exposition regular weight. Short run-in proof stages remain bre
 `KeepBlock` reserves opening lines rather than boxing an entire argument. Nested semantic wrappers
 must not create empty paragraphs. Avoid long minipages or boxes that force a large unused tail.
 
-Keep white paper and black running text. Reserve blue ink for complete, short theorems and
-formulas the Owner must find fast. Give their hypotheses and conclusions the same ink. Use green
-for a short lookup term or the move that starts a solution. Use rust for the exact mistake or
-exception the Owner needs to see. Apply the rules in `references/layout-interface.md`.
-Select from the exam tasks and learning gaps covered by the sheet. Pick the few items in each
-column that earn immediate attention. Leave routine definitions, labels, proofs and working
-black. Keep the existing headings, underlines and boxes so the same items can be found in
-grayscale.
+Keep the sheet white with black running text. Use pale blue behind a key theorem, lilac behind
+a key lemma, and mint behind a representative exercise's prompt or decisive step. Use a short
+yellow highlight on the key term itself and rose behind the identifier of a past paper the
+Owner needs to find fast. Use `references/layout-interface.md` for the ink pairs and wrappers.
+
+Choose highlights from recurring mistakes, exam patterns and the Owner's learning gaps. Give
+a short theorem or lemma a complete highlight when its conditions and conclusion need to be
+read together. Use a label or short phrase for longer material. Highlight each lookup term at
+its most useful occurrence. Where categories meet, highlight distinct pieces or choose the
+primary role. Keep adjacent routine text on white. Use rust ink for pitfalls and retain the
+headings, underlines and boxes for grayscale.
 
 Provide slim, distinct top/bottom navigation bands configured for this sheet, a compact page/section
 map and page numbers. A map describes real labels; any claimed page/column range must match the
@@ -225,12 +228,11 @@ the page and item that addresses it, then compare against the issued source or m
 Record missing reasoning and conventions by page and item.
 
 For a color release, inspect both color and grayscale. For a monochrome release, confirm neutral
-ink. At actual size, scan each page for its chosen theorem or formula, one lookup term or first
-move, and any recurring trap. Check that the ink covers the whole chosen claim across line
-breaks and that the adjacent routine text stays black. Read the same page in grayscale and
-locate the same items by their labels, weight, boxes and underlines. Check the statement, proof
-and solution labels against the layout interface. Record competing color, hard-to-find items and
-missing cues by page. On revision, fix the authoring source, rebuild, and repeat on current bytes.
+ink. At actual size, locate the chosen theorems, lemmas, exercises, terms and past-paper
+identifiers. Check that each highlight matches its role, covers the intended words or math,
+leaves nearby text readable, and leaves room for normal column flow. Check the same items in
+grayscale using labels, weight, boxes and underlines. Record competing color, hard-to-find items
+and missing cues by page. On revision, fix the authoring source and repeat on the rebuilt PDF.
 
 Freeze the PDF SHA-256 before review. Reviewers independent of authoring assess these distinct gates:
 

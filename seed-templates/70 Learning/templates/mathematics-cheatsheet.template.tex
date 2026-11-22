@@ -29,7 +29,7 @@ Gram--Schmidt replaces an independent list $v_1,\ldots,v_k$ by $u_j=v_j-\sum_{i<
 \newcommand{\CorpusCalculus}{%
 \Topic{ODEs and vector calculus}
 A first-order linear equation $y'+p(x)y=q(x)$ has integrating factor $\mu=e^{\int p}$ and $(\mu y)'=\mu q$. A separable equation $y'=g(x)h(y)$ permits division by $h(y)$ only after recording equilibrium solutions where $h(y)=0$. For $y'=ay(1-y/K)$ with $0<y(0)<K$, separation gives $y(t)=K/(1+Ce^{-at})$.
-\Statement*{Theorem}{8A}{If $F=(P,Q)$ is continuously differentiable on a simply connected planar domain and $P_y=Q_x$, then $F=\nabla\phi$ and line integrals depend only on endpoints.}
+\HighlightedStatement{theorem}{Theorem}{8A}{If $F=(P,Q)$ is continuously differentiable on a simply connected planar domain and $P_y=Q_x$, then $F=\nabla\phi$ and line integrals depend only on endpoints.}
 To find $\phi$, integrate $P$ in $x$: $\phi(x,y)=\int P(x,y)\,dx+C(y)$, then compare $\phi_y$ with $Q$. On domains with holes, curl zero need not imply a global potential; $(-y/(x^2+y^2),x/(x^2+y^2))$ is the standard warning.
 For $C^1$ fields on suitable piecewise-smooth oriented domains or surfaces,
 \[
@@ -141,8 +141,8 @@ The tower law says $[K:F]=[K:E][E:F]$ for finite extensions $F\subseteq E\subset
 \newcommand{\ExtraFoundations}{%
 \Topic{Structural proof patterns}
 To prove two finite sets have equal size, a bijection is stronger than separate counting because it explains the identity. Injection both ways proves equal cardinality for arbitrary sets by Cantor--Schroeder--Bernstein. For recursively defined objects, verify existence, uniqueness, and closure at every stage.
-\Worked{W1C [FND-A]}{bijection}{Show $\sum_{k=0}^{n}\binom nk=2^n$.}{Count subsets of $[n]$. Grouping by size gives the sum; encoding membership by an $n$-bit word gives $2^n$. The correspondence sends $S$ to $(\mathbf1_{1\in S},\ldots,\mathbf1_{n\in S})$.}
-\Statement{Lemma}{3A}{If a finite directed acyclic graph has at least one vertex, it has a source and a sink.}
+\Worked{W1C [FND-A]}{\HighlightTag{exercise}{bijection}}{Show $\sum_{k=0}^{n}\binom nk=2^n$.}{Count subsets of $[n]$. Grouping by size gives the sum; encoding membership by an $n$-bit word gives $2^n$. The correspondence sends $S$ to $(\mathbf1_{1\in S},\ldots,\mathbf1_{n\in S})$.}
+\HighlightedStatement{lemma}{Lemma}{3A}{If a finite directed acyclic graph has at least one vertex, it has a source and a sink.}
 \Proof{Starting at any vertex and repeatedly following an incoming edge cannot continue forever without repeating a vertex and creating a cycle, so it ends at a source. Reverse edges for a sink.}
 \CompactTable{\begin{tabular}{@{}ll@{}}\toprule proof failure&repair\\\midrule arbitrary example&bind a general object\\ circular step&state earlier theorem used\\ division by expression&split zero case first\\ infinite descent&name well-founded measure\\ dimension count&prove spanning/independence\\ equality of maps&evaluate arbitrary input\\ quotient map&prove representative independence\\\bottomrule\end{tabular}}
 \Example{1C}{The recurrence $a_0=2$, $a_{n+1}=a_n^2-2$ defines integers by induction. If one also claims $a_n\ge2$, include it in the induction invariant: equality persists from $a_0=2$. A formula guessed from initial terms remains conjectural until substituted and initial values checked.}}
@@ -519,7 +519,7 @@ x\le(a-1)/2,&a<-1.
 Intersect every branch with $x\ge-1$. At $a=-1$, the original inequality is equality for all $x\ge-1$.}
 \Topic{Symbols and final checks}
 \CompactTable{\begin{tabular}{@{}ll|ll@{}}\toprule symbol&meaning&symbol&meaning\\\midrule $\iff$&two directions&$\hookrightarrow$&injective\\ $\twoheadrightarrow$&surjective&$\sqcup$&disjoint union\\ $\langle x,y\rangle$&inner product&$\operatorname{span}S$&linear span\\ $O(g)$&bounded ratio&$o(g)$&ratio $\to0$\\\bottomrule\end{tabular}}
-Before using a formula: identify hypotheses, domains, boundary cases, and zero denominators. Before ending a proof: bind every introduced variable, state the quantified conclusion, and separate necessity from sufficiency. \columnbreak\Continuation{final checks}Before reporting a numerical result, retain exact form, check sign and scale, and test a simple special case. Cross-reference examples by \SourceRef{FND-A}, \SourceRef{CAL-C}, or concept label \KeyTerm{finite-net argument}; tags remain readable when PDF links are unavailable.
+Before using a formula: identify hypotheses, domains, boundary cases, and zero denominators. Before ending a proof: bind every introduced variable, state the quantified conclusion, and separate necessity from sufficiency. \columnbreak\Continuation{final checks}Before reporting a numerical result, retain exact form, check sign and scale, and test a simple special case. Cross-reference examples by \SourceRef{FND-A}, \SourceRef{CAL-C}, or concept label \HighlightTag{term}{finite-net argument}; tags remain readable when PDF links are unavailable.
 \SourceBlock{OPTIONAL}{Optional later tools and new problem types}
 Illustrative extensions, separate from the assessed scope selected by an actual manifest.
 \CorpusAbstract

@@ -198,6 +198,13 @@ Keep the sheet white with black running text. Apply the five color roles in
 `references/layout-interface.md` to selected material. Prefer short highlights for theorem
 and lemma labels, exercise titles or decisive moves, terms, and paper IDs.
 
+Put at least one visible color cue inside the body of every worked solution, proof sketch
+and substantive explanation. Highlight the term the Owner needs to find, the condition that
+permits the method, the decisive move, or the formula or result worth finding again. Use
+distinct role colors when different roles appear. Prefer a short opaque fill for a lookup
+phrase or decisive step. Keep surrounding sentences black. On revision, apply this pass to
+retained explanations as well as new material.
+
 Choose highlights from recurring mistakes, exam patterns and the Owner's learning gaps. Give
 a compact theorem or lemma one solid background when its conditions and conclusion are best
 read together. Highlight each lookup term at its most useful occurrence. Give any point on
@@ -257,7 +264,9 @@ answer form and decisive steps against the cited authority. Record missing reaso
 conventions by page and item.
 
 Inspect the release PDF in color at actual size. Confirm that the selected semantic highlights
-are visible on its own pages. Render those same pages in grayscale for the legibility check.
+are visible on its own pages. Locate a colored cue in the body of each worked solution,
+proof sketch and explanation. Rebuild if a body needs a cue or its cue is hard to spot.
+Render those same pages in grayscale for the legibility check.
 At actual size, locate the chosen theorems, lemmas, exercises, terms and past-paper
 identifiers. Check that each highlight matches its role, covers the intended words or math,
 leaves nearby text readable, and leaves room for normal column flow. Inspect fills for dark stripes

@@ -44,6 +44,13 @@ Default to `TaggedStatement` for theorem and lemma labels and `HighlightTag` for
 or identifiers. Tags keep the dimensions of the same bold phrase. Choose the few priorities
 identified in the pinned procedure. Preserve the exact printed labels and identifiers.
 
+Put color inside each worked solution, proof sketch and substantive explanation. Place a
+yellow `\HighlightTag{term}{absolute Jacobian}` at the lookup term, a mint
+`\HighlightTag{exercise}{split at the change of bounds}` at the decisive move, or use
+`Hypothesis`, `Result` or `KeyFormula` for the condition or result the reader needs to spot.
+Use the appropriate roles side by side when they serve different decisions. Inspect those
+cues in the body at the final print size.
+
 Use `HighlightedStatement` or `PassageHighlight` when one short paragraph benefits from a full
 background. Draw one flat, opaque fill behind it. Preserve its leading and inspect the fit near
 column breaks. Keep separate highlights disjoint. Inside another highlight, a tag keeps its bold

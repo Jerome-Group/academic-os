@@ -280,6 +280,8 @@ Below the claim.\par
 \HighlightTag{paper}{Paper A, Q2}\quad Next to the paper.\par
 \TaggedStatement{theorem}{Theorem}{Label}{Plain statement body.}
 \PassageHighlight{exercise}{Outer exercise.\PassageHighlight{lemma}{Inner paragraph.}}
+\Worked{E1}{Worked sample}{Normal problem.}{Start by \HighlightTag{exercise}{splitting the region}. Integrate the pieces.}
+\Proof{Use the \HighlightTag{term}{field quotient} criterion. Conclude maximality.}
 `;
 
 const sampleOnWhite = String.raw`
@@ -292,6 +294,8 @@ Below the claim.\par
 \textbf{Paper A, Q2}\quad Next to the paper.\par
 \KeepBlock{\SheetRunIn[0.40pt]{Theorem Label.}\ Plain statement body.}
 Outer exercise.\par Inner paragraph.\par
+\Worked{E1}{Worked sample}{Normal problem.}{Start by \textbf{splitting the region}. Integrate the pieces.}
+\Proof{Use the \textbf{field quotient} criterion. Conclude maximality.}
 `;
 
 function renderedText(xml: string) {
@@ -328,6 +332,8 @@ for (const monochrome of [false, true]) {
       ["Paper A, Q2", "741943", "f8dae6"],
       ["Theorem Label.", "0037b3", "dceaff"],
       ["Outer exercise.", "004c35", "ccf0db"],
+      ["splitting the region", "004c35", "ccf0db"],
+      ["field quotient", "594200", "fff0a8"],
     ] as const;
     assert.equal(fills.length, roles.length);
     assert.deepEqual(renderedFills(plain.graphics), []);
@@ -360,17 +366,29 @@ for (const monochrome of [false, true]) {
       "Plain statement body.",
       "Outer exercise.",
       "Inner paragraph.",
+      "splitting the region",
+      "field quotient",
+      "Integrate the pieces.",
+      "Conclude maximality.",
     ]) {
       const run = runs.find((entry) => entry.label.includes(label));
       const plainRun = plainRuns.find((entry) => entry.label.includes(label));
       assert.ok(run && plainRun, label);
-      assert.deepEqual(
-        [run.top, run.left, run.width, run.height],
-        [plainRun.top, plainRun.left, plainRun.width, plainRun.height],
+      assert.ok(
+        (["top", "left", "width", "height"] as const).every(
+          (bound) => Math.abs(run[bound] - plainRun[bound]) < 0.01,
+        ),
         `${label} keeps its bounds`,
       );
     }
-    for (const label of ["Below the claim.", "Next to the term.", "Next to the paper.", "Plain statement body."]) {
+    for (const label of [
+      "Below the claim.",
+      "Next to the term.",
+      "Next to the paper.",
+      "Plain statement body.",
+      "Integrate the pieces.",
+      "Conclude maximality.",
+    ]) {
       assert.equal(runs.find((run) => run.label.includes(label))?.ink, "000000", label);
     }
     const printedClaim = runs.find((run) => run.label.includes("Second printed claim."));

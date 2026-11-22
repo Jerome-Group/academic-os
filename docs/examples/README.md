@@ -8,9 +8,12 @@ Build:
 PATH=/Library/TeX/texbin:$PATH npm run templates:check
 ```
 
-A4 portrait; exactly two pages; four columns; black and white. Geometry: 1.8 mm side margins, 4.0 mm body top margin, 5.47 mm reserved body bottom margin, 0.6 mm column gaps, and a 1.6 mm footer baseline. Header/footer remain 4 pt. Body uses Latin Modern 4 pt with 3.78 pt leading. `\DeclareMathSizes{4}{4}{3}{2.4}` sets native math. The scalable `lmex10` override fixes Latin Modern's default fixed 10 pt extension font. No `\resizebox`, `\scalebox`, font stretching, or operator substitution.
+A4 portrait; exactly two pages; four columns; color with a grayscale print mode. Geometry: 1.8 mm side margins, 4.0 mm body top margin, 5.47 mm reserved body bottom margin, 0.6 mm column gaps, and a 1.6 mm footer baseline. Header/footer remain 4 pt. Body uses Latin Modern 4 pt with 4.1 pt leading. `\DeclareMathSizes{4}{4}{3}{2.4}` sets native math. The scalable `lmex10` override fixes Latin Modern's default fixed 10 pt extension font. No `\resizebox`, `\scalebox`, font stretching, or operator substitution.
 
-Navigation has three levels: `\MajorBlock` black bands; `\SourceBlock` compact ruled locator rows; `\Topic` local topic rules. Question IDs use a small outline marker and bold sans text; concepts are bold sans; formal labels and `Sol.` are underlined. `\Method`, `\Conclusion`, and `\Result` selectively emphasize pivots and results without changing font size.
+Navy section bands and pale blue topic bands organize the page. Source locators use ruled
+rows. Whole statements, worked reasoning and cautions use dark teal, plum and rust inks on
+white paper. Labels, underlines and boxes keep the same roles in grayscale. The layout
+interface records the palette, contrast check and monochrome setup.
 
 Primary API:
 
@@ -31,11 +34,12 @@ Long content macros remain breakable. Exact uppercase `\Needspace` was replaced 
 
 Logo provenance: `chatgpt-logo.tex` transcribes the single path from `OpenAI-black-monoblossom.svg` in the official [OpenAI logo archive](https://cdn.openai.com/brand/OpenAI-Logos-2025.zip), linked from [OpenAI Design Guidelines](https://openai.com/brand/). It preserves the supplied path/aspect ratio and renders through TikZ `svg.path`; no binary logo dependency. OpenAI owns the mark. The preinserted credit is attribution, not review evidence; no GPT-6 Astra Pro review is claimed.
 
-## Verification (2026-09-06)
+## Verification
 
-- Reviewed [compiled artifact](mathematics-cheatsheet.pdf): SHA-256 `2b6c204ec0a2d8dc3441ad33bf508069f95fc663428a0d065d1b6595950f191b`.
-- Two A4 pages (`595.276 x 841.89 pt`); no overfull boxes.
-- Build diagnostics: extension fonts 4.0/3.0/2.4 pt. Every font embedded/subset; no raster images.
-- Independent 600 dpi thresholded all-ink clearance is about 1.736 mm left, 1.693 mm top, at least 1.736 mm right and 1.312 mm bottom. These measured bounds are not a printer guarantee.
-- `pdftotext mathematics-cheatsheet.pdf - | wc -w`: 11,152 extracted words. This is only a rough density comparator, not information capacity.
-- Full-page and dense 600 dpi review evidence is recorded in [visual-review.md](visual-review.md); mathematical review is recorded in [mathematics-review.md](mathematics-review.md).
+- [Compiled color specimen](mathematics-cheatsheet.pdf) SHA-256 `106891f90c0b255877484e1a94e648dfdf1cc2117dc638acafb6637ccb0f3ea6`.
+- The two-page, four-column A4 specimen retained the same extracted word count on each page and
+  all eight column starts. The largest change at a body-column bottom was 1.34 pt.
+- Inspected both pages in color and grayscale. The compiled print fixture checks 9:1 contrast for
+  body passages and navigation bands in both modes.
+- [Earlier visual review](visual-review.md) and [mathematical review](mathematics-review.md)
+  document the previous specimen revision.

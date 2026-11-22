@@ -136,11 +136,20 @@ item and prior-content disposition; manifest, source and release hashes agree.
 ## 4. Author rigorous, breakable content and fit it
 
 Use the mathematics-cheatsheet semantic interface. Configure geometry, columns, native body/math
-sizes and furniture per sheet. Interleave definitions and results with their relevant examples,
-exercises, counterexamples and methods so a reader can apply each concept in place. Condense
-reasoning while retaining quantified hypotheses, exceptional cases, constructions, nontrivial steps
-and the conclusion. Historical questions retain sufficient worked solutions. A final answer,
-theorem name or unexplained transformation is not a solution.
+sizes and furniture per sheet. Organize the body around the decisions the Owner makes when solving a
+problem. Put each relevant definition, result or counterexample next to the decision it changes.
+
+Turn each selected learning gap into usable running text. Name the observable cue for choosing a
+method, the condition that permits it, the decisive calculation or proof step, and the check that
+would catch the recorded error. Put that check beside the step where the error arises. For a
+worked solution, carry the reasoning through to the requested result. For a proof, retain the
+quantified hypotheses, nontrivial implications and conclusion. Present a short complete chain of
+reasoning even when the reference sheet has room for only one example of the method.
+
+Use the issued convention in the explanation itself. For example, an integration method can derive
+its bounds from the region, while a quotient method can derive its conclusion from the ideal
+hypothesis. Collapse repetitive examples into one worked instance and a precise cross-reference
+when the same argument applies. Preserve exceptions and steps that differ.
 
 Label source qualifications/corrections visibly and record their reason/authority. Preserve the
 source's distinguishable wording where it matters; a corrected claim must not masquerade as a
@@ -157,11 +166,10 @@ Keep surrounding exposition regular weight. Short run-in proof stages remain bre
 `KeepBlock` reserves opening lines rather than boxing an entire argument. Nested semantic wrappers
 must not create empty paragraphs. Avoid long minipages or boxes that force a large unused tail.
 
-Use the semantic emphasis table in the skill's `references/layout-interface.md`. Choose cues by
-the role of the content. Underline statement, proof and solution labels through their wrappers.
-Use bold for short decisive cues and box only results worth retrieving as a single unit. Existing
-drafts can contain bare run-in labels or local redefinitions. Inspect those against the table before
-using the draft as a style reference.
+Follow the skill's `references/layout-interface.md` for the color hierarchy and print contrast.
+Use the existing heading line for navigation backgrounds and assign ink to whole passages,
+including formulas. Use the wrappers for their roles throughout the sheet. Keep wording and
+structure explicit so grayscale preserves the same route through the material.
 
 Provide slim, distinct top/bottom navigation bands configured for this sheet, a compact page/section
 map and page numbers. A map describes real labels; any claimed page/column range must match the
@@ -206,17 +214,19 @@ Verify embedded fonts, native body floor, page constraint, no missing glyphs/ove
 and semantic/raster correspondence between the rebuilt and released PDFs.
 
 Run a second pass from the PDF, with the authoring source closed for the first scan. Inspect every
-page at A4 actual size (100% print scaling). For a color release, inspect both color and grayscale. For a
-monochrome release, confirm the PDF itself has no chromatic emphasis. Locate the named
-statements, proof/solution starts, boxed formulas and warning cues. Follow the navigation to two
-equivalent items and compare their cues even when the surrounding topics differ. Against the
-coverage list and TeX, reconcile the intended roles with the visible cues per column. Record
-missing or inconsistent cues by label and page/column. In particular, inspect underlines on
-`Pf.` and `Sol.` and on named statement labels. For an audit, report the missing cues. For an
-authorized revision, correct wrapper usage or definitions at the authoring authority, rebuild,
-and repeat the pass on the current bytes. Record print/device or display conditions and any
-remaining legibility gap. Revisit the learning priorities and official method checks before
-freezing. A draft that compiles can still fail this pass.
+page at A4 actual size (100% print scaling). Re-solve one fragile worked item per section using the
+printed body alone. Check that the method choice, required conditions, decisive step and result
+are recoverable without supplying an omitted argument. Reconcile each selected learning gap with
+the page and item that addresses it, then compare against the issued source or marked solution.
+Record missing reasoning and conventions by page and item.
+
+For a color release, inspect both color and grayscale. For a monochrome release, confirm neutral
+ink. Follow one statement and one worked passage through their printed lines, including any
+continuation. Confirm that comparable passages use consistent body ink and ordinary prose resumes
+its own ink. Check the statement, proof and solution labels and the remaining structural cues
+against the layout interface. Report discrepancies on audit. On revision, fix them in the
+authoring authority, rebuild, and repeat on the current bytes. Record inspection conditions and
+remaining gaps.
 
 Freeze the PDF SHA-256 before review. Reviewers independent of authoring assess these distinct gates:
 

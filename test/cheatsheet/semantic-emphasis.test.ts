@@ -15,7 +15,8 @@ const specimen = String.raw`
 \Topic{Navigation}
 \Statement{Theorem}{Pivot}{Normal statement.}
 \FormalStatement{Lemma}{Bound}{S}{}{Normal lemma.}
-\Proof{Normal proof.}
+\Proof{Normal proof.\par Proof continues in a second paragraph.}
+Ordinary prose resumes.\par
 \Worked{A1}{Worked sample}{Normal problem.}{Normal solution.}
 \QuestionPart{a}{Sample}{S}{Normal question.}{Normal response.}
 \Method{Choose domain.}\par
@@ -81,6 +82,23 @@ ${specimen}
   }
 }
 
+function luminance(hex: string) {
+  const rgb = [0, 2, 4].map(
+    (offset) => Number.parseInt(hex.slice(offset, offset + 2), 16) / 255,
+  );
+  const linear = rgb.map((v) =>
+    v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4,
+  );
+  const [red = 0, green = 0, blue = 0] = linear;
+  return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+}
+
+function contrast(foreground: string, background: string) {
+  const a = luminance(foreground);
+  const b = luminance(background);
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
 function closeColor(actual: string, expected: string) {
   return [0, 2, 4].every(
     (i) =>
@@ -109,7 +127,7 @@ for (const monochrome of [false, true]) {
       width: Number(width),
       bottom: Number(top) + Number(height),
       font,
-      label,
+      label: label ?? "",
     }));
     const strokes = [
       ...graphics.matchAll(
@@ -122,27 +140,36 @@ for (const monochrome of [false, true]) {
       left: Number(left),
       baseline: Number(baseline),
     }));
-    const barInk = /<path fill-rule="nonzero" fill="rgb\(([^)]+)\)"/u.exec(
-      graphics,
-    )?.[1];
-    assert.ok(barInk, "major section prints a filled bar");
-    const channels = barInk
-      .split(", ")
-      .map((channel) => Number.parseFloat(channel));
-    assert.equal(channels.length, 3);
-    assert.ok(
-      channels.every((channel) => channel < 40),
-      "section bar remains dark",
+    const backgrounds = [
+      ...graphics.matchAll(/<path fill-rule="nonzero" fill="rgb\(([^)]+)\)"/gu),
+    ].map(([, rgb = ""]) =>
+      rgb
+        .split(", ")
+        .map((channel) =>
+          Math.round((Number.parseFloat(channel) * 255) / 100)
+            .toString(16)
+            .padStart(2, "0"),
+        )
+        .join(""),
     );
-    assert.equal(new Set(channels).size, monochrome ? 1 : 3);
-    const title = runs.find(
-      ({ label }) => label === "<b>M Major navigation</b>",
-    );
-    assert.equal(
-      inks.get(title?.font ?? ""),
-      "ffffff",
-      "white section heading",
-    );
+    const [majorBackground = "", topicBackground = ""] = backgrounds;
+    for (const [heading, background, expected] of [
+      ["M Major navigation", majorBackground, "233d57"],
+      ["Navigation", topicBackground, "deedf3"],
+    ] as const) {
+      assert.equal(background.length, 6, `${heading} prints on a color band`);
+      assert.ok(
+        monochrome
+          ? /^([\da-f]{2})\1\1$/u.test(background)
+          : closeColor(background, expected),
+        `${heading} background matches the print mode`,
+      );
+      const title = runs.find(({ label }) => label === `<b>${heading}</b>`);
+      const ink = inks.get(title?.font ?? "") ?? "";
+      if (heading === "M Major navigation")
+        assert.equal(ink, "ffffff", "white section heading");
+      assert.ok(contrast(ink, background) >= 9, `${heading} band contrast`);
+    }
     const roles = [
       ["Navigation", "233d57", 1],
       ["Theorem Pivot.", "005b57", 1],
@@ -190,8 +217,40 @@ for (const monochrome of [false, true]) {
       );
     }
 
-    const ordinary = runs.find(({ label }) => label === "Normal statement.");
-    assert.equal(inks.get(ordinary?.font ?? ""), "000000");
+    for (const [passage, color] of [
+      ["Normal statement.", "184744"],
+      ["Normal lemma.", "184744"],
+      ["Normal proof.", "412d51"],
+      ["Proof continues in a second paragraph.", "412d51"],
+      ["Normal solution.", "412d51"],
+      ["Normal response.", "412d51"],
+      ["Normal warning.", "603125"],
+      ["Normal counterexample.", "603125"],
+      ["Normal correction.", "603125"],
+    ] as const) {
+      const run = runs.find(({ label }) => label.includes(passage));
+      const ink = inks.get(run?.font ?? "") ?? "";
+      assert.ok(
+        monochrome ? /^([1-7][\da-f])\1\1$/u.test(ink) : closeColor(ink, color),
+        `${passage} prints in its passage ink`,
+      );
+      assert.ok(
+        contrast(ink, "ffffff") >= 9,
+        `${passage} contrasts with white`,
+      );
+      assert.ok(
+        !run?.label.includes("<b>"),
+        `${passage} prints at regular weight`,
+      );
+    }
+    for (const passage of [
+      "Ordinary prose resumes.",
+      "Normal problem.",
+      "Normal question.",
+    ]) {
+      const run = runs.find(({ label }) => label.includes(passage));
+      assert.equal(inks.get(run?.font ?? ""), "000000", passage);
+    }
     const formulaBox = strokes.filter(
       ({ left, thickness }) => left > 250 && thickness > 0.3,
     );

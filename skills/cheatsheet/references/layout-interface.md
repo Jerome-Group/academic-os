@@ -20,18 +20,29 @@ Navigation uses `SheetHeaderBaseline` (depth from top), `SheetFooterBaseline` (h
 chosen bands and measure all-ink clearance in the rendered result; the template cannot infer the
 space occupied by arbitrary supplied text. Use distinct concise maps, not two copies of one band.
 
-## Print hierarchy
+## Color and print hierarchy
 
 | Role | Color | Cue that survives grayscale |
 |---|---|---|
-| Navigation and question markers | Navy `#233D57` | Section bar, bold ruled heading or boxed question badge |
+| Major sections | White on navy `#233D57` | Solid column-width band |
+| Topics | Navy `#233D57` on pale blue `#DEEDF3` | Bold ruled heading at the same baseline |
+| Source and question markers | Navy `#233D57` | Ruled source heading or question badge |
 | Statements and conditions | Teal `#005B57` | Bold underlined statement label or bold decisive hypothesis |
 | Results | Teal `#005B57` | Bold short result or boxed standalone key formula |
 | Reasoning | Plum `#5A316D` | Bold underlined `Pf.`/`Sol.` or bold method pivot |
 | Pitfalls | Rust `#853B23` | Bold explicit caution, correction or counterexample label |
 
-Keep ordinary prose and working black. Use the same wrapper for the same role across a sheet,
-including on a continuation. Select roles before applying macros. Bold a short condition or method
+Use dark teal `#184744` for the complete claim inside `Statement` or `FormalStatement`. Use dark
+plum `#412D51` for the complete reasoning inside `Proof` and the solution argument of `Worked`
+and `QuestionPart`. Use dark rust `#603125` for complete cautions, corrections and counterexamples.
+Running sentences and math inherit their passage ink across line breaks. White paper is the
+background for running text. Questions and standalone narrative use black ink. Write the
+hypotheses, action and conclusion into the body so the same explanation works in grayscale.
+
+The topic wash uses the existing heading line and adds zero height or width to the layout. Keep
+topic titles to one line at the final column width. At native 4 pt, verify at least 9:1 contrast for
+running text against white and for each heading against its band in both print modes. Use the same
+wrapper for the same role across a sheet. Bold a short condition or method
 only when it changes which move is valid. Use `KeyFormula` in math mode for a short formula the
 Owner needs to retrieve quickly. A line that wraps, a derivation or a repeated formula belongs in
 the running text. A rule under a topic heading is different from the underline under a run-in label.

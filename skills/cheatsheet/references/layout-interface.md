@@ -20,21 +20,30 @@ Navigation uses `SheetHeaderBaseline` (depth from top), `SheetFooterBaseline` (h
 chosen bands and measure all-ink clearance in the rendered result; the template cannot infer the
 space occupied by arbitrary supplied text. Use distinct concise maps, not two copies of one band.
 
-## Print hierarchy
+## Color and print hierarchy
 
 | Role | Color | Cue that survives grayscale |
 |---|---|---|
-| Navigation and question markers | Navy `#233D57` | Section bar, bold ruled heading or boxed question badge |
-| Statements and conditions | Teal `#005B57` | Bold underlined statement label or bold decisive hypothesis |
-| Results | Teal `#005B57` | Bold short result or boxed standalone key formula |
-| Reasoning | Plum `#5A316D` | Bold underlined `Pf.`/`Sol.` or bold method pivot |
-| Pitfalls | Rust `#853B23` | Bold explicit caution, correction or counterexample label |
+| Major sections | White on navy `#233D57` | Solid column-width band |
+| Topics | Navy `#233D57` on white | Bold ruled heading |
+| Source and question markers | Navy `#233D57` | Ruled source heading or question badge |
+| Selected theorem, condition or result | Cobalt `#0037B3` | Heavier underline under the statement label, bold short condition/result or boxed key formula |
+| Key term or method pivot | Green `#006343` | Bold lookup phrase or first move |
+| Recurring pitfall | Rust `#9C2500` | Bold mistake or exception within the passage |
+| Routine statements, proofs, solutions and narrative | Black `#000000` | Existing labels and underlines |
 
-Keep ordinary prose and working black. Use the same wrapper for the same role across a sheet,
-including on a continuation. Select roles before applying macros. Bold a short condition or method
-only when it changes which move is valid. Use `KeyFormula` in math mode for a short formula the
-Owner needs to retrieve quickly. A line that wraps, a derivation or a repeated formula belongs in
-the running text. A rule under a topic heading is different from the underline under a run-in label.
+Use a starred statement for a short theorem that the Owner repeatedly needs to find or
+misapplies. Blue covers the label, hypotheses, conclusion and math even across wrapped lines.
+For a longer theorem, use an ordinary statement with a short `KeyTerm`, `Hypothesis` or
+`Result` to mark the part needed under exam pressure. Mark a term at the occurrence that helps
+the reader find it. Keep repetitions black. Mark a method where it determines how to start or
+changes the next step. In a long proof or caution, color the decisive phrase and keep the
+explanation black. Leave white behind all body text.
+
+At native 4 pt, check at least 7:1 contrast for each accent against white and for each heading
+against its background in both print modes. Make adjacent paragraphs readable in black so the
+few colored items stand out at a glance. Use `KeyFormula` in math mode for a short formula the
+Owner needs to retrieve quickly. Keep derivations and repeated formulas in the running text.
 Record the chosen print constraint in the manifest. When an assessment requires monochrome,
 call `\selectcolormodel{gray}` after loading the preamble and before the document body. The gray
 model preserves the dark section bars and white headings, along with boxes, underlines and weight.
@@ -44,6 +53,7 @@ model preserves the dark section bars and white headings, along with boxes, unde
 | `Topic[id]{title}` | Stable topic target and heading |
 | `Statement{kind}{display}{body}` | Named definition/result with an underlined label |
 | `FormalStatement{kind}{display}{source}{locator}{body}` | Underlined statement with source and optional locator |
+| `Statement*`, `FormalStatement*` | Same arguments, with the complete selected claim in cobalt |
 | `Example{display}{body}` | `Eg.` item |
 | `Exercise{display}{body}` | `Ex.` item |
 | `SourceItemRef{kind}{display}{stable id}` | Typed link to an item's explicit `label`; `Eg.` and `Ex.` stay distinct |
@@ -51,6 +61,8 @@ model preserves the dark section bars and white headings, along with boxes, unde
 | `ProofStep{stage}{body}` | Breakable run-in stage; place inside a proof |
 | `Hypothesis{condition}` | Selected bold text/math condition |
 | `Method{pivot}` | Short decisive reasoning step |
+| `KeyTerm{term}` | Bold lookup term in green |
+| `Pitfall{phrase}` | Bold mistaken step or exception in rust |
 | `Result{result}`, `Conclusion{result}` | Short result in bold |
 | `KeyFormula{formula}` | Boxed short formula. Call inside math mode |
 | `Worked{id}{title}{question}{reasoning}` | Question badge and underlined solution label |

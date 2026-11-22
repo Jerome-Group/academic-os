@@ -34,9 +34,9 @@
 \usepackage{xcolor}
 \usepackage[normalem]{ulem}
 \definecolor{SheetNavigation}{HTML}{233D57}
-\definecolor{SheetStatement}{HTML}{005B57}
-\definecolor{SheetReasoning}{HTML}{5A316D}
-\definecolor{SheetWarning}{HTML}{853B23}
+\definecolor{SheetStatement}{HTML}{0037B3}
+\definecolor{SheetReasoning}{HTML}{006343}
+\definecolor{SheetWarning}{HTML}{9C2500}
 \usepackage{tikz}
 \usetikzlibrary{svg.path,arrows.meta,positioning}
 \usepackage{eso-pic}
@@ -138,31 +138,39 @@
   \if\relax\detokenize{#1}\relax\else\hypertarget{topic:#1}{}\fi%
   {\color{SheetNavigation}\sffamily\bfseries\if\relax\detokenize{#1}\relax\else #1\enspace\fi #2}\par\vspace{-1.55pt}{\color{SheetNavigation}\rule{\linewidth}{0.2pt}}\par\vspace{0.05pt}%
 }
-\newcommand{\SheetRunIn}[2]{%
-  \textcolor{#1}{\textbf{\renewcommand{\ULthickness}{0.24pt}\uline{#2}}}%
+\newcommand{\SheetRunIn}[2][0.24pt]{%
+  \textbf{\renewcommand{\ULthickness}{#1}\uline{#2}}%
 }
 \newcommand{\DisplayStatementKind}[1]{#1}
-\newcommand{\Statement}[3]{\KeepBlock{\phantomsection\SheetRunIn{SheetStatement}{\DisplayStatementKind{#1} #2.}\ #3}}
-\newcommand{\FormalStatement}[5]{\par\SheetRunIn{SheetStatement}{#1 #2}\ \SourceRef{#3}\if\relax\detokenize{#4}\relax.\else\ (\textbf{#4}).\fi\ #5\par}
-\newcommand{\Assumption}[1]{\par\textcolor{SheetStatement}{\textbf{Assumption.}}\ #1\par}
-\newcommand{\Proof}[1]{\KeepBlock{\SheetRunIn{SheetReasoning}{Pf.}\ #1\hfill$\square$}}
-\newcommand{\ProofStep}[2]{\textcolor{SheetReasoning}{\textbf{#1.}}\ #2\par}
+\NewDocumentCommand{\Statement}{s m m +m}{%
+  \KeepBlock{\IfBooleanT{#1}{\color{SheetStatement}}%
+    \phantomsection\SheetRunIn[\IfBooleanTF{#1}{0.40pt}{0.24pt}]{\DisplayStatementKind{#2} #3.}\ #4}%
+}
+\NewDocumentCommand{\FormalStatement}{s m m m m +m}{%
+  \par{\IfBooleanT{#1}{\color{SheetStatement}}%
+    \SheetRunIn[\IfBooleanTF{#1}{0.40pt}{0.24pt}]{#2 #3}\ \SourceRef{#4}\if\relax\detokenize{#5}\relax.\else\ (\textbf{#5}).\fi\ #6}\par
+}
+\newcommand{\Assumption}[1]{\par\textbf{Assumption.}\ #1\par}
+\newcommand{\Proof}[1]{\KeepBlock{\SheetRunIn{Pf.}\ #1\hfill$\square$}}
+\newcommand{\ProofStep}[2]{\textbf{#1.}\ #2\par}
 \newcommand{\Hypothesis}[1]{{\color{SheetStatement}\bfseries\boldmath #1}}
 \newcommand{\Example}[2]{\KeepBlock{\phantomsection\textbf{Eg. #1.}\ #2}}
 \newcommand{\Exercise}[2]{\KeepBlock{\phantomsection\textbf{Ex. #1.}\ #2}}
-\newcommand{\Counterexample}[2]{\KeepBlock{\phantomsection\textcolor{SheetWarning}{\textbf{Counterexample #1.}}\ #2}}
-\newcommand{\Correction}[1]{\KeepBlock{\textcolor{SheetWarning}{\textbf{Qualification/correction.}}\ #1}}
+\newcommand{\Counterexample}[2]{\KeepBlock{\phantomsection\textbf{Counterexample #1.}\ #2}}
+\newcommand{\Correction}[1]{\KeepBlock{\textbf{Qualification/correction.}\ #1}}
 \newcommand{\DisplayQuestionID}[1]{#1}
 \newcommand{\QuestionBadge}[1]{\raisebox{.1ex}[0pt][0pt]{{\color{SheetNavigation}\setlength{\fboxrule}{0.15pt}\setlength{\fboxsep}{0.15pt}\fbox{\rule{0pt}{.55ex}\rule{.55ex}{0pt}}}}\kern.3pt{\sffamily\bfseries\DisplayQuestionID{#1}}}
 \newcommand{\Question}[3]{\SheetNeedspace{11pt}\par\QuestionBadge{Q#1}\ \SourceRef{#2}\ #3\par}
-\newcommand{\QuestionPart}[5]{\SheetNeedspace{9pt}\par\QuestionBadge{(#1)}\ {\sffamily\bfseries #2}\ \SourceRef{#3}\ #4\ \SheetRunIn{SheetReasoning}{Sol.}\ #5\par}
-\newcommand{\Worked}[4]{\SheetNeedspace{9pt}\par\QuestionBadge{#1}\ {\sffamily\bfseries #2.}\ #3\ \SheetRunIn{SheetReasoning}{Sol.}\ #4\par}
+\newcommand{\QuestionPart}[5]{\SheetNeedspace{9pt}\par\QuestionBadge{(#1)}\ {\sffamily\bfseries #2}\ \SourceRef{#3}\ #4\ \SheetRunIn{Sol.}\ #5\par}
+\newcommand{\Worked}[4]{\SheetNeedspace{9pt}\par\QuestionBadge{#1}\ {\sffamily\bfseries #2.}\ #3\ \SheetRunIn{Sol.}\ #4\par}
 \newcommand{\Result}[1]{{\color{SheetStatement}\bfseries\boldmath #1}}
 \newcommand{\Method}[1]{{\color{SheetReasoning}\bfseries\boldmath #1}}
+\newcommand{\KeyTerm}[1]{\textcolor{SheetReasoning}{\textbf{#1}}}
+\newcommand{\Pitfall}[1]{{\color{SheetWarning}\bfseries\boldmath #1}}
 \newcommand{\Conclusion}[1]{\Result{#1}}
 \newcommand{\KeyFormula}[1]{\textcolor{SheetStatement}{\boxed{#1}}}
 \newcommand{\Alternative}[2]{\par\textbf{Alt. (#1).}\ #2\par}
-\newcommand{\Caution}[1]{\par\textcolor{SheetWarning}{\textbf{Caution.}}\ #1\par}
+\newcommand{\Caution}[1]{\par\textbf{Caution.}\ #1\par}
 \newcommand{\Continuation}[1]{\par\textbf{#1 continued.}\ }
 \newcommand{\ContinueInline}[1]{\textbf{[#1 cont.]}\ }
 \newcommand{\ContinueBlock}[1]{\par\SheetNeedspace{2\baselineskip}\textbf{[#1 cont.]}\par}

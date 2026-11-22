@@ -8,20 +8,22 @@ Build:
 PATH=/Library/TeX/texbin:$PATH npm run templates:check
 ```
 
-A4 portrait; exactly two pages; four columns; black and white. Geometry: 1.8 mm side margins, 4.0 mm body top margin, 5.47 mm reserved body bottom margin, 0.6 mm column gaps, and a 1.6 mm footer baseline. Header/footer remain 4 pt. Body uses Latin Modern 4 pt with 3.78 pt leading. `\DeclareMathSizes{4}{4}{3}{2.4}` sets native math. The scalable `lmex10` override fixes Latin Modern's default fixed 10 pt extension font. No `\resizebox`, `\scalebox`, font stretching, or operator substitution.
+A4 portrait; exactly two pages; four columns; color with a grayscale print mode. Geometry: 1.8 mm side margins, 4.0 mm body top margin, 5.47 mm reserved body bottom margin, 0.6 mm column gaps, and a 1.6 mm footer baseline. Header/footer remain 4 pt. Body uses Latin Modern 4 pt with 4.1 pt leading. `\DeclareMathSizes{4}{4}{3}{2.4}` sets native math. The scalable `lmex10` override fixes Latin Modern's default fixed 10 pt extension font. No `\resizebox`, `\scalebox`, font stretching, or operator substitution.
 
-Navigation has three levels: `\MajorBlock` black bands; `\SourceBlock` compact ruled locator rows; `\Topic` local topic rules. Question IDs use a small outline marker and bold sans text; concepts are bold sans; formal labels and `Sol.` are underlined. `\Method`, `\Conclusion`, and `\Result` selectively emphasize pivots and results without changing font size.
+Navy navigation and ruled headings organize the page. On white paper, cobalt marks selected
+theorems and formulas, green marks key terms and method pivots, and rust marks pitfalls.
+Routine text is black. A heavier underline marks a selected theorem in grayscale.
 
 Primary API:
 
 - `\SheetSetup{title=...,credit=...,disclaimer=...,publisher=...,logo=...}`
 - `\MajorBlock{ID}{title}`, `\SourceBlock{ID}{title}`, `\Topic{title}`
-- `\Statement{kind}{number}{text}`; `\FormalStatement{kind}{number}{source-id}{title}{body}`
+- `\Statement{kind}{number}{text}`, `\FormalStatement{kind}{number}{source-id}{title}{body}`, with starred forms for selected claims
 - `\Assumption{body}`, `\Proof{body}`, `\Example{number}{body}`
 - `\Question{number}{source-id}{setup}`
 - `\QuestionPart{part}{concept}{source-id}{question}{solution}`
 - `\Worked{source+part}{concept}{question}{solution}`
-- `\Method{text}`, `\Conclusion{text}`, `\Result{text}`
+- `\KeyTerm{term}`, `\Method{text}`, `\Conclusion{text}`, `\Result{text}`, `\Pitfall{phrase}`
 - `\Alternative{method}{body}`, `\Caution{body}`, `\Continuation{ID}`
 - `\SourceRef{ID}`, `\ConceptRef{label}`, `\Identity{name}{math}`, `\CompactTable{tabular}`
 
@@ -31,11 +33,11 @@ Long content macros remain breakable. Exact uppercase `\Needspace` was replaced 
 
 Logo provenance: `chatgpt-logo.tex` transcribes the single path from `OpenAI-black-monoblossom.svg` in the official [OpenAI logo archive](https://cdn.openai.com/brand/OpenAI-Logos-2025.zip), linked from [OpenAI Design Guidelines](https://openai.com/brand/). It preserves the supplied path/aspect ratio and renders through TikZ `svg.path`; no binary logo dependency. OpenAI owns the mark. The preinserted credit is attribution, not review evidence; no GPT-6 Astra Pro review is claimed.
 
-## Verification (2026-09-06)
+## Verification
 
-- Reviewed [compiled artifact](mathematics-cheatsheet.pdf): SHA-256 `2b6c204ec0a2d8dc3441ad33bf508069f95fc663428a0d065d1b6595950f191b`.
-- Two A4 pages (`595.276 x 841.89 pt`); no overfull boxes.
-- Build diagnostics: extension fonts 4.0/3.0/2.4 pt. Every font embedded/subset; no raster images.
-- Independent 600 dpi thresholded all-ink clearance is about 1.736 mm left, 1.693 mm top, at least 1.736 mm right and 1.312 mm bottom. These measured bounds are not a printer guarantee.
-- `pdftotext mathematics-cheatsheet.pdf - | wc -w`: 11,152 extracted words. This is only a rough density comparator, not information capacity.
-- Full-page and dense 600 dpi review evidence is recorded in [visual-review.md](visual-review.md); mathematical review is recorded in [mathematics-review.md](mathematics-review.md).
+- [Compiled color specimen](mathematics-cheatsheet.pdf) SHA-256 `73e35cbc1028defbf6e1a008574c9fc1ba48d7c54fa2eca65318533daf5a6350`.
+- The two A4 pages retain all eight columns and the measured body-column bottom positions.
+- The compiled print fixture checks that routine text stays black, selected statements keep their
+  ink through line breaks, and accents contrast at least 7:1 with white in both print modes.
+- [Earlier visual review](visual-review.md) and [mathematical review](mathematics-review.md)
+  document the previous specimen revision.

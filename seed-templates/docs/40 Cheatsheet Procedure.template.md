@@ -136,11 +136,20 @@ item and prior-content disposition; manifest, source and release hashes agree.
 ## 4. Author rigorous, breakable content and fit it
 
 Use the mathematics-cheatsheet semantic interface. Configure geometry, columns, native body/math
-sizes and furniture per sheet. Interleave definitions and results with their relevant examples,
-exercises, counterexamples and methods so a reader can apply each concept in place. Condense
-reasoning while retaining quantified hypotheses, exceptional cases, constructions, nontrivial steps
-and the conclusion. Historical questions retain sufficient worked solutions. A final answer,
-theorem name or unexplained transformation is not a solution.
+sizes and furniture per sheet. Organize the body around the decisions the Owner makes when solving a
+problem. Put each relevant definition, result or counterexample next to the decision it changes.
+
+Turn each selected learning gap into usable running text. Name the observable cue for choosing a
+method, the condition that permits it, the decisive calculation or proof step, and the check that
+would catch the recorded error. Put that check beside the step where the error arises. For a
+worked solution, carry the reasoning through to the requested result. For a proof, retain the
+quantified hypotheses, nontrivial implications and conclusion. Present a short complete chain of
+reasoning even when the reference sheet has room for only one example of the method.
+
+Use the issued convention in the explanation itself. For example, an integration method can derive
+its bounds from the region, while a quotient method can derive its conclusion from the ideal
+hypothesis. Collapse repetitive examples into one worked instance and a precise cross-reference
+when the same argument applies. Preserve exceptions and steps that differ.
 
 Label source qualifications/corrections visibly and record their reason/authority. Preserve the
 source's distinguishable wording where it matters; a corrected claim must not masquerade as a
@@ -157,11 +166,14 @@ Keep surrounding exposition regular weight. Short run-in proof stages remain bre
 `KeepBlock` reserves opening lines rather than boxing an entire argument. Nested semantic wrappers
 must not create empty paragraphs. Avoid long minipages or boxes that force a large unused tail.
 
-Use the semantic emphasis table in the skill's `references/layout-interface.md`. Choose cues by
-the role of the content. Underline statement, proof and solution labels through their wrappers.
-Use bold for short decisive cues and box only results worth retrieving as a single unit. Existing
-drafts can contain bare run-in labels or local redefinitions. Inspect those against the table before
-using the draft as a style reference.
+Keep white paper and black running text. Reserve blue ink for complete, short theorems and
+formulas the Owner must find fast. Give their hypotheses and conclusions the same ink. Use green
+for a short lookup term or the move that starts a solution. Use rust for the exact mistake or
+exception the Owner needs to see. Apply the rules in `references/layout-interface.md`.
+Select from the exam tasks and learning gaps covered by the sheet. Pick the few items in each
+column that earn immediate attention. Leave routine definitions, labels, proofs and working
+black. Keep the existing headings, underlines and boxes so the same items can be found in
+grayscale.
 
 Provide slim, distinct top/bottom navigation bands configured for this sheet, a compact page/section
 map and page numbers. A map describes real labels; any claimed page/column range must match the
@@ -206,17 +218,19 @@ Verify embedded fonts, native body floor, page constraint, no missing glyphs/ove
 and semantic/raster correspondence between the rebuilt and released PDFs.
 
 Run a second pass from the PDF, with the authoring source closed for the first scan. Inspect every
-page at A4 actual size (100% print scaling). For a color release, inspect both color and grayscale. For a
-monochrome release, confirm the PDF itself has no chromatic emphasis. Locate the named
-statements, proof/solution starts, boxed formulas and warning cues. Follow the navigation to two
-equivalent items and compare their cues even when the surrounding topics differ. Against the
-coverage list and TeX, reconcile the intended roles with the visible cues per column. Record
-missing or inconsistent cues by label and page/column. In particular, inspect underlines on
-`Pf.` and `Sol.` and on named statement labels. For an audit, report the missing cues. For an
-authorized revision, correct wrapper usage or definitions at the authoring authority, rebuild,
-and repeat the pass on the current bytes. Record print/device or display conditions and any
-remaining legibility gap. Revisit the learning priorities and official method checks before
-freezing. A draft that compiles can still fail this pass.
+page at A4 actual size (100% print scaling). Re-solve one fragile worked item per section using the
+printed body alone. Check that the method choice, required conditions, decisive step and result
+are recoverable without supplying an omitted argument. Reconcile each selected learning gap with
+the page and item that addresses it, then compare against the issued source or marked solution.
+Record missing reasoning and conventions by page and item.
+
+For a color release, inspect both color and grayscale. For a monochrome release, confirm neutral
+ink. At actual size, scan each page for its chosen theorem or formula, one lookup term or first
+move, and any recurring trap. Check that the ink covers the whole chosen claim across line
+breaks and that the adjacent routine text stays black. Read the same page in grayscale and
+locate the same items by their labels, weight, boxes and underlines. Check the statement, proof
+and solution labels against the layout interface. Record competing color, hard-to-find items and
+missing cues by page. On revision, fix the authoring source, rebuild, and repeat on current bytes.
 
 Freeze the PDF SHA-256 before review. Reviewers independent of authoring assess these distinct gates:
 

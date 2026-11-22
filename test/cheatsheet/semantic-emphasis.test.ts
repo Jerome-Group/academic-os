@@ -13,16 +13,20 @@ const specimen = String.raw`
 \hypertarget{source:S}{}%
 \MajorBlock{M}{Major navigation}
 \Topic{Navigation}
-\Statement{Theorem}{Pivot}{Normal statement.}
-\FormalStatement{Lemma}{Bound}{S}{}{Normal lemma.}
-\Proof{Normal proof.}
+\Statement*{Theorem}{Pivot}{Selected hypotheses.\\ Selected conclusion.}
+\FormalStatement*{Lemma}{Bound}{S}{}{Selected formal statement.}
+\Statement{Definition}{Routine}{Normal statement.}
+\FormalStatement{Lemma}{Routine}{S}{}{Normal lemma.}
+\Proof{Normal proof.\par Proof continues in a second paragraph.}
+Ordinary prose resumes.\par
 \Worked{A1}{Worked sample}{Normal problem.}{Normal solution.}
 \QuestionPart{a}{Sample}{S}{Normal question.}{Normal response.}
 \Method{Choose domain.}\par
+\KeyTerm{Lookup term.}\par
 \Hypothesis{Nonempty domain.}\par
 \Result{Unique solution.}\par
 \Conclusion{Decisive result.}\par
-\Caution{Normal warning.}
+\Caution{\Pitfall{Sign trap.} Normal warning.}
 \Counterexample{B}{Normal counterexample.}
 \Correction{Normal correction.}
 \[\KeyFormula{x=y}\]
@@ -81,6 +85,23 @@ ${specimen}
   }
 }
 
+function luminance(hex: string) {
+  const rgb = [0, 2, 4].map(
+    (offset) => Number.parseInt(hex.slice(offset, offset + 2), 16) / 255,
+  );
+  const linear = rgb.map((v) =>
+    v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4,
+  );
+  const [red = 0, green = 0, blue = 0] = linear;
+  return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+}
+
+function contrast(foreground: string, background: string) {
+  const a = luminance(foreground);
+  const b = luminance(background);
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
 function closeColor(actual: string, expected: string) {
   return [0, 2, 4].every(
     (i) =>
@@ -109,7 +130,7 @@ for (const monochrome of [false, true]) {
       width: Number(width),
       bottom: Number(top) + Number(height),
       font,
-      label,
+      label: label ?? "",
     }));
     const strokes = [
       ...graphics.matchAll(
@@ -122,57 +143,75 @@ for (const monochrome of [false, true]) {
       left: Number(left),
       baseline: Number(baseline),
     }));
-    const barInk = /<path fill-rule="nonzero" fill="rgb\(([^)]+)\)"/u.exec(
-      graphics,
-    )?.[1];
-    assert.ok(barInk, "major section prints a filled bar");
-    const channels = barInk
-      .split(", ")
-      .map((channel) => Number.parseFloat(channel));
-    assert.equal(channels.length, 3);
-    assert.ok(
-      channels.every((channel) => channel < 40),
-      "section bar remains dark",
+    const backgrounds = [
+      ...graphics.matchAll(/<path fill-rule="nonzero" fill="rgb\(([^)]+)\)"/gu),
+    ].map(([, rgb = ""]) =>
+      rgb
+        .split(", ")
+        .map((channel) =>
+          Math.round((Number.parseFloat(channel) * 255) / 100)
+            .toString(16)
+            .padStart(2, "0"),
+        )
+        .join(""),
     );
-    assert.equal(new Set(channels).size, monochrome ? 1 : 3);
-    const title = runs.find(
-      ({ label }) => label === "<b>M Major navigation</b>",
-    );
-    assert.equal(
-      inks.get(title?.font ?? ""),
-      "ffffff",
-      "white section heading",
-    );
+    const [majorBackground = ""] = backgrounds;
+    assert.equal(backgrounds.length, 1, "only the major section band uses a fill");
+    for (const [heading, background, expected] of [
+      ["M Major navigation", majorBackground, "233d57"],
+      ["Navigation", "ffffff", "ffffff"],
+    ] as const) {
+      assert.equal(background.length, 6, `${heading} prints on a color band`);
+      assert.ok(
+        monochrome
+          ? /^([\da-f]{2})\1\1$/u.test(background)
+          : closeColor(background, expected),
+        `${heading} background matches the print mode`,
+      );
+      const title = runs.find(({ label }) => label === `<b>${heading}</b>`);
+      const ink = inks.get(title?.font ?? "") ?? "";
+      if (heading === "M Major navigation")
+        assert.equal(ink, "ffffff", "white section heading");
+      assert.ok(contrast(ink, background) >= 9, `${heading} band contrast`);
+    }
     const roles = [
       ["Navigation", "233d57", 1],
-      ["Theorem Pivot.", "005b57", 1],
-      ["Lemma Bound", "005b57", 1],
-      ["Pf.", "5a316d", 1],
-      ["Sol.", "5a316d", 2],
-      ["Choose domain.", "5a316d", 1],
-      ["Nonempty domain.", "005b57", 1],
-      ["Unique solution.", "005b57", 1],
-      ["Decisive result.", "005b57", 1],
-      ["Caution.", "853b23", 1],
-      ["Counterexample B.", "853b23", 1],
-      ["Qualification/correction.", "853b23", 1],
+      ["Theorem Pivot.", "0037b3", 1],
+      ["Lemma Bound", "0037b3", 1],
+      ["Definition Routine.", "000000", 1],
+      ["Lemma Routine", "000000", 1],
+      ["Pf.", "000000", 1],
+      ["Sol.", "000000", 2],
+      ["Choose domain.", "006343", 1],
+      ["Lookup term.", "006343", 1],
+      ["Nonempty domain.", "0037b3", 1],
+      ["Unique solution.", "0037b3", 1],
+      ["Decisive result.", "0037b3", 1],
+      ["Sign trap.", "9c2500", 1],
+      ["Caution.", "000000", 1],
+      ["Counterexample B.", "000000", 1],
+      ["Qualification/correction.", "000000", 1],
     ] as const;
 
     for (const [label, color, count] of roles) {
       const matches = runs.filter((run) => run.label === `<b>${label}</b>`);
       assert.equal(matches.length, count, `${label} prints in bold`);
       for (const run of matches) {
+        const ink = inks.get(run.font) ?? "";
         assert.ok(
-          monochrome
-            ? /^([0-7][\da-f])\1\1$/u.test(inks.get(run.font) ?? "")
-            : closeColor(inks.get(run.font) ?? "", color),
+          monochrome && color !== "000000"
+            ? /^([1-7][\da-f])\1\1$/u.test(ink)
+            : closeColor(ink, color),
           `${label} prints in its role's ink`,
         );
-        if (["Theorem Pivot.", "Lemma Bound", "Pf.", "Sol."].includes(label)) {
+        assert.ok(contrast(ink, "ffffff") >= 7, `${label} contrasts with white`);
+        if (/^(Theorem |Lemma |Definition |Pf\.$|Sol\.$)/u.test(label)) {
+          const selected = label === "Theorem Pivot." || label === "Lemma Bound";
           assert.ok(
             strokes.some(
               (stroke) =>
                 stroke.thickness >= 0.2 &&
+                (stroke.thickness >= 0.35) === selected &&
                 stroke.height < 0.02 &&
                 stroke.width >= run.width * 0.45 &&
                 Math.abs(stroke.left - run.left) < 1 &&
@@ -190,8 +229,43 @@ for (const monochrome of [false, true]) {
       );
     }
 
-    const ordinary = runs.find(({ label }) => label === "Normal statement.");
-    assert.equal(inks.get(ordinary?.font ?? ""), "000000");
+    for (const passage of [
+      "Selected hypotheses.",
+      "Selected conclusion.",
+      "Selected formal statement.",
+    ]) {
+      const run = runs.find(({ label }) => label.includes(passage));
+      const ink = inks.get(run?.font ?? "") ?? "";
+      assert.ok(
+        monochrome ? /^([1-7][\da-f])\1\1$/u.test(ink) : closeColor(ink, "0037b3"),
+        `${passage} prints in its passage ink`,
+      );
+      assert.ok(
+        contrast(ink, "ffffff") >= 7,
+        `${passage} contrasts with white`,
+      );
+      assert.ok(
+        !run?.label.includes("<b>"),
+        `${passage} prints at regular weight`,
+      );
+    }
+    for (const passage of [
+      "Normal statement.",
+      "Normal lemma.",
+      "Normal proof.",
+      "Proof continues in a second paragraph.",
+      "Normal solution.",
+      "Normal response.",
+      "Normal warning.",
+      "Normal counterexample.",
+      "Normal correction.",
+      "Ordinary prose resumes.",
+      "Normal problem.",
+      "Normal question.",
+    ]) {
+      const run = runs.find(({ label }) => label.includes(passage));
+      assert.equal(inks.get(run?.font ?? ""), "000000", passage);
+    }
     const formulaBox = strokes.filter(
       ({ left, thickness }) => left > 250 && thickness > 0.3,
     );

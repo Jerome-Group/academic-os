@@ -160,19 +160,57 @@ describe("the learn skill", () => {
     );
     const standard = procedure.split("#### Worked-solution standard")[1];
     assert.ok(standard);
-    assert.match(standard, /worked solutions throughout the Module/u);
+    assert.match(
+      standard,
+      /every tutorial, exercise set, assignment, past paper and Final Review writeup/u,
+    );
     assert.match(
       standard,
       /across\s+the Source Map, including multiple units/u,
     );
-    assert.match(standard, /issued\s+marking scheme or official solution/u);
+    assert.match(standard, /issued marking scheme or official solution/u);
     assert.match(
       standard,
-      /When official guidance is absent or compressed, use the relevant\s+lecture notes and instructor worked examples/u,
+      /When official guidance is absent\s+or compressed, use the relevant lecture notes and instructor worked examples, including\s+comparable issued solutions from the same course/u,
     );
     assert.match(
       standard,
       /notation, hypotheses and proof conventions\. Justify key inferences/u,
+    );
+  });
+
+  it("preserves complete issued questions and gives rigorous, explanatory solutions", async () => {
+    const [procedure, router, template] = await Promise.all([
+      readFile("seed-templates/docs/20 Teaching Procedure.template.md", "utf8"),
+      readFile("seed-templates/AGENTS.template.md", "utf8"),
+      readFile(
+        "seed-templates/70 Learning/templates/tutorial-solution-writeup.template.tex",
+        "utf8",
+      ),
+    ]);
+    assert.match(
+      router,
+      /worked solutions to assignments or past papers, read/iu,
+    );
+    assert.match(
+      procedure,
+      /complete verbatim issued question before its solution[\s\S]*wording, hypotheses, notation, data, tables, figures/u,
+    );
+    assert.match(
+      procedure,
+      /Where an official solution exists, add explanatory value[\s\S]*alongside a complete derivation or proof/u,
+    );
+    assert.match(
+      procedure,
+      /compare each rendered question and subpart against the issued page/u,
+    );
+    assert.match(
+      template,
+      /\\begin\{question\}[\s\S]*Complete verbatim question and every subpart[\s\S]*\\end\{question\}\s*\\begin\{solution\}/u,
+    );
+    assert.match(
+      template,
+      /Method and intuition[\s\S]*Full course-rigorous derivation or proof[\s\S]*State the answer to each part/u,
     );
   });
 

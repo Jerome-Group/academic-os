@@ -31,8 +31,8 @@ Read the route's procedure before acting in its area.
   `00 Module Admin/50 Textbook Register.yaml`.
 - **Tasks** — Owner-authorized live task changes follow the Tasks protocol below. The live list mirrors into `00 Module Admin/30 Task Register.yaml`;
   this generated register is refreshed through the tools rather than edited by hand.
-- **Assessments** — graded-work artifacts in `30 Assessments/`, placed per
-  the structure doc.
+- **Assessments** — graded-work artifacts in `30 Assessments/`, placed per the structure doc.
+  For worked solutions to assignments or past papers, read `docs/20 Teaching Procedure.md`.
 - **Projects/Labs** — `40 Projects and Labs/`, placed per the structure doc.
 - **Maintenance** — structure questions, definition and profile updates:
   `docs/00 Structure and Naming.md` and

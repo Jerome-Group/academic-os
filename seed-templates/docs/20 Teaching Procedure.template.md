@@ -14,6 +14,7 @@ for this module. `docs/00 Structure and Naming.md` governs anything that leaves 
 | ----------------- | ------------------------------------------------------- | -------- |
 | `10 Lectures/`    | Source-map unit key                                     | lecture  |
 | `20 Tutorials/`   | tutorial path, tutorial block, or module `exercise_sets` block | tutorial |
+| `20 Tutorials/`   | exact issued assignment                                | tutorial |
 | `30 Revision/`    | exact Source-map topic                                  | lecture  |
 | `40 Past Papers/` | exact paper or paper folder                             | tutorial or Final Review |
 
@@ -25,6 +26,10 @@ review identity even when its issued sources live in Finals. Select it with
 and returns checksums and scope without writing records or completing work. Several tutorials or
 papers may share one unit and remain separate targets. Each area keeps `records/` beside its target
 folders.
+
+For an assignment, resolve the exact issued brief and assigned questions. Reuse the matching
+assignment folder in `70 Learning/20 Tutorials/` or create a direct child named for the exact
+assignment. Keep the issued brief and any submitted work in their existing assessment locations.
 
 The lecture pattern produces walkthroughs from the target's sources. Revision applies it to one
 topic, following tutorial and paper pointers without copying them. The tutorial pattern preserves
@@ -150,24 +155,37 @@ follow the demonstrated doubt. The Owner's current instruction remains authorita
 
 #### Worked-solution standard
 
-Apply this standard to worked solutions throughout the Module. Find the relevant material across
-the Source Map, including multiple units when a question draws on them. Use the question's issued
-marking scheme or official solution, where available, to establish the instructor's expected
-working and answer form. When official guidance is absent or compressed, use the relevant
-lecture notes and instructor worked examples to establish the method and level of detail.
+For every tutorial, exercise set, assignment, past paper and Final Review writeup, place the
+complete verbatim issued question before its solution. Preserve the question and subpart numbers,
+wording, hypotheses, notation, data, tables, figures and any instructions it depends on. Include
+shared material before the questions that use it. Preserve the content when typesetting it.
+Check uncertain transcriptions against the source page and flag anything unreadable.
+
+Find the relevant material across the Source Map, including multiple units when a question draws
+on them. Use the question's issued marking scheme or official solution, where available, to
+establish the instructor's expected working and answer form. When official guidance is absent
+or compressed, use the relevant lecture notes and instructor worked examples, including
+comparable issued solutions from the same course, to establish the method and level of detail.
+Cite the exact source locators and distinguish examples of expected form from an answer to
+the question itself.
 
 Use the instructor's notation, hypotheses and proof conventions. Justify key inferences, check
-conditions before applying results, and supply any intermediate calculation the instructor would
-expect to see. Cite the exact source locators. Label reconstructed steps and surface unresolved
-differences in mathematical conventions or expected working.
+conditions before applying results, show the intermediate working needed to follow the argument,
+and answer every subpart. Where an official solution exists, add explanatory value. Explain
+why the method fits, expand any compressed reasoning, and give intuition for the step a reader
+is likely to find hardest. Keep that explanation alongside a complete derivation or proof.
+Label reconstructed steps and surface unresolved differences in mathematical conventions or
+expected working.
 
 ### 4. Produce only the activity's artifacts
 
 A Final Review follows the artifact instructions in **Past finals**. A lecture target produces
 walkthroughs, usually about three for a unit unless the source's own
-structure justifies another split. A tutorial, exercise set or full past-paper attempt preserves the attempt and produces a
-full solution writeup and concepts consolidation. Revision produces topic notes or a reference
-sheet as the actual work requires. Keep each `.tex` beside its PDF in the target folder.
+structure justifies another split. A tutorial, exercise set, assignment or full past-paper attempt
+preserves any attempt and produces a full solution writeup and concepts consolidation. Use
+`tutorial-solution-writeup.tex` for these writeups. Apply the Worked-solution standard even when
+the local template has older prompts. Revision produces topic notes or a reference sheet as
+the actual work requires. Keep each `.tex` beside its PDF in the target folder.
 
 The Owner's annotated attempt is immutable source evidence. Copy it into the target folder when
 needed and append `_Attempt` to its name; add a date only for a later attempt at the same target.
@@ -190,6 +208,11 @@ The PDF remains beside its `.tex`; `build/` contains disposable auxiliary output
 rendered pages at a scale proportionate to the change, including equations, glyphs, overflow, and
 page boundaries. When compilation tooling is unavailable, retain the `.tex`, record the missing
 PDF, and park only that output.
+
+For a solution writeup, compare each rendered question and subpart against the issued page
+before release. Verify the complete statement appears before its solution, figures and tables
+are legible, and every requested part has a justified answer. Check the added explanation
+against the formal reasoning. Name any missing source content or unsolved part explicitly.
 
 Completion means every changed artifact is source-accounted, mathematically checked, compiled when
 possible, and visually inspected where rendering changed.

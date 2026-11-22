@@ -8,7 +8,7 @@ Build:
 PATH=/Library/TeX/texbin:$PATH npm run templates:check
 ```
 
-A4 portrait; exactly two pages; four columns; color with a grayscale print mode. Geometry: 1.8 mm side margins, 4.0 mm body top margin, 5.47 mm reserved body bottom margin, 0.6 mm column gaps, and a 1.6 mm footer baseline. Header/footer remain 4 pt. Body uses Latin Modern 4 pt with 4.1 pt leading. `\DeclareMathSizes{4}{4}{3}{2.4}` sets native math. The scalable `lmex10` override fixes Latin Modern's default fixed 10 pt extension font. No `\resizebox`, `\scalebox`, font stretching, or operator substitution.
+A4 portrait; exactly two pages; four columns; color release with a grayscale legibility check. Geometry: 1.8 mm side margins, 4.0 mm body top margin, 5.47 mm reserved body bottom margin, 0.6 mm column gaps, and a 1.6 mm footer baseline. Header/footer remain 4 pt. Body uses Latin Modern 4 pt with 4.1 pt leading. `\DeclareMathSizes{4}{4}{3}{2.4}` sets native math. The scalable `lmex10` override fixes Latin Modern's default fixed 10 pt extension font. No `\resizebox`, `\scalebox`, font stretching, or operator substitution.
 
 Navy navigation and ruled headings organize the page. On white paper, cobalt marks selected
 theorems and formulas, green marks key terms and method pivots, and rust marks pitfalls.

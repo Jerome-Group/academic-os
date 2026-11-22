@@ -63,9 +63,10 @@ At native 4 pt, check at least 7:1 contrast for accent text against its actual b
 in both print modes. Make adjacent paragraphs readable in black so the
 few colored items stand out at a glance. Use `KeyFormula` in math mode for a short formula the
 Owner needs to retrieve quickly. Keep derivations and repeated formulas in the running text.
-Record the chosen print constraint in the manifest. When an assessment requires monochrome,
-call `\selectcolormodel{gray}` after loading the preamble and before the document body. The gray
-model preserves the dark section bars and white headings, along with boxes, underlines and weight.
+Release in color and set `constraints.color: color` in the manifest. Render the same PDF in grayscale
+to check that headings, boxes, underlines and weight still guide the reader. Use the rendered proof
+for review and the color PDF for release. Report any explicit exam print restriction through the
+pinned procedure.
 
 | Macro | Arguments / purpose |
 |---|---|

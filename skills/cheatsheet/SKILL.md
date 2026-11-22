@@ -34,6 +34,8 @@ instructions are identified.
 Resolve `create`, `revise`, `audit`, `verify` or `package-review` from the intent. Preparation
 means create, or revise when one existing release matches the assessment; the pinned procedure
 resolves assessment context and source choices. Run the complete requested outcome through it.
+Create and revise in color. Apply the shared semantic palette to the released PDF and use
+grayscale to check legibility. Use judgment to select material and highlights.
 For a final, use the procedure's past-paper ranking and wording order before drafting or
 choosing highlights. Make routine priority decisions from the evidence you find.
 Use this skill's bundled

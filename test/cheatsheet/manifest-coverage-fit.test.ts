@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { describe, it } from "node:test";
 
 import {
@@ -51,16 +52,15 @@ describe("cheatsheet manifest and coverage", () => {
     });
   });
 
-  it("records the assessment's color or monochrome print constraint", () => {
+  it("publishes a color example and reads historical monochrome manifests", async () => {
+    const example = await readFile(
+      "skills/cheatsheet/references/manifest-example.yaml",
+      "utf8",
+    );
+    assert.equal(parseCheatsheetManifest(example).constraints.color, "color");
     assert.equal(
       parseCheatsheetManifest(manifest).constraints.color,
       "monochrome",
-    );
-    assert.equal(
-      parseCheatsheetManifest(
-        manifest.replace("color: monochrome", "color: color"),
-      ).constraints.color,
-      "color",
     );
     assert.throws(
       () =>

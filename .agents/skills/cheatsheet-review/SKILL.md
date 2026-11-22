@@ -49,6 +49,6 @@ after checking the new procedure, implementation and suites together.
 
 | Surface | Git blob |
 |---|---|
-| `seed-templates/docs/40 Cheatsheet Procedure.template.md`, sections 1 and 5 | `9dd6519884dab4a8009c693797bf620faa3cba6c` |
+| `seed-templates/docs/40 Cheatsheet Procedure.template.md`, sections 1 and 5 | `3f72754afb9c65bbf2f0cf40a209b815cd266374` |
 | `seed-templates/70 Learning/templates/mathematics-cheatsheet-preamble.template.tex`, semantic macros | `779c3140dfb4236cb978075212e1d787ae7254ba` |
 | `src/cheatsheet/manifest.ts`, `parseCheatsheetManifest` | `04fba91da73cd42681f600fe6bc9f12f57ff499c` |

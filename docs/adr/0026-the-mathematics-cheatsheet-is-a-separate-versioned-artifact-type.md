@@ -21,8 +21,9 @@ Independent 600 dpi raster measurement found minimum all-ink clearance of about 
 measurement is evidence about the specimen, not a printer guarantee.
 
 The shared [layout interface](../../skills/cheatsheet/references/layout-interface.md) now assigns
-color to semantic roles while keeping text weight, lines and boxes. The assessment's print
-constraints determine whether the release uses color or monochrome.
+color to semantic roles while keeping text weight, lines and boxes. New and revised cheatsheets
+release in color. The pinned procedure uses grayscale to verify legibility and surfaces explicit
+assessment restrictions.
 
 The local logo source transcribes the OpenAI black monoblossom vector path from the official 2025
 logo archive linked by OpenAI's Design Guidelines. Keeping the vector in TeX makes the seeded set

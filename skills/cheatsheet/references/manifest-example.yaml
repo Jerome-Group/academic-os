@@ -13,7 +13,7 @@ authoring:
 constraints:
   paper: A4
   pages: {exact: 2}
-  color: monochrome
+  color: color
   columns: 4
   body_pt: {preferred: 4, floor: 3.8}
   layout:

@@ -18,8 +18,13 @@ when the map is incomplete. Check offering, issued dates, scope and permitted ma
 current assessment evidence. A local hash proves bytes, not upstream freshness. Historical material
 can supply practice and solutions; it cannot establish current assessment scope or permission.
 
-Establish page count, color permission, native body-size preference and floor, columns and
-furniture. Confirm the deadline. Around
+Use color for every new and revised cheatsheet. Apply the semantic ink and highlights in
+`references/layout-interface.md`. Grayscale is a legibility check on the color release.
+If issued assessment rules explicitly prohibit color, identify the rule and its source and
+flag the conflict before claiming the file is permitted in the exam.
+
+Establish page count, native body-size preference and floor, columns and furniture.
+Confirm the deadline. Around
 4 pt is a configurable dense-sheet starting preference, never a universal assessment permission.
 The Owner or assessment may require larger type. Show the proposed source selection with locators,
 authority, hashes, gaps and exclusions; reuse an explicit selection already supplied. Resolve an
@@ -129,7 +134,7 @@ be materialized in the authoritative fragments before exact concatenation, or th
 must become the self-contained authority. Generated copies and historical inputs carry provenance,
 not a second editable authority. After every authority edit, rebuild the PDF and hash the release pair again.
 
-Record artifact identity, scope, release/support paths, paper, color (`color` or `monochrome`),
+Record artifact identity, scope, release/support paths, paper, `constraints.color: color`,
 pages, columns, preferred/floor
 body size, sources and SHA-256, coverage path, release TeX/PDF hashes and review status. `passed`
 names the exact reviewed PDF SHA-256. Every subsequent edit returns the release to `unreviewed`.
@@ -189,9 +194,18 @@ Keep surrounding exposition regular weight. Short run-in proof stages remain bre
 `KeepBlock` reserves opening lines rather than boxing an entire argument. Nested semantic wrappers
 must not create empty paragraphs. Avoid long minipages or boxes that force a large unused tail.
 
-Keep the sheet white with black running text. Default to short highlights for key theorem and
-lemma labels, exercise titles or decisive moves, terms, and paper IDs. Use the five roles in
-`references/layout-interface.md`.
+Keep the sheet white with black running text. Apply the five color roles in
+`references/layout-interface.md` to selected material. Prefer short highlights for statement
+labels, exercise titles or decisive moves, terms, and paper IDs. Highlight the complete
+numbered label as one unit, including its type and identifier, as in `Def. 2.28`.
+
+Put at least one visible color cue inside the body of every worked solution, proof sketch
+and substantive explanation. Highlight the term the Owner needs to find, the condition that
+permits the method, the decisive move, or the formula or result worth finding again. Use
+distinct role colors when different roles appear. Prefer a short opaque fill for a lookup
+phrase or decisive step. Use `KeyTerm` for bold highlighted terms and `KeyTerm*` to underline
+the few terms readers most need to find. Keep surrounding sentences black. Apply this pass
+to both retained and new explanations.
 
 Choose highlights from recurring mistakes, exam patterns and the Owner's learning gaps. Give
 a compact theorem or lemma one solid background when its conditions and conclusion are best
@@ -251,9 +265,13 @@ For a final, reconcile the highlighted items with the past-paper ranking and che
 answer form and decisive steps against the cited authority. Record missing reasoning and
 conventions by page and item.
 
-For a color release, inspect both color and grayscale. For a monochrome release, confirm neutral
-ink. At actual size, locate the chosen theorems, lemmas, exercises, terms and past-paper
-identifiers. Check that each highlight matches its role, covers the intended words or math,
+Inspect the release PDF in color at actual size. Confirm that the selected semantic highlights
+are visible on its own pages. Locate a colored cue in the body of each worked solution,
+proof sketch and explanation. Verify that highlighted terms are bold and priority underlines
+are visible. Rebuild if a body needs a cue or its cue is hard to spot.
+Render those same pages in grayscale for the legibility check.
+At actual size, locate the chosen statements, exercises, terms and past-paper identifiers.
+Check that each highlight matches its role, covers the complete label or intended words or math,
 leaves nearby text readable, and leaves room for normal column flow. Inspect fills for dark stripes
 or seams where lines meet. Check the same items in
 grayscale using labels, weight, boxes and underlines. Record competing color, hard-to-find items

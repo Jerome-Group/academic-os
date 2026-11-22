@@ -28,7 +28,7 @@ space occupied by arbitrary supplied text. Use distinct concise maps, not two co
 | Topics | Navy `#233D57` on white | Bold ruled heading |
 | Source and question markers | Navy `#233D57` | Ruled source heading or question badge |
 | Selected theorem, condition or result | Cobalt `#0037B3` | Heavier underline under the statement label, bold short condition/result or boxed key formula |
-| Key term or method pivot | Green `#006343` | Bold lookup phrase or first move |
+| Method pivot | Green `#006343` | Bold first move |
 | Recurring pitfall | Rust `#9C2500` | Bold mistake or exception within the passage |
 | Routine statements, proofs, solutions and narrative | Black `#000000` | Existing labels and underlines |
 
@@ -37,12 +37,24 @@ space occupied by arbitrary supplied text. Use distinct concise maps, not two co
 | `theorem` | Pale blue `#DCEAFF` | Cobalt `#0037B3` | Short theorem, with hypotheses and conclusion |
 | `lemma` | Lilac `#ECDDFF` | Plum `#4F246E` | Short supporting lemma reused in solutions |
 | `exercise` | Mint `#CCF0DB` | Dark green `#004C35` | Representative prompt, first move or exercise label |
-| `term` | Yellow `#FFF0A8` | Dark ochre `#594200` | One useful occurrence of a lookup term |
+| `term` | Yellow `#FFF0A8` | Dark ochre `#594200` | Bold lookup term. Underline the highest-priority terms with `KeyTerm*` |
 | `paper` | Rose `#F8DAE6` | Berry `#741943` | The exact session or question identifier from a past paper |
 
-Default to `TaggedStatement` for theorem and lemma labels and `HighlightTag` for short phrases
+Default to `TaggedStatement` for numbered statement labels and `HighlightTag` for short phrases
 or identifiers. Tags keep the dimensions of the same bold phrase. Choose the few priorities
 identified in the pinned procedure. Preserve the exact printed labels and identifiers.
+Keep the type and identifier in the same highlight, for example
+`\TaggedStatement{term}{Def.}{2.28}{...}` for `Def. 2.28`.
+Pass the complete typed reference to `HighlightTag` when coloring an exercise or cited
+item in running text.
+
+Put color inside each worked solution, proof sketch and substantive explanation. Use
+`\KeyTerm{absolute Jacobian}` for bold dark text on yellow, a mint
+`\HighlightTag{exercise}{split at the change of bounds}` at the decisive move, or use
+`Hypothesis`, `Result` or `KeyFormula` for the condition or result the reader needs to spot.
+Use the appropriate roles side by side when they serve different decisions. Inspect those
+cues in the body at the final print size. Reserve `\KeyTerm*{...}` for a term that changes
+method choice or is especially important to find quickly.
 
 Use `HighlightedStatement` or `PassageHighlight` when one short paragraph benefits from a full
 background. Draw one flat, opaque fill behind it. Preserve its leading and inspect the fit near
@@ -63,9 +75,10 @@ At native 4 pt, check at least 7:1 contrast for accent text against its actual b
 in both print modes. Make adjacent paragraphs readable in black so the
 few colored items stand out at a glance. Use `KeyFormula` in math mode for a short formula the
 Owner needs to retrieve quickly. Keep derivations and repeated formulas in the running text.
-Record the chosen print constraint in the manifest. When an assessment requires monochrome,
-call `\selectcolormodel{gray}` after loading the preamble and before the document body. The gray
-model preserves the dark section bars and white headings, along with boxes, underlines and weight.
+Release in color and set `constraints.color: color` in the manifest. Render the same PDF in grayscale
+to check that headings, boxes, underlines and weight still guide the reader. Use the rendered proof
+for review and the color PDF for release. Report any explicit exam print restriction through the
+pinned procedure.
 
 | Macro | Arguments / purpose |
 |---|---|
@@ -84,7 +97,8 @@ model preserves the dark section bars and white headings, along with boxes, unde
 | `ProofStep{stage}{body}` | Breakable run-in stage; place inside a proof |
 | `Hypothesis{condition}` | Selected bold text/math condition |
 | `Method{pivot}` | Short decisive reasoning step |
-| `KeyTerm{term}` | Bold lookup term in green |
+| `KeyTerm{term}` | Bold dark ochre lookup term on pale yellow |
+| `KeyTerm*{term}` | Same style with a priority underline |
 | `Pitfall{phrase}` | Bold mistaken step or exception in rust |
 | `Result{result}`, `Conclusion{result}` | Short result in bold |
 | `KeyFormula{formula}` | Boxed short formula. Call inside math mode |

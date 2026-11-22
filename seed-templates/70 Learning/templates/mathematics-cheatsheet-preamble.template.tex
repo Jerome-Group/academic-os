@@ -213,7 +213,9 @@
 \newcommand{\Worked}[4]{\SheetNeedspace{9pt}\par\QuestionBadge{#1}\ {\sffamily\bfseries #2.}\ #3\ \SheetRunIn{Sol.}\ #4\par}
 \newcommand{\Result}[1]{{\color{SheetStatement}\bfseries\boldmath #1}}
 \newcommand{\Method}[1]{{\color{SheetReasoning}\bfseries\boldmath #1}}
-\newcommand{\KeyTerm}[1]{\textcolor{SheetReasoning}{\textbf{#1}}}
+\NewDocumentCommand{\KeyTerm}{s m}{%
+  \IfBooleanTF{#1}{\HighlightTag{term}{\SheetRunIn{#2}}}{\HighlightTag{term}{#2}}%
+}
 \newcommand{\Pitfall}[1]{{\color{SheetWarning}\bfseries\boldmath #1}}
 \newcommand{\Conclusion}[1]{\Result{#1}}
 \newcommand{\KeyFormula}[1]{\textcolor{SheetStatement}{\boxed{#1}}}

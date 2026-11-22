@@ -22,7 +22,6 @@ Ordinary prose resumes.\par
 \Worked{A1}{Worked sample}{Normal problem.}{Normal solution.}
 \QuestionPart{a}{Sample}{S}{Normal question.}{Normal response.}
 \Method{Choose domain.}\par
-\KeyTerm{Lookup term.}\par
 \Hypothesis{Nonempty domain.}\par
 \Result{Unique solution.}\par
 \Conclusion{Decisive result.}\par
@@ -127,21 +126,25 @@ function renderedFills(graphics: string) {
   );
 }
 
+function renderedStrokes(graphics: string) {
+  return [
+    ...graphics.matchAll(
+      /<path fill="none" stroke-width="([\d.]+)"[^>]* d="M ([-\d.e]+) ([-\d.e]+) L ([-\d.e]+) ([-\d.e]+) " transform="matrix\([^,]+, [^,]+, [^,]+, [^,]+, ([-\d.e]+), ([-\d.e]+)\)"/gu,
+    ),
+  ].map(([, thickness, x0, y0, x1, y1, left, baseline]) => ({
+    thickness: Number(thickness),
+    width: Math.abs(Number(x1) - Number(x0)),
+    height: Math.abs(Number(y1) - Number(y0)),
+    left: Number(left),
+    baseline: Number(baseline),
+  }));
+}
+
 for (const monochrome of [false, true]) {
   it(`prints semantic emphasis in ${monochrome ? "monochrome" : "color"} at native size`, async () => {
     const { text, graphics } = await render(monochrome);
     const runs = renderedText(text);
-    const strokes = [
-      ...graphics.matchAll(
-        /<path fill="none" stroke-width="([\d.]+)"[^>]* d="M ([-\d.e]+) ([-\d.e]+) L ([-\d.e]+) ([-\d.e]+) " transform="matrix\([^,]+, [^,]+, [^,]+, [^,]+, ([-\d.e]+), ([-\d.e]+)\)"/gu,
-      ),
-    ].map(([, thickness, x0, y0, x1, y1, left, baseline]) => ({
-      thickness: Number(thickness),
-      width: Math.abs(Number(x1) - Number(x0)),
-      height: Math.abs(Number(y1) - Number(y0)),
-      left: Number(left),
-      baseline: Number(baseline),
-    }));
+    const strokes = renderedStrokes(graphics);
     const backgrounds = renderedFills(graphics);
     const [majorBackground = ""] = backgrounds;
     assert.equal(backgrounds.length, 1, "only the major section band uses a fill");
@@ -171,7 +174,6 @@ for (const monochrome of [false, true]) {
       ["Pf.", "000000", 1],
       ["Sol.", "000000", 2],
       ["Choose domain.", "006343", 1],
-      ["Lookup term.", "006343", 1],
       ["Nonempty domain.", "0037b3", 1],
       ["Unique solution.", "0037b3", 1],
       ["Decisive result.", "0037b3", 1],
@@ -276,10 +278,12 @@ Above the claim.\par
 Below the claim.\par
 \HighlightedStatement{lemma}{Lemma}{Bridge}{Supporting claim.}
 \PassageHighlight{exercise}{\textbf{Ex. 7.}\ Find the decisive step.}
-\HighlightTag{term}{Jacobian}\quad Next to the term.\par
+\KeyTerm{Jacobian}\quad Next to the term.\par
 \HighlightTag{paper}{Paper A, Q2}\quad Next to the paper.\par
-\TaggedStatement{theorem}{Theorem}{Label}{Plain statement body.}
+\TaggedStatement{term}{Def.}{2.28}{Plain statement body.}
 \PassageHighlight{exercise}{Outer exercise.\PassageHighlight{lemma}{Inner paragraph.}}
+\Worked{E1}{Worked sample}{Normal problem.}{Start by \HighlightTag{exercise}{splitting the region}. Integrate the pieces.}
+\Proof{Use the \KeyTerm*{field quotient} criterion. Conclude maximality.}
 `;
 
 const sampleOnWhite = String.raw`
@@ -290,8 +294,10 @@ Below the claim.\par
 \textbf{Ex. 7.}\ Find the decisive step.\par
 \textbf{Jacobian}\quad Next to the term.\par
 \textbf{Paper A, Q2}\quad Next to the paper.\par
-\KeepBlock{\SheetRunIn[0.40pt]{Theorem Label.}\ Plain statement body.}
+\KeepBlock{\SheetRunIn[0.40pt]{Def. 2.28.}\ Plain statement body.}
 Outer exercise.\par Inner paragraph.\par
+\Worked{E1}{Worked sample}{Normal problem.}{Start by \textbf{splitting the region}. Integrate the pieces.}
+\Proof{Use the \SheetRunIn{field quotient} criterion. Conclude maximality.}
 `;
 
 function renderedText(xml: string) {
@@ -326,14 +332,37 @@ for (const monochrome of [false, true]) {
       ["Find the decisive step.", "004c35", "ccf0db"],
       ["Jacobian", "594200", "fff0a8"],
       ["Paper A, Q2", "741943", "f8dae6"],
-      ["Theorem Label.", "0037b3", "dceaff"],
+      ["Def. 2.28.", "594200", "fff0a8"],
       ["Outer exercise.", "004c35", "ccf0db"],
+      ["splitting the region", "004c35", "ccf0db"],
+      ["field quotient", "594200", "fff0a8"],
     ] as const;
     assert.equal(fills.length, roles.length);
     assert.deepEqual(renderedFills(plain.graphics), []);
 
     const runs = renderedText(highlighted.text);
     const plainRuns = renderedText(plain.text);
+    const strokes = renderedStrokes(highlighted.graphics);
+    for (const [term, underlined] of [
+      ["Jacobian", false],
+      ["field quotient", true],
+      ["Def. 2.28.", true],
+    ] as const) {
+      const run = runs.find(({ label }) => label === `<b>${term}</b>`);
+      assert.ok(run, `${term} prints in bold`);
+      assert.equal(
+        strokes.some((stroke) =>
+          stroke.thickness >= 0.2 &&
+          stroke.height < 0.02 &&
+          stroke.left >= run.left - 1 &&
+          stroke.left < run.left + run.width &&
+          stroke.baseline >= run.bottom - 0.15 &&
+          stroke.baseline < run.bottom + 1.75
+        ),
+        underlined,
+        `${term} underline`,
+      );
+    }
     const isGray = /^([\da-f]{2})\1\1$/u;
     for (const [i, [label, ink, fill]] of roles.entries()) {
       const run = runs.find((entry) => entry.label.includes(label));
@@ -356,21 +385,33 @@ for (const monochrome of [false, true]) {
       "Next to the term.",
       "Paper A, Q2",
       "Next to the paper.",
-      "Theorem Label.",
+      "Def. 2.28.",
       "Plain statement body.",
       "Outer exercise.",
       "Inner paragraph.",
+      "splitting the region",
+      "field quotient",
+      "Integrate the pieces.",
+      "Conclude maximality.",
     ]) {
       const run = runs.find((entry) => entry.label.includes(label));
       const plainRun = plainRuns.find((entry) => entry.label.includes(label));
       assert.ok(run && plainRun, label);
-      assert.deepEqual(
-        [run.top, run.left, run.width, run.height],
-        [plainRun.top, plainRun.left, plainRun.width, plainRun.height],
+      assert.ok(
+        (["top", "left", "width", "height"] as const).every(
+          (bound) => Math.abs(run[bound] - plainRun[bound]) < 0.01,
+        ),
         `${label} keeps its bounds`,
       );
     }
-    for (const label of ["Below the claim.", "Next to the term.", "Next to the paper.", "Plain statement body."]) {
+    for (const label of [
+      "Below the claim.",
+      "Next to the term.",
+      "Next to the paper.",
+      "Plain statement body.",
+      "Integrate the pieces.",
+      "Conclude maximality.",
+    ]) {
       assert.equal(runs.find((run) => run.label.includes(label))?.ink, "000000", label);
     }
     const printedClaim = runs.find((run) => run.label.includes("Second printed claim."));

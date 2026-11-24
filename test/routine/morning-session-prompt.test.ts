@@ -1,3 +1,4 @@
+import { observeMaintenanceCuration } from "../../src/routine/observe-maintenance-curation.js";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
@@ -11,6 +12,13 @@ import {
 
 const workOrder = {
   schemaVersion: 1,
+  curation: observeMaintenanceCuration({
+    module: "AB1234",
+    semester: "Y2S1",
+    inventory: { moduleCode: "AB1234", entries: [] },
+    controls: {},
+    imports: { available: false, roots: [] },
+  }),
   module: { code: "AB1234", semester: "Y2S1" },
   observedAt: "2026-08-23T06:00:00+08:00",
   contractVersion: 7,
@@ -212,4 +220,26 @@ describe("the offering's calendar day", () => {
     assert.equal(isCalendarDay("2026-02-31"), false);
     assert.equal(isCalendarDay("../.."), false);
   });
+});
+
+it("delegates additive placement judgment within existing approved folders while retaining conflict boundaries", () => {
+  assert.match(
+    prompt,
+    /Owner authorizes this unattended work order to perform evidence-backed additive curation into existing approved canonical folders/u,
+  );
+  assert.match(prompt, /even without an identical precedent/u);
+  assert.match(
+    prompt,
+    /authorization satisfies a local procedure’s approval step/u,
+  );
+  assert.match(prompt, /without an approval ping or appointment request/u);
+  assert.match(
+    prompt,
+    /Conflicting or genuinely ambiguous evidence remains actionable/u,
+  );
+  assert.match(
+    prompt,
+    /Preserve importer originals, take new destination names exclusively/u,
+  );
+  assert.match(prompt, /not new Definition categories or broader writes/u);
 });

@@ -10,6 +10,8 @@ import {
 } from "./maintenance-domains.js";
 import type { MaintenanceSafetyEvidence } from "./maintenance-safety-evidence.js";
 
+import type { MaintenanceCurationObservation } from "./observe-maintenance-curation.js";
+
 const maximumFindings = 100;
 const maximumLearningUnits = 50;
 const maximumPathsPerUnit = 30;
@@ -56,6 +58,7 @@ export interface ModuleMaintenanceWorkOrder {
     omittedFindings: number;
     proposedDirectories: string[];
   };
+  curation: MaintenanceCurationObservation;
   imports: MaintenanceImportObservation;
   learningSources: {
     outcome: LearningMaterialsAssessment["outcome"];
@@ -75,6 +78,7 @@ export function createModuleMaintenanceWorkOrder(input: {
   module: { code: string; semester: string };
   observedAt: string;
   plan: ModuleConformancePlan;
+  curation: MaintenanceCurationObservation;
   imports: MaintenanceImportObservation;
   learningSources: LearningMaterialsAssessment;
   writeJournalDirectory: string;
@@ -107,6 +111,7 @@ export function createModuleMaintenanceWorkOrder(input: {
       omittedFindings: attentionFindings.length - findings.length,
       proposedDirectories,
     },
+    curation: input.curation,
     imports: input.imports,
     learningSources: {
       outcome: input.learningSources.outcome,

@@ -31,6 +31,7 @@ import {
   sessionSpawnOptions,
   WRITE_JOURNAL_FILENAME,
 } from "../../src/routine/index.js";
+import { renderPublicMorningReport } from "../../src/routine/render-public-morning-report.js";
 import { learningWorkspacePaths } from "../fixtures/learning-workspace.js";
 import { syntheticMaintenanceCoverage } from "../fixtures/maintenance-coverage.js";
 import {
@@ -311,15 +312,46 @@ describe("the module maintenance session", () => {
           instructions,
           /nullable placeholders belong only to that report/u,
         );
-        assert.match(instructions, /verify the generated provenance schema/u);
-        assert.match(instructions, /importer-authored `source-only` branch/u);
-        assert.match(instructions, /classify that source independently/u);
-        assert.match(instructions, /appending a superseding decision/u);
         assert.match(
           instructions,
-          /already `source-only` record takes no new line/u,
+          /path-shape observations of importer operational evidence/u,
         );
-        assert.match(instructions, /Park unverified records/u);
+        assert.match(
+          instructions,
+          /Apply the existing importer source-only branch/u,
+        );
+        assert.match(
+          instructions,
+          /classify the underlying referenced source independently/u,
+        );
+        assert.match(instructions, /Preserve stored history/u);
+        assert.match(
+          instructions,
+          /Unexpected leaves remain source candidates/u,
+        );
+        assert.match(
+          instructions,
+          /This prompt owns producer-provenance validation/u,
+        );
+        assert.match(instructions, /verify the generated provenance schema/u);
+        assert.match(
+          instructions,
+          /valid superseding event preserving append-only history/u,
+        );
+        assert.match(instructions, /already source-only takes no new event/u);
+        assert.match(
+          instructions,
+          /Owner authorizes this unattended work order/u,
+        );
+        assert.match(instructions, /even without an identical precedent/u);
+        assert.match(
+          instructions,
+          /proceed without an approval ping or appointment request/u,
+        );
+        assert.match(
+          instructions,
+          /new Definition categories or broader writes/u,
+        );
         for (const path of [
           join(artifacts, MORNING_SESSION_WORK_ORDER_FILENAME),
           join(artifacts, "result-schema.json"),
@@ -570,6 +602,10 @@ describe("the module maintenance session", () => {
 
   it("runs one fresh correction attempt without a deadline and retains earlier successful buckets", async () => {
     const { config, moduleRoot, stateRoot } = await maintenanceFixture();
+    await writeFile(
+      join(moduleRoot, "NTULearn", "pending-during-correction.pdf"),
+      "synthetic source",
+    );
     let calls = 0;
     const time = [
       "2026-08-22T22:00:00.000Z",
@@ -623,6 +659,7 @@ describe("the module maintenance session", () => {
     const result = await session.run({ semester: "Y2S1", module: "MH2100" });
 
     assert.equal(calls, 2);
+    assert.ok(result.failures.some(({ code }) => code === "curation-pending"));
     assert.deepEqual(
       result.noted.map(({ item }) => item),
       ["attempt-1", "attempt-2"],
@@ -1051,3 +1088,130 @@ it("supplies the canonical safety procedure read-only from the production Module
     !result.failures.some(({ code }) => code === "session-runner-failed"),
   );
 });
+
+it("retains independent pending curation after a successful session that places nothing", async () => {
+  const fixture = await maintenanceFixture();
+  await writeFile(
+    join(fixture.moduleRoot, "NTULearn", "pending.pdf"),
+    "synthetic source",
+  );
+  const session = createCodexModuleSession({
+    config: fixture.config,
+    codexPath: "/private/synthetic-codex",
+    date: "2026-08-23",
+    clock: () => new Date("2026-08-22T22:00:00Z"),
+    runner: async (input) => {
+      const order = JSON.parse(
+        await readFile(
+          join(dirname(input.logPath), MORNING_SESSION_WORK_ORDER_FILENAME),
+          "utf8",
+        ),
+      );
+      assert.equal(order.curation.counts.unrecorded, 1);
+      assert.equal(order.curation.worklist[0].paths[0], "NTULearn/pending.pdf");
+      await writeFile(
+        flagFrom(input.arguments, "--output-last-message"),
+        JSON.stringify(passOutcome()),
+      );
+      return 0;
+    },
+  });
+  const result = await session.run({ semester: "Y2S1", module: "MH2100" });
+  const before = JSON.parse(
+    await readFile(join(result.artifacts, "curation-before.json"), "utf8"),
+  );
+  const after = JSON.parse(
+    await readFile(join(result.artifacts, "curation-after.json"), "utf8"),
+  );
+  assert.deepEqual(after, before);
+  assert.equal(after.counts.unrecorded, 1);
+  const publicReport = renderPublicMorningReport({
+    date: "2026-08-23",
+    prelude: [],
+    modules: [result],
+  });
+  assert.match(publicReport, /curation-pending/u);
+  assert.doesNotMatch(publicReport, /pending.pdf|NTULearn\//u);
+  assert.ok(result.failures.some(({ code }) => code === "curation-pending"));
+  assert.ok(
+    !result.failures.some(
+      ({ code }) => code === "session-runner-failed" || code === "session-exit",
+    ),
+  );
+  assert.equal(
+    await readFile(join(fixture.moduleRoot, "NTULearn", "pending.pdf"), "utf8"),
+    "synthetic source",
+  );
+});
+
+for (const rederived of [false, true])
+  it(`independently distinguishes ${rederived ? "missing derived outputs" : "historical missing paths"} after model success`, async () => {
+    const fixture = await maintenanceFixture();
+    const event = {
+      schema_version: rederived ? 2 : 1,
+      source_id: "combined.pdf",
+      integration: "ntulearn",
+      role: "primary",
+      source_path: "combined.pdf",
+      decision: rederived ? "rederived" : "source-only",
+      ...(rederived
+        ? {
+            derived: [
+              "10 Lectures/01 Chapter.pdf",
+              "10 Lectures/02 Chapter.pdf",
+            ],
+          }
+        : {}),
+      evidence: "Synthetic existing decision",
+      timestamp: "2026-08-22T00:00:00Z",
+    };
+    await writeFile(
+      join(fixture.moduleRoot, "00 Module Admin/20 Curation Register.jsonl"),
+      `${JSON.stringify(event)}\n`,
+    );
+    if (rederived) {
+      await mkdir(join(fixture.moduleRoot, "10 Lectures"), { recursive: true });
+      await writeFile(
+        join(fixture.moduleRoot, "NTULearn/combined.pdf"),
+        "synthetic source",
+      );
+      await writeFile(
+        join(fixture.moduleRoot, "10 Lectures/01 Chapter.pdf"),
+        "synthetic derived chapter",
+      );
+    }
+    const session = createCodexModuleSession({
+      config: fixture.config,
+      codexPath: "/private/synthetic-codex",
+      date: "2026-08-23",
+      clock: () => new Date("2026-08-22T22:00:00Z"),
+      runner: async (input) => {
+        await writeFile(
+          flagFrom(input.arguments, "--output-last-message"),
+          JSON.stringify(passOutcome()),
+        );
+        return 0;
+      },
+    });
+    const result = await session.run({ semester: "Y2S1", module: "MH2100" });
+    const after = JSON.parse(
+      await readFile(join(result.artifacts, "curation-after.json"), "utf8"),
+    );
+    assert.equal(
+      after.counts[
+        rederived ? "missing-derived-output" : "missing-recorded-source"
+      ],
+      1,
+    );
+    assert.equal(
+      result.failures.some(({ code }) => code === "curation-pending"),
+      rederived,
+    );
+    assert.equal(
+      result.noted.some(
+        ({ item }) => item === "historical-source-path-observations",
+      ),
+      !rederived,
+    );
+    assert.equal(after.counts.settled, 0);
+  });

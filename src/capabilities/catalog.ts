@@ -605,6 +605,7 @@ export const cliCapabilities: Capability[] = [
       [
         "test/cli/routine-morning-cli.test.ts",
         "test/routine/codex-module-session.test.ts",
+        "test/routine/observe-maintenance-curation.test.ts",
         "test/routine/codex-search-path.test.ts",
         "test/routine/cohort-prelude.test.ts",
         "test/routine/file-routine-artifacts.test.ts",

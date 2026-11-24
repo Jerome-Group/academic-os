@@ -309,6 +309,28 @@ and serialization; a token that would round or normalize blocks reconciliation, 
 unknown fields. This conservative check applies only to reconciliation. A missing-time line without
 that exact later event is invalid. Existing bytes stay intact.
 
+A schema 3 historical `curated` line missing only the `destination` key can instead be
+reconciled by a fully valid schema 3 append with
+`reconciliation: "original-curated-destination-unrecorded"`. Its `supersedes` raw SHA-256 reference
+identifies that exact original line; `destination_evidence` is another `raw-sha256:<hex>` reference
+to a distinct, complete ordinary schema 3 curated event later than the original and earlier than
+the append. Both references use the exact-byte rule above and each must match exactly one line.
+The original has a valid timestamp and every other required field; a null or empty destination
+is not an absent key. Original, evidence and append agree exactly on integration, source ID,
+source path, role and a recorded `sha256:<64 lowercase hex>` checksum. The append takes the
+complete destination exactly from the evidence event and preserves every original field,
+including unknown fields, except `destination`, `evidence`, `timestamp`, `supersedes`,
+`reconciliation` and the new `destination_evidence` pointer. Its timestamp records the append.
+Both referenced events are ordinary events without reconciliation metadata. Each original can
+be reconciled once. The exact-number-token check above applies to all three raw lines.
+An intervening event for the same integration and source ID or unnumbered source path must
+retain the same curated decision, full identity, checksum and destination. A contradiction
+blocks reconciliation. `destination_evidence` is allowed only on this marked
+append. An unmarked destination omission remains invalid. This structural check verifies the
+journal references, not academic bytes; the curator independently verifies the persisted source
+and canonical output against the recorded checksum before appending. Reconciliation writes no
+academic material and leaves all prior bytes intact.
+
 Version 2 adds the fourth decision `rederived`: the item's content reached the module through
 derived artifacts rather than through a copy, and the line names them in `derived` — a non-empty
 sequence of module-relative paths — where a curated line names a `destination`.

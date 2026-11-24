@@ -22,6 +22,7 @@ import {
   createModuleMaintenanceWorkOrder,
   type MaintenanceImportObservation,
 } from "./module-maintenance-work-order.js";
+import { observeMaintenanceCuration } from "./observe-maintenance-curation.js";
 import { MODULE_PASS_SCHEMA } from "./module-pass-schema.js";
 import { morningSessionPrompt } from "./morning-session-prompt.js";
 import { readModulePassOutcome } from "./read-module-pass-outcome.js";
@@ -239,7 +240,16 @@ async function runSession(input: {
   const safetyProcedure = await stageMaintenanceSafetyEvidence({
     artifacts: input.artifacts,
   });
+  const curation = observeMaintenanceCuration({
+    module: input.module.module,
+    semester: input.module.semester,
+    inventory: before.inventory,
+    controls: before.controls,
+    imports,
+  });
+  await writeJson(join(input.artifacts, "curation-before.json"), curation);
   const workOrder = createModuleMaintenanceWorkOrder({
+    curation,
     safetyProcedure,
     module: {
       code: input.module.module,
@@ -338,7 +348,10 @@ async function runSession(input: {
   const retryFindings = [...postflight.regressions, ...postflight.residual];
   const nonAuditFailures = outcome.failures.filter(
     ({ code }) =>
-      code !== "post-audit-regression" && code !== "post-audit-residual",
+      code !== "post-audit-regression" &&
+      code !== "post-audit-residual" &&
+      code !== "curation-pending" &&
+      code !== "curation-observation-unavailable",
   );
   const retryable =
     exitCode === 0 &&
@@ -423,6 +436,44 @@ async function postflightAudit(input: {
 }> {
   try {
     const after = await inspectMountedModule(input.configured);
+    const curation = observeMaintenanceCuration({
+      module: after.target.module,
+      semester: after.target.semester,
+      inventory: after.inventory,
+      controls: after.controls,
+      imports: await importObservation(
+        input.configured,
+        (input.clock ?? (() => new Date()))().toISOString(),
+        [],
+      ),
+    });
+    await writeJson(join(input.artifacts, "curation-after.json"), curation);
+    const pending = Object.entries(curation.counts)
+      .filter(
+        ([kind]) =>
+          ![
+            "sources",
+            "reservedMetadata",
+            "settled",
+            "missing-recorded-source",
+          ].includes(kind),
+      )
+      .reduce((sum, [, count]) => sum + count, 0);
+    if (curation.counts["missing-recorded-source"] > 0)
+      input.outcome.noted.push({
+        item: "historical-source-path-observations",
+        note: `Independent curation observation cannot match ${curation.counts["missing-recorded-source"]} standing historical source path(s) to current inventoried paths; see curation-after.json. These path absences do not establish upstream disappearance or withdrawal, and do not alone establish a delivery failure.`,
+      });
+    if (pending > 0)
+      input.outcome.failures.push({
+        code: "curation-pending",
+        message: `Independent curation postflight retains ${pending} path/decision finding(s); see curation-after.json. No placement or byte-fidelity conclusion is implied.`,
+      });
+    if (curation.inputs === "unavailable")
+      input.outcome.failures.push({
+        code: "curation-observation-unavailable",
+        message: `Independent curation postflight has unavailable inputs: ${curation.problems.join(" ")}`,
+      });
     const afterPlan = planModuleConformance({
       contract: input.contract,
       target: observationTarget(after.target),

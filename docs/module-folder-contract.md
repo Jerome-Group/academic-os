@@ -653,9 +653,15 @@ and exempt from folder and file naming rules. An undeclared `NTULearn_*` root re
 
 An importer may expose operational metadata inside its own root. NTULearn's optional
 `Sync status.json` follows the separate [import-status interface](import-status-contract.md): it
-reports an attempt's outcome, while `Last synced.md` remains the human-facing attempt stamp.
-Neither is a course inventory or evidence that a source was removed upstream. A missing receipt
-does not make a Module folder nonconformant; `imports status` reports that evidence gap separately.
+reports an attempt's outcome, while `Last synced.md` is the human-readable attempt stamp.
+Use the complete source walk for inventory and withdrawal evidence. A missing receipt is an
+operational gap reported by `imports status`.
+
+In a declared NTULearn root, paths of the form
+`Source editions/<64 lowercase hex>/<64 lowercase hex>.json` are reserved for importer provenance.
+Schema validity, source classification and byte fidelity require their own evidence. One or two
+`.part-<UUID>` suffixes on a reserved path indicate incomplete publication. Other files remain
+source candidates.
 
 A control cites a mirror by one of three forms, and never by a path into its interior: an importer
 **landmark**, which is `Course.md`, `Last synced.md`, `Announcements/` or a root itself; the
@@ -675,7 +681,17 @@ walk passes over what MF-ROOT-003 names, so a mount artifact is neither curated 
 nothing deletes one. A park nobody could ever clear is not a park —
 [`docs/adr/0010`](adr/0010-the-shelf-migration-is-one-settled-sheet.md) settled that for the
 Textbook shelf, and an importer root asks the same question. Ambiguous placement is shown with
-evidence and left uncopied until resolved. A source update never silently overwrites a curated copy
+evidence and left uncopied until resolved.
+
+An Owner-authorized unattended work order may delegate additive placement in existing approved
+folders. Use the current source, Module context and relevant precedents to choose the canonical
+destination. When the evidence supports one destination, the work order supplies the local
+procedure's approval and the agent places the file, including when there is no identical precedent.
+Preserve importer originals and take new names exclusively. Conflicts carry the evidence and
+concrete alternatives. Occupied or edited content, destructive actions, new Definition categories
+and external Task or Calendar writes remain outside this delegation.
+
+A source update never silently overwrites a curated copy
 since annotated, graded or otherwise modified; a disappeared source does not delete its curated
 copy, and its departure is recorded as a `withdrawn` decision that closes the item and moves
 nothing. A withdrawn item is settled for every later walk, which is what ends the daily report of a

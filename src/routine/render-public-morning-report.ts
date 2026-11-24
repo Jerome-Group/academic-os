@@ -24,6 +24,8 @@ const publicFailureCodes = new Set([
   "post-audit-regression",
   "post-audit-residual",
   "post-audit-unreadable",
+  "curation-pending",
+  "curation-observation-unavailable",
   "import-status-invalid",
   "import-status-noncurrent",
   "import-status-unavailable",

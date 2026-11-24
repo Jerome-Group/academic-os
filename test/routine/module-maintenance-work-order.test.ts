@@ -1,3 +1,4 @@
+import { observeMaintenanceCuration } from "../../src/routine/observe-maintenance-curation.js";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
@@ -82,6 +83,13 @@ const learningSources = {
 } as LearningMaterialsAssessment;
 
 const workOrder = createModuleMaintenanceWorkOrder({
+  curation: observeMaintenanceCuration({
+    module: "MH2100",
+    semester: "Y2S1",
+    inventory,
+    controls: {},
+    imports: { available: false, roots: [] },
+  }),
   module: { code: "MH2100", semester: "Y2S1" },
   observedAt,
   plan,

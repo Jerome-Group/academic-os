@@ -4,6 +4,7 @@ The CLI observes maintenance state, coordinates bounded repository repair and ma
 
 ## Sub-features
 
+- Morning curation pins a sorted bounded path/standing-decision worklist and counts, then independently observes postflight pending and unavailable findings.
 - Morning maintenance preserves Module scope, excludes overlapping runs and keeps journal evidence without a session deadline.
 - Repository status distinguishes healthy, attention and unobserved results.
 - Repository repair respects protected delivery and retained evidence.
@@ -43,9 +44,10 @@ journal and result paths, bounded recovery reads, transcript exclusion and unatt
 model and effort settings. It requires the per-invocation experimental context-management disable and
 local shell filesystem guidance for Module and journal operations. Unattended sessions override inherited
 experimental context management and direct recovery through local files while retaining normal automatic compaction.
+The synthetic Module runner also leaves an imported attachment untouched while returning model success, then requires identical curation-before/after observations and an actionable curation-pending failure. Observer fixtures distinguish source-only, recorded ambiguity, normalized-path collisions, missing placed outputs, unavailable inventory/registers and exact canonical NTULearn metadata paths. These prove path coverage only; materialization, provenance validity, byte fidelity and placement judgment remain unverified.
 This proves invocation transport, not native model recovery after compaction or real curation completion.
-The captured instructions also distinguish verified generated provenance from referenced source material,
-apply the pinned importer-authored classification branch, preserve append-only/no-op rules and park validation gaps.
+The captured instructions distinguish reserved operational metadata path observations from referenced material,
+apply the existing source-only procedure, preserve append-only/no-op rules and report incomplete publication or unexpected leaves.
 These assertions prove instruction delivery; model classification quality needs a separate isolated native probe.
 Repository-repair subprocess fixtures preserve Owner issue text, bind publication to the controller's incident fingerprint,
 and require exact conclusion-comment and issue-state readback. They exercise refused writes, changed ownership,
@@ -75,3 +77,7 @@ Textbooks sweep writes a private review sheet and needs no mounted rewrite to pr
 Do not run live morning maintenance, perform retention or change LaunchAgents merely to verify this map.
 Real scheduled recovery and model quality remain separate operational evidence.
 The launcher fixture proves installer-to-scheduler transport, not native launchd loading or readiness of the installed TeX and Poppler tools.
+
+Independent postflight checks exact recorded rederived artifact paths for ordinary files outside importer roots, without reopening the decision or comparing bytes. Historical unmatched source paths remain private observations, sorted after current arrivals and output gaps; they alone do not fail curation delivery or establish upstream disappearance. Wrong Module or semester identity makes the observer unavailable; unrelated contextual decisions do not.
+
+Captured work-order instructions explicitly delegate additive placement judgment into existing approved folders when current source evidence and Module context converge, including without identical precedent. They supply supported reversible placement approval while protecting occupied/edited content, preserving importer originals and retaining Definition/destructive/external-write boundaries. Prompt and Module runner assertions prove delivery of this authority, not autonomous classification quality or a real placement. Producer-provenance validation and append-only supersession are prompt-owned instructions, separate from the pinned procedure’s existing source-only branch.

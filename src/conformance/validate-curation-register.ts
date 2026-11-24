@@ -1,6 +1,7 @@
-import { normalizeCurationEventOptionals } from "../curation/normalize-curation-event-optionals.js";
 import { isDeepStrictEqual } from "node:util";
 import { sha256 } from "../checksum.js";
+import { normalizeCurationEventOptionals } from "../curation/normalize-curation-event-optionals.js";
+import { unnumberedSourcePath } from "../curation/unnumbered-source-path.js";
 import { controlFinding, failedControl } from "./control-finding.js";
 import { writtenControlPaths } from "./control-paths.js";
 import type { Finding } from "./types.js";
@@ -42,8 +43,10 @@ export function validateCurationRegister(source: string | undefined): Finding {
   if (lines.at(-1) === "") lines.pop();
   const parsed: Array<Record<string, unknown> | undefined> = [];
   const hashes = new Map<string, number[]>();
+  const eventProblems: string[][] = [];
   for (const [index, line] of lines.entries()) {
     const lineNumber = index + 1;
+    eventProblems.push([]);
     if (line.trim() === "") {
       problems.push(`Line ${lineNumber} is blank.`);
       parsed.push(undefined);
@@ -62,11 +65,33 @@ export function validateCurationRegister(source: string | undefined): Finding {
     parsed.push(isRecord(value) ? value : undefined);
     const hash = sha256(line);
     hashes.set(hash, [...(hashes.get(hash) ?? []), index]);
-    problems.push(...validateEvent(value, lineNumber));
+    eventProblems[index] = validateEvent(value, lineNumber);
   }
   const reconciled = new Set<number>();
+  const destinationsReconciled = new Set<number>();
   for (const [index, event] of parsed.entries()) {
     if (!event) continue;
+    if (event.reconciliation === "original-curated-destination-unrecorded") {
+      const targetIndex = reconcileMissingDestination({
+        event,
+        index,
+        parsed,
+        hashes,
+        lines,
+        reconciled,
+        problems,
+      });
+      if (targetIndex !== undefined) {
+        reconciled.add(targetIndex);
+        destinationsReconciled.add(targetIndex);
+      }
+      continue;
+    }
+    if (event.destination_evidence !== undefined) {
+      problems.push(
+        `Line ${index + 1} destination_evidence requires destination reconciliation.`,
+      );
+    }
     const reference = event.supersedes;
     const marked = event.reconciliation === "original-decision-time-unrecorded";
     const rawReference =
@@ -139,6 +164,16 @@ export function validateCurationRegister(source: string | undefined): Finding {
     }
     reconciled.add(targetIndex);
   }
+  for (const [index, entries] of eventProblems.entries()) {
+    problems.push(
+      ...entries.filter(
+        (problem) =>
+          !destinationsReconciled.has(index) ||
+          problem !==
+            `Line ${index + 1} curated decision requires destination.`,
+      ),
+    );
+  }
   for (const [index, event] of parsed.entries()) {
     if (event && !Object.hasOwn(event, "timestamp") && reconciled.has(index))
       continue;
@@ -153,12 +188,152 @@ export function validateCurationRegister(source: string | undefined): Finding {
         "pass",
         reconciled.size === 0
           ? `Curation Register contains ${lines.length} structurally valid event${lines.length === 1 ? "" : "s"}.`
-          : `Curation Register contains ${lines.length} accepted events; ${reconciled.size} historical decision instant${reconciled.size === 1 ? "" : "s"} unrecorded and reconciled.`,
+          : destinationsReconciled.size === 0
+            ? `Curation Register contains ${lines.length} accepted events; ${reconciled.size} historical decision instant${reconciled.size === 1 ? "" : "s"} unrecorded and reconciled.`
+            : `Curation Register contains ${lines.length} accepted events; ${reconciled.size} historical omission${reconciled.size === 1 ? "" : "s"} reconciled.`,
         reconciled.size === 0
           ? "Every non-empty line is one supported curation-decision event."
-          : "The reconciled events retain unknown original decision times; later timestamps describe the reconciliation append.",
+          : destinationsReconciled.size === 0
+            ? "The reconciled events retain unknown original decision times; later timestamps describe the reconciliation append."
+            : "Historical bytes stay intact; reconciliation timestamps describe the append, not a new curation decision.",
       )
     : failedControl("MF-CURATION-001", registerPath, problems);
+}
+
+function reconcileMissingDestination({
+  event,
+  index,
+  parsed,
+  hashes,
+  lines,
+  reconciled,
+  problems,
+}: {
+  event: Record<string, unknown>;
+  index: number;
+  parsed: Array<Record<string, unknown> | undefined>;
+  hashes: Map<string, number[]>;
+  lines: string[];
+  reconciled: Set<number>;
+  problems: string[];
+}): number | undefined {
+  const fail = (reason: string): undefined => {
+    problems.push(`Line ${index + 1} destination reconciliation ${reason}.`);
+    return undefined;
+  };
+  const priorIndex = (reference: unknown): number | undefined => {
+    if (
+      typeof reference !== "string" ||
+      !/^raw-sha256:[0-9a-f]{64}$/u.test(reference)
+    )
+      return undefined;
+    const targets = hashes.get(reference.slice("raw-sha256:".length)) ?? [];
+    return targets.length === 1 ? targets[0] : undefined;
+  };
+  const targetIndex = priorIndex(event.supersedes);
+  const evidenceIndex = priorIndex(event.destination_evidence);
+  if (
+    targetIndex === undefined ||
+    evidenceIndex === undefined ||
+    targetIndex >= evidenceIndex ||
+    evidenceIndex >= index
+  ) {
+    return fail(
+      "requires unique raw references ordered original, destination evidence, append",
+    );
+  }
+  const target = parsed[targetIndex];
+  const evidence = parsed[evidenceIndex];
+  if (!target || !evidence || reconciled.has(targetIndex)) {
+    return fail(
+      "requires an unreconciled original and complete evidence event",
+    );
+  }
+  if (
+    target.schema_version !== 3 ||
+    target.decision !== "curated" ||
+    !nonEmptyString(target.source_path) ||
+    Object.hasOwn(target, "destination") ||
+    target.reconciliation !== undefined ||
+    target.destination_evidence !== undefined ||
+    !nonEmptyString(target.timestamp) ||
+    validateEvent(
+      { ...target, destination: "placeholder.pdf" },
+      targetIndex + 1,
+    ).length > 0
+  ) {
+    return fail(
+      "original must be schema 3 curated history missing only destination",
+    );
+  }
+  if (
+    evidence.schema_version !== 3 ||
+    evidence.decision !== "curated" ||
+    evidence.reconciliation !== undefined ||
+    evidence.destination_evidence !== undefined ||
+    !nonEmptyString(evidence.timestamp) ||
+    validateEvent(evidence, evidenceIndex + 1).length > 0
+  ) {
+    return fail("evidence must be a complete ordinary schema 3 curated event");
+  }
+  const identityFields = [
+    "integration",
+    "source_id",
+    "source_path",
+    "role",
+    "checksum",
+  ];
+  if (
+    typeof target.checksum !== "string" ||
+    !/^sha256:[0-9a-f]{64}$/u.test(target.checksum) ||
+    identityFields.some((field) => target[field] !== evidence[field])
+  ) {
+    return fail("evidence must preserve source identity and SHA-256 checksum");
+  }
+  if (
+    event.schema_version !== 3 ||
+    !nonEmptyString(event.timestamp) ||
+    validateEvent(event, index + 1).length > 0 ||
+    event.destination !== evidence.destination ||
+    !sameHistoricalDecision(
+      { ...target, destination: evidence.destination },
+      Object.fromEntries(
+        Object.entries(event).filter(
+          ([field]) => field !== "destination_evidence",
+        ),
+      ),
+    )
+  ) {
+    return fail(
+      "append must preserve the original and exact evidenced destination",
+    );
+  }
+  for (const lineIndex of [targetIndex, evidenceIndex, index]) {
+    const raw = lines[lineIndex];
+    if (raw === undefined || !roundTripsJsonNumbers(raw)) {
+      return fail("cannot preserve a numeric JSON token exactly");
+    }
+  }
+  const standingPath = unnumberedSourcePath(target.source_path);
+  for (let laterIndex = evidenceIndex + 1; laterIndex < index; laterIndex++) {
+    const later = parsed[laterIndex];
+    if (
+      !later ||
+      later.integration !== target.integration ||
+      (later.source_id !== target.source_id &&
+        (typeof later.source_path !== "string" ||
+          unnumberedSourcePath(later.source_path) !== standingPath))
+    )
+      continue;
+    if (
+      later.decision !== "curated" ||
+      later.destination !== evidence.destination ||
+      identityFields.some((field) => later[field] !== target[field])
+    ) {
+      return fail(`contradicts later decision on line ${laterIndex + 1}`);
+    }
+  }
+  return targetIndex;
 }
 
 function validateEvent(input: unknown, line: number): string[] {

@@ -38,6 +38,11 @@ accepting nested numeric values that round-trip without a change.
 It also checks the historical manual alias and exact UTC space spelling without accepting arbitrary
 absolute importer paths or malformed dates. This fixture does not establish the unknown historical
 decision instants or authorize a live register append.
+The destination-reconciliation regression uses synthetic schema 3 history with an absent
+`destination`, a complete later curated event and an append referencing both exact raw lines.
+It checks standing readback, unchanged history, unique prior reference order, identical source
+identity and SHA-256, exact destination, later conflicting decisions and rejection of unrelated
+defects or unmarked omissions. It does not verify academic bytes or perform a live append.
 Domain journeys exercise bounded repository checks, recovery decisions, curation rederivation and weekly publication.
 The Module runner fixture captures per-session developer instructions and checks the exact work order, schema,
 journal and result paths, bounded recovery reads, transcript exclusion and unattended limits alongside sandbox,
